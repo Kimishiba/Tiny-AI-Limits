@@ -5,6 +5,7 @@ import platform
 import time
 import subprocess
 import requests
+from datetime import datetime
 from flask import Flask, jsonify
 
 app = Flask(__name__)
@@ -48,13 +49,15 @@ def get_weather():
 
         return {
             "temperature": current_temp,
-            "hours_until_rain": hours_until_rain
+            "hours_until_rain": hours_until_rain,
+            "date_string": datetime.now().strftime("%a %d %b").upper()
         }
     except Exception as e:
         print(f"Weather error: {e}")
         return {
             "temperature": 0.0,
-            "hours_until_rain": -1
+            "hours_until_rain": -1,
+            "date_string": "ERR"
         }
 
 # --- Claude Data Extraction Logic ---

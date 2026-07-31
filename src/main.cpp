@@ -31,6 +31,7 @@ int antigravity_limit = 100;
 int antigravity_remaining = 100;
 float current_temperature = 0.0;
 int hours_until_rain = -1;
+String date_string = "LOADING...";
 
 #define KINETIC_YELLOW 0xFFE0 // #FFFF00
 #define KINETIC_CYAN   0x07FF // #00FFFF
@@ -47,14 +48,16 @@ void drawLimitsUI(TFT_eSprite* spr) {
     spr->setTextColor(KINETIC_YELLOW);
     spr->setTextDatum(ML_DATUM);
     spr->setFreeFont(&FreeSans9pt7b);
-    // Draw tiny terminal icon
-    spr->drawRect(5, 4, 14, 12, KINETIC_YELLOW);
-    spr->drawLine(7, 8, 10, 10, KINETIC_YELLOW);
-    spr->drawLine(10, 10, 7, 12, KINETIC_YELLOW);
-    spr->drawLine(11, 12, 16, 12, KINETIC_YELLOW);
-    spr->drawString("ILI9341 CTRL // KINETIC ZERO", 26, 11, 1);
+    
+    // Draw date on the left
+    spr->drawString(date_string, 10, 11, 1);
+    
+    // Draw temperature on the right
+    char temp_top[10];
+    dtostrf(current_temperature, 4, 1, temp_top);
+    strcat(temp_top, " C");
     spr->setTextDatum(MR_DATUM);
-    spr->drawString("88% [ ]", 315, 11, 1); // Fake battery
+    spr->drawString(temp_top, 310, 11, 1);
 
     // 2. Main Content Area (Yellow)
     spr->fillRect(5, 24, 310, 140, KINETIC_YELLOW);
@@ -178,13 +181,17 @@ void drawWeatherUI(TFT_eSprite* spr) {
     spr->drawRect(0, 0, 320, 240, KINETIC_YELLOW);
     spr->drawRect(1, 1, 318, 238, KINETIC_YELLOW); // 2px thickness
 
-    // 3. Header: SYS_CTRL
+    // 3. Header
     spr->fillRect(0, 0, 320, 28, KINETIC_YELLOW);
     spr->setTextColor(KINETIC_BLACK);
     spr->setTextDatum(ML_DATUM);
-    spr->drawString("SYS_CTRL // V.04_KINETIC", 10, 14, 2);
+    spr->drawString(date_string, 10, 14, 2);
+    
+    char temp_top_w[10];
+    dtostrf(current_temperature, 4, 1, temp_top_w);
+    strcat(temp_top_w, " C");
     spr->setTextDatum(MR_DATUM);
-    spr->drawString("88% [^]", 310, 14, 2);
+    spr->drawString(temp_top_w, 310, 14, 2);
 
     // 4. Central Weather Block
     int bx = 10, by = 38, bw = 170, bh = 110;
@@ -311,6 +318,11 @@ void fetchData() {
                 antigravity_remaining = doc["antigravity"]["remaining"];
                 current_temperature = doc["weather"]["temperature"];
                 hours_until_rain = doc["weather"]["hours_until_rain"];
+                
+                if (doc["weather"].containsKey("date_string")) {
+                    const char* dateStr = doc["weather"]["date_string"];
+                    date_string = String(dateStr);
+                }
                 
                 // Immediately update current display
                 renderScreen(currentScreen, &sprCurrent);
