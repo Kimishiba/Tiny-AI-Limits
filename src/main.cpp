@@ -39,83 +39,135 @@ int hours_until_rain = -1;
 #define KINETIC_DARK   0x1082 // Dark grey/black for surfaces
 
 void drawLimitsUI(TFT_eSprite* spr) {
-    // 2. Clear background to Kinetic Yellow
-    spr->fillSprite(KINETIC_YELLOW);
+    // Fill entire sprite with Kinetic Black first
+    spr->fillSprite(KINETIC_BLACK);
 
-    // 3. Header Bar
-    spr->fillRect(0, 0, 320, 32, KINETIC_BLACK);
+    // 1. Top Header Bar (0 to 24)
+    spr->fillRect(0, 0, 320, 24, KINETIC_BLACK);
     spr->setTextColor(KINETIC_YELLOW);
-    spr->setTextDatum(MC_DATUM);
-    spr->drawString("ILI9341 CTRL // KINETIC ZERO", 160, 16, 2);
+    spr->setTextDatum(ML_DATUM);
+    spr->setFreeFont(&FreeSans9pt7b);
+    // Draw tiny terminal icon
+    spr->drawRect(5, 4, 14, 12, KINETIC_YELLOW);
+    spr->drawLine(7, 8, 10, 10, KINETIC_YELLOW);
+    spr->drawLine(10, 10, 7, 12, KINETIC_YELLOW);
+    spr->drawLine(11, 12, 16, 12, KINETIC_YELLOW);
+    spr->drawString("ILI9341 CTRL // KINETIC ZERO", 26, 11, 1);
+    spr->setTextDatum(MR_DATUM);
+    spr->drawString("88% [ ]", 315, 11, 1); // Fake battery
 
-    // 4. Calculate Percentages
+    // 2. Main Content Area (Yellow)
+    spr->fillRect(5, 24, 310, 140, KINETIC_YELLOW);
+    
+    // Vertical Divider
+    int midX = 180;
+    spr->fillRect(midX, 24, 5, 140, KINETIC_BLACK);
+
+    // Calculate Percentages
     float claude_p = 0;
     if (claude_limit > 0) claude_p = (float)claude_remaining / claude_limit;
     
     float anti_p = 0;
     if (antigravity_limit > 0) anti_p = (float)antigravity_remaining / antigravity_limit;
 
-    // --- CLAUDE SECTION ---
-    int y1 = 48;
+    // --- CLAUDE SECTION (Left) ---
+    int lx = 12;
+    int y1 = 30;
     spr->setTextColor(KINETIC_BLACK);
     spr->setFreeFont(&FreeSansBold12pt7b);
     spr->setTextDatum(TL_DATUM);
-    spr->drawString("CLAUDE", 12, y1);
-    
-    // Percent Text
+    spr->drawString("CLAUDE", lx, y1);
     spr->setTextDatum(TR_DATUM);
-    spr->drawString(String((int)(claude_p * 100)) + "%", 240, y1);
+    spr->drawString(String((int)(claude_p * 100)) + "%", midX - 8, y1);
 
-    // Progress Bar (Neo-Brutalist chunky style)
-    spr->drawRoundRect(12, y1 + 28, 230, 42, 4, KINETIC_BLACK);
-    spr->drawRoundRect(13, y1 + 29, 228, 40, 4, KINETIC_BLACK); // Inner border for thickness
-    int c_width = (int)(224 * claude_p);
-    spr->fillRoundRect(15, y1 + 31, c_width, 36, 2, KINETIC_CYAN);
+    // Progress Bar (Thick border, yellow empty space, cyan fill)
+    spr->fillRect(lx, y1 + 25, midX - 20, 24, KINETIC_BLACK); // outer border
+    spr->fillRect(lx + 3, y1 + 28, midX - 26, 18, KINETIC_YELLOW); // empty area
+    int c_width = (int)((midX - 26) * claude_p);
+    if (c_width > 0) spr->fillRect(lx + 3, y1 + 28, c_width, 18, KINETIC_CYAN); // fill
+    spr->fillRect(lx + 3 + c_width, y1 + 28, 3, 18, KINETIC_BLACK); // inner dividing line
 
     // Raw Values
-    spr->setFreeFont(&FreeSans9pt7b);
+    spr->setTextFont(1);
     spr->setTextDatum(TL_DATUM);
-    spr->drawString(String(claude_remaining) + " / " + String(claude_limit), 12, y1 + 75);
+    spr->drawString(String(claude_remaining) + " / " + String(claude_limit), lx, y1 + 54, 2);
 
-
-    // --- ANTIGRAVITY SECTION ---
-    int y2 = 142;
+    // --- ANTIGRAVITY SECTION (Left) ---
+    int y2 = 100;
     spr->setFreeFont(&FreeSansBold12pt7b);
-    spr->drawString("ANTIGRAVITY", 12, y2);
-    
-    // Percent Text
+    spr->drawString("ANTIGRAVITY", lx, y2);
     spr->setTextDatum(TR_DATUM);
-    spr->drawString(String((int)(anti_p * 100)) + "%", 240, y2);
+    spr->drawString(String((int)(anti_p * 100)) + "%", midX - 8, y2);
 
     // Progress Bar
-    spr->drawRoundRect(12, y2 + 28, 230, 42, 4, KINETIC_BLACK);
-    spr->drawRoundRect(13, y2 + 29, 228, 40, 4, KINETIC_BLACK);
-    int a_width = (int)(224 * anti_p);
-    spr->fillRoundRect(15, y2 + 31, a_width, 36, 2, KINETIC_LIME);
+    spr->fillRect(lx, y2 + 25, midX - 20, 24, KINETIC_BLACK);
+    spr->fillRect(lx + 3, y2 + 28, midX - 26, 18, KINETIC_YELLOW);
+    int a_width = (int)((midX - 26) * anti_p);
+    if (a_width > 0) spr->fillRect(lx + 3, y2 + 28, a_width, 18, KINETIC_LIME);
+    spr->fillRect(lx + 3 + a_width, y2 + 28, 3, 18, KINETIC_BLACK);
 
     // Raw Values
-    spr->setFreeFont(&FreeSans9pt7b);
-    spr->setTextDatum(TL_DATUM);
-    spr->drawString(String(antigravity_remaining) + " / " + String(antigravity_limit), 12, y2 + 75);
-
-
-    // 5. Sidebar Divider and Diagnostics
-    spr->fillRect(255, 32, 3, 208, KINETIC_BLACK);
-    spr->setTextColor(KINETIC_BLACK);
-    
-    // Reset font for standard drawing
     spr->setTextFont(1);
-    spr->setTextDatum(TC_DATUM);
-    spr->drawString("STREAM", 288, 45, 2);
-    
-    // Minimalist Log (Monospace)
     spr->setTextDatum(TL_DATUM);
-    spr->drawString("> KERNEL: OK", 265, 75, 1);
-    spr->drawString("> SYNC: 0x2A", 265, 90, 1);
-    spr->drawString("> FPS: 60", 265, 105, 1);
-    
-    // Reset datum back to TL for other screens
+    spr->drawString(String(antigravity_remaining) + " / " + String(antigravity_limit), lx, y2 + 54, 2);
+
+    // --- SYSTEM STREAM SECTION (Right) ---
+    int rx = midX + 10;
+    spr->setTextColor(KINETIC_BLACK);
     spr->setTextDatum(TL_DATUM);
+    spr->drawString("SYSTEM STREAM", rx, 30, 2);
+    spr->drawLine(rx, 46, 310, 46, KINETIC_BLACK); // underline
+
+    // Monospace Logs
+    spr->drawString("> KERNEL: ACTIVE", rx, 52, 2);
+    spr->drawString("> MEM_SYNC: 0X2A", rx, 70, 2);
+    spr->drawString("> PWR_CELL: NOM", rx, 88, 2);
+    spr->drawString("> FR_RATE: 60FPS", rx, 106, 2);
+    spr->drawString("> UPLINK: OK", rx, 124, 2);
+
+    // 3. Status Bar (164 to 194)
+    spr->fillRect(0, 164, 320, 30, KINETIC_BLACK);
+    spr->setTextColor(KINETIC_YELLOW);
+    spr->setTextDatum(ML_DATUM);
+    spr->drawString("08:45:22.04", 10, 179, 2);
+    spr->setTextDatum(MR_DATUM);
+    spr->drawString("STATUS: OPERATIONAL", 310, 179, 2);
+    spr->fillRect(195, 174, 10, 10, KINETIC_LIME); // Green status square
+
+    // 4. Navigation Footer (194 to 240)
+    int tabW = 320 / 4;
+    // Active Tab (Yellow)
+    spr->fillRect(0, 194, tabW, 46, KINETIC_YELLOW);
+    // Draw Grid Icon
+    int cx = tabW / 2;
+    int cy = 194 + 23;
+    spr->fillRect(cx - 8, cy - 8, 6, 6, KINETIC_BLACK);
+    spr->fillRect(cx + 2, cy - 8, 6, 6, KINETIC_BLACK);
+    spr->fillRect(cx - 8, cy + 2, 6, 6, KINETIC_BLACK);
+    spr->fillRect(cx + 2, cy + 2, 6, 6, KINETIC_BLACK);
+
+    // Draw lines between tabs
+    spr->drawLine(tabW, 194, tabW, 240, KINETIC_DARK);
+    spr->drawLine(tabW * 2, 194, tabW * 2, 240, KINETIC_DARK);
+    spr->drawLine(tabW * 3, 194, tabW * 3, 240, KINETIC_DARK);
+
+    // Icon 2 (Chart placeholder)
+    cx = (tabW * 1) + (tabW / 2);
+    spr->drawRect(cx - 8, cy - 8, 16, 16, KINETIC_DARK);
+    spr->fillRect(cx - 4, cy, 3, 8, KINETIC_DARK);
+    spr->fillRect(cx, cy - 4, 3, 12, KINETIC_DARK);
+
+    // Icon 3 (Chip placeholder)
+    cx = (tabW * 2) + (tabW / 2);
+    spr->drawRect(cx - 6, cy - 6, 12, 12, KINETIC_DARK);
+    spr->fillRect(cx - 8, cy - 3, 2, 6, KINETIC_DARK);
+    spr->fillRect(cx + 6, cy - 3, 2, 6, KINETIC_DARK);
+
+    // Icon 4 (Settings gear placeholder)
+    cx = (tabW * 3) + (tabW / 2);
+    spr->drawCircle(cx, cy, 6, KINETIC_DARK);
+    spr->drawLine(cx - 9, cy, cx + 9, cy, KINETIC_DARK);
+    spr->drawLine(cx, cy - 9, cx, cy + 9, KINETIC_DARK);
 }
 
 void drawWeatherUI(TFT_eSprite* spr) {
