@@ -7,6 +7,12 @@
 
 An interactive, Wi-Fi enabled desktop companion monitor powered by an ESP32 and an ILI9341 320x240 SPI display with touch support. It acts as a dedicated hardware gauge for your AI token limits and quotas.
 
+<p align="center">
+  <img src="img/ai_limits.jpg" width="45%" alt="Neo-Brutalist AI Limits UI">
+  &nbsp;
+  <img src="img/weather.jpg" width="45%" alt="Neo-Brutalist Weather UI">
+</p>
+
 ## Key Features
 - **Live Limits Monitoring:** Fetches Claude Code token consumption and Antigravity quota limits directly from your computer.
 - **Weather Forecast:** Auto-detects your location and displays the current temperature and hours until the next rain.
