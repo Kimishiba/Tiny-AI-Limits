@@ -32,11 +32,11 @@ int antigravity_remaining = 100;
 float current_temperature = 0.0;
 int hours_until_rain = -1;
 
-// Neo-Brutalist Color Palette (16-bit RGB565)
 #define KINETIC_YELLOW 0xFFE0 // #FFFF00
 #define KINETIC_CYAN   0x07FF // #00FFFF
 #define KINETIC_LIME   0x07E0 // #00FF00
 #define KINETIC_BLACK  0x0000 // #000000
+#define KINETIC_DARK   0x1082 // Dark grey/black for surfaces
 
 void drawLimitsUI(TFT_eSprite* spr) {
     // 2. Clear background to Kinetic Yellow
@@ -119,27 +119,98 @@ void drawLimitsUI(TFT_eSprite* spr) {
 }
 
 void drawWeatherUI(TFT_eSprite* spr) {
-    spr->fillSprite(TFT_BLACK);
+    // 1. Clear Background
+    spr->fillSprite(KINETIC_BLACK);
     
-    // Weather Title
-    spr->setTextColor(TFT_YELLOW, TFT_BLACK);
-    spr->drawCentreString("Daily Weather", 160, 30, 4);
+    // 2. Draw Main Frame (Industrial Border)
+    spr->drawRect(0, 0, 320, 240, KINETIC_YELLOW);
+    spr->drawRect(1, 1, 318, 238, KINETIC_YELLOW); // 2px thickness
+
+    // 3. Header: SYS_CTRL
+    spr->fillRect(0, 0, 320, 28, KINETIC_YELLOW);
+    spr->setTextColor(KINETIC_BLACK);
+    spr->setTextDatum(ML_DATUM);
+    spr->drawString("SYS_CTRL // V.04_KINETIC", 10, 14, 2);
+    spr->setTextDatum(MR_DATUM);
+    spr->drawString("88% [^]", 310, 14, 2);
+
+    // 4. Central Weather Block
+    int bx = 10, by = 38, bw = 170, bh = 110;
+    spr->drawRect(bx, by, bw, bh, KINETIC_YELLOW);
+    spr->setTextColor(KINETIC_YELLOW);
     
-    // Temperature
-    String tempStr = String(current_temperature, 1) + " C";
-    spr->setTextColor(TFT_WHITE, TFT_BLACK);
-    spr->drawCentreString(tempStr, 160, 90, 7); // Large font
+    // Label: Location
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString("LOC: NEO_BERLIN", bx + 8, by + 8, 2);
     
-    // Rain info
-    spr->setTextColor(TFT_SKYBLUE, TFT_BLACK);
-    if (hours_until_rain == -1) {
-        spr->drawCentreString("No rain expected today", 160, 180, 4);
-    } else if (hours_until_rain == 0) {
-        spr->drawCentreString("Raining right now!", 160, 180, 4);
-    } else {
-        String rainStr = "Next rain in: " + String(hours_until_rain) + " hours";
-        spr->drawCentreString(rainStr, 160, 180, 4);
+    // Big Temperature
+    spr->setTextDatum(MC_DATUM);
+    char temp_str[10];
+    dtostrf(current_temperature, 4, 1, temp_str);
+    strcat(temp_str, "C");
+    spr->drawString(temp_str, bx + (bw/2) - 20, by + (bh/2) + 10, 7); // Font 7 is big
+    
+    // Stylized Sun Icon (Neo-Brutalist Geometry)
+    int ix = bx + bw - 45, iy = by + 45;
+    spr->fillCircle(ix, iy, 15, KINETIC_YELLOW);
+    for(int i=0; i<8; i++) { // Sun rays
+        float angle = i * 45 * 0.01745;
+        int rx = ix + cos(angle) * 22;
+        int ry = iy + sin(angle) * 22;
+        spr->fillRect(rx-2, ry-2, 5, 5, KINETIC_YELLOW);
     }
+
+    // 5. Rain Forecast Bar (Cyan Accent)
+    int rx = 10, ry = 158, rw = 300, rh = 65;
+    spr->drawRect(rx, ry, rw, rh, KINETIC_CYAN);
+    spr->setTextColor(KINETIC_CYAN);
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString("HOURS UNTIL RAIN", rx + 8, ry + 8, 2);
+    
+    // Large Countdown
+    spr->setTextDatum(TR_DATUM);
+    if (hours_until_rain == -1) {
+        spr->drawString("NONE", rx + rw - 10, ry + 15, 7);
+    } else {
+        char rain_str[10];
+        sprintf(rain_str, "%02d.0", hours_until_rain);
+        spr->drawString(rain_str, rx + rw - 10, ry + 15, 7);
+    }
+    
+    // Progress-style visualizer
+    for(int i=0; i<12; i++) {
+        int bar_w = 20;
+        int spacing = 4;
+        int bar_x = rx + 8 + (i * (bar_w + spacing));
+        if (i < 8) { // Active segments
+            spr->fillRect(bar_x, ry + 45, bar_w, 12, KINETIC_CYAN);
+        } else { // Empty segments
+            spr->drawRect(bar_x, ry + 45, bar_w, 12, KINETIC_CYAN);
+        }
+    }
+
+    // 6. Sidebar: Diagnostics (Stream)
+    int sx = 190, sy = 38, sw = 120, sh = 110;
+    spr->drawRect(sx, sy, sw, sh, KINETIC_YELLOW);
+    spr->fillRect(sx, sy, sw, 20, KINETIC_YELLOW);
+    spr->setTextColor(KINETIC_BLACK);
+    spr->setTextDatum(MC_DATUM);
+    spr->drawString("DIAGNOSTICS", sx + (sw/2), sy + 10, 2);
+    
+    spr->setTextColor(KINETIC_CYAN);
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString("> DATA_RECV", sx + 8, sy + 65, 1);
+    spr->drawString("[OK]", sx + 8, sy + 75, 1);
+    spr->setTextColor(KINETIC_YELLOW);
+    spr->drawString("> TEMP_SYNC:", sx + 8, sy + 90, 1);
+
+    // 7. Footer
+    spr->fillRect(0, 225, 320, 15, KINETIC_YELLOW);
+    spr->setTextColor(KINETIC_BLACK);
+    spr->setTextDatum(ML_DATUM);
+    spr->drawString("STATUS: OK", 5, 232, 1);
+    spr->setTextDatum(MR_DATUM);
+    spr->drawString("08:45:22 // CLD_01", 315, 232, 1);
 }
 
 void renderScreen(ScreenState state, TFT_eSprite* spr) {
