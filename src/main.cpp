@@ -5,6 +5,10 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
+// Include standard TFT_eSPI FreeFonts
+#include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
+
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sprCurrent = TFT_eSprite(&tft);
 TFT_eSprite sprNext = TFT_eSprite(&tft);
@@ -28,40 +32,90 @@ int antigravity_remaining = 100;
 float current_temperature = 0.0;
 int hours_until_rain = -1;
 
-void drawLimitsUI(TFT_eSprite* spr) {
-    spr->fillSprite(TFT_BLACK);
-    
-    // Draw Claude section
-    spr->setTextColor(TFT_ORANGE, TFT_BLACK);
-    spr->drawCentreString("Claude Limit", 160, 20, 4);
-    
-    int barWidth = 240;
-    int barHeight = 25;
-    int barX = 40;
-    int barY = 50;
-    
-    spr->drawRoundRect(barX, barY, barWidth, barHeight, 5, TFT_WHITE);
-    int fillWidth = 0;
-    if (claude_limit > 0) fillWidth = (claude_remaining * barWidth) / claude_limit;
-    spr->fillRoundRect(barX + 2, barY + 2, fillWidth - 4, barHeight - 4, 3, TFT_ORANGE);
-    
-    String claudeText = String(claude_remaining) + " / " + String(claude_limit);
-    spr->setTextColor(TFT_WHITE, TFT_BLACK);
-    spr->drawCentreString(claudeText, 160, 85, 2);
+// Neo-Brutalist Color Palette (16-bit RGB565)
+#define KINETIC_YELLOW 0xFFE0 // #FFFF00
+#define KINETIC_CYAN   0x07FF // #00FFFF
+#define KINETIC_LIME   0x07E0 // #00FF00
+#define KINETIC_BLACK  0x0000 // #000000
 
-    // Draw Antigravity section
-    spr->setTextColor(TFT_CYAN, TFT_BLACK);
-    spr->drawCentreString("Antigravity Limit", 160, 125, 4);
+void drawLimitsUI(TFT_eSprite* spr) {
+    // 2. Clear background to Kinetic Yellow
+    spr->fillSprite(KINETIC_YELLOW);
+
+    // 3. Header Bar
+    spr->fillRect(0, 0, 320, 32, KINETIC_BLACK);
+    spr->setTextColor(KINETIC_YELLOW);
+    spr->setTextDatum(MC_DATUM);
+    spr->drawString("ILI9341 CTRL // KINETIC ZERO", 160, 16, 2);
+
+    // 4. Calculate Percentages
+    float claude_p = 0;
+    if (claude_limit > 0) claude_p = (float)claude_remaining / claude_limit;
     
-    barY = 150;
-    spr->drawRoundRect(barX, barY, barWidth, barHeight, 5, TFT_WHITE);
-    fillWidth = 0;
-    if (antigravity_limit > 0) fillWidth = (antigravity_remaining * barWidth) / antigravity_limit;
-    spr->fillRoundRect(barX + 2, barY + 2, fillWidth - 4, barHeight - 4, 3, TFT_CYAN);
+    float anti_p = 0;
+    if (antigravity_limit > 0) anti_p = (float)antigravity_remaining / antigravity_limit;
+
+    // --- CLAUDE SECTION ---
+    int y1 = 48;
+    spr->setTextColor(KINETIC_BLACK);
+    spr->setFreeFont(&FreeSansBold12pt7b);
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString("CLAUDE", 12, y1);
     
-    String antiText = String(antigravity_remaining) + " / " + String(antigravity_limit);
-    spr->setTextColor(TFT_WHITE, TFT_BLACK);
-    spr->drawCentreString(antiText, 160, 185, 2);
+    // Percent Text
+    spr->setTextDatum(TR_DATUM);
+    spr->drawString(String((int)(claude_p * 100)) + "%", 240, y1);
+
+    // Progress Bar (Neo-Brutalist chunky style)
+    spr->drawRoundRect(12, y1 + 28, 230, 42, 4, KINETIC_BLACK);
+    spr->drawRoundRect(13, y1 + 29, 228, 40, 4, KINETIC_BLACK); // Inner border for thickness
+    int c_width = (int)(224 * claude_p);
+    spr->fillRoundRect(15, y1 + 31, c_width, 36, 2, KINETIC_CYAN);
+
+    // Raw Values
+    spr->setFreeFont(&FreeSans9pt7b);
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString(String(claude_remaining) + " / " + String(claude_limit), 12, y1 + 75);
+
+
+    // --- ANTIGRAVITY SECTION ---
+    int y2 = 142;
+    spr->setFreeFont(&FreeSansBold12pt7b);
+    spr->drawString("ANTIGRAVITY", 12, y2);
+    
+    // Percent Text
+    spr->setTextDatum(TR_DATUM);
+    spr->drawString(String((int)(anti_p * 100)) + "%", 240, y2);
+
+    // Progress Bar
+    spr->drawRoundRect(12, y2 + 28, 230, 42, 4, KINETIC_BLACK);
+    spr->drawRoundRect(13, y2 + 29, 228, 40, 4, KINETIC_BLACK);
+    int a_width = (int)(224 * anti_p);
+    spr->fillRoundRect(15, y2 + 31, a_width, 36, 2, KINETIC_LIME);
+
+    // Raw Values
+    spr->setFreeFont(&FreeSans9pt7b);
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString(String(antigravity_remaining) + " / " + String(antigravity_limit), 12, y2 + 75);
+
+
+    // 5. Sidebar Divider and Diagnostics
+    spr->fillRect(255, 32, 3, 208, KINETIC_BLACK);
+    spr->setTextColor(KINETIC_BLACK);
+    
+    // Reset font for standard drawing
+    spr->setTextFont(1);
+    spr->setTextDatum(TC_DATUM);
+    spr->drawString("STREAM", 288, 45, 2);
+    
+    // Minimalist Log (Monospace)
+    spr->setTextDatum(TL_DATUM);
+    spr->drawString("> KERNEL: OK", 265, 75, 1);
+    spr->drawString("> SYNC: 0x2A", 265, 90, 1);
+    spr->drawString("> FPS: 60", 265, 105, 1);
+    
+    // Reset datum back to TL for other screens
+    spr->setTextDatum(TL_DATUM);
 }
 
 void drawWeatherUI(TFT_eSprite* spr) {
