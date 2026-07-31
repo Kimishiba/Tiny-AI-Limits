@@ -9,9 +9,9 @@ An interactive, Wi-Fi enabled desktop companion monitor powered by an ESP32 and 
 
 ## Key Features
 - **Live Limits Monitoring:** Fetches Claude Code token consumption and Antigravity quota limits directly from your computer.
+- **Weather Forecast:** Auto-detects your location and displays the current temperature and hours until the next rain.
+- **Smooth Animations:** Cycle between screens with a simple touch, featuring a smooth 60fps sliding transition.
 - **Wi-Fi Connectivity:** Fully wireless (power only), pulls data via a local Python backend.
-- **Touch Support:** Tap the ILI9341 screen to instantly force an update of the limits.
-- **Sleek UI:** Smoothly rendered progress bars and text using the highly optimized `TFT_eSPI` library.
 
 ## Getting Started
 
