@@ -135,10 +135,40 @@ def get_data():
     # Fetch Weather
     weather_data = get_weather()
     
+    # Check Agent Status (Waiting for User Input)
+    waiting_for_input = False
+    prompt_text = "INPUT REQ"
+    try:
+        # Scan recent transcript/log for user approval prompts or agy waiting status
+        brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
+        if os.path.exists(brain_dir):
+            latest_mod = 0
+            latest_file = None
+            for root, dirs, files in os.walk(brain_dir):
+                for file in files:
+                    if file in ["transcript.jsonl", "implementation_plan.md"]:
+                        fp = os.path.join(root, file)
+                        mtime = os.path.getmtime(fp)
+                        if mtime > latest_mod:
+                            latest_mod = mtime
+                            latest_file = fp
+            if latest_file and (time.time() - latest_mod) < 300: # Active in last 5 min
+                with open(latest_file, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                    if "RequestFeedback\":true" in content or "User Review Required" in content or "is_multi_select" in content:
+                        waiting_for_input = True
+                        prompt_text = "APPROVE PLAN"
+    except Exception as e:
+        print(f"Agent check error: {e}")
+
     return jsonify({
         "claude": claude_data,
         "antigravity": antigravity_data,
-        "weather": weather_data
+        "weather": weather_data,
+        "agent": {
+            "waiting_for_input": waiting_for_input,
+            "prompt_text": prompt_text
+        }
     })
 
 if __name__ == '__main__':

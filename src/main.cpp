@@ -36,8 +36,14 @@ String date_string = "LOADING...";
 #define KINETIC_YELLOW 0xFFE0 // #FFFF00
 #define KINETIC_CYAN   0x07FF // #00FFFF
 #define KINETIC_LIME   0x07E0 // #00FF00
+#define KINETIC_AMBER  0xFD20 // #FF6600 Warm Amber/Orange
 #define KINETIC_BLACK  0x0000 // #000000
 #define KINETIC_DARK   0x1082 // Dark grey/black for surfaces
+
+bool waiting_for_input = false;
+String prompt_text = "APPROVE PLAN";
+unsigned long lastBlinkTime = 0;
+bool blinkState = false;
 
 void drawLimitsUI(TFT_eSprite* spr) {
     // Fill entire sprite with Kinetic Black first
@@ -116,26 +122,54 @@ void drawLimitsUI(TFT_eSprite* spr) {
 
     // --- SYSTEM STREAM SECTION (Right) ---
     int rx = midX + 10;
-    spr->setTextColor(KINETIC_BLACK);
-    spr->setTextDatum(TL_DATUM);
-    spr->drawString("SYSTEM STREAM", rx, 30, 2);
-    spr->drawLine(rx, 46, 310, 46, KINETIC_BLACK); // underline
+    
+    if (waiting_for_input) {
+        // Amber Alert System Stream Box
+        uint16_t alertColor = blinkState ? KINETIC_AMBER : KINETIC_BLACK;
+        uint16_t textColor  = blinkState ? KINETIC_BLACK : KINETIC_AMBER;
+        
+        spr->fillRect(rx - 4, 26, 130, 134, alertColor);
+        spr->setTextColor(textColor);
+        spr->setTextDatum(TL_DATUM);
+        spr->drawString("! ATTENTION !", rx, 30, 2);
+        spr->drawString("> AGENT: WAITING", rx, 52, 2);
+        spr->drawString("> INPUT REQ", rx, 70, 2);
+        spr->drawString("> " + prompt_text, rx, 88, 2);
+        spr->drawString("> ACTION NEEDED", rx, 106, 2);
+        if (blinkState) {
+            spr->fillRect(rx, 126, 12, 12, textColor); // Retro Cursor
+        }
+    } else {
+        spr->setTextColor(KINETIC_BLACK);
+        spr->setTextDatum(TL_DATUM);
+        spr->drawString("SYSTEM STREAM", rx, 30, 2);
+        spr->drawLine(rx, 46, 310, 46, KINETIC_BLACK); // underline
 
-    // Monospace Logs
-    spr->drawString("> KERNEL: ACTIVE", rx, 52, 2);
-    spr->drawString("> MEM_SYNC: 0X2A", rx, 70, 2);
-    spr->drawString("> PWR_CELL: NOM", rx, 88, 2);
-    spr->drawString("> FR_RATE: 60FPS", rx, 106, 2);
-    spr->drawString("> UPLINK: OK", rx, 124, 2);
+        // Monospace Logs
+        spr->drawString("> KERNEL: ACTIVE", rx, 52, 2);
+        spr->drawString("> MEM_SYNC: 0X2A", rx, 70, 2);
+        spr->drawString("> PWR_CELL: NOM", rx, 88, 2);
+        spr->drawString("> FR_RATE: 60FPS", rx, 106, 2);
+        spr->drawString("> UPLINK: OK", rx, 124, 2);
+    }
 
     // 3. Status Bar (164 to 194)
     spr->fillRect(0, 164, 320, 30, KINETIC_BLACK);
-    spr->setTextColor(KINETIC_YELLOW);
     spr->setTextDatum(ML_DATUM);
-    spr->drawString("08:45:22.04", 10, 179, 2);
-    spr->setTextDatum(MR_DATUM);
-    spr->drawString("STATUS: OPERATIONAL", 310, 179, 2);
-    spr->fillRect(195, 174, 10, 10, KINETIC_LIME); // Green status square
+    if (waiting_for_input) {
+        spr->setTextColor(KINETIC_AMBER);
+        spr->drawString("! INPUT REQUIRED !", 10, 179, 2);
+        spr->setTextDatum(MR_DATUM);
+        spr->drawString("STATUS: WAITING", 310, 179, 2);
+        uint16_t sqColor = blinkState ? KINETIC_AMBER : KINETIC_BLACK;
+        spr->fillRect(190, 174, 10, 10, sqColor); // Blinking amber square
+    } else {
+        spr->setTextColor(KINETIC_YELLOW);
+        spr->drawString("08:45:22.04", 10, 179, 2);
+        spr->setTextDatum(MR_DATUM);
+        spr->drawString("STATUS: OPERATIONAL", 310, 179, 2);
+        spr->fillRect(195, 174, 10, 10, KINETIC_LIME); // Green status square
+    }
 
     // 4. Navigation Footer (194 to 240)
     int tabW = 320 / 4;
@@ -324,6 +358,13 @@ void fetchData() {
                     date_string = String(dateStr);
                 }
                 
+                if (doc.containsKey("agent")) {
+                    waiting_for_input = doc["agent"]["waiting_for_input"] | false;
+                    if (doc["agent"].containsKey("prompt_text")) {
+                        prompt_text = String((const char*)doc["agent"]["prompt_text"]);
+                    }
+                }
+                
                 // Immediately update current display
                 renderScreen(currentScreen, &sprCurrent);
                 sprCurrent.pushSprite(0, 0);
@@ -378,6 +419,14 @@ void loop() {
         ScreenState nextState = (currentScreen == SCREEN_LIMITS) ? SCREEN_WEATHER : SCREEN_LIMITS;
         doSlideTransition(nextState);
         delay(500); // Debounce
+    }
+    
+    // Blinking animation logic (500ms cycle when waiting for input)
+    if (waiting_for_input && (millis() - lastBlinkTime >= 500)) {
+        lastBlinkTime = millis();
+        blinkState = !blinkState;
+        renderScreen(currentScreen, &sprCurrent);
+        sprCurrent.pushSprite(0, 0);
     }
     
     if (millis() - lastFetchTime >= fetchInterval) {
