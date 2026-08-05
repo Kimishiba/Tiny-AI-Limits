@@ -1,11 +1,11 @@
 # ESP32-AI-Companion
 
-![Framework](https://img.shields.io/badge/Framework-Arduino_ESP32-007acc?style=flat-square)
-![Hardware](https://img.shields.io/badge/Hardware-ESP32--WROOM-e67e22?style=flat-square)
+![Framework](https://img.shields.io/badge/Framework-Arduino_ESP32--C3-007acc?style=flat-square)
+![Hardware](https://img.shields.io/badge/Hardware-ESP32--C3_SuperMini-e67e22?style=flat-square)
 ![Display](https://img.shields.io/badge/Display-ILI9341_240x320_Touch-brightgreen?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
-An interactive, Wi-Fi enabled desktop companion monitor powered by an ESP32 micro-controller and a 2.8-inch 240x320 ILI9341 SPI Display with Resistive Touch support. It acts as a dedicated hardware gauge for your AI token limits and quotas.
+An interactive, Wi-Fi enabled desktop companion monitor powered by a cheap, compact **ESP32-C3 SuperMini** micro-controller and a 2.8-inch 240x320 ILI9341 SPI Display with Touch Panel. It acts as a dedicated hardware gauge for your AI token limits and quotas.
 
 <p align="center">
   <img src="img/ai_limits.jpg" width="45%" alt="Neo-Brutalist AI Limits UI">
@@ -15,10 +15,11 @@ An interactive, Wi-Fi enabled desktop companion monitor powered by an ESP32 micr
 
 ## Hardware & Components
 
-- **Microcontroller Board:** [ESP32-WROOM-32 Development Board](https://www.espressif.com/en/products/socs/esp32) (38-pin / 30-pin Dual-Core 240MHz Wi-Fi & BLE)
+- **Microcontroller Board:** [Cheap ESP32-C3 SuperMini Development Board](https://nl.aliexpress.com/item/1005006121404100.html) (RISC-V Single-Core 160MHz, Wi-Fi & BLE, USB-C)
 - **Display Module:** [2.8" 240x320 SPI TFT LCD Display Module with Touch Panel (ILI9341)](https://nl.aliexpress.com/item/1005004557916570.html)
-- **Power Supply / Cable:** Micro-USB / USB-C 5V Cable
+- **Power Supply / Cable:** USB-C 5V Cable
 - **Jumper Wires:** Dupont / Breadboard Jumper Wires for SPI connection
+
 
 
 ## Key Features
