@@ -1,0 +1,140 @@
+name: Build & Release ESP32 Firmware & Companion App
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*' # Triggers build & release on tags like v0.1, v1.0
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build_esp32_firmware:
+    name: Build ESP32 Firmware
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache pip & PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install PlatformIO CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+
+      - name: Build Firmware with PlatformIO
+        run: |
+          pio run
+
+      - name: Upload ESP32 Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32-firmware
+          path: .pio/build/esp32c3/firmware.bin
+
+  build_companion_app:
+    name: Build Companion App Executables (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: windows-latest
+            asset_name: TinyAIScreenCompanion-Windows.exe
+            exe_path: backend/dist/app.exe
+          - os: macos-latest
+            asset_name: TinyAIScreenCompanion-macOS
+            exe_path: backend/dist/app
+          - os: ubuntu-latest
+            asset_name: TinyAIScreenCompanion-Linux
+            exe_path: backend/dist/app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install PyInstaller & Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask requests pyinstaller
+
+      - name: Package Companion App with PyInstaller
+        run: |
+          cd backend
+          pyinstaller --onefile --noconsole app.py
+
+      - name: Rename Executable Artifact
+        shell: bash
+        run: |
+          mkdir -p bin_output
+          cp ${{ matrix.exe_path }} bin_output/${{ matrix.asset_name }}
+
+      - name: Upload Companion App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: companion-app-${{ matrix.os }}
+          path: bin_output/${{ matrix.asset_name }}
+
+  release:
+    name: Publish Release Artifacts
+    needs: [build_esp32_firmware, build_companion_app]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download ESP32 Firmware Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: esp32-firmware
+          path: release_assets/esp32
+
+      - name: Download Windows Companion Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: companion-app-windows-latest
+          path: release_assets/companion
+
+      - name: Download macOS Companion Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: companion-app-macos-latest
+          path: release_assets/companion
+
+      - name: Download Linux Companion Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: companion-app-ubuntu-latest
+          path: release_assets/companion
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release_assets/esp32/firmware.bin
+            release_assets/companion/*
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,13 +1,12 @@
-#include <Arduino.h>
-#include <TFT_eSPI.h>
-#include <SPI.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
+#include <WiFiClientSecure.h>
+#include <HTTPUpdate.h>
 
-// Include standard TFT_eSPI FreeFonts
-#include <Fonts/FreeSansBold12pt7b.h>
-#include <Fonts/FreeSans9pt7b.h>
+// Current Firmware Version
+#define CURRENT_FIRMWARE_VERSION "v0.0.1"
+
+// GitHub Repository for OTA Updates
+const char* github_user = "YOUR_GITHUB_USERNAME";
+const char* github_repo = "Desktop-Tiny-Screen";
 
 TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite sprCurrent = TFT_eSprite(&tft);
@@ -21,6 +20,80 @@ enum ScreenState {
     SCREEN_LIMITS,
     SCREEN_WEATHER
 };
+
+// OTA Update Function using GitHub Releases (Method 2: Insecure SSL)
+void checkForOTA() {
+    if (WiFi.status() != WL_CONNECTED) return;
+
+    Serial.println("[OTA] Checking for firmware updates on GitHub...");
+
+    WiFiClientSecure client;
+    client.setInsecure(); // Skip SSL Certificate verification for easy GitHub access
+
+    HTTPClient http;
+    String api_url = "https://api.github.com/repos/" + String(github_user) + "/" + String(github_repo) + "/releases/latest";
+    
+    http.begin(client, api_url);
+    http.setUserAgent("ESP32-OTA-Agent");
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+
+    int httpCode = http.GET();
+    if (httpCode == HTTP_CODE_OK) {
+        String payload = http.getString();
+        StaticJsonDocument<1024> doc;
+        DeserializationError error = deserializeJson(doc, payload);
+
+        if (!error) {
+            String latest_tag = doc["tag_name"].as<String>();
+            Serial.printf("[OTA] Current Version: %s | Latest Release: %s\n", CURRENT_FIRMWARE_VERSION, latest_tag.c_str());
+
+            if (latest_tag != CURRENT_FIRMWARE_VERSION && latest_tag.length() > 0) {
+                // Find firmware.bin download URL from assets
+                String download_url = "";
+                JsonArray assets = doc["assets"].as<JsonArray>();
+                for (JsonObject asset : assets) {
+                    if (asset["name"] == "firmware.bin") {
+                        download_url = asset["browser_download_url"].as<String>();
+                        break;
+                    }
+                }
+
+                if (download_url.length() > 0) {
+                    Serial.println("[OTA] New firmware version found! Starting update...");
+                    
+                    // Show OTA screen message on LCD
+                    tft.fillScreen(TFT_BLACK);
+                    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+                    tft.setTextDatum(MC_DATUM);
+                    tft.drawString("UPDATING FIRMWARE", 160, 100, 4);
+                    tft.drawString(latest_tag, 160, 140, 2);
+                    tft.drawString("Do not power off...", 160, 170, 2);
+
+                    httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+                    t_httpUpdate_return ret = httpUpdate.update(client, download_url);
+
+                    switch (ret) {
+                        case HTTP_UPDATE_FAILED:
+                            Serial.printf("[OTA] Update failed. Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+                            break;
+                        case HTTP_UPDATE_NO_UPDATES:
+                            Serial.println("[OTA] No update needed.");
+                            break;
+                        case HTTP_UPDATE_OK:
+                            Serial.println("[OTA] Update successful! Rebooting...");
+                            ESP.restart();
+                            break;
+                    }
+                }
+            } else {
+                Serial.println("[OTA] Firmware is already up to date.");
+            }
+        }
+    } else {
+        Serial.printf("[OTA] Failed to query GitHub API. HTTP Code: %d\n", httpCode);
+    }
+    http.end();
+}
 
 ScreenState currentScreen = SCREEN_LIMITS;
 
@@ -403,6 +476,9 @@ void setup() {
     sprCurrent.drawCentreString("WiFi Connected!", 160, 100, 2);
     sprCurrent.pushSprite(0, 0);
     delay(1000);
+    
+    // Check for OTA firmware updates on boot
+    checkForOTA();
     
     fetchData();
 }

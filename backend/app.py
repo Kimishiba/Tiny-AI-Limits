@@ -5,24 +5,73 @@ import platform
 import time
 import subprocess
 import requests
+import sys
 from datetime import datetime
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from threading import Thread
 
+# Config file setup
+CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".tiny_ai_screen")
+os.makedirs(CONFIG_DIR, exist_ok=True)
+CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+
+def load_config():
+    default_config = {
+        "auto_location": True,
+        "manual_location_name": "Berlin",
+        "lat": 52.5200,
+        "lon": 13.4050
+    }
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+                default_config.update(cfg)
+        except Exception:
+            pass
+    return default_config
+
+def save_config(cfg):
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=4)
+    except Exception as e:
+        print(f"Error saving config: {e}")
+
+config = load_config()
 app = Flask(__name__)
+
+# --- Geocoding Helper ---
+def geocode_city(city_name):
+    try:
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={requests.utils.quote(city_name)}&count=1&language=en&format=json"
+        res = requests.get(url, timeout=5)
+        data = res.json()
+        if "results" in data and len(data["results"]) > 0:
+            result = data["results"][0]
+            name = result.get("name", city_name)
+            country = result.get("country_code", "")
+            full_name = f"{name}, {country}".upper() if country else name.upper()
+            return result["latitude"], result["longitude"], full_name
+    except Exception as e:
+        print(f"Geocoding error: {e}")
+    return None, None, None
 
 # --- Weather Data Logic ---
 def get_location():
+    if not config.get("auto_location", True):
+        return config.get("lat", 52.5200), config.get("lon", 13.4050), config.get("manual_location_name", "BERLIN")
+    
     try:
-        # Auto-detect location via IP
         res = requests.get('http://ip-api.com/json/', timeout=5)
         data = res.json()
-        return data['lat'], data['lon']
+        city = data.get('city', 'DETECTED').upper()
+        return data['lat'], data['lon'], city
     except:
-        # Fallback to London if detection fails
-        return 51.5074, -0.1278
+        return 51.5074, -0.1278, "LONDON"
 
 def get_weather():
-    lat, lon = get_location()
+    lat, lon, loc_name = get_location()
     try:
         url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&hourly=precipitation"
         res = requests.get(url, timeout=5)
@@ -30,14 +79,10 @@ def get_weather():
         
         current_temp = data['current_weather']['temperature']
         
-        # Calculate hours until next rain
         hours_until_rain = -1
         hourly_precip = data['hourly']['precipitation']
-        
-        # Open-Meteo returns hourly data starting from midnight today, we need to find the current hour index
-        # A simple hack without parsing the ISO timestamp exactly is to assume we just look for the first non-zero precip 
-        # in the next 24 hours. (For a robust implementation, you'd match the current_weather time).
         current_time = data['current_weather']['time']
+        
         try:
             current_index = data['hourly']['time'].index(current_time)
             for i in range(current_index, len(hourly_precip)):
@@ -50,14 +95,16 @@ def get_weather():
         return {
             "temperature": current_temp,
             "hours_until_rain": hours_until_rain,
-            "date_string": datetime.now().strftime("%a %d %b").upper()
+            "date_string": datetime.now().strftime("%a %d %b").upper(),
+            "location_name": loc_name
         }
     except Exception as e:
         print(f"Weather error: {e}")
         return {
             "temperature": 0.0,
             "hours_until_rain": -1,
-            "date_string": "ERR"
+            "date_string": "ERR",
+            "location_name": "UNKNOWN"
         }
 
 # --- Claude Data Extraction Logic ---
@@ -107,9 +154,9 @@ def scan_claude_tokens():
                     pass
     return total_tokens
 
+# --- Flask Endpoints ---
 @app.route('/data', methods=['GET'])
 def get_data():
-    # Fetch Antigravity Data
     try:
         result = subprocess.run(
             ['agy', '--print', 'What is my current usage and quota limit? Return ONLY a JSON object with "remaining" and "limit" integer keys.'],
@@ -122,24 +169,20 @@ def get_data():
         elif raw_output.startswith("```"):
             raw_output = raw_output[3:-3].strip()
         antigravity_data = json.loads(raw_output)
-    except Exception as e:
+    except Exception:
         antigravity_data = {"limit": 100, "remaining": 0}
     
-    # Fetch Claude Data
     try:
         used_tokens = scan_claude_tokens()
         claude_data = {"limit": 500000, "remaining": max(0, 500000 - used_tokens)}
-    except Exception as e:
+    except Exception:
         claude_data = {"limit": 500000, "remaining": 500000}
         
-    # Fetch Weather
     weather_data = get_weather()
     
-    # Check Agent Status (Waiting for User Input)
     waiting_for_input = False
     prompt_text = "INPUT REQ"
     try:
-        # Scan recent transcript/log for user approval prompts or agy waiting status
         brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
         if os.path.exists(brain_dir):
             latest_mod = 0
@@ -152,7 +195,7 @@ def get_data():
                         if mtime > latest_mod:
                             latest_mod = mtime
                             latest_file = fp
-            if latest_file and (time.time() - latest_mod) < 300: # Active in last 5 min
+            if latest_file and (time.time() - latest_mod) < 300:
                 with open(latest_file, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
                     if "RequestFeedback\":true" in content or "User Review Required" in content or "is_multi_select" in content:
@@ -171,5 +214,120 @@ def get_data():
         }
     })
 
+@app.route('/config', methods=['GET', 'POST'])
+def handle_config():
+    global config
+    if request.method == 'POST':
+        data = request.json or {}
+        if "auto_location" in data:
+            config["auto_location"] = bool(data["auto_location"])
+        if "city" in data and data["city"]:
+            lat, lon, full_name = geocode_city(data["city"])
+            if lat and lon:
+                config["lat"] = lat
+                config["lon"] = lon
+                config["manual_location_name"] = full_name
+            else:
+                return jsonify({"status": "error", "message": f"Could not find city '{data['city']}'"}), 400
+        save_config(config)
+        return jsonify({"status": "ok", "config": config})
+    return jsonify(config)
+
+def start_flask():
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # If run in server mode without GUI
+    if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
+        start_flask()
+    else:
+        # Start Flask server in background thread
+        t = Thread(target=start_flask, daemon=True)
+        t.start()
+        
+        # GUI with tkinter
+        import tkinter as tk
+        from tkinter import messagebox
+
+        root = tk.Tk()
+        root.title("Tiny AI Screen Companion")
+        root.geometry("420x360")
+        root.resizable(False, False)
+        
+        # Modern Dark Theme Styling
+        root.configure(bg="#1e1e2e")
+
+        title_label = tk.Label(root, text="TINY AI SCREEN COMPANION", font=("Helvetica", 14, "bold"), fg="#f9e2af", bg="#1e1e2e")
+        title_label.pack(pady=(15, 5))
+
+        subtitle_label = tk.Label(root, text="ESP32 Backend & Configuration Utility", font=("Helvetica", 9), fg="#a6adc8", bg="#1e1e2e")
+        subtitle_label.pack(pady=(0, 15))
+
+        # --- Location Section ---
+        loc_frame = tk.LabelFrame(root, text=" Location Settings ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+        loc_frame.pack(fill="x", padx=20, pady=5)
+
+        auto_loc_var = tk.BooleanVar(value=config.get("auto_location", True))
+
+        def toggle_auto_loc():
+            city_entry.config(state="disabled" if auto_loc_var.get() else "normal")
+
+        auto_check = tk.Checkbutton(loc_frame, text="Auto-detect location via IP", variable=auto_loc_var, command=toggle_auto_loc, fg="#cdd6f4", bg="#1e1e2e", selectcolor="#313244", activebackground="#1e1e2e", activeforeground="#cdd6f4")
+        auto_check.pack(anchor="w", padx=10, pady=5)
+
+        city_frame = tk.Frame(loc_frame, bg="#1e1e2e")
+        city_frame.pack(fill="x", padx=10, pady=5)
+        
+        tk.Label(city_frame, text="Manual City:", fg="#cdd6f4", bg="#1e1e2e").pack(side="left")
+        city_entry = tk.Entry(city_frame, bg="#313244", fg="#cdd6f4", insertbackground="white", bd=1, relief="flat")
+        city_entry.insert(0, config.get("manual_location_name", "Berlin"))
+        city_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
+        if auto_loc_var.get():
+            city_entry.config(state="disabled")
+
+        def save_location():
+            city = city_entry.get().strip()
+            is_auto = auto_loc_var.get()
+            if not is_auto and city:
+                lat, lon, full_name = geocode_city(city)
+                if lat and lon:
+                    config["auto_location"] = False
+                    config["lat"] = lat
+                    config["lon"] = lon
+                    config["manual_location_name"] = full_name
+                    save_config(config)
+                    messagebox.showinfo("Success", f"Location set to {full_name}")
+                else:
+                    messagebox.showerror("Error", f"Could not find city: '{city}'")
+            else:
+                config["auto_location"] = True
+                save_config(config)
+                messagebox.showinfo("Success", "Location set to Auto-detect (IP)")
+
+        save_btn = tk.Button(loc_frame, text="Save Location", command=save_location, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=4)
+        save_btn.pack(anchor="e", padx=10, pady=5)
+
+        # --- OTA & Updates Section ---
+        ota_frame = tk.LabelFrame(root, text=" Firmware & Updates ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+        ota_frame.pack(fill="x", padx=20, pady=10)
+
+        def check_firmware_updates():
+            try:
+                res = requests.get("https://api.github.com/repos/YOUR_GITHUB_USERNAME/Desktop-Tiny-Screen/releases/latest", timeout=5)
+                if res.status_code == 200:
+                    data = res.json()
+                    tag = data.get("tag_name", "Unknown")
+                    messagebox.showinfo("GitHub Firmware Update", f"Latest Release Tag on GitHub: {tag}\n\nYour ESP32 will auto-update on next boot if a new tag is available!")
+                else:
+                    messagebox.showwarning("Update Check", "No GitHub release tags found or repository is private.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to check GitHub updates: {e}")
+
+        ota_btn = tk.Button(ota_frame, text="Check for ESP32 Firmware Updates", command=check_firmware_updates, bg="#a6e3a1", fg="#11111b", activebackground="#94e2d5", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
+        ota_btn.pack(fill="x", padx=10, pady=8)
+
+        # Status Footer
+        status_lbl = tk.Label(root, text="Server running at http://0.0.0.0:5000/data", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
+        status_lbl.pack(side="bottom", pady=5)
+
+        root.mainloop()
