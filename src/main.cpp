@@ -1,21 +1,17 @@
 #include <Arduino.h>
-#include <Arduino_GFX_Library.h>
+#include <TFT_eSPI.h>
+#include <SPI.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-// ST77916 SPI Display Pins
-#define TFT_SCLK 18
-#define TFT_MOSI 23
-#define TFT_MISO 19
-#define TFT_CS   15
-#define TFT_DC   2
-#define TFT_RST  4
+// Include standard TFT_eSPI FreeFonts
+#include <Fonts/FreeSansBold12pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
 
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCLK, TFT_MOSI, TFT_MISO);
-Arduino_GFX *gfx = new Arduino_ST77916(bus, TFT_RST, 0 /* rotation */, true /* IPS */, 360 /* width */, 360 /* height */);
-Arduino_Canvas *sprCurrent = new Arduino_Canvas(360, 360, gfx);
-Arduino_Canvas *sprNext = new Arduino_Canvas(360, 360, gfx);
+TFT_eSPI tft = TFT_eSPI();
+TFT_eSprite sprCurrent = TFT_eSprite(&tft);
+TFT_eSprite sprNext = TFT_eSprite(&tft);
 
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
@@ -27,7 +23,6 @@ enum ScreenState {
 };
 
 ScreenState currentScreen = SCREEN_LIMITS;
-
 
 // Data variables
 int claude_limit = 500000;
@@ -382,19 +377,21 @@ void fetchData() {
 void setup() {
     Serial.begin(115200);
     
-    gfx->begin();
-    gfx->fillScreen(BLACK);
+    tft.init();
+    tft.setRotation(1); 
     
-    // Initialize Canvas (360x360)
-    sprCurrent->begin();
-    sprNext->begin();
+    // Calibrate the touch screen
+    uint16_t calData[5] = { 275, 3620, 264, 3532, 1 };
+    tft.setTouch(calData);
     
-    sprCurrent->fillScreen(BLACK);
-    sprCurrent->setTextColor(WHITE);
-    sprCurrent->setTextSize(2);
-    sprCurrent->setCursor(80, 170);
-    sprCurrent->println("Connecting WiFi...");
-    sprCurrent->flush();
+    // Initialize Sprites (320x240, 16-bit color)
+    sprCurrent.createSprite(320, 240);
+    sprNext.createSprite(320, 240);
+    
+    sprCurrent.fillSprite(TFT_BLACK);
+    sprCurrent.setTextColor(TFT_WHITE, TFT_BLACK);
+    sprCurrent.drawCentreString("Connecting WiFi...", 160, 100, 2);
+    sprCurrent.pushSprite(0, 0);
     
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -402,15 +399,13 @@ void setup() {
         Serial.print(".");
     }
     
-    sprCurrent->fillScreen(BLACK);
-    sprCurrent->setCursor(90, 170);
-    sprCurrent->println("WiFi Connected!");
-    sprCurrent->flush();
+    sprCurrent.fillSprite(TFT_BLACK);
+    sprCurrent.drawCentreString("WiFi Connected!", 160, 100, 2);
+    sprCurrent.pushSprite(0, 0);
     delay(1000);
     
     fetchData();
 }
-
 
 unsigned long lastFetchTime = 0;
 const unsigned long fetchInterval = 60000; 

@@ -1,20 +1,24 @@
-# Wiring Guide (ESP32 to ST77916 1.5" 360x360 Round Display)
+# Wiring Guide (ESP32 to ILI9341 2.8" SPI Touch Display)
 
-Here is the recommended wiring for connecting the ST77916 round display module to a generic ESP32 development board.
+Here is the recommended wiring for connecting the 2.8-inch ILI9341 touch display module to a generic ESP32 development board using hardware SPI pins.
 
-| ST77916 Pin | ESP32 Pin | Description |
+| ILI9341 Pin | ESP32 Pin | Description |
 |---|---|---|
 | VCC / VIN | 3V3 | Power (3.3V) |
 | GND | GND | Ground |
 | CS | GPIO 15 | Screen Chip Select |
 | RESET / RST | GPIO 4 | Reset pin |
 | DC / RS | GPIO 2 | Data/Command pin |
-| SCLK / CLK | GPIO 18 | SPI Clock |
-| MOSI / D0 | GPIO 23 | SPI Data Input / D0 |
-| MISO / D1 | GPIO 19 | SPI Data Output / D1 |
-| D2 (Optional QSPI) | GPIO 22 | QSPI Data Line 2 |
-| D3 (Optional QSPI) | GPIO 21 | QSPI Data Line 3 |
-| BL / LED | 3V3 | Backlight Power (Connect to 3.3V or GPIO pin for PWM dimming) |
+| SDI / MOSI | GPIO 23 | SPI Data Input |
+| SCK / SCLK | GPIO 18 | SPI Clock |
+| LED / BLK | 3V3 (Optional) | Backlight Power (Connect to 3.3V) |
+| SDO / MISO | GPIO 19 | SPI Data Output |
+| T_CLK | GPIO 18 | Touch SPI Clock (Shares SCK) |
+| T_CS | GPIO 21 | Touch Chip Select |
+| T_DIN | GPIO 23 | Touch SPI Data In (Shares MOSI) |
+| T_DO | GPIO 19 | Touch SPI Data Out (Shares MISO) |
+| T_IRQ | Not Connected | Touch Interrupt (Optional) |
 
-*Note: The ST77916 supports SPI / QSPI modes. Standard 1-bit SPI uses SCLK, MOSI, CS, DC, and RST.*
+*Note: Hardware SPI pins on standard ESP32 boards are GPIO 18 (SCK), GPIO 23 (MOSI), and GPIO 19 (MISO).*
+
 
