@@ -20,7 +20,8 @@ def load_config():
         "auto_location": True,
         "manual_location_name": "Berlin",
         "lat": 52.5200,
-        "lon": 13.4050
+        "lon": 13.4050,
+        "antigravity_5h_quota": 200
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -173,11 +174,20 @@ def scan_claude_tokens():
     return total_tokens
 
 # --- Antigravity Data Extraction Logic ---
-def scan_antigravity_5h_limits(quota_limit=200):
+# NOTE: Google does not expose Antigravity's real 5h quota anywhere (locally or
+# via API) -- it's an undisclosed, dynamic "amount of agent work done" measure,
+# not a fixed request count. This counts PLANNER_RESPONSE entries (one per
+# agent/model turn) as the closest available proxy for "work done", since a
+# single prompt can trigger many turns. `antigravity_5h_quota` in config.json
+# is a guessed ceiling -- tune it against when the real app actually locks you
+# out to calibrate the displayed percentage.
+def scan_antigravity_5h_limits(quota_limit=None):
+    if quota_limit is None:
+        quota_limit = config.get("antigravity_5h_quota", 200)
     total_steps = 0
     now = time.time()
     five_hours_ago = now - (5 * 3600)
-    
+
     brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
     if os.path.exists(brain_dir):
         pattern = os.path.join(brain_dir, "*", ".system_generated", "logs", "transcript.jsonl")
@@ -190,6 +200,8 @@ def scan_antigravity_5h_limits(quota_limit=200):
                         if not line.strip():
                             continue
                         data = json.loads(line)
+                        if data.get("type") != "PLANNER_RESPONSE":
+                            continue
                         created_at = data.get("created_at")
                         if created_at:
                             # Convert ISO string e.g. 2026-08-07T14:50:00Z to epoch time
@@ -201,7 +213,7 @@ def scan_antigravity_5h_limits(quota_limit=200):
                                 pass
             except Exception:
                 pass
-    
+
     remaining = max(0, quota_limit - total_steps)
     return {
         "limit": quota_limit,
@@ -233,23 +245,38 @@ def get_data():
         brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
         if os.path.exists(brain_dir):
             latest_mod = 0
-            latest_file = None
+            latest_transcript = None
             for root, dirs, files in os.walk(brain_dir):
-                for file in files:
-                    if file in ["transcript.jsonl", "implementation_plan.md"]:
-                        fp = os.path.join(root, file)
-                        mtime = os.path.getmtime(fp)
-                        if mtime > latest_mod:
-                            latest_mod = mtime
-                            latest_file = fp
-            if latest_file and (time.time() - latest_mod) < 300:
-                with open(latest_file, "r", encoding="utf-8", errors="ignore") as f:
-                    content = f.read()
-                    if "RequestFeedback\":true" in content or "User Review Required" in content or "is_multi_select" in content:
-                        waiting_for_input = True
-                        prompt_text = "APPROVE PLAN"
+                if "transcript.jsonl" in files:
+                    fp = os.path.join(root, "transcript.jsonl")
+                    mtime = os.path.getmtime(fp)
+                    if mtime > latest_mod:
+                        latest_mod = mtime
+                        latest_transcript = fp
+
+            if latest_transcript and (time.time() - latest_mod) < 180:
+                with open(latest_transcript, "r", encoding="utf-8", errors="ignore") as f:
+                    lines = f.readlines()
+                    if lines:
+                        last_steps = [json.loads(l) for l in lines[-3:] if l.strip()]
+                        for step in reversed(last_steps):
+                            for tc in step.get("tool_calls", []):
+                                if tc.get("name") == "ask_question":
+                                    waiting_for_input = True
+                                    prompt_text = "ANSWER Q"
+                                    break
+                                args = tc.get("arguments", {})
+                                if isinstance(args, dict):
+                                    meta = args.get("ArtifactMetadata", {})
+                                    if meta.get("RequestFeedback") is True:
+                                        waiting_for_input = True
+                                        prompt_text = "APPROVE PLAN"
+                                        break
+                            if waiting_for_input:
+                                break
     except Exception as e:
         print(f"Agent check error: {e}")
+
 
     now = datetime.now()
     return jsonify({
@@ -275,6 +302,11 @@ def handle_config():
         data = request.json or {}
         if "auto_location" in data:
             config["auto_location"] = bool(data["auto_location"])
+        if "antigravity_5h_quota" in data:
+            try:
+                config["antigravity_5h_quota"] = int(data["antigravity_5h_quota"])
+            except (TypeError, ValueError):
+                return jsonify({"status": "error", "message": "antigravity_5h_quota must be an integer"}), 400
         if "city" in data and data["city"]:
             lat, lon, full_name = geocode_city(data["city"])
             if lat and lon:
