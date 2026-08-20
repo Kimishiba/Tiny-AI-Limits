@@ -38,8 +38,26 @@ def save_config(cfg):
     except Exception as e:
         print(f"Error saving config: {e}")
 
+from flask import Flask, jsonify, request, send_file
+import webbrowser
+
 config = load_config()
 app = Flask(__name__)
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
+
+@app.route('/emulator')
+@app.route('/simulator')
+def serve_emulator():
+    emulator_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "index.html")
+    if os.path.exists(emulator_path):
+        return send_file(emulator_path)
+    return "Emulator file not found", 404
 
 # --- Geocoding Helper ---
 def geocode_city(city_name):
@@ -154,23 +172,52 @@ def scan_claude_tokens():
                     pass
     return total_tokens
 
+# --- Antigravity Data Extraction Logic ---
+def scan_antigravity_5h_limits(quota_limit=200):
+    total_steps = 0
+    now = time.time()
+    five_hours_ago = now - (5 * 3600)
+    
+    brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
+    if os.path.exists(brain_dir):
+        pattern = os.path.join(brain_dir, "*", ".system_generated", "logs", "transcript.jsonl")
+        for filepath in glob.glob(pattern):
+            try:
+                if os.path.getmtime(filepath) < five_hours_ago:
+                    continue
+                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        data = json.loads(line)
+                        created_at = data.get("created_at")
+                        if created_at:
+                            # Convert ISO string e.g. 2026-08-07T14:50:00Z to epoch time
+                            try:
+                                dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                                if dt.timestamp() >= five_hours_ago:
+                                    total_steps += 1
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+    
+    remaining = max(0, quota_limit - total_steps)
+    return {
+        "limit": quota_limit,
+        "used": total_steps,
+        "remaining": remaining,
+        "period": "5h"
+    }
+
 # --- Flask Endpoints ---
 @app.route('/data', methods=['GET'])
 def get_data():
     try:
-        result = subprocess.run(
-            ['agy', '--print', 'What is my current usage and quota limit? Return ONLY a JSON object with "remaining" and "limit" integer keys.'],
-            capture_output=True, 
-            text=True
-        )
-        raw_output = result.stdout.strip()
-        if raw_output.startswith("```json"):
-            raw_output = raw_output[7:-3].strip()
-        elif raw_output.startswith("```"):
-            raw_output = raw_output[3:-3].strip()
-        antigravity_data = json.loads(raw_output)
-    except Exception:
-        antigravity_data = {"limit": 100, "remaining": 0}
+        antigravity_data = scan_antigravity_5h_limits()
+    except Exception as e:
+        print(f"Antigravity scan error: {e}")
+        antigravity_data = {"limit": 200, "used": 0, "remaining": 200, "period": "5h"}
     
     try:
         used_tokens = scan_claude_tokens()
@@ -204,10 +251,17 @@ def get_data():
     except Exception as e:
         print(f"Agent check error: {e}")
 
+    now = datetime.now()
     return jsonify({
         "claude": claude_data,
         "antigravity": antigravity_data,
         "weather": weather_data,
+        "time": {
+            "hours": now.hour,
+            "minutes": now.minute,
+            "seconds": now.second,
+            "time_string": now.strftime("%H:%M:%S")
+        },
         "agent": {
             "waiting_for_input": waiting_for_input,
             "prompt_text": prompt_text
@@ -236,98 +290,181 @@ def handle_config():
 def start_flask():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
-if __name__ == '__main__':
-    # If run in server mode without GUI
-    if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
-        start_flask()
-    else:
-        # Start Flask server in background thread
-        t = Thread(target=start_flask, daemon=True)
-        t.start()
-        
-        # GUI with tkinter
-        import tkinter as tk
-        from tkinter import messagebox
+def create_gui_window():
+    import tkinter as tk
+    from tkinter import messagebox
 
-        root = tk.Tk()
-        root.title("Tiny AI Screen Companion")
-        root.geometry("420x360")
-        root.resizable(False, False)
-        
-        # Modern Dark Theme Styling
-        root.configure(bg="#1e1e2e")
+    root = tk.Tk()
+    root.title("Tiny AI Screen Companion")
+    root.geometry("420x460")
+    root.resizable(False, False)
+    root.configure(bg="#1e1e2e")
 
-        title_label = tk.Label(root, text="TINY AI SCREEN COMPANION", font=("Helvetica", 14, "bold"), fg="#f9e2af", bg="#1e1e2e")
-        title_label.pack(pady=(15, 5))
+    title_label = tk.Label(root, text="TINY AI SCREEN COMPANION", font=("Helvetica", 14, "bold"), fg="#f9e2af", bg="#1e1e2e")
+    title_label.pack(pady=(15, 5))
 
-        subtitle_label = tk.Label(root, text="ESP32 Backend & Configuration Utility", font=("Helvetica", 9), fg="#a6adc8", bg="#1e1e2e")
-        subtitle_label.pack(pady=(0, 15))
+    subtitle_label = tk.Label(root, text="ESP32 Backend & Configuration Utility", font=("Helvetica", 9), fg="#a6adc8", bg="#1e1e2e")
+    subtitle_label.pack(pady=(0, 15))
 
-        # --- Location Section ---
-        loc_frame = tk.LabelFrame(root, text=" Location Settings ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
-        loc_frame.pack(fill="x", padx=20, pady=5)
+    # --- Location Section ---
+    loc_frame = tk.LabelFrame(root, text=" Location Settings ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+    loc_frame.pack(fill="x", padx=20, pady=5)
 
-        auto_loc_var = tk.BooleanVar(value=config.get("auto_location", True))
+    auto_loc_var = tk.BooleanVar(value=config.get("auto_location", True))
 
-        def toggle_auto_loc():
-            city_entry.config(state="disabled" if auto_loc_var.get() else "normal")
+    def toggle_auto_loc():
+        city_entry.config(state="disabled" if auto_loc_var.get() else "normal")
 
-        auto_check = tk.Checkbutton(loc_frame, text="Auto-detect location via IP", variable=auto_loc_var, command=toggle_auto_loc, fg="#cdd6f4", bg="#1e1e2e", selectcolor="#313244", activebackground="#1e1e2e", activeforeground="#cdd6f4")
-        auto_check.pack(anchor="w", padx=10, pady=5)
+    auto_check = tk.Checkbutton(loc_frame, text="Auto-detect location via IP", variable=auto_loc_var, command=toggle_auto_loc, fg="#cdd6f4", bg="#1e1e2e", selectcolor="#313244", activebackground="#1e1e2e", activeforeground="#cdd6f4")
+    auto_check.pack(anchor="w", padx=10, pady=5)
 
-        city_frame = tk.Frame(loc_frame, bg="#1e1e2e")
-        city_frame.pack(fill="x", padx=10, pady=5)
-        
-        tk.Label(city_frame, text="Manual City:", fg="#cdd6f4", bg="#1e1e2e").pack(side="left")
-        city_entry = tk.Entry(city_frame, bg="#313244", fg="#cdd6f4", insertbackground="white", bd=1, relief="flat")
-        city_entry.insert(0, config.get("manual_location_name", "Berlin"))
-        city_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
-        if auto_loc_var.get():
-            city_entry.config(state="disabled")
+    city_frame = tk.Frame(loc_frame, bg="#1e1e2e")
+    city_frame.pack(fill="x", padx=10, pady=5)
+    
+    tk.Label(city_frame, text="Manual City:", fg="#cdd6f4", bg="#1e1e2e").pack(side="left")
+    city_entry = tk.Entry(city_frame, bg="#313244", fg="#cdd6f4", insertbackground="white", bd=1, relief="flat")
+    city_entry.insert(0, config.get("manual_location_name", "Berlin"))
+    city_entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
+    if auto_loc_var.get():
+        city_entry.config(state="disabled")
 
-        def save_location():
-            city = city_entry.get().strip()
-            is_auto = auto_loc_var.get()
-            if not is_auto and city:
-                lat, lon, full_name = geocode_city(city)
-                if lat and lon:
-                    config["auto_location"] = False
-                    config["lat"] = lat
-                    config["lon"] = lon
-                    config["manual_location_name"] = full_name
-                    save_config(config)
-                    messagebox.showinfo("Success", f"Location set to {full_name}")
-                else:
-                    messagebox.showerror("Error", f"Could not find city: '{city}'")
-            else:
-                config["auto_location"] = True
+    def save_location():
+        city = city_entry.get().strip()
+        is_auto = auto_loc_var.get()
+        if not is_auto and city:
+            lat, lon, full_name = geocode_city(city)
+            if lat and lon:
+                config["auto_location"] = False
+                config["lat"] = lat
+                config["lon"] = lon
+                config["manual_location_name"] = full_name
                 save_config(config)
-                messagebox.showinfo("Success", "Location set to Auto-detect (IP)")
+                messagebox.showinfo("Success", f"Location set to {full_name}")
+            else:
+                messagebox.showerror("Error", f"Could not find city: '{city}'")
+        else:
+            config["auto_location"] = True
+            save_config(config)
+            messagebox.showinfo("Success", "Location set to Auto-detect (IP)")
 
-        save_btn = tk.Button(loc_frame, text="Save Location", command=save_location, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=4)
-        save_btn.pack(anchor="e", padx=10, pady=5)
+    save_btn = tk.Button(loc_frame, text="Save Location", command=save_location, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=4)
+    save_btn.pack(anchor="e", padx=10, pady=5)
 
-        # --- OTA & Updates Section ---
-        ota_frame = tk.LabelFrame(root, text=" Firmware & Updates ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
-        ota_frame.pack(fill="x", padx=20, pady=10)
+    # --- OTA & Updates Section ---
+    ota_frame = tk.LabelFrame(root, text=" Firmware & Updates ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+    ota_frame.pack(fill="x", padx=20, pady=10)
 
-        def check_firmware_updates():
-            try:
-                res = requests.get("https://api.github.com/repos/YOUR_GITHUB_USERNAME/Desktop-Tiny-Screen/releases/latest", timeout=5)
-                if res.status_code == 200:
-                    data = res.json()
-                    tag = data.get("tag_name", "Unknown")
-                    messagebox.showinfo("GitHub Firmware Update", f"Latest Release Tag on GitHub: {tag}\n\nYour ESP32 will auto-update on next boot if a new tag is available!")
-                else:
-                    messagebox.showwarning("Update Check", "No GitHub release tags found or repository is private.")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to check GitHub updates: {e}")
+    def check_firmware_updates():
+        try:
+            res = requests.get("https://api.github.com/repos/YOUR_GITHUB_USERNAME/Desktop-Tiny-Screen/releases/latest", timeout=5)
+            if res.status_code == 200:
+                data = res.json()
+                tag = data.get("tag_name", "Unknown")
+                messagebox.showinfo("GitHub Firmware Update", f"Latest Release Tag on GitHub: {tag}\n\nYour ESP32 will auto-update on next boot if a new tag is available!")
+            else:
+                messagebox.showwarning("Update Check", "No GitHub release tags found or repository is private.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to check GitHub updates: {e}")
 
-        ota_btn = tk.Button(ota_frame, text="Check for ESP32 Firmware Updates", command=check_firmware_updates, bg="#a6e3a1", fg="#11111b", activebackground="#94e2d5", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
-        ota_btn.pack(fill="x", padx=10, pady=8)
+    ota_btn = tk.Button(ota_frame, text="Check for ESP32 Firmware Updates", command=check_firmware_updates, bg="#a6e3a1", fg="#11111b", activebackground="#94e2d5", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
+    ota_btn.pack(fill="x", padx=10, pady=8)
 
-        # Status Footer
-        status_lbl = tk.Label(root, text="Server running at http://0.0.0.0:5000/data", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
-        status_lbl.pack(side="bottom", pady=5)
+    # --- Emulator Section ---
+    emu_frame = tk.LabelFrame(root, text=" Screen Emulator ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+    emu_frame.pack(fill="x", padx=20, pady=5)
 
-        root.mainloop()
+    def open_emulator():
+        webbrowser.open("http://localhost:5000/emulator")
+
+    emu_btn = tk.Button(emu_frame, text="🖥️ Launch Display Emulator", command=open_emulator, bg="#f9e2af", fg="#11111b", activebackground="#f5e0dc", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
+    emu_btn.pack(fill="x", padx=10, pady=8)
+
+    # Status Footer
+    status_lbl = tk.Label(root, text="Server running at http://0.0.0.0:5000 | Emulator at /emulator", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
+    status_lbl.pack(side="bottom", pady=5)
+
+    return root
+
+class TinyScreenMacStatusBarApp(object):
+    def run(self):
+        try:
+            import rumps
+        except ImportError:
+            # Fallback if rumps not installed
+            root = create_gui_window()
+            root.mainloop()
+            return
+
+        class StatusBarApp(rumps.App):
+            def __init__(self):
+                super(StatusBarApp, self).__init__("🖥️", quit_button=None)
+
+            @rumps.clicked("🖥️ Open Display Emulator")
+            def open_emulator(self, _):
+                webbrowser.open("http://localhost:5000/emulator")
+
+            @rumps.clicked("⚙️ Set Location...")
+            def set_location(self, _):
+                current_loc = config.get("manual_location_name", "Berlin")
+                response = rumps.Window(
+                    message="Enter city name (e.g. 'Rome', 'New York') or type 'AUTO' for IP detection:",
+                    title="Location Settings",
+                    default_text=current_loc,
+                    ok="Save",
+                    cancel="Cancel"
+                ).run()
+
+                if response.clicked:
+                    city = response.text.strip()
+                    if not city or city.upper() == "AUTO":
+                        config["auto_location"] = True
+                        save_config(config)
+                        rumps.alert("Location Saved", "Location set to Auto-detect via IP.")
+                    else:
+                        lat, lon, full_name = geocode_city(city)
+                        if lat and lon:
+                            config["auto_location"] = False
+                            config["lat"] = lat
+                            config["lon"] = lon
+                            config["manual_location_name"] = full_name
+                            save_config(config)
+                            rumps.alert("Location Saved", f"Successfully set location to {full_name} ({lat:.2f}, {lon:.2f})")
+                        else:
+                            rumps.alert("Location Error", f"Could not find coordinates for city: '{city}'")
+
+            @rumps.clicked("🔄 Check Firmware Updates")
+            def check_updates(self, _):
+                try:
+                    res = requests.get("https://api.github.com/repos/YOUR_GITHUB_USERNAME/Desktop-Tiny-Screen/releases/latest", timeout=5)
+                    if res.status_code == 200:
+                        tag = res.json().get("tag_name", "Unknown")
+                        rumps.alert("Firmware Updates", f"Latest Release Tag on GitHub: {tag}\n\nYour ESP32 will auto-update on next boot if a new tag is available!")
+                    else:
+                        rumps.alert("Firmware Updates", "No GitHub releases found or repository is private.")
+                except Exception as e:
+                    rumps.alert("Update Check Failed", f"Error: {e}")
+
+            @rumps.clicked("🌐 View Live API (/data)")
+            def open_api(self, _):
+                webbrowser.open("http://localhost:5000/data")
+
+            @rumps.clicked("Quit")
+            def quit_app(self, _):
+                rumps.quit_application()
+
+        app = StatusBarApp()
+        app.run()
+
+if __name__ == '__main__':
+    # Start Flask server in background thread
+    t = Thread(target=start_flask, daemon=True)
+    t.start()
+
+    if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
+        print("[INFO] Running in server-only mode at http://localhost:5000")
+        while True:
+            time.sleep(1)
+    else:
+        # Launch macOS Status Bar App
+        statusBarApp = TinyScreenMacStatusBarApp()
+        statusBarApp.run()
