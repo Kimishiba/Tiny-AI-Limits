@@ -154,8 +154,9 @@ void renderLimitsScreen() {
 
     // Antigravity Quota
     float agPercent = agData.limit > 0 ? (float)agData.used / (float)agData.limit : 0.0;
+    int agRemainingPct = (int)round(100.0f * (1.0f - agPercent));
     display.setCursor(2, 36);
-    display.printf("Antigrav: %d/%d req", agData.used, agData.limit);
+    display.printf("Antigrav: %d%% left", agRemainingPct);
     drawProgressBar(2, 46, 124, 6, agPercent);
 
     // Bottom Status
