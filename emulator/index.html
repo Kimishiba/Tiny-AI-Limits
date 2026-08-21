@@ -1674,8 +1674,12 @@
         const halfH = cardH / 2;
         const numFont = "900 52px 'Anybody', 'JetBrains Mono', sans-serif";
 
-        // Card Base Container
-        c.fillStyle = "#181b24";
+        const COLOR_TOP_FRONT = "#222633"; // Lighter slate for upper half / front face
+        const COLOR_BOT_BACK  = "#12141c"; // Deeper obsidian for lower half / back face
+        const COLOR_CARD_BORDER = "#2b3042";
+
+        // 1. Base Card Outline Container
+        c.fillStyle = COLOR_BOT_BACK;
         c.beginPath();
         if (typeof c.roundRect === "function") {
           c.roundRect(posX, posY, cardW, cardH, 8);
@@ -1683,24 +1687,23 @@
           c.rect(posX, posY, cardW, cardH);
         }
         c.fill();
-        c.strokeStyle = "#282d3d";
+        c.strokeStyle = COLOR_CARD_BORDER;
         c.lineWidth = 1.2;
         c.stroke();
 
         if (progress >= 1.0 || oldDigit === newDigit) {
-          // Static Unflipped State
-          c.font = numFont;
-          c.fillStyle = "#ffffff";
-          c.textAlign = "center";
-          c.textBaseline = "middle";
-          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
-        } else {
-          // --- 3D PERSPECTIVE SPLIT-FLAP FLIP ANIMATION ---
-          // 1. Static Top Half Background (Shows NEW digit)
+          // --- STATIC SPLIT-FLAP (Distinct Two-Tone Front & Back) ---
+          // Top Half (Front Face tone)
           c.save();
           c.beginPath();
-          c.rect(posX, posY, cardW, halfH);
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, posY, cardW, halfH, [8, 8, 0, 0]);
+          } else {
+            c.rect(posX, posY, cardW, halfH);
+          }
           c.clip();
+          c.fillStyle = COLOR_TOP_FRONT;
+          c.fillRect(posX, posY, cardW, halfH);
           c.font = numFont;
           c.fillStyle = "#ffffff";
           c.textAlign = "center";
@@ -1708,13 +1711,57 @@
           c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
           c.restore();
 
-          // 2. Static Bottom Half Background (Shows OLD digit)
+          // Bottom Half (Lower Face tone)
           c.save();
           c.beginPath();
-          c.rect(posX, midY, cardW, halfH);
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, midY, cardW, halfH, [0, 0, 8, 8]);
+          } else {
+            c.rect(posX, midY, cardW, halfH);
+          }
           c.clip();
+          c.fillStyle = COLOR_BOT_BACK;
+          c.fillRect(posX, midY, cardW, halfH);
+          c.font = numFont;
+          c.fillStyle = "#eceef4";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.restore();
+
+        } else {
+          // --- 3D PERSPECTIVE SPLIT-FLAP FLIP ANIMATION ---
+          // 1. Static Top Half Background (Shows NEW digit on Front Face tone)
+          c.save();
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, posY, cardW, halfH, [8, 8, 0, 0]);
+          } else {
+            c.rect(posX, posY, cardW, halfH);
+          }
+          c.clip();
+          c.fillStyle = COLOR_TOP_FRONT;
+          c.fillRect(posX, posY, cardW, halfH);
           c.font = numFont;
           c.fillStyle = "#ffffff";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.restore();
+
+          // 2. Static Bottom Half Background (Shows OLD digit on Back Face tone)
+          c.save();
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, midY, cardW, halfH, [0, 0, 8, 8]);
+          } else {
+            c.rect(posX, midY, cardW, halfH);
+          }
+          c.clip();
+          c.fillStyle = COLOR_BOT_BACK;
+          c.fillRect(posX, midY, cardW, halfH);
+          c.font = numFont;
+          c.fillStyle = "#eceef4";
           c.textAlign = "center";
           c.textBaseline = "middle";
           c.fillText(oldDigit, posX + cardW / 2, posY + cardH / 2 + 1);
@@ -1722,7 +1769,7 @@
 
           // 3. Falling / Unfolding 3D Flap
           if (progress < 0.5) {
-            // Phase 1: Top half of OLD digit falls forward/downward
+            // Phase 1: Top half of OLD digit falls forward/downward (Front Face)
             const scale = Math.cos(progress * Math.PI); // 1.0 -> 0.0
             const flapH = Math.max(0.1, halfH * scale);
             const flapY = midY - flapH;
@@ -1732,8 +1779,8 @@
             c.rect(posX, flapY, cardW, flapH);
             c.clip();
 
-            // Flap Face
-            c.fillStyle = "#1e222d";
+            // Flap Face (Lighter Front tone)
+            c.fillStyle = COLOR_TOP_FRONT;
             c.fillRect(posX, flapY, cardW, flapH);
 
             // Flap Glyph (Top half of OLD digit)
@@ -1747,12 +1794,12 @@
             c.fillText(oldDigit, 0, -halfH / 2 + 1);
             c.restore();
 
-            // Dynamic Drop Shadow
-            c.fillStyle = "rgba(0, 0, 0, " + (progress * 0.7).toFixed(2) + ")";
+            // Dynamic Drop Shadow as it tilts forward away from light
+            c.fillStyle = "rgba(0, 0, 0, " + (progress * 0.85).toFixed(2) + ")";
             c.fillRect(posX, flapY, cardW, flapH);
             c.restore();
           } else {
-            // Phase 2: Bottom half of NEW digit unfolds into place
+            // Phase 2: Bottom half of NEW digit unfolds into place (Back Face of Flap)
             const scale = -Math.cos(progress * Math.PI); // 0.0 -> 1.0
             const flapH = Math.max(0.1, halfH * scale);
 
@@ -1761,8 +1808,8 @@
             c.rect(posX, midY, cardW, flapH);
             c.clip();
 
-            // Flap Face
-            c.fillStyle = "#1b1e28";
+            // Flap Face (Deeper Back tone)
+            c.fillStyle = COLOR_BOT_BACK;
             c.fillRect(posX, midY, cardW, flapH);
 
             // Flap Glyph (Bottom half of NEW digit)
@@ -1770,28 +1817,28 @@
             c.translate(posX + cardW / 2, midY);
             c.scale(1.0, scale);
             c.font = numFont;
-            c.fillStyle = "#ffffff";
+            c.fillStyle = "#eceef4";
             c.textAlign = "center";
             c.textBaseline = "middle";
             c.fillText(newDigit, 0, halfH / 2 + 1);
             c.restore();
 
             // Receding Shadow
-            c.fillStyle = "rgba(0, 0, 0, " + ((1.0 - progress) * 0.7).toFixed(2) + ")";
+            c.fillStyle = "rgba(0, 0, 0, " + ((1.0 - progress) * 0.85).toFixed(2) + ")";
             c.fillRect(posX, midY, cardW, flapH);
             c.restore();
           }
         }
 
         // Mechanical Horizontal Split Crease (Shadow + Highlight)
-        c.fillStyle = "#08090c";
+        c.fillStyle = "#06070a";
         c.fillRect(posX, midY - 1, cardW, 1.5);
-        c.fillStyle = "#252936";
+        c.fillStyle = "#343a4e";
         c.fillRect(posX, midY + 0.5, cardW, 0.8);
 
         // Mechanical Hinge Pivot Brackets (Left & Right)
         function drawHingeBracket(hx) {
-          c.fillStyle = "#101218";
+          c.fillStyle = "#0c0e14";
           c.beginPath();
           if (typeof c.roundRect === "function") {
             c.roundRect(hx - 2, midY - 5, 4, 10, 1.5);
@@ -1799,7 +1846,7 @@
             c.fillRect(hx - 2, midY - 5, 4, 10);
           }
           c.fill();
-          c.fillStyle = "#4a5065";
+          c.fillStyle = "#58607a";
           c.fillRect(hx - 1, midY - 1, 2, 2);
         }
         drawHingeBracket(posX);
