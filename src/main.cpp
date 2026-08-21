@@ -65,6 +65,15 @@ struct TimeInfo {
 };
 
 ClaudeLimits claudeData;
+
+// Idle detection: if tokensToday hasn't budged for a while, show sleeping
+// eyes instead of the normal blink/heavy-usage animation. lastTokenActivity
+// starts at boot time (not 0) so the board doesn't render as "asleep" during
+// the first fetch cycle before any real data has arrived.
+long lastKnownTokensToday = -1;
+unsigned long lastTokenActivityMs = 0;
+const unsigned long sleepIdleThresholdMs = 15UL * 60UL * 1000UL;
+
 AntigravityLimits agData;
 WeatherInfo weatherData;
 AgentStatus agentData;
@@ -236,8 +245,35 @@ void renderFaceScreen() {
     int eyeRadius = 8;
     int eyeDist = 26;
 
-    // Heavy usage today: show tired droopy eyes with sweat
-    bool isHeavyUsage = claudeData.tokensToday > claudeHeavyUsageThreshold;
+    // No tokens consumed in a while: show sleeping eyes. Takes priority over
+    // heavy-usage, since "resting after a heavy day" reads fine but "tired
+    // and sweating while asleep" doesn't.
+    bool isSleeping = (millis() - lastTokenActivityMs) >= sleepIdleThresholdMs;
+    bool isHeavyUsage = !isSleeping && claudeData.tokensToday > claudeHeavyUsageThreshold;
+
+    if (isSleeping) {
+        // Closed, curved eyelids -- no blink motion, distinct from a
+        // mid-blink frame of the normal animation.
+        display.fillRoundRect(cx - eyeDist - eyeW / 2, cy - 3, eyeW, 6, 3, SSD1306_WHITE);
+        display.fillRoundRect(cx + eyeDist - eyeW / 2, cy - 3, eyeW, 6, 3, SSD1306_WHITE);
+
+        // Drifting "z" characters to make "asleep" unambiguous
+        display.setTextSize(1);
+        display.setTextColor(SSD1306_WHITE);
+        for (int i = 0; i < 3; i++) {
+            unsigned long cycle = (animTicks / 3 + i * 40) % 120;
+            int zx = cx + eyeDist + 6 + i * 6;
+            int zy = cy - 18 - (int)cycle / 3;
+            if (zy > cy - 34) {
+                display.setCursor(zx, zy);
+                display.print("z");
+            }
+        }
+
+        display.setCursor(38, 54);
+        display.print("SLEEPING");
+        return;
+    }
 
     if (isHeavyUsage) {
         // Tired / Low Battery Droopy Eyes
@@ -594,6 +630,10 @@ void fetchBackendData() {
 
         if (!error) {
             claudeData.tokensToday = doc["claude"]["tokens_today"] | 0L;
+            if (lastKnownTokensToday < 0 || claudeData.tokensToday != lastKnownTokensToday) {
+                lastKnownTokensToday = claudeData.tokensToday;
+                lastTokenActivityMs = millis();
+            }
 
             agData.limit = doc["antigravity"]["limit"] | 200;
             agData.used = doc["antigravity"]["used"] | 0;
@@ -726,6 +766,7 @@ void onImprovWiFiConnectedCb(const char* ssid, const char* password) {
 void setup() {
     Serial.begin(115200);
     delay(200);
+    lastTokenActivityMs = millis();
 
     // Start I2C
     Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
