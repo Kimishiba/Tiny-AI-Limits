@@ -2098,12 +2098,22 @@
         }
       }
 
+      // On Round Screen, clip to the circular screen interior so the mascot emerges directly from the circle edge!
+      c.save();
+      const isRound = (currentScreen === 3);
+      if (isRound) {
+        c.beginPath();
+        c.arc(160, 120, 114, 0, Math.PI * 2);
+        c.clip();
+      }
+
       // Base coordinates on the left curve of the screen
-      // At progress=0: off-screen left (x = -80). At progress=1: peeking in (x = 56).
-      const startX = -85;
-      const targetX = 58;
+      // For Round Screen: circle perimeter at Y=120 is X = 160 - 114 = 46.
+      // startX = 6 (tucked behind the circle border), targetX = 96 (peeking into the watch face).
+      const startX = isRound ? 6 : -75;
+      const targetX = isRound ? 96 : 56;
       const curX = startX + (targetX - startX) * shibaProgress;
-      const curY = 118;
+      const curY = isRound ? 120 : 118;
 
       // Subtle curious head tilt and breathing
       const headTilt = (shibaState === "CURIOUS") ? Math.sin(elapsed * 0.003) * 0.08 : 0.04;
@@ -2399,6 +2409,7 @@
       c.restore();
 
       c.restore(); // Restore main translation & rotation
+      c.restore(); // Restore circular clip path
     }
 
     // --- MAIN RENDER LOOP ---
