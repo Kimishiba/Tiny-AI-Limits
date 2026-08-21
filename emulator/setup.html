@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tiny AI Screen — Device Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- Self-bundled (via esbuild), not loaded from a CDN -- see
+       emulator/vendor/README.md for why: the raw npm package doesn't load
+       correctly directly in a browser (unresolved bare imports), and
+       CDN auto-bundlers introduced their own dependency-dedup bugs. -->
+  <script type="module" src="/setup/vendor/improv-wifi-serial-launch-button.bundle.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0f1015;
+      --card-bg: #181920;
+      --panel-bg: #1e2029;
+      --border-color: #2e3240;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-yellow: #ffff00;
+      --accent-cyan: #00ffff;
+      --accent-blue: #3b82f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    header { text-align: center; margin-bottom: 2rem; max-width: 480px; }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffff00 0%, #00ffff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.6rem;
+    }
+
+    header p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .steps {
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      padding-left: 1.2rem;
+    }
+
+    .steps strong { color: var(--text-main); }
+
+    improv-wifi-serial-launch-button button[slot="activate"] {
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-blue) 100%);
+      color: #0f1015;
+      border: none;
+      border-radius: 8px;
+      padding: 0.85rem 1.5rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    improv-wifi-serial-launch-button button[slot="activate"]:hover {
+      opacity: 0.9;
+    }
+
+    #status {
+      margin-top: 1.2rem;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+    }
+
+    #status.success { color: #4ade80; }
+    #status.error { color: #f87171; }
+
+    .unsupported {
+      display: none;
+      background: #2a1b1b;
+      border: 1px solid #7f1d1d;
+      color: #fca5a5;
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.85rem;
+      margin-top: 1.2rem;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Set Up Your Tiny AI Screen</h1>
+    <p>Connect the board to your WiFi network directly from this page — no software to install, no files to edit.</p>
+  </header>
+
+  <div class="card">
+    <ol class="steps">
+      <li>Plug the board into this computer via <strong>USB-C</strong></li>
+      <li>Click <strong>Connect</strong> below and pick its serial port</li>
+      <li>Enter your <strong>WiFi network name &amp; password</strong></li>
+      <li>The board finds this companion app automatically — no further setup</li>
+    </ol>
+
+    <improv-wifi-serial-launch-button id="improv-btn">
+      <button slot="activate">Connect &amp; Set Up WiFi</button>
+      <span slot="unsupported">
+        <div class="unsupported">
+          Your browser doesn't support the Web Serial API needed for this.
+          Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on a desktop computer.
+        </div>
+      </span>
+      <span slot="not-allowed">
+        <div class="unsupported">
+          This page needs to be loaded over <strong>http://localhost</strong> or HTTPS to access the serial port.
+        </div>
+      </span>
+    </improv-wifi-serial-launch-button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const btn = document.getElementById('improv-btn');
+    const status = document.getElementById('status');
+
+    btn.addEventListener('closed', (ev) => {
+      const { improv, provisioned } = ev.detail || {};
+      if (!improv) {
+        status.className = 'error';
+        status.textContent = "That device doesn't support setup over USB — make sure it's a Tiny AI Screen with up-to-date firmware.";
+      } else if (provisioned) {
+        status.className = 'success';
+        status.textContent = "✓ WiFi configured! The screen should come to life within a few seconds.";
+      } else {
+        status.className = '';
+        status.textContent = 'Setup was closed before finishing. Click "Connect & Set Up WiFi" to try again.';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -38,10 +38,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade platformio
 
-      - name: Set up mock secrets for CI build
-        run: |
-          cp src/secrets.h.example src/secrets.h
-
       - name: Build Firmware with PlatformIO
         run: |
           pio run
@@ -81,7 +77,7 @@ jobs:
       - name: Install PyInstaller & Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flask requests pyinstaller
+          pip install flask requests zeroconf pyinstaller
 
       - name: Package Companion App with PyInstaller
         run: |
