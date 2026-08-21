@@ -175,10 +175,21 @@
       gap: 0.35rem;
     }
 
+    .nav-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
     .nav-btn:hover {
       transform: translate(1px, 1px);
       box-shadow: 1px 1px 0px 0px var(--border-dark);
       background: var(--accent-orange-light);
+      color: var(--text-main);
+    }
+
+    .nav-btn.active:hover {
+      background: var(--accent-orange-hover);
+      color: #ffffff;
     }
 
     /* Main Container */
@@ -541,10 +552,17 @@
         <div class="brand-title">TINY AI SCREEN // SETUP</div>
       </a>
       <div class="nav-links">
-        <span class="nav-tag">[ WEB SERIAL PROVISIONING ]</span>
         <a href="/emulator" class="nav-btn">
           <span class="material-symbols-outlined" style="font-size: 1.1rem;">tv</span>
           Emulator
+        </a>
+        <a href="/faces" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">smart_toy</span>
+          Faces
+        </a>
+        <a href="/setup" class="nav-btn active">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
+          WiFi Setup
         </a>
       </div>
     </div>

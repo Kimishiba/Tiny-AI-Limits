@@ -55,6 +55,7 @@ def add_cors_headers(response):
     response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
+@app.route('/')
 @app.route('/emulator')
 @app.route('/simulator')
 def serve_emulator():
