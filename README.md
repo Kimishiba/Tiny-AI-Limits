@@ -24,7 +24,7 @@ It combines an expressive, retro animated robot face with real-time hardware gau
     - *Normal Idle:* Friendly, calm blinking and glancing.
     - *Low Quota (< 20%):* Droopy/sleepy eyes with animated falling sweat droplets.
     - *Agent Attention Alert:* Flashes shocked wide eyes and a retro warning banner when an AI coding agent is waiting for user approval.
-- **📊 Real-Time AI Quota Monitoring:** Monitors Claude Code token consumption and Antigravity CLI quota percentage.
+- **📊 Real-Time AI Quota Monitoring:** Monitors Claude Code token consumption, plus your *real* Antigravity quota — read directly from Antigravity's own local API, not a guess. If you're signed into multiple Antigravity accounts at once, pick which one to track from the companion app.
 - **🌦️ Local Weather & Digital Clock:** Displays temperature, rain forecasts, and live synchronized time.
 - **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Face (8s) $\rightarrow$ Split HUD (8s) $\rightarrow$ Detailed Quotas (8s) $\rightarrow$ Clock & Weather (8s).
 - **🔌 USB Setup, No Recompiling:** Configure WiFi over USB from a browser page served by the companion app — enter your network name/password once, no editing files or reflashing.

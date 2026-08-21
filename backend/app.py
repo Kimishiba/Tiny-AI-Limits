@@ -23,7 +23,8 @@ def load_config():
         "manual_location_name": "Berlin",
         "lat": 52.5200,
         "lon": 13.4050,
-        "antigravity_5h_quota": 200
+        "antigravity_5h_quota": 200,
+        "antigravity_account_email": None
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -240,14 +241,14 @@ def scan_claude_tokens_today():
                 pass
     return total_tokens
 
-# --- Antigravity Data Extraction Logic ---
-# NOTE: Google does not expose Antigravity's real 5h quota anywhere (locally or
-# via API) -- it's an undisclosed, dynamic "amount of agent work done" measure,
-# not a fixed request count. This counts PLANNER_RESPONSE entries (one per
-# agent/model turn) as the closest available proxy for "work done", since a
-# single prompt can trigger many turns. `antigravity_5h_quota` in config.json
-# is a guessed ceiling -- tune it against when the real app actually locks you
-# out to calibrate the displayed percentage.
+# --- Antigravity Data Extraction Logic (fallback heuristic) ---
+# Superseded by get_antigravity_quota() below, which reads the real quota
+# from Antigravity's own local RPC endpoint when it's running. This heuristic
+# (counting PLANNER_RESPONSE turns in the trailing 5h as a proxy for "work
+# done") only kicks in if that RPC call fails/isn't available, e.g. Antigravity
+# isn't running locally at all. `antigravity_5h_quota` in config.json is a
+# guessed ceiling for this fallback path only -- tune it against the real
+# app's reading if you ever need to rely on it.
 def scan_antigravity_5h_limits(quota_limit=None):
     if quota_limit is None:
         quota_limit = config.get("antigravity_5h_quota", 200)
@@ -296,11 +297,155 @@ def scan_antigravity_5h_limits(quota_limit=None):
         "period": "5h"
     }
 
+# --- Real Antigravity Quota (via local Connect RPC) ---
+# The heuristic above was a workaround for not having real quota data. It
+# turns out Antigravity's own language_server process exposes it locally:
+# each running instance (one per signed-in account -- e.g. the desktop app
+# and the IDE extension can be signed into different accounts) listens on a
+# loopback HTTPS port and serves GetUserStatus over Connect RPC, protected by
+# a CSRF token that's just a command-line argument on the same process.
+# Credit: https://github.com/tanaikech/antigravity-cli-check-usage-plugin
+# and https://github.com/skainguyen1412/antigravity-usage for reverse
+# engineering the endpoint, payload shape, and the X-Codeium-Csrf-Token header
+# name (Antigravity's backend is Codeium/Windsurf-derived).
+import re
+import ssl
+import urllib.request
+import urllib.error
+
+_antigravity_accounts_cache = {"data": [], "timestamp": 0}
+_ANTIGRAVITY_ACCOUNTS_CACHE_TTL_SECONDS = 30
+
+def _find_antigravity_language_servers():
+    """Find running Antigravity language_server processes, their CSRF token
+    (a plain command-line arg), and their loopback listening ports."""
+    servers = []
+    try:
+        ps_output = subprocess.check_output(["ps", "aux"], text=True)
+    except Exception:
+        return servers
+
+    for line in ps_output.splitlines():
+        if "language_server" not in line:
+            continue
+        parts = line.split(None, 10)
+        if len(parts) < 2:
+            continue
+        pid = parts[1]
+        token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9-]+)", line)
+        if not token_match:
+            continue
+        csrf_token = token_match.group(1)
+
+        try:
+            lsof_output = subprocess.check_output(
+                ["lsof", "-a", "-p", pid, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+                text=True, stderr=subprocess.DEVNULL
+            )
+            ports = sorted(set(
+                int(m.group(1))
+                for m in re.finditer(r":(\d+)\s*\(LISTEN\)", lsof_output)
+            ))
+        except Exception:
+            ports = []
+
+        if ports:
+            servers.append({"pid": pid, "csrf_token": csrf_token, "ports": ports})
+
+    return servers
+
+def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
+    url = f"https://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
+    headers = {
+        "Content-Type": "application/json",
+        "Connect-Protocol-Version": "1",
+        "User-Agent": "antigravity",
+        "X-Codeium-Csrf-Token": csrf_token,
+    }
+    payload = json.dumps({
+        "metadata": {"ideName": "antigravity", "extensionName": "antigravity", "locale": "en"}
+    }).encode("utf-8")
+
+    # The language server's HTTPS listener uses a self-signed cert (it's
+    # loopback-only, protected by the CSRF token instead of TLS trust).
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+    with urllib.request.urlopen(req, context=ctx, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+def get_antigravity_accounts(use_cache=True):
+    """Returns one entry per signed-in Antigravity account currently running
+    locally: {"email", "remaining_fraction", "reset_time"}. remaining_fraction
+    is the Gemini model family's quota (what this project's OLED calls
+    "Antigravity quota") since that's the family Antigravity itself is built
+    around; Claude/GPT quotas inside Antigravity are tracked separately and
+    aren't what this metric means here."""
+    now = time.time()
+    if use_cache and (now - _antigravity_accounts_cache["timestamp"]) < _ANTIGRAVITY_ACCOUNTS_CACHE_TTL_SECONDS:
+        return _antigravity_accounts_cache["data"]
+
+    accounts = []
+    seen_emails = set()
+    for server in _find_antigravity_language_servers():
+        for port in server["ports"]:
+            try:
+                data = _fetch_antigravity_user_status(port, server["csrf_token"])
+            except Exception:
+                continue
+            user_status = (data or {}).get("userStatus")
+            if not user_status:
+                continue
+            email = user_status.get("email", "unknown")
+            if email in seen_emails:
+                break
+            seen_emails.add(email)
+
+            gemini_quota = None
+            for m in user_status.get("cascadeModelConfigData", {}).get("clientModelConfigs", []):
+                if "gemini" in (m.get("label") or "").lower():
+                    gemini_quota = m.get("quotaInfo")
+                    break
+
+            accounts.append({
+                "email": email,
+                "remaining_fraction": (gemini_quota or {}).get("remainingFraction", 1.0),
+                "reset_time": (gemini_quota or {}).get("resetTime"),
+            })
+            break  # this server's account is identified; skip its other port
+
+    _antigravity_accounts_cache["data"] = accounts
+    _antigravity_accounts_cache["timestamp"] = now
+    return accounts
+
+def get_antigravity_quota():
+    """Real quota when Antigravity is running locally (any signed-in
+    account); falls back to the local-log heuristic otherwise."""
+    accounts = get_antigravity_accounts()
+    if not accounts:
+        return scan_antigravity_5h_limits()
+
+    selected_email = config.get("antigravity_account_email")
+    account = next((a for a in accounts if a["email"] == selected_email), None) or accounts[0]
+
+    remaining_pct = round((account.get("remaining_fraction") or 1.0) * 100)
+    remaining_pct = max(0, min(100, remaining_pct))
+    return {
+        "limit": 100,
+        "used": 100 - remaining_pct,
+        "remaining": remaining_pct,
+        "period": "5h",
+        "email": account.get("email"),
+        "reset_time": account.get("reset_time"),
+    }
+
 # --- Flask Endpoints ---
 @app.route('/data', methods=['GET'])
 def get_data():
     try:
-        antigravity_data = scan_antigravity_5h_limits()
+        antigravity_data = get_antigravity_quota()
     except Exception as e:
         print(f"Antigravity scan error: {e}")
         antigravity_data = {"limit": 200, "used": 0, "remaining": 200, "period": "5h"}
@@ -400,6 +545,9 @@ def handle_config():
                 config["antigravity_5h_quota"] = int(data["antigravity_5h_quota"])
             except (TypeError, ValueError):
                 return jsonify({"status": "error", "message": "antigravity_5h_quota must be an integer"}), 400
+        if "antigravity_account_email" in data:
+            # Empty string/null means "auto, use whichever account is found first"
+            config["antigravity_account_email"] = data["antigravity_account_email"] or None
         if "city" in data and data["city"]:
             lat, lon, full_name = geocode_city(data["city"])
             if lat and lon:
@@ -410,7 +558,9 @@ def handle_config():
                 return jsonify({"status": "error", "message": f"Could not find city '{data['city']}'"}), 400
         save_config(config)
         return jsonify({"status": "ok", "config": config})
-    return jsonify(config)
+    response = dict(config)
+    response["available_antigravity_accounts"] = [a["email"] for a in get_antigravity_accounts()]
+    return jsonify(response)
 
 # --- mDNS Service Advertisement (so the ESP32 can find us on any network,
 #     for any user, with zero hardcoded hostname/IP configuration) ---
@@ -452,7 +602,7 @@ def create_gui_window():
 
     root = tk.Tk()
     root.title("Tiny AI Screen Companion")
-    root.geometry("420x460")
+    root.geometry("420x540")
     root.resizable(False, False)
     root.configure(bg="#1e1e2e")
 
@@ -545,6 +695,34 @@ def create_gui_window():
     setup_btn = tk.Button(setup_frame, text="🔌 Set Up New Device (WiFi)", command=open_setup, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
     setup_btn.pack(fill="x", padx=10, pady=8)
 
+    # --- Antigravity Account Section ---
+    # If you're signed into more than one Antigravity account at once (e.g.
+    # the desktop app and the IDE extension on different accounts), pick
+    # which one's quota the screen should display.
+    ag_frame = tk.LabelFrame(root, text=" Antigravity Account ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+    ag_frame.pack(fill="x", padx=20, pady=5)
+
+    AUTO_LABEL = "Auto (first account found)"
+    detected_accounts = [a["email"] for a in get_antigravity_accounts()]
+    menu_options = [AUTO_LABEL] + detected_accounts
+    current_email = config.get("antigravity_account_email")
+    current_value = current_email if current_email in detected_accounts else AUTO_LABEL
+
+    ag_var = tk.StringVar(value=current_value)
+
+    def on_account_selected(selected):
+        config["antigravity_account_email"] = None if selected == AUTO_LABEL else selected
+        save_config(config)
+
+    ag_menu = tk.OptionMenu(ag_frame, ag_var, *menu_options, command=on_account_selected)
+    ag_menu.config(bg="#313244", fg="#cdd6f4", activebackground="#45475a", highlightthickness=0, bd=0)
+    ag_menu["menu"].config(bg="#313244", fg="#cdd6f4")
+    ag_menu.pack(fill="x", padx=10, pady=8)
+
+    if not detected_accounts:
+        ag_hint = tk.Label(ag_frame, text="No running Antigravity account detected right now.", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
+        ag_hint.pack(anchor="w", padx=10, pady=(0, 6))
+
     # Status Footer
     status_lbl = tk.Label(root, text="Server running at http://0.0.0.0:5000 | Emulator at /emulator", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
     status_lbl.pack(side="bottom", pady=5)
@@ -572,6 +750,25 @@ class TinyScreenMacStatusBarApp(object):
             @rumps.clicked("🔌 Set Up New Device (WiFi)")
             def open_setup(self, _):
                 webbrowser.open("http://localhost:5000/setup")
+
+            @rumps.clicked("🔀 Switch Antigravity Account...")
+            def switch_antigravity_account(self, _):
+                accounts = [a["email"] for a in get_antigravity_accounts()]
+                current = config.get("antigravity_account_email") or "AUTO"
+                hint = ", ".join(accounts) if accounts else "(none detected running right now)"
+                response = rumps.Window(
+                    message=f"Detected accounts: {hint}\n\nType an email to pin that account, or 'AUTO' to use whichever is found first:",
+                    title="Antigravity Account",
+                    default_text=current,
+                    ok="Save",
+                    cancel="Cancel"
+                ).run()
+
+                if response.clicked:
+                    value = response.text.strip()
+                    config["antigravity_account_email"] = None if (not value or value.upper() == "AUTO") else value
+                    save_config(config)
+                    rumps.alert("Saved", f"Antigravity account set to: {config['antigravity_account_email'] or 'Auto'}")
 
             @rumps.clicked("⚙️ Set Location...")
             def set_location(self, _):
