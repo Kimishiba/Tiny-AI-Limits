@@ -10,7 +10,7 @@ An open-source, Wi-Fi enabled desktop companion robot powered by the ultra-compa
 It combines an expressive, retro animated robot face with real-time hardware gauges for your AI coding token quotas (Claude Code & Antigravity CLI), agent plan approval notifications, and local weather forecasts.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Kimishiba/Tiny-AI-Limits/main/img/oled_companion_demo.gif" width="512" alt="ESP32 OLED Companion Animation Preview">
+  <img src="./img/oled_companion_demo.gif" alt="ESP32 OLED Companion Animation Preview" width="512">
 </p>
 
 ---
