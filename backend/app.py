@@ -254,25 +254,44 @@ def get_data():
                         latest_mod = mtime
                         latest_transcript = fp
 
-            if latest_transcript and (time.time() - latest_mod) < 180:
+            # A pending question/permission/plan-approval is only ever the
+            # LAST line of the transcript -- once answered, the agent appends
+            # a new step (e.g. type ASK_QUESTION) right after it. 30 minutes
+            # of slack accounts for realistic human reaction time; the file
+            # simply stops being written while a question is outstanding.
+            if latest_transcript and (time.time() - latest_mod) < 1800:
                 with open(latest_transcript, "r", encoding="utf-8", errors="ignore") as f:
-                    lines = f.readlines()
-                    if lines:
-                        last_steps = [json.loads(l) for l in lines[-3:] if l.strip()]
-                        for step in reversed(last_steps):
-                            for tc in step.get("tool_calls", []):
-                                if tc.get("name") == "ask_question":
-                                    waiting_for_input = True
-                                    prompt_text = "ANSWER Q"
-                                    break
-                                args = tc.get("arguments", {})
-                                if isinstance(args, dict):
-                                    meta = args.get("ArtifactMetadata", {})
-                                    if meta.get("RequestFeedback") is True:
-                                        waiting_for_input = True
-                                        prompt_text = "APPROVE PLAN"
-                                        break
-                            if waiting_for_input:
+                    lines = [l for l in f.readlines() if l.strip()]
+                if lines:
+                    try:
+                        last_step = json.loads(lines[-1])
+                    except Exception:
+                        last_step = None
+                    if last_step and last_step.get("type") == "PLANNER_RESPONSE":
+                        for tc in last_step.get("tool_calls", []) or []:
+                            name = tc.get("name")
+                            args = tc.get("args", {}) or {}
+                            if name == "ask_question":
+                                waiting_for_input = True
+                                prompt_text = "ANSWER Q"
+                                break
+                            if name == "ask_permission":
+                                waiting_for_input = True
+                                prompt_text = "GRANT PERM"
+                                break
+                            meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                            if isinstance(meta_raw, str):
+                                try:
+                                    meta = json.loads(meta_raw)
+                                except Exception:
+                                    meta = {}
+                            elif isinstance(meta_raw, dict):
+                                meta = meta_raw
+                            else:
+                                meta = {}
+                            if meta.get("RequestFeedback") is True:
+                                waiting_for_input = True
+                                prompt_text = "APPROVE PLAN"
                                 break
     except Exception as e:
         print(f"Agent check error: {e}")
