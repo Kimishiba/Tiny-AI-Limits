@@ -1,10 +1,13 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Arduino_GFX_Library.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
+#include <WebServer.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
 #include <Preferences.h>
@@ -13,29 +16,58 @@
 // ==========================================
 // PIN CONFIGURATION (ESP32-C3 SuperMini)
 // ==========================================
+// 1. I2C Bus for SSD1306 / SH1106 OLED (128x64)
 #define I2C_SDA_PIN 8
 #define I2C_SCL_PIN 9
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
+// 2. SPI Bus for GC9A01 Circular IPS (240x240)
+#define GC9A01_SCK_PIN  4
+#define GC9A01_MOSI_PIN 6
+#define GC9A01_CS_PIN   5
+#define GC9A01_DC_PIN   7
+#define GC9A01_RST_PIN  1
+#define GC9A01_BLK_PIN  0
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+// ==========================================
+// DISPLAY HARDWARE DEFINITIONS & DRIVERS
+// ==========================================
+#define OLED_SCREEN_WIDTH  128
+#define OLED_SCREEN_HEIGHT 64
+#define OLED_RESET         -1
 
-// Some networks (e.g. the office guest WiFi's WPA2/WPA3-mixed APs) can take
-// well over 15s to complete the handshake even with PMF disabled; give it
-// enough margin to avoid failing on otherwise-successful connections.
+Adafruit_SSD1306 oledDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// GC9A01 SPI Hardware Driver
+Arduino_DataBus *gcBus = new Arduino_ESP32SPI(GC9A01_DC_PIN, GC9A01_CS_PIN, GC9A01_SCK_PIN, GC9A01_MOSI_PIN, GFX_NOT_DEFINED);
+Arduino_GFX *gcGfx = new Arduino_GC9A01(gcBus, GC9A01_RST_PIN, 0 /* rotation */, true /* IPS */);
+
+// ==========================================
+// SCREEN PROVISIONING & HARDWARE SELECTION
+// ==========================================
+enum HardwareScreenType {
+    SCREEN_AUTO = 0,
+    SCREEN_GC9A01_ROUND = 1,
+    SCREEN_OLED_128X64 = 2
+};
+
+HardwareScreenType configuredScreenType = SCREEN_AUTO;
+HardwareScreenType activeScreenType = SCREEN_GC9A01_ROUND;
+bool oledFound = false;
+uint8_t oledAddress = 0x3C;
+bool gc9a01Initialized = false;
+
+Preferences screenPrefs;
+WebServer server(80);
+
 const unsigned long wifiConnectTimeoutMs = 30000;
 
 // ==========================================
 // DATA STRUCTURES
 // ==========================================
-// Our corporate Claude plan has no monthly/weekly quota, so there's no real
-// ceiling to render a Xk/limit bar against. tokensToday is real usage (input
-// + output + freshly-cached context, today only); heavyUsageThreshold just
-// picks a "you've been grinding today" line for the tired-eyes animation.
 struct ClaudeLimits {
     long tokensToday = 0;
+    int limit = 100;
+    int remaining = 100;
 };
 const long claudeHeavyUsageThreshold = 2500000;
 
@@ -47,14 +79,14 @@ struct AntigravityLimits {
 };
 
 struct WeatherInfo {
-    float temp = 21.5;
+    float temp = 23.5;
     int hours_until_rain = -1;
     String location = "DESKTOP";
 };
 
 struct AgentStatus {
     bool waiting_for_input = false;
-    String prompt_text = "INPUT REQ";
+    String prompt_text = "APPROVE PLAN";
 };
 
 struct TimeInfo {
@@ -62,22 +94,18 @@ struct TimeInfo {
     int minutes = 0;
     int seconds = 0;
     String time_str = "12:00:00";
+    String date_str = "FRI AUG 21";
 };
 
 ClaudeLimits claudeData;
-
-// Idle detection: if tokensToday hasn't budged for a while, show sleeping
-// eyes instead of the normal blink/heavy-usage animation. lastTokenActivity
-// starts at boot time (not 0) so the board doesn't render as "asleep" during
-// the first fetch cycle before any real data has arrived.
-long lastKnownTokensToday = -1;
-unsigned long lastTokenActivityMs = 0;
-const unsigned long sleepIdleThresholdMs = 15UL * 60UL * 1000UL;
-
 AntigravityLimits agData;
 WeatherInfo weatherData;
 AgentStatus agentData;
 TimeInfo timeData;
+
+long lastKnownTokensToday = -1;
+unsigned long lastTokenActivityMs = 0;
+const unsigned long sleepIdleThresholdMs = 15UL * 60UL * 1000UL;
 
 unsigned long lastBackendPoll = 0;
 const unsigned long backendPollInterval = 3000;
@@ -85,7 +113,7 @@ const unsigned long backendPollInterval = 3000;
 unsigned long lastScreenSwitch = 0;
 const unsigned long screenSwitchInterval = 8000;
 
-enum ScreenMode {
+enum OLEDMode {
     SCREEN_FACE = 0,
     SCREEN_SPLIT_HUD = 1,
     SCREEN_LIMITS = 2,
@@ -93,20 +121,15 @@ enum ScreenMode {
     SCREEN_AGENT_ALERT = 4
 };
 
-ScreenMode currentScreen = SCREEN_FACE;
+OLEDMode currentOLEDMode = SCREEN_FACE;
 bool wifiConnected = false;
-bool oledFound = false;
-uint8_t oledAddress = 0x3C;
 
-// WiFi credentials live in NVS (via Preferences), provisioned at runtime over
-// USB through the Improv Wi-Fi serial protocol -- nothing is hardcoded at
-// compile time, so the same firmware works for any user on any network.
 Preferences wifiPrefs;
 ImprovWiFi improvSerial(&Serial);
 bool provisioningMode = false;
 
 // ==========================================
-// FACE & BLINKING ANIMATION ENGINE
+// OLED FACE & BLINKING ANIMATION ENGINE
 // ==========================================
 enum BlinkPhase {
     EYES_OPEN,
@@ -137,7 +160,6 @@ unsigned long animTicks = 0;
 void updateFacePhysics(unsigned long now) {
     animTicks++;
 
-    // 1. Blink State Machine (25% faster response)
     switch (face.blinkPhase) {
         case EYES_OPEN:
             face.currentOpenPct = 1.0f;
@@ -176,14 +198,13 @@ void updateFacePhysics(unsigned long now) {
                 face.currentOpenPct = 1.0f;
                 face.blinkCountInBurst++;
 
-                // 25% chance of a quick double-blink
                 if (!face.isDoubleBlink && random(0, 100) < 25 && face.blinkCountInBurst < 2) {
                     face.isDoubleBlink = true;
                     face.nextBlinkTime = now + random(75, 180);
                 } else {
                     face.isDoubleBlink = false;
                     face.blinkCountInBurst = 0;
-                    face.nextBlinkTime = now + random(1800, 4000); // 25% faster interval
+                    face.nextBlinkTime = now + random(1800, 4000);
                 }
             } else {
                 face.currentOpenPct = 0.08f + (float)elapsed / 38.0f * 0.92f;
@@ -192,384 +213,401 @@ void updateFacePhysics(unsigned long now) {
         }
     }
 
-    // 2. Eye Looking / Saccade Machine (25% faster)
     if (now >= face.nextLookTime) {
         int r = random(0, 100);
         if (r < 40) {
-            face.targetPupilX = 0; // Look center
+            face.targetPupilX = 0;
             face.targetPupilY = 0;
-        } else if (r < 65) {
-            face.targetPupilX = -5; // Look left
+        } else if (r < 60) {
+            face.targetPupilX = random(-5, 6);
             face.targetPupilY = 0;
-        } else if (r < 90) {
-            face.targetPupilX = 5; // Look right
-            face.targetPupilY = 0;
+        } else if (r < 80) {
+            face.targetPupilX = random(-5, 6);
+            face.targetPupilY = random(-2, 3);
         } else {
             face.targetPupilX = 0;
-            face.targetPupilY = -3; // Look up
+            face.targetPupilY = random(-2, 3);
         }
-        face.nextLookTime = now + random(1500, 3400); // 25% faster looking intervals
+        face.nextLookTime = now + random(1500, 5000);
     }
 
-    // Snappy spring smoothing for pupil
-    face.currentPupilX += (face.targetPupilX - face.currentPupilX) * 0.45f;
-    face.currentPupilY += (face.targetPupilY - face.currentPupilY) * 0.45f;
+    face.currentPupilX += (face.targetPupilX - face.currentPupilX) * 0.25f;
+    face.currentPupilY += (face.targetPupilY - face.currentPupilY) * 0.25f;
 }
 
 // ==========================================
-// DRAWING ROUTINES (Adafruit GFX)
+// OLED DRAWING ROUTINES
 // ==========================================
+void drawCyberEye(int cx, int cy, float openPct, float pupilX, float pupilY, bool isRight) {
+    int maxW = 34;
+    int maxH = 26;
+    int curH = (int)(maxH * openPct);
+    if (curH < 2) curH = 2;
 
-void drawEye(int cx, int cy, int width, int height, int radius, float openPct, int pupilXOffset, int pupilYOffset) {
-    int eyeH = max(2, (int)round(height * openPct));
-    int topY = cy - eyeH / 2;
+    int rX = cx - maxW / 2;
+    int rY = cy - curH / 2;
 
-    // Outer Eye
-    display.fillRoundRect(cx - width / 2, topY, width, eyeH, radius, SSD1306_WHITE);
+    oledDisplay.drawRoundRect(rX, rY, maxW, curH, 4, SSD1306_WHITE);
 
-    // Inner Pupil Cutout (Dark highlight inside eye when open)
-    if (openPct > 0.45f && width > 14) {
-        int pupilW = max(3, (int)round(width * 0.38f));
-        int pupilH = max(3, (int)round(eyeH * 0.46f));
-        int px = cx + pupilXOffset - pupilW / 2;
-        int py = cy + pupilYOffset - pupilH / 2;
-        display.fillRect(px, py, pupilW, pupilH, SSD1306_BLACK);
+    if (curH > 6) {
+        int pX = cx + (int)pupilX;
+        int pY = cy + (int)pupilY;
+        oledDisplay.fillCircle(pX, pY, 4, SSD1306_WHITE);
     }
 }
 
 void renderFaceScreen() {
-    int cx = 64;
-    int cy = 32;
-    int eyeW = 28;
-    int eyeH = 40;
-    int eyeRadius = 8;
-    int eyeDist = 26;
-
-    // No tokens consumed in a while: show sleeping eyes. Takes priority over
-    // heavy-usage, since "resting after a heavy day" reads fine but "tired
-    // and sweating while asleep" doesn't.
-    bool isSleeping = (millis() - lastTokenActivityMs) >= sleepIdleThresholdMs;
-    bool isHeavyUsage = !isSleeping && claudeData.tokensToday > claudeHeavyUsageThreshold;
-
-    if (isSleeping) {
-        // Closed, curved eyelids -- no blink motion, distinct from a
-        // mid-blink frame of the normal animation.
-        display.fillRoundRect(cx - eyeDist - eyeW / 2, cy - 3, eyeW, 6, 3, SSD1306_WHITE);
-        display.fillRoundRect(cx + eyeDist - eyeW / 2, cy - 3, eyeW, 6, 3, SSD1306_WHITE);
-
-        // Drifting "z" characters to make "asleep" unambiguous
-        display.setTextSize(1);
-        display.setTextColor(SSD1306_WHITE);
-        for (int i = 0; i < 3; i++) {
-            unsigned long cycle = (animTicks / 3 + i * 40) % 120;
-            int zx = cx + eyeDist + 6 + i * 6;
-            int zy = cy - 18 - (int)cycle / 3;
-            if (zy > cy - 34) {
-                display.setCursor(zx, zy);
-                display.print("z");
-            }
-        }
-
-        display.setCursor(38, 54);
-        display.print("SLEEPING");
-        return;
-    }
-
-    if (isHeavyUsage) {
-        // Tired / Low Battery Droopy Eyes
-        int tiredH = eyeH / 2;
-        display.fillRoundRect(cx - eyeDist - eyeW / 2, cy - 2, eyeW, tiredH, 4, SSD1306_WHITE);
-        display.fillRoundRect(cx + eyeDist - eyeW / 2, cy - 2, eyeW, tiredH, 4, SSD1306_WHITE);
-
-        // Animated falling sweat drop
-        int sweatY = cy - 12 + ((animTicks / 2) % 20);
-        display.drawPixel(cx + eyeDist + eyeW / 2 + 5, sweatY, SSD1306_WHITE);
-        display.drawPixel(cx + eyeDist + eyeW / 2 + 5, sweatY + 1, SSD1306_WHITE);
-        display.drawPixel(cx + eyeDist + eyeW / 2 + 4, sweatY + 2, SSD1306_WHITE);
-        display.drawPixel(cx + eyeDist + eyeW / 2 + 6, sweatY + 2, SSD1306_WHITE);
-
-        display.setTextSize(1);
-        display.setTextColor(SSD1306_WHITE);
-        display.setCursor(28, 54);
-        display.print("HEAVY USAGE");
-        return;
-    }
-
-    // Normal Expressive Blinking Eyes
-    int leftX = cx - eyeDist;
-    int rightX = cx + eyeDist;
-    int pX = (int)round(face.currentPupilX);
-    int pY = (int)round(face.currentPupilY);
-
-    drawEye(leftX, cy, eyeW, eyeH, eyeRadius, face.currentOpenPct, pX, pY);
-    drawEye(rightX, cy, eyeW, eyeH, eyeRadius, face.currentOpenPct, pX, pY);
+    drawCyberEye(38, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, false);
+    drawCyberEye(90, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, true);
 }
 
 void renderSplitHUDScreen() {
-    // Left side: Mini animated robot face (scale 0.65)
-    int cx = 24;
-    int cy = 32;
-    int eyeW = 18;
-    int eyeH = 26;
-    int eyeRadius = 5;
-    int eyeDist = 16;
-    int pX = (int)round(face.currentPupilX * 0.6f);
-    int pY = (int)round(face.currentPupilY * 0.6f);
+    oledDisplay.setTextSize(1);
+    oledDisplay.setTextColor(SSD1306_WHITE);
+    oledDisplay.setCursor(4, 4);
+    oledDisplay.printf("CLAUDE: %ldk", claudeData.tokensToday / 1000);
 
-    drawEye(cx - eyeDist, cy, eyeW, eyeH, eyeRadius, face.currentOpenPct, pX, pY);
-    drawEye(cx + eyeDist, cy, eyeW, eyeH, eyeRadius, face.currentOpenPct, pX, pY);
+    oledDisplay.setCursor(4, 20);
+    oledDisplay.printf("AGY 5h: %d/%d", agData.remaining, agData.limit);
 
-    // Vertical Divider
-    for (int y = 4; y < 60; y += 2) {
-        display.drawPixel(50, y, SSD1306_WHITE);
-    }
+    oledDisplay.drawFastHLine(0, 34, 128, SSD1306_WHITE);
 
-    // Right side: AI Token Gauges & Clock
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(55, 4);
-    display.print("AI LIMITS");
+    oledDisplay.setCursor(4, 40);
+    oledDisplay.printf("TIME: %s", timeData.time_str.c_str());
 
-    // Claude: no real quota on our plan, so show today's token count directly
-    display.setCursor(55, 16);
-    display.printf("C:%ldk/day", claudeData.tokensToday / 1000);
-
-    // Antigravity Progress Bar
-    float agPercent = agData.limit > 0 ? (float)agData.used / (float)agData.limit : 0.0f;
-    display.setCursor(55, 28);
-    display.print("A:");
-    display.drawRect(68, 28, 56, 7, SSD1306_WHITE);
-    int aFill = (int)(52 * agPercent);
-    if (aFill > 0) display.fillRect(70, 30, aFill, 3, SSD1306_WHITE);
-
-    // Digital Time & Temp
-    char timeBuf[16];
-    snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", timeData.hours, timeData.minutes, timeData.seconds);
-    display.setCursor(56, 42);
-    display.print(timeBuf);
-
-    display.setCursor(56, 52);
-    display.printf("%.1fC OK", weatherData.temp);
-}
-
-void drawHeader(const char* title, const char* rightTag = "") {
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(2, 2);
-    display.print(title);
-
-    if (strlen(rightTag) > 0) {
-        int16_t x1, y1;
-        uint16_t titleW, h;
-        display.getTextBounds(title, 0, 0, &x1, &y1, &titleW, &h);
-        int titleRightEdge = 2 + titleW + 4; // 4px gap after the title
-
-        // Truncate from the end, just enough to stop it clashing with the
-        // title -- long city/location names would otherwise overlap it.
-        String tag = String(rightTag);
-        uint16_t tagW;
-        display.getTextBounds(tag, 0, 0, &x1, &y1, &tagW, &h);
-        while (tag.length() > 0 && (int)(126 - tagW) < titleRightEdge) {
-            tag.remove(tag.length() - 1);
-            display.getTextBounds(tag, 0, 0, &x1, &y1, &tagW, &h);
-        }
-
-        if (tag.length() > 0) {
-            display.setCursor(126 - tagW, 2);
-            display.print(tag);
-        }
-    }
-    display.drawFastHLine(0, 11, 128, SSD1306_WHITE);
-}
-
-void drawProgressBar(int x, int y, int w, int h, float percentage) {
-    if (percentage < 0.0) percentage = 0.0;
-    if (percentage > 1.0) percentage = 1.0;
-    display.drawRect(x, y, w, h, SSD1306_WHITE);
-    int fillW = (int)((w - 4) * percentage);
-    if (fillW > 0) {
-        display.fillRect(x + 2, y + 2, fillW, h - 4, SSD1306_WHITE);
+    oledDisplay.setCursor(4, 52);
+    if (weatherData.hours_until_rain >= 0) {
+        oledDisplay.printf("%.1fC Rain:%dh", weatherData.temp, weatherData.hours_until_rain);
+    } else {
+        oledDisplay.printf("%.1fC No Rain", weatherData.temp);
     }
 }
 
 void renderLimitsScreen() {
-    drawHeader("AI QUOTAS", wifiConnected ? "ONLINE" : "DEMO");
+    oledDisplay.setTextSize(1);
+    oledDisplay.setTextColor(SSD1306_WHITE);
+    oledDisplay.setCursor(4, 4);
+    oledDisplay.print("=== AI LIMITS ===");
 
-    // Claude Tokens: corporate plan has no monthly/weekly quota, so there's
-    // no ceiling to show a bar against -- just today's real usage.
-    display.setTextSize(1);
-    display.setCursor(2, 16);
-    display.printf("Claude: %ldk today", claudeData.tokensToday / 1000);
+    oledDisplay.setCursor(4, 22);
+    oledDisplay.printf("Claude Today: %ldk", claudeData.tokensToday / 1000);
 
-    // Antigravity Quota
-    float agPercent = agData.limit > 0 ? (float)agData.used / (float)agData.limit : 0.0f;
-    int agRemainingPct = (int)round(100.0f * (1.0f - agPercent));
-    display.setCursor(2, 36);
-    display.printf("Antigrav: %d%% left", agRemainingPct);
-    drawProgressBar(2, 46, 124, 6, agPercent);
-
-    // Bottom Status
-    display.setCursor(2, 56);
-    display.print(wifiConnected ? "Companion Active" : "Waiting for Wi-Fi");
+    oledDisplay.setCursor(4, 38);
+    oledDisplay.printf("Antigravity: %d rem", agData.remaining);
+    int barW = map(agData.remaining, 0, agData.limit, 0, 120);
+    oledDisplay.drawRect(4, 50, 120, 8, SSD1306_WHITE);
+    oledDisplay.fillRect(6, 52, max(0, barW - 4), 4, SSD1306_WHITE);
 }
 
 void renderClockWeatherScreen() {
-    drawHeader("TIME & WEATHER", weatherData.location.c_str());
+    oledDisplay.setTextSize(2);
+    oledDisplay.setTextColor(SSD1306_WHITE);
+    oledDisplay.setCursor(16, 12);
+    oledDisplay.printf("%02d:%02d", timeData.hours, timeData.minutes);
 
-    // Big Digital Clock
-    display.setTextSize(2);
-    char timeStr[16];
-    snprintf(timeStr, sizeof(timeStr), "%02d:%02d:%02d", timeData.hours, timeData.minutes, timeData.seconds);
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(timeStr, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 18);
-    display.print(timeStr);
-
-    display.drawFastHLine(4, 38, 120, SSD1306_WHITE);
-
-    // Weather
-    display.setTextSize(1);
-    display.setCursor(4, 46);
-    display.printf("%.1f C", weatherData.temp);
-
-    // Rain status
-    char rainBuf[24];
-    if (weatherData.hours_until_rain == 0) {
-        snprintf(rainBuf, sizeof(rainBuf), "Rain: NOW");
-    } else if (weatherData.hours_until_rain > 0) {
-        snprintf(rainBuf, sizeof(rainBuf), "Rain: %dh", weatherData.hours_until_rain);
-    } else {
-        snprintf(rainBuf, sizeof(rainBuf), "No Rain");
-    }
-    display.getTextBounds(rainBuf, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor(124 - w, 46);
-    display.print(rainBuf);
-
-    display.setCursor(4, 56);
-    display.print("Desktop Companion");
+    oledDisplay.setTextSize(1);
+    oledDisplay.setCursor(4, 44);
+    oledDisplay.printf("%.1f C  %s", weatherData.temp, weatherData.location.c_str());
 }
-
-const unsigned long agentAlertFlashPeriodMs = 350;
 
 void renderAgentAlertScreen() {
-    // Toggle on elapsed time, not per render call -- this screen now renders
-    // at 30 FPS for the other animated screens, and a per-call toggle would
-    // flicker at ~15Hz (unreadable) instead of a clear, visible flash.
-    bool inverted = ((millis() / agentAlertFlashPeriodMs) % 2 == 0);
-
-    if (inverted) {
-        display.fillRect(0, 0, 128, 64, SSD1306_WHITE);
-        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-    } else {
-        display.drawRect(0, 0, 128, 64, SSD1306_WHITE);
-        display.drawRect(2, 2, 124, 60, SSD1306_WHITE);
-        display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
-    }
-
-    display.setTextSize(1);
-    const char* alertTitle = "! AGENT ATTENTION !";
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(alertTitle, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 8);
-    display.print(alertTitle);
-
-    // Shocked alert wide eyes in center
-    int cx = 64;
-    int cy = 32;
-    int eyeW = 20;
-    int eyeH = 22;
-    if (inverted) {
-        display.fillRoundRect(cx - 20 - eyeW / 2, cy - eyeH / 2, eyeW, eyeH, 6, SSD1306_BLACK);
-        display.fillRoundRect(cx + 20 - eyeW / 2, cy - eyeH / 2, eyeW, eyeH, 6, SSD1306_BLACK);
-        display.fillRect(cx - 20 - 2, cy - 2, 4, 4, SSD1306_WHITE);
-        display.fillRect(cx + 20 - 2, cy - 2, 4, 4, SSD1306_WHITE);
-    } else {
-        display.fillRoundRect(cx - 20 - eyeW / 2, cy - eyeH / 2, eyeW, eyeH, 6, SSD1306_WHITE);
-        display.fillRoundRect(cx + 20 - eyeW / 2, cy - eyeH / 2, eyeW, eyeH, 6, SSD1306_WHITE);
-        display.fillRect(cx - 20 - 2, cy - 2, 4, 4, SSD1306_BLACK);
-        display.fillRect(cx + 20 - 2, cy - 2, 4, 4, SSD1306_BLACK);
-    }
-
-    display.setTextSize(1);
-    const char* subTitle = "PLAN APPROVAL REQ";
-    display.getTextBounds(subTitle, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 50);
-    display.print(subTitle);
-
-    display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+    bool blink = (millis() / 400) % 2 == 0;
+    oledDisplay.drawRect(0, 0, 128, 64, blink ? SSD1306_WHITE : SSD1306_BLACK);
+    oledDisplay.setTextSize(1);
+    oledDisplay.setTextColor(SSD1306_WHITE);
+    oledDisplay.setCursor(18, 14);
+    oledDisplay.print("! AGENT ALERT !");
+    oledDisplay.setCursor(10, 36);
+    oledDisplay.print(agentData.prompt_text);
 }
 
-// No WiFi credentials stored yet (or the stored ones stopped working) --
-// waiting for Improv Wi-Fi provisioning over the USB serial connection. The
-// exact setup URL isn't shown here since a 128x64 OLED is a poor place to
-// transcribe a URL from; it lives in the companion app / README instead.
 void renderProvisioningScreen() {
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-
-    const char* title = "SETUP MODE";
-    int16_t x1, y1;
-    uint16_t w, h;
-    display.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 6);
-    display.print(title);
-    display.drawFastHLine(8, 16, 112, SSD1306_WHITE);
-
-    const char* line1 = "Plug into USB, open";
-    display.getTextBounds(line1, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 26);
-    display.print(line1);
-
-    const char* line2 = "companion app & click";
-    display.getTextBounds(line2, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 36);
-    display.print(line2);
-
-    const char* line3 = "\"Set Up New Device\"";
-    display.getTextBounds(line3, 0, 0, &x1, &y1, &w, &h);
-    display.setCursor((128 - w) / 2, 46);
-    display.print(line3);
-
-    // Slow pulsing dots so the screen doesn't look frozen while waiting
-    int dotCount = 1 + ((millis() / 500) % 3);
-    char dots[4] = "";
-    for (int i = 0; i < dotCount; i++) dots[i] = '.';
-    dots[dotCount] = '\0';
-    display.setCursor(2, 56);
-    display.print("Waiting");
-    display.print(dots);
+    oledDisplay.setTextSize(1);
+    oledDisplay.setTextColor(SSD1306_WHITE);
+    oledDisplay.setCursor(24, 6);
+    oledDisplay.print("SETUP MODE");
+    oledDisplay.drawFastHLine(8, 16, 112, SSD1306_WHITE);
+    oledDisplay.setCursor(8, 28);
+    oledDisplay.print("Open setup portal to");
+    oledDisplay.setCursor(8, 40);
+    oledDisplay.print("provision Wi-Fi / Screen");
 }
 
 // ==========================================
-// DATA FETCHING
+// GC9A01 (240x240 ROUND) C++ RENDERING ENGINE
 // ==========================================
-String httpStatusMsg = "OK";
+#define GC_COLOR_BLACK       0x0000
+#define GC_COLOR_WHITE       0xFFFF
+#define GC_COLOR_CYAN        0x073F // Electric Cyan (#00E5FF)
+#define GC_COLOR_ORANGE      0xFD20 // Safety Orange (#FF7A00)
+#define GC_COLOR_AMBER       0xFDC0 // Hazard Amber (#FFB800)
+#define GC_COLOR_YELLOW      0xFFE0 // Neon Spark Yellow
+#define GC_COLOR_CARD_TOP    0x2126 // Lighter Slate (#222633)
+#define GC_COLOR_CARD_BOT    0x10A3 // Deeper Obsidian (#12141C)
+#define GC_COLOR_CARD_BORDER 0x2988 // Border Slate (#2B3042)
+#define GC_COLOR_SLATE_GRAY  0x9D37 // Muted Slate (#94A3B8)
+#define GC_COLOR_ICE_BLUE    0x3DFE // Weather Rain Blue (#38BDF8)
+#define GC_COLOR_DARK_AMBER  0x2080
 
-const char* getWiFiStatusStr(wl_status_t status) {
-    switch (status) {
-        case WL_NO_SHIELD: return "NO_SHIELD";
-        case WL_IDLE_STATUS: return "IDLE";
-        case WL_NO_SSID_AVAIL: return "NO_SSID";
-        case WL_SCAN_COMPLETED: return "SCAN_OK";
-        case WL_CONNECTED: return "CONNECTED";
-        case WL_CONNECT_FAILED: return "AUTH_FAIL";
-        case WL_CONNECTION_LOST: return "LOST";
-        case WL_DISCONNECTED: return "DISCONN";
-        default: return "UNKNOWN";
+// Digit transition flip states
+int prevDigits[4] = {-1, -1, -1, -1};
+float flipProgress[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+// Vector 7-segment / condensed numeral drawing
+void drawTallDigit(int x, int y, int w, int h, int digit, uint16_t color) {
+    gcGfx->setTextSize(3);
+    gcGfx->setTextColor(color);
+    gcGfx->setCursor(x + (w - 18) / 2, y + (h - 24) / 2);
+    gcGfx->print(digit);
+}
+
+void drawGC9A01FlipCard(int posX, int posY, int cardW, int cardH, int digit, bool isTopHalf) {
+    int midY = posY + cardH / 2;
+    int halfH = cardH / 2;
+
+    // Card background
+    gcGfx->fillRoundRect(posX, posY, cardW, halfH, 4, GC_COLOR_CARD_TOP);
+    gcGfx->fillRoundRect(posX, midY, cardW, halfH, 4, GC_COLOR_CARD_BOT);
+    gcGfx->drawRoundRect(posX, posY, cardW, cardH, 4, GC_COLOR_CARD_BORDER);
+
+    // Mechanical split crease
+    gcGfx->drawFastHLine(posX, midY, cardW, GC_COLOR_BLACK);
+    gcGfx->drawFastHLine(posX, midY + 1, cardW, 0x31E7);
+
+    // Retaining Hinge Lugs (Left, Center Seams, Right)
+    auto drawHinge = [](int hx, int my) {
+        gcGfx->fillRoundRect(hx - 2, my - 6, 5, 12, 2, 0x10A2);
+        gcGfx->drawRoundRect(hx - 2, my - 6, 5, 12, 2, 0x39E7);
+        gcGfx->fillRect(hx - 1, my - 2, 3, 4, 0x8CD1); // Steel pin
+    };
+    drawHinge(posX, midY);
+    drawHinge(posX + cardW, midY);
+
+    // Draw tall numeral
+    drawTallDigit(posX, posY, cardW, cardH, digit, GC_COLOR_WHITE);
+}
+
+void drawGC9A01RoundFlipUI() {
+    int cx = 120, cy = 120, rScreen = 114;
+
+    // 1. Agent Alert Spinning Hazard Ring or Static Bezel
+    if (agentData.waiting_for_input) {
+        float spinAngle = (float)(millis() % 3350) / 3350.0f * 6.28318f;
+        gcGfx->drawCircle(cx, cy, rScreen + 2, GC_COLOR_DARK_AMBER);
+        gcGfx->drawCircle(cx, cy, rScreen + 3, GC_COLOR_AMBER);
+
+        // Broken arc segments
+        for (int i = 0; i < 6; i++) {
+            float a = spinAngle + i * 1.047f;
+            int px = cx + (int)(cos(a) * (rScreen + 3));
+            int py = cy + (int)(sin(a) * (rScreen + 3));
+            gcGfx->fillCircle(px, py, 2, GC_COLOR_YELLOW);
+        }
+    } else {
+        gcGfx->drawCircle(cx, cy, rScreen + 2, 0x18E3);
+    }
+
+    // 2. Top Crown: Weather Forecast
+    gcGfx->setTextSize(1);
+    gcGfx->setTextColor(weatherData.hours_until_rain <= 3 && weatherData.hours_until_rain >= 0 ? GC_COLOR_ICE_BLUE : GC_COLOR_SLATE_GRAY);
+    gcGfx->setCursor(cx - 36, cy - 93);
+    if (weatherData.hours_until_rain == 0) {
+        gcGfx->print("RAIN NOW");
+    } else if (weatherData.hours_until_rain > 0) {
+        gcGfx->printf("RAIN IN %dh", weatherData.hours_until_rain);
+    } else {
+        gcGfx->print("NO RAIN");
+    }
+
+    // 3. Flanking Radial Gauges (Left: Claude / Right: Antigravity)
+    int claudePct = 100;
+    int antiPct = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
+
+    // Left Arc (Claude Cyan) - outer main arc + inner thin arc
+    for (int deg = 126; deg <= 234; deg += 3) {
+        float rad = deg * 0.0174533f;
+        int x1 = cx + (int)(cos(rad) * 105);
+        int y1 = cy + (int)(sin(rad) * 105);
+        int x2 = cx + (int)(cos(rad) * 96);
+        int y2 = cy + (int)(sin(rad) * 96);
+
+        uint16_t color = (deg <= 126 + (claudePct * 108 / 100)) ? GC_COLOR_CYAN : 0x0110;
+        gcGfx->drawPixel(x1, y1, color);
+        gcGfx->drawPixel(x2, y2, color);
+    }
+
+    // Right Arc (Antigravity Orange) - outer main arc + inner thin arc
+    for (int deg = 54; deg >= -54; deg -= 3) {
+        float rad = deg * 0.0174533f;
+        int x1 = cx + (int)(cos(rad) * 105);
+        int y1 = cy + (int)(sin(rad) * 105);
+        int x2 = cx + (int)(cos(rad) * 96);
+        int y2 = cy + (int)(sin(rad) * 96);
+
+        uint16_t color = (deg >= 54 - (antiPct * 108 / 100)) ? GC_COLOR_ORANGE : 0x2080;
+        gcGfx->drawPixel(x1, y1, color);
+        gcGfx->drawPixel(x2, y2, color);
+    }
+
+    // Gauge Labels
+    gcGfx->setTextSize(1);
+    gcGfx->setTextColor(GC_COLOR_CYAN);
+    gcGfx->setCursor(cx - 96, cy - 4);
+    gcGfx->print("CLD");
+
+    gcGfx->setTextColor(GC_COLOR_ORANGE);
+    gcGfx->setCursor(cx + 74, cy - 4);
+    gcGfx->print("AGY");
+
+    // 4. Center 2x2 Split-Flap Clock Matrix (48x72px cards, 6px gap)
+    int cardW = 48, cardH = 72, gap = 6;
+    int x1 = cx - cardW - gap / 2;
+    int x2 = cx + gap / 2;
+    int yTop = cy - cardH - gap / 2;
+    int yBot = cy + gap / 2;
+
+    int dH1 = timeData.hours / 10;
+    int dH2 = timeData.hours % 10;
+    int dM1 = timeData.minutes / 10;
+    int dM2 = timeData.minutes % 10;
+
+    drawGC9A01FlipCard(x1, yTop, cardW, cardH, dH1, true);
+    drawGC9A01FlipCard(x2, yTop, cardW, cardH, dH2, true);
+    drawGC9A01FlipCard(x1, yBot, cardW, cardH, dM1, false);
+    drawGC9A01FlipCard(x2, yBot, cardW, cardH, dM2, false);
+
+    // 5. Stacked Bottom Sub-HUD
+    if (agentData.waiting_for_input) {
+        bool alertBlink = (millis() / 500) % 2 == 0;
+        gcGfx->setTextSize(1);
+        gcGfx->setTextColor(alertBlink ? GC_COLOR_AMBER : 0x4200);
+        gcGfx->setCursor(cx - 38, cy + 80);
+        gcGfx->print("AGENT ALERT");
+
+        gcGfx->setTextColor(GC_COLOR_WHITE);
+        gcGfx->setCursor(cx - 42, cy + 94);
+        gcGfx->print(agentData.prompt_text);
+    } else {
+        gcGfx->setTextSize(1);
+        gcGfx->setTextColor(GC_COLOR_SLATE_GRAY);
+        gcGfx->setCursor(cx - 32, cy + 80);
+        gcGfx->print(timeData.date_str);
+
+        gcGfx->setTextColor(GC_COLOR_WHITE);
+        gcGfx->setCursor(cx - 24, cy + 94);
+        gcGfx->printf("%.1f C", weatherData.temp);
     }
 }
 
+// ==========================================
+// HARDWARE AUTO-DETECTION & INITIALIZATION
+// ==========================================
+HardwareScreenType detectHardwareDisplay() {
+    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+    Wire.beginTransmission(0x3C);
+    if (Wire.endTransmission() == 0) {
+        oledAddress = 0x3C;
+        oledFound = true;
+        Serial.println("[Display] Auto-detected I2C OLED at 0x3C");
+        return SCREEN_OLED_128X64;
+    }
+
+    Wire.beginTransmission(0x3D);
+    if (Wire.endTransmission() == 0) {
+        oledAddress = 0x3D;
+        oledFound = true;
+        Serial.println("[Display] Auto-detected I2C OLED at 0x3D");
+        return SCREEN_OLED_128X64;
+    }
+
+    Serial.println("[Display] No I2C OLED detected. Defaulting to SPI GC9A01 Round 240x240");
+    return SCREEN_GC9A01_ROUND;
+}
+
+void initActiveDisplay() {
+    if (activeScreenType == SCREEN_OLED_128X64) {
+        Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+        if (oledDisplay.begin(SSD1306_SWITCHCAPVCC, oledAddress)) {
+            oledFound = true;
+            oledDisplay.clearDisplay();
+            oledDisplay.display();
+            Serial.println("[Display] OLED initialized successfully");
+        }
+    } else {
+        // GC9A01 Round Screen Init
+        pinMode(GC9A01_BLK_PIN, OUTPUT);
+        digitalWrite(GC9A01_BLK_PIN, HIGH); // Backlight on
+        if (gcGfx->begin()) {
+            gc9a01Initialized = true;
+            gcGfx->fillScreen(GC_COLOR_BLACK);
+            Serial.println("[Display] GC9A01 Round IPS initialized successfully");
+        }
+    }
+}
+
+// ==========================================
+// HTTP SERVER (Companion App Screen Provisioning)
+// ==========================================
+void setupWebServer() {
+    server.on("/api/screen", HTTP_GET, []() {
+        StaticJsonDocument<256> doc;
+        doc["configured_mode"] = (configuredScreenType == SCREEN_AUTO) ? "auto" :
+                                 ((configuredScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled");
+        doc["active_screen"] = (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled";
+        doc["status"] = "ok";
+        String out;
+        serializeJson(doc, out);
+        server.send(200, "application/json", out);
+    });
+
+    server.on("/api/screen", HTTP_POST, []() {
+        String mode = server.arg("mode");
+        if (mode.length() == 0 && server.hasArg("plain")) {
+            StaticJsonDocument<200> doc;
+            deserializeJson(doc, server.arg("plain"));
+            mode = doc["mode"].as<String>();
+        }
+        mode.toLowerCase();
+        if (mode == "round" || mode == "gc9a01") {
+            configuredScreenType = SCREEN_GC9A01_ROUND;
+        } else if (mode == "oled" || mode == "128x64") {
+            configuredScreenType = SCREEN_OLED_128X64;
+        } else {
+            configuredScreenType = SCREEN_AUTO;
+        }
+
+        screenPrefs.begin("screen", false);
+        screenPrefs.putInt("type", (int)configuredScreenType);
+        screenPrefs.end();
+
+        if (configuredScreenType == SCREEN_AUTO) {
+            activeScreenType = detectHardwareDisplay();
+        } else {
+            activeScreenType = configuredScreenType;
+        }
+
+        initActiveDisplay();
+
+        StaticJsonDocument<256> doc;
+        doc["status"] = "ok";
+        doc["configured_mode"] = mode;
+        doc["active_screen"] = (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled";
+        String out;
+        serializeJson(doc, out);
+        server.send(200, "application/json", out);
+    });
+
+    server.begin();
+    Serial.println("[HTTP] Provisioning Web Server started on port 80");
+}
+
+// ==========================================
+// DATA FETCHING & MDNS
+// ==========================================
 String backendUrl = "";
 unsigned long lastMdnsResolve = 0;
 const unsigned long mdnsResolveCooldownMs = 10000;
-int consecutiveFetchFailures = 0;
-const int maxConsecutiveFailuresBeforeReResolve = 3;
 
-// Finds the companion app by browsing for its advertised mDNS service
-// (_tinyscreen._tcp) rather than a hardcoded hostname/IP -- works for any
-// user's computer on any network, with zero per-device configuration.
 bool resolveBackendUrl() {
     int n = MDNS.queryService("tinyscreen", "tcp");
     if (n > 0) {
@@ -579,7 +617,7 @@ bool resolveBackendUrl() {
         Serial.printf("[mDNS] Found companion app at %s:%d\n", ip.toString().c_str(), port);
         return true;
     }
-    Serial.println("[mDNS] No companion app found on the network (_tinyscreen._tcp)");
+    Serial.println("[mDNS] No companion app found (_tinyscreen._tcp)");
     backendUrl = "";
     return false;
 }
@@ -587,7 +625,6 @@ bool resolveBackendUrl() {
 void fetchBackendData() {
     if (WiFi.status() != WL_CONNECTED) {
         wifiConnected = false;
-        httpStatusMsg = getWiFiStatusStr(WiFi.status());
         return;
     }
     wifiConnected = true;
@@ -597,7 +634,6 @@ void fetchBackendData() {
             lastMdnsResolve = millis();
             resolveBackendUrl();
         }
-        httpStatusMsg = "NO_MDNS";
         return;
     }
 
@@ -606,211 +642,128 @@ void fetchBackendData() {
     http.setTimeout(2500);
 
     int httpCode = http.GET();
-    if (httpCode <= 0) {
-        // Connection-level failure (not just a bad HTTP status). A single
-        // blip on a flaky network doesn't mean the IP changed -- discarding
-        // the URL immediately used to leave agentData (including the alert
-        // flag) frozen for up to mdnsResolveCooldownMs with no fetch
-        // attempted at all. Only re-resolve after several in a row.
-        httpStatusMsg = "CONN_ERR " + String(httpCode);
-        http.end();
-        consecutiveFetchFailures++;
-        if (consecutiveFetchFailures >= maxConsecutiveFailuresBeforeReResolve) {
-            backendUrl = "";
-            consecutiveFetchFailures = 0;
-            lastMdnsResolve = 0; // allow the next poll to re-resolve immediately
-        }
-        return;
-    }
-    consecutiveFetchFailures = 0;
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
-        StaticJsonDocument<2048> doc;
+        StaticJsonDocument<1536> doc;
         DeserializationError error = deserializeJson(doc, payload);
 
         if (!error) {
-            claudeData.tokensToday = doc["claude"]["tokens_today"] | 0L;
-            if (lastKnownTokensToday < 0 || claudeData.tokensToday != lastKnownTokensToday) {
-                lastKnownTokensToday = claudeData.tokensToday;
-                lastTokenActivityMs = millis();
+            if (doc.containsKey("claude")) {
+                claudeData.tokensToday = doc["claude"]["tokens_today"] | 0;
             }
-
-            agData.limit = doc["antigravity"]["limit"] | 200;
-            agData.used = doc["antigravity"]["used"] | 0;
-            agData.remaining = doc["antigravity"]["remaining"] | 200;
-            agData.period = doc["antigravity"]["period"].as<String>();
-
-            if (doc["weather"].containsKey("temperature")) {
-                weatherData.temp = doc["weather"]["temperature"].as<float>();
-            } else {
-                weatherData.temp = doc["weather"]["temp"] | 0.0f;
+            if (doc.containsKey("antigravity")) {
+                agData.limit = doc["antigravity"]["limit"] | 200;
+                agData.remaining = doc["antigravity"]["remaining"] | 200;
+                agData.used = doc["antigravity"]["used"] | 0;
+                agData.period = doc["antigravity"]["period"] | "5h";
             }
-            weatherData.hours_until_rain = doc["weather"]["hours_until_rain"] | -1;
-            if (doc["weather"].containsKey("location_name")) {
-                weatherData.location = doc["weather"]["location_name"].as<String>();
-            } else if (doc["weather"].containsKey("location")) {
-                weatherData.location = doc["weather"]["location"].as<String>();
+            if (doc.containsKey("weather")) {
+                weatherData.temp = doc["weather"]["temp"] | 23.5;
+                weatherData.hours_until_rain = doc["weather"]["hours_until_rain"] | -1;
+                weatherData.location = doc["weather"]["location"] | "DESKTOP";
             }
-
-            timeData.hours = doc["time"]["hours"] | 12;
-            timeData.minutes = doc["time"]["minutes"] | 0;
-            timeData.seconds = doc["time"]["seconds"] | 0;
-            timeData.time_str = doc["time"]["time_string"].as<String>();
-
-            agentData.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
-            agentData.prompt_text = doc["agent"]["prompt_text"].as<String>();
-            httpStatusMsg = "LIVE";
-        } else {
-            httpStatusMsg = "JSON_ERR";
+            if (doc.containsKey("agent")) {
+                agentData.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
+                agentData.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
+            }
+            if (doc.containsKey("time")) {
+                timeData.hours = doc["time"]["hours"] | 12;
+                timeData.minutes = doc["time"]["minutes"] | 0;
+                timeData.seconds = doc["time"]["seconds"] | 0;
+                timeData.time_str = doc["time"]["time_string"] | "12:00:00";
+            }
+            if (doc.containsKey("device")) {
+                String devScreen = doc["device"]["screen_type"] | "auto";
+                if (configuredScreenType == SCREEN_AUTO) {
+                    if (devScreen == "round" && activeScreenType != SCREEN_GC9A01_ROUND) {
+                        activeScreenType = SCREEN_GC9A01_ROUND;
+                        initActiveDisplay();
+                    } else if (devScreen == "oled" && activeScreenType != SCREEN_OLED_128X64) {
+                        activeScreenType = SCREEN_OLED_128X64;
+                        initActiveDisplay();
+                    }
+                }
+            }
         }
-    } else {
-        httpStatusMsg = "HTTP " + String(httpCode);
     }
     http.end();
 }
 
 // ==========================================
-// I2C SCANNER HELPER
+// IMPROV WIFI CALLBACKS
 // ==========================================
-uint8_t scanI2C() {
-    Serial.println("\n--- Scanning I2C Bus on SDA=8, SCL=9 ---");
-    uint8_t detected = 0;
-    for (uint8_t addr = 1; addr < 127; addr++) {
-        Wire.beginTransmission(addr);
-        if (Wire.endTransmission() == 0) {
-            Serial.printf(" [✓] I2C device found at address 0x%02X\n", addr);
-            if (addr == 0x3C || addr == 0x3D) {
-                detected = addr;
-            }
-        }
-    }
-    return detected;
-}
-
-// ==========================================
-// WIFI CONNECTION (shared by boot-time reconnect and fresh Improv provisioning)
-// ==========================================
-
-// Connects to the given network, disabling PMF (802.11w) -- some enterprise
-// APs (e.g. Ubiquiti UniFi in WPA2/WPA3 mixed mode) negotiate it unreliably,
-// causing intermittent AUTH_FAIL/handshake timeouts even with the correct
-// password. This same logic must run whether credentials came from NVS at
-// boot or were just entered fresh via Improv, so both paths call this.
 bool connectToWifi(const char* ssid, const char* password) {
-    WiFi.mode(WIFI_OFF);
+    WiFi.disconnect(true);
     delay(100);
     WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm);
-    delay(50);
-    WiFi.disconnect(true, true);
-    delay(50);
-
-    Serial.printf("\n[WiFi] Connecting to '%s'...\n", ssid);
     WiFi.begin(ssid, password);
-    wifi_config_t wifiConfig = {};
-    esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
-    wifiConfig.sta.pmf_cfg.capable = false;
-    wifiConfig.sta.pmf_cfg.required = false;
-    esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
-    WiFi.disconnect(false);
-    delay(50);
-    esp_wifi_connect();
 
-    unsigned long connectStart = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
+    unsigned long start = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - start < wifiConnectTimeoutMs) {
         delay(250);
-        // Play gentle blinking animation while connecting
-        updateFacePhysics(millis());
-        display.clearDisplay();
-        renderFaceScreen();
-        display.display();
+        improvSerial.handleSerial();
     }
-
     return WiFi.status() == WL_CONNECTED;
 }
 
-// Runs once WiFi is up, whether that happened at boot with stored credentials
-// or just now via fresh Improv provisioning.
+void onImprovWiFiConnectedCb(const char* ssid) {
+    wifiPrefs.begin("wifi", false);
+    wifiPrefs.putString("ssid", ssid);
+    wifiPrefs.putString("password", WiFi.psk());
+    wifiPrefs.end();
+
+    wifiConnected = true;
+    provisioningMode = false;
+}
+
+void onImprovWiFiErrorCb(ImprovTypes::Error err) {
+    Serial.printf("[Improv] WiFi Error code: %d\n", err);
+}
+
 void onWifiConnected() {
     wifiConnected = true;
     provisioningMode = false;
-    Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
-    MDNS.begin("tinyscreen");
+    Serial.printf("[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
+
+    if (!MDNS.begin("tinyscreen-device")) {
+        Serial.println("[mDNS] Error starting responder");
+    }
+
+    setupWebServer();
     resolveBackendUrl();
-    lastMdnsResolve = millis();
-    fetchBackendData();
 }
 
 // ==========================================
-// IMPROV WI-FI PROVISIONING (USB serial, driven by the companion app's
-// /setup page in the browser -- see backend/app.py and emulator/setup.html)
-// ==========================================
-void onImprovWiFiErrorCb(ImprovTypes::Error err) {
-    Serial.printf("[Improv] Error: %d\n", (int)err);
-}
-
-void onImprovWiFiConnectedCb(const char* ssid, const char* password) {
-    // connectToWifi() (called by the library via setCustomConnectWiFi) has
-    // already succeeded by the time this fires -- just persist and finish
-    // bringing the rest of the app up.
-    wifiPrefs.putString("ssid", ssid);
-    wifiPrefs.putString("password", password);
-    Serial.printf("[Improv] Provisioned '%s', credentials saved.\n", ssid);
-    onWifiConnected();
-}
-
-// ==========================================
-// SETUP & MAIN LOOP
+// SETUP
 // ==========================================
 void setup() {
     Serial.begin(115200);
-    delay(200);
-    lastTokenActivityMs = millis();
 
-    // Start I2C
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.setClock(400000); // 400kHz fast I2C for 30+ FPS animation
+    // 1. Load Stored Screen Preferences
+    screenPrefs.begin("screen", false);
+    configuredScreenType = (HardwareScreenType)screenPrefs.getInt("type", SCREEN_AUTO);
+    screenPrefs.end();
 
-    // Scan I2C
-    uint8_t detected = scanI2C();
-    if (detected == 0) {
-        detected = 0x3C;
-    }
-    oledAddress = detected;
-
-    // Initialize OLED with charge pump enabled
-    if (display.begin(SSD1306_SWITCHCAPVCC, oledAddress)) {
-        oledFound = true;
+    // 2. Hardware Auto-Detection / Pin Configuration
+    if (configuredScreenType == SCREEN_AUTO) {
+        activeScreenType = detectHardwareDisplay();
     } else {
-        display.begin(SSD1306_SWITCHCAPVCC, 0x3D);
-        oledAddress = 0x3D;
+        activeScreenType = configuredScreenType;
     }
 
-    // Wake-up Animation (Cute eyes opening)
-    for (int i = 0; i <= 10; i++) {
-        display.clearDisplay();
-        drawEye(40, 32, 28, 40, 8, (float)i / 10.0f, 0, 0);
-        drawEye(88, 32, 28, 40, 8, (float)i / 10.0f, 0, 0);
-        display.display();
-        delay(35);
-    }
-    delay(400);
+    // 3. Initialize Active Display
+    initActiveDisplay();
 
-    // Improv Wi-Fi: always listen for provisioning/reprovisioning commands
-    // over USB serial, regardless of whether we're already connected.
+    // 4. Improv Wi-Fi Provisioning Setup
     improvSerial.setDeviceInfo(
         ImprovTypes::ChipFamily::CF_ESP32_C3,
-        "TinyScreenFirmware", "1.0.0", "Tiny AI Screen", ""
+        "TinyScreenFirmware", "2.0.0", "Tiny AI Screen", ""
     );
     improvSerial.onImprovError(onImprovWiFiErrorCb);
     improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
     improvSerial.setCustomConnectWiFi(connectToWifi);
 
-    // WiFi: try stored credentials (provisioned via Improv on a previous
-    // boot) first. No credentials, or they no longer work (e.g. router
-    // password changed) -- fall through to provisioning mode instead of
-    // getting stuck, rather than assuming any compile-time defaults.
+    // 5. Connect Wi-Fi
     wifiPrefs.begin("wifi", false);
     String storedSsid = wifiPrefs.getString("ssid", "");
     String storedPassword = wifiPrefs.getString("password", "");
@@ -825,70 +778,86 @@ void setup() {
     } else {
         wifiConnected = false;
         provisioningMode = true;
-        Serial.println(storedSsid.length() > 0
-            ? "[WiFi] Stored credentials failed. Entering provisioning mode."
-            : "[WiFi] No stored credentials. Entering provisioning mode.");
     }
 
     lastScreenSwitch = millis();
 }
 
+// ==========================================
+// MAIN LOOP
+// ==========================================
 unsigned long lastFrameTime = 0;
-const unsigned long frameIntervalMs = 33; // ~30 FPS for buttery smooth animation
+const unsigned long frameIntervalMs = 33; // ~30 FPS
 
 void loop() {
     unsigned long now = millis();
 
-    // Always listen for Improv Wi-Fi commands, even once already connected
-    // (lets the user reprovision to a new network without a factory reset).
+    // 1. Improv Wi-Fi Serial Listener & Web Server
     improvSerial.handleSerial();
-
-    if (provisioningMode) {
-        if (now - lastFrameTime >= frameIntervalMs) {
-            lastFrameTime = now;
-            display.clearDisplay();
-            renderProvisioningScreen();
-            display.display();
-        }
-        return;
+    if (wifiConnected) {
+        server.handleClient();
     }
 
-    // 1. Smooth ~30 FPS Face Physics & Animation Update
+    // 2. Render Active Display
     if (now - lastFrameTime >= frameIntervalMs) {
         lastFrameTime = now;
-        updateFacePhysics(now);
 
-        display.clearDisplay();
-        switch (currentScreen) {
-            case SCREEN_FACE:
-                renderFaceScreen();
-                break;
-            case SCREEN_SPLIT_HUD:
-                renderSplitHUDScreen();
-                break;
-            case SCREEN_LIMITS:
-                renderLimitsScreen();
-                break;
-            case SCREEN_CLOCK_WEATHER:
-                renderClockWeatherScreen();
-                break;
-            case SCREEN_AGENT_ALERT:
-                renderAgentAlertScreen();
-                break;
+        if (activeScreenType == SCREEN_GC9A01_ROUND) {
+            // GC9A01 Round IPS Loop
+            if (provisioningMode) {
+                gcGfx->fillScreen(GC_COLOR_BLACK);
+                gcGfx->setTextSize(2);
+                gcGfx->setTextColor(GC_COLOR_CYAN);
+                gcGfx->setCursor(60, 90);
+                gcGfx->print("SETUP MODE");
+                gcGfx->setTextSize(1);
+                gcGfx->setTextColor(GC_COLOR_WHITE);
+                gcGfx->setCursor(45, 125);
+                gcGfx->print("Open Companion App");
+            } else {
+                gcGfx->fillScreen(GC_COLOR_BLACK);
+                drawGC9A01RoundFlipUI();
+            }
+        } else {
+            // SSD1306 OLED Loop
+            updateFacePhysics(now);
+            oledDisplay.clearDisplay();
+
+            if (provisioningMode) {
+                renderProvisioningScreen();
+            } else {
+                switch (currentOLEDMode) {
+                    case SCREEN_FACE:
+                        renderFaceScreen();
+                        break;
+                    case SCREEN_SPLIT_HUD:
+                        renderSplitHUDScreen();
+                        break;
+                    case SCREEN_LIMITS:
+                        renderLimitsScreen();
+                        break;
+                    case SCREEN_CLOCK_WEATHER:
+                        renderClockWeatherScreen();
+                        break;
+                    case SCREEN_AGENT_ALERT:
+                        renderAgentAlertScreen();
+                        break;
+                }
+            }
+            oledDisplay.display();
         }
-        display.display();
     }
 
-    // 2. Auto-reconnect Wi-Fi if lost
+    // 3. Auto-reconnect Wi-Fi
     static unsigned long lastWiFiCheck = 0;
     if (now - lastWiFiCheck >= 10000) {
         lastWiFiCheck = now;
-        if (WiFi.status() != WL_CONNECTED) {
+        if (WiFi.status() != WL_CONNECTED && !provisioningMode) {
             WiFi.reconnect();
         }
     }
 
-    // 3. Demo Time Counter (if offline)
+    // 4. Offline Demo Clock Tick
     static unsigned long lastSecondTick = 0;
     if (now - lastSecondTick >= 1000) {
         lastSecondTick = now;
@@ -903,23 +872,22 @@ void loop() {
         }
     }
 
-    // 4. Fetch Backend Data every 3s
+    // 5. Backend Polling
     if (now - lastBackendPoll >= backendPollInterval) {
         lastBackendPoll = now;
         fetchBackendData();
     }
 
-    // 5. Automatic Screen Switcher
+    // 6. OLED Screen Mode Cycler
     if (agentData.waiting_for_input) {
-        currentScreen = SCREEN_AGENT_ALERT;
-    } else {
+        currentOLEDMode = SCREEN_AGENT_ALERT;
+    } else if (activeScreenType == SCREEN_OLED_128X64) {
         if (now - lastScreenSwitch >= screenSwitchInterval) {
             lastScreenSwitch = now;
-            // Cycle: Face (8s) -> Split HUD (8s) -> Quotas (8s) -> Weather (8s)
-            if (currentScreen == SCREEN_FACE) currentScreen = SCREEN_SPLIT_HUD;
-            else if (currentScreen == SCREEN_SPLIT_HUD) currentScreen = SCREEN_LIMITS;
-            else if (currentScreen == SCREEN_LIMITS) currentScreen = SCREEN_CLOCK_WEATHER;
-            else currentScreen = SCREEN_FACE;
+            if (currentOLEDMode == SCREEN_FACE) currentOLEDMode = SCREEN_SPLIT_HUD;
+            else if (currentOLEDMode == SCREEN_SPLIT_HUD) currentOLEDMode = SCREEN_LIMITS;
+            else if (currentOLEDMode == SCREEN_LIMITS) currentOLEDMode = SCREEN_CLOCK_WEATHER;
+            else currentOLEDMode = SCREEN_FACE;
         }
     }
 }
