@@ -1514,13 +1514,52 @@
       c.fillStyle = "#0c0e14";
       c.fillRect(0, 0, 320, 240);
 
-      // 2. Bezel Casing Ring (Simulating round watch housing)
-      const alertActive = waiting_for_input && blinkState;
-      c.strokeStyle = alertActive ? "#FFB800" : "#1f2330";
-      c.lineWidth = 6;
-      c.beginPath();
-      c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
-      c.stroke();
+      // 2. Bezel Casing Ring (Simulating round watch housing / Spinning Kinetic Broken Alert Ring)
+      if (waiting_for_input) {
+        // Continuous smooth rotation angle driven by system timestamp
+        const spinAngle = (Date.now() / 400) % (Math.PI * 2);
+
+        // Dark amber track underlay
+        c.strokeStyle = "#241804";
+        c.lineWidth = 6;
+        c.beginPath();
+        c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(spinAngle);
+
+        // Layer 1: Primary broken hazard segments (Electric Amber #FFB800)
+        c.strokeStyle = "#FFB800";
+        c.lineWidth = 5;
+        c.lineCap = "round";
+        c.setLineDash([34, 14, 12, 14, 46, 18, 16, 14]); // Broken segmented pattern
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+
+        // Layer 2: Fast counter-spinning neon sparks / highlight dashes
+        c.rotate(-spinAngle * 2.2);
+        c.strokeStyle = "#FFE855";
+        c.lineWidth = 3;
+        c.lineCap = "round";
+        c.setLineDash([8, 42, 14, 52]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+
+        c.restore();
+      } else {
+        // Normal state: Static sleek gunmetal bezel ring
+        c.strokeStyle = "#1f2330";
+        c.lineWidth = 6;
+        c.beginPath();
+        c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+      }
 
       // Screen background (Deep OLED Black)
       c.fillStyle = "#000000";
