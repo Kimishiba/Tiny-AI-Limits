@@ -7,7 +7,8 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
-#include "secrets.h"
+#include <Preferences.h>
+#include <ImprovWiFiLibrary.h>
 
 // ==========================================
 // PIN CONFIGURATION (ESP32-C3 SuperMini)
@@ -87,6 +88,13 @@ ScreenMode currentScreen = SCREEN_FACE;
 bool wifiConnected = false;
 bool oledFound = false;
 uint8_t oledAddress = 0x3C;
+
+// WiFi credentials live in NVS (via Preferences), provisioned at runtime over
+// USB through the Improv Wi-Fi serial protocol -- nothing is hardcoded at
+// compile time, so the same firmware works for any user on any network.
+Preferences wifiPrefs;
+ImprovWiFi improvSerial(&Serial);
+bool provisioningMode = false;
 
 // ==========================================
 // FACE & BLINKING ANIMATION ENGINE
@@ -457,6 +465,47 @@ void renderAgentAlertScreen() {
     display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
 }
 
+// No WiFi credentials stored yet (or the stored ones stopped working) --
+// waiting for Improv Wi-Fi provisioning over the USB serial connection. The
+// exact setup URL isn't shown here since a 128x64 OLED is a poor place to
+// transcribe a URL from; it lives in the companion app / README instead.
+void renderProvisioningScreen() {
+    display.setTextSize(1);
+    display.setTextColor(SSD1306_WHITE);
+
+    const char* title = "SETUP MODE";
+    int16_t x1, y1;
+    uint16_t w, h;
+    display.getTextBounds(title, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((128 - w) / 2, 6);
+    display.print(title);
+    display.drawFastHLine(8, 16, 112, SSD1306_WHITE);
+
+    const char* line1 = "Plug into USB, open";
+    display.getTextBounds(line1, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((128 - w) / 2, 26);
+    display.print(line1);
+
+    const char* line2 = "companion app & click";
+    display.getTextBounds(line2, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((128 - w) / 2, 36);
+    display.print(line2);
+
+    const char* line3 = "\"Set Up New Device\"";
+    display.getTextBounds(line3, 0, 0, &x1, &y1, &w, &h);
+    display.setCursor((128 - w) / 2, 46);
+    display.print(line3);
+
+    // Slow pulsing dots so the screen doesn't look frozen while waiting
+    int dotCount = 1 + ((millis() / 500) % 3);
+    char dots[4] = "";
+    for (int i = 0; i < dotCount; i++) dots[i] = '.';
+    dots[dotCount] = '\0';
+    display.setCursor(2, 56);
+    display.print("Waiting");
+    display.print(dots);
+}
+
 // ==========================================
 // DATA FETCHING
 // ==========================================
@@ -482,20 +531,20 @@ const unsigned long mdnsResolveCooldownMs = 10000;
 int consecutiveFetchFailures = 0;
 const int maxConsecutiveFailuresBeforeReResolve = 3;
 
-// Resolves the Mac's Bonjour hostname to its current IP via mDNS, so the
-// backend URL keeps working regardless of which WiFi network the Mac is on
-// or what IP it was handed by DHCP. Falls back to a fixed IP on networks
-// that block mDNS multicast (some corporate/guest WiFi allow plain unicast
-// between clients but filter multicast for security).
+// Finds the companion app by browsing for its advertised mDNS service
+// (_tinyscreen._tcp) rather than a hardcoded hostname/IP -- works for any
+// user's computer on any network, with zero per-device configuration.
 bool resolveBackendUrl() {
-    IPAddress ip = MDNS.queryHost(backend_mdns_host, 3000);
-    if (ip != IPAddress(0, 0, 0, 0)) {
-        backendUrl = "http://" + ip.toString() + ":" + String(backend_port) + "/data";
-        Serial.printf("[mDNS] Resolved %s.local -> %s\n", backend_mdns_host, ip.toString().c_str());
+    int n = MDNS.queryService("tinyscreen", "tcp");
+    if (n > 0) {
+        IPAddress ip = MDNS.IP(0);
+        uint16_t port = MDNS.port(0);
+        backendUrl = "http://" + ip.toString() + ":" + String(port) + "/data";
+        Serial.printf("[mDNS] Found companion app at %s:%d\n", ip.toString().c_str(), port);
         return true;
     }
-    Serial.printf("[mDNS] Failed to resolve %s.local, using fallback IP\n", backend_mdns_host);
-    backendUrl = "http://" + String(backend_fallback_ip) + ":" + String(backend_port) + "/data";
+    Serial.println("[mDNS] No companion app found on the network (_tinyscreen._tcp)");
+    backendUrl = "";
     return false;
 }
 
@@ -599,6 +648,79 @@ uint8_t scanI2C() {
 }
 
 // ==========================================
+// WIFI CONNECTION (shared by boot-time reconnect and fresh Improv provisioning)
+// ==========================================
+
+// Connects to the given network, disabling PMF (802.11w) -- some enterprise
+// APs (e.g. Ubiquiti UniFi in WPA2/WPA3 mixed mode) negotiate it unreliably,
+// causing intermittent AUTH_FAIL/handshake timeouts even with the correct
+// password. This same logic must run whether credentials came from NVS at
+// boot or were just entered fresh via Improv, so both paths call this.
+bool connectToWifi(const char* ssid, const char* password) {
+    WiFi.mode(WIFI_OFF);
+    delay(100);
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    delay(50);
+    WiFi.disconnect(true, true);
+    delay(50);
+
+    Serial.printf("\n[WiFi] Connecting to '%s'...\n", ssid);
+    WiFi.begin(ssid, password);
+    wifi_config_t wifiConfig = {};
+    esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
+    wifiConfig.sta.pmf_cfg.capable = false;
+    wifiConfig.sta.pmf_cfg.required = false;
+    esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
+    WiFi.disconnect(false);
+    delay(50);
+    esp_wifi_connect();
+
+    unsigned long connectStart = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
+        delay(250);
+        // Play gentle blinking animation while connecting
+        updateFacePhysics(millis());
+        display.clearDisplay();
+        renderFaceScreen();
+        display.display();
+    }
+
+    return WiFi.status() == WL_CONNECTED;
+}
+
+// Runs once WiFi is up, whether that happened at boot with stored credentials
+// or just now via fresh Improv provisioning.
+void onWifiConnected() {
+    wifiConnected = true;
+    provisioningMode = false;
+    Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
+    MDNS.begin("tinyscreen");
+    resolveBackendUrl();
+    lastMdnsResolve = millis();
+    fetchBackendData();
+}
+
+// ==========================================
+// IMPROV WI-FI PROVISIONING (USB serial, driven by the companion app's
+// /setup page in the browser -- see backend/app.py and emulator/setup.html)
+// ==========================================
+void onImprovWiFiErrorCb(ImprovTypes::Error err) {
+    Serial.printf("[Improv] Error: %d\n", (int)err);
+}
+
+void onImprovWiFiConnectedCb(const char* ssid, const char* password) {
+    // connectToWifi() (called by the library via setCustomConnectWiFi) has
+    // already succeeded by the time this fires -- just persist and finish
+    // bringing the rest of the app up.
+    wifiPrefs.putString("ssid", ssid);
+    wifiPrefs.putString("password", password);
+    Serial.printf("[Improv] Provisioned '%s', credentials saved.\n", ssid);
+    onWifiConnected();
+}
+
+// ==========================================
 // SETUP & MAIN LOOP
 // ==========================================
 void setup() {
@@ -634,47 +756,37 @@ void setup() {
     }
     delay(400);
 
-    // WiFi Configuration
-    WiFi.mode(WIFI_OFF);
-    delay(100);
-    WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm);
-    delay(50);
-    WiFi.disconnect(true, true);
-    delay(50);
+    // Improv Wi-Fi: always listen for provisioning/reprovisioning commands
+    // over USB serial, regardless of whether we're already connected.
+    improvSerial.setDeviceInfo(
+        ImprovTypes::ChipFamily::CF_ESP32_C3,
+        "TinyScreenFirmware", "1.0.0", "Tiny AI Screen", ""
+    );
+    improvSerial.onImprovError(onImprovWiFiErrorCb);
+    improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
+    improvSerial.setCustomConnectWiFi(connectToWifi);
 
-    Serial.printf("\n[WiFi] Connecting to '%s'...\n", ssid);
-    WiFi.begin(ssid, password);
-    wifi_config_t wifiConfig = {};
-    esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
-    wifiConfig.sta.pmf_cfg.capable = false;
-    wifiConfig.sta.pmf_cfg.required = false;
-    esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
-    WiFi.disconnect(false);
-    delay(50);
-    esp_wifi_connect();
+    // WiFi: try stored credentials (provisioned via Improv on a previous
+    // boot) first. No credentials, or they no longer work (e.g. router
+    // password changed) -- fall through to provisioning mode instead of
+    // getting stuck, rather than assuming any compile-time defaults.
+    wifiPrefs.begin("wifi", false);
+    String storedSsid = wifiPrefs.getString("ssid", "");
+    String storedPassword = wifiPrefs.getString("password", "");
 
-    unsigned long connectStart = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
-        delay(250);
-        // Play gentle blinking animation while connecting
-        updateFacePhysics(millis());
-        display.clearDisplay();
-        renderFaceScreen();
-        display.display();
+    bool connected = false;
+    if (storedSsid.length() > 0) {
+        connected = connectToWifi(storedSsid.c_str(), storedPassword.c_str());
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
-        wifiConnected = true;
-        Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
-        MDNS.begin("tinyscreen");
-        resolveBackendUrl();
-        lastMdnsResolve = millis();
-        fetchBackendData();
+    if (connected) {
+        onWifiConnected();
     } else {
         wifiConnected = false;
-        Serial.printf("[WiFi] Connection FAILED. Starting in Demo mode.\n");
+        provisioningMode = true;
+        Serial.println(storedSsid.length() > 0
+            ? "[WiFi] Stored credentials failed. Entering provisioning mode."
+            : "[WiFi] No stored credentials. Entering provisioning mode.");
     }
 
     lastScreenSwitch = millis();
@@ -685,6 +797,20 @@ const unsigned long frameIntervalMs = 33; // ~30 FPS for buttery smooth animatio
 
 void loop() {
     unsigned long now = millis();
+
+    // Always listen for Improv Wi-Fi commands, even once already connected
+    // (lets the user reprovision to a new network without a factory reset).
+    improvSerial.handleSerial();
+
+    if (provisioningMode) {
+        if (now - lastFrameTime >= frameIntervalMs) {
+            lastFrameTime = now;
+            display.clearDisplay();
+            renderProvisioningScreen();
+            display.display();
+        }
+        return;
+    }
 
     // 1. Smooth ~30 FPS Face Physics & Animation Update
     if (now - lastFrameTime >= frameIntervalMs) {

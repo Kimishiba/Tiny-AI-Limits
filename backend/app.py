@@ -2,6 +2,7 @@ import json
 import glob
 import os
 import platform
+import socket
 import time
 import subprocess
 import requests
@@ -9,6 +10,7 @@ import sys
 from datetime import datetime
 from flask import Flask, jsonify, request
 from threading import Thread
+from zeroconf import ServiceInfo, Zeroconf
 
 # Config file setup
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".tiny_ai_screen")
@@ -67,6 +69,23 @@ def serve_qbit_prototype():
     if os.path.exists(prototype_path):
         return send_file(prototype_path)
     return "QBIT Prototype file not found", 404
+
+@app.route('/setup')
+def serve_setup_page():
+    setup_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "setup.html")
+    if os.path.exists(setup_path):
+        return send_file(setup_path)
+    return "Setup page not found", 404
+
+@app.route('/setup/vendor/<path:filename>')
+def serve_setup_vendor(filename):
+    # Self-bundled (via esbuild) so the setup page never depends on a live
+    # CDN at runtime -- see emulator/vendor/README.md for how it was built.
+    vendor_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "vendor")
+    safe_path = os.path.normpath(os.path.join(vendor_dir, filename))
+    if not safe_path.startswith(vendor_dir) or not os.path.exists(safe_path):
+        return "Not found", 404
+    return send_file(safe_path)
 
 # --- Geocoding Helper ---
 def geocode_city(city_name):
@@ -359,7 +378,38 @@ def handle_config():
         return jsonify({"status": "ok", "config": config})
     return jsonify(config)
 
+# --- mDNS Service Advertisement (so the ESP32 can find us on any network,
+#     for any user, with zero hardcoded hostname/IP configuration) ---
+_zeroconf_instance = None
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('8.8.8.8', 80))  # doesn't actually send anything
+        return s.getsockname()[0]
+    except Exception:
+        return '127.0.0.1'
+    finally:
+        s.close()
+
+def register_mdns_service():
+    global _zeroconf_instance
+    try:
+        local_ip = get_local_ip()
+        info = ServiceInfo(
+            "_tinyscreen._tcp.local.",
+            "Tiny AI Screen Companion._tinyscreen._tcp.local.",
+            addresses=[socket.inet_aton(local_ip)],
+            port=5000,
+        )
+        _zeroconf_instance = Zeroconf()
+        _zeroconf_instance.register_service(info)
+        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:5000")
+    except Exception as e:
+        print(f"[mDNS] Failed to register service: {e}")
+
 def start_flask():
+    register_mdns_service()
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
 
 def create_gui_window():
@@ -451,6 +501,16 @@ def create_gui_window():
     emu_btn = tk.Button(emu_frame, text="🖥️ Launch Display Emulator", command=open_emulator, bg="#f9e2af", fg="#11111b", activebackground="#f5e0dc", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
     emu_btn.pack(fill="x", padx=10, pady=8)
 
+    # --- Device Setup Section ---
+    setup_frame = tk.LabelFrame(root, text=" New Device Setup ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+    setup_frame.pack(fill="x", padx=20, pady=5)
+
+    def open_setup():
+        webbrowser.open("http://localhost:5000/setup")
+
+    setup_btn = tk.Button(setup_frame, text="🔌 Set Up New Device (WiFi)", command=open_setup, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
+    setup_btn.pack(fill="x", padx=10, pady=8)
+
     # Status Footer
     status_lbl = tk.Label(root, text="Server running at http://0.0.0.0:5000 | Emulator at /emulator", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
     status_lbl.pack(side="bottom", pady=5)
@@ -474,6 +534,10 @@ class TinyScreenMacStatusBarApp(object):
             @rumps.clicked("🖥️ Open Display Emulator")
             def open_emulator(self, _):
                 webbrowser.open("http://localhost:5000/emulator")
+
+            @rumps.clicked("🔌 Set Up New Device (WiFi)")
+            def open_setup(self, _):
+                webbrowser.open("http://localhost:5000/setup")
 
             @rumps.clicked("⚙️ Set Location...")
             def set_location(self, _):

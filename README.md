@@ -27,7 +27,8 @@ It combines an expressive, retro animated robot face with real-time hardware gau
 - **📊 Real-Time AI Quota Monitoring:** Monitors Claude Code token consumption and Antigravity CLI quota percentage.
 - **🌦️ Local Weather & Digital Clock:** Displays temperature, rain forecasts, and live synchronized time.
 - **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Face (8s) $\rightarrow$ Split HUD (8s) $\rightarrow$ Detailed Quotas (8s) $\rightarrow$ Clock & Weather (8s).
-- **📡 Automatic Zero-Config mDNS Backend Discovery:** The ESP32 discovers your PC's companion backend automatically via `tiny-ai-companion.local`—no need to hardcode local IP addresses!
+- **🔌 USB Setup, No Recompiling:** Configure WiFi over USB from a browser page served by the companion app — enter your network name/password once, no editing files or reflashing.
+- **📡 Automatic Zero-Config mDNS Backend Discovery:** The ESP32 finds the companion app on your network automatically by browsing for its advertised service (`_tinyscreen._tcp`)—no hardcoded hostnames or IP addresses, works for any user on any network.
 - **📶 Robust Wi-Fi Connectivity:** Tuned RF TX power to prevent voltage brownouts on USB power, with PMF auto-negotiation compatibility for mixed WPA2/WPA3 enterprise routers.
 - **🖥️ Web Simulator & Prototype:** Interactive browser visualizer (`/faces` or `/emulator`) to test all 10+ robot emotions and companion states.
 - **🖨️ 3D-Printable Enclosure:** Parametric OpenSCAD and STL files included in `enclosure/` for desktop casing.
@@ -56,23 +57,13 @@ It combines an expressive, retro animated robot face with real-time hardware gau
 
 ## 🚀 Getting Started
 
-### 1. Configure Wi-Fi Credentials
-Copy `src/secrets.h.example` to `src/secrets.h` and configure your network:
+Nothing is hardcoded per-user at compile time anymore — the same firmware
+works for anyone. WiFi is provisioned at runtime over USB, and the board
+finds the companion app on the network automatically.
 
-```bash
-cp src/secrets.h.example src/secrets.h
-```
-
-```cpp
-#pragma once
-
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-const char* backend_url = "http://tiny-ai-companion.local:5000/data";
-```
-
-### 2. Build & Flash Firmware
-Using **PlatformIO**:
+### 1. Build & Flash Firmware
+Using **PlatformIO** (only needed once per board — skip this if you received
+an already-flashed device):
 
 ```bash
 # Build firmware
@@ -82,16 +73,31 @@ python3 -m platformio run
 python3 -m platformio run --target upload
 ```
 
-### 3. Run the PC Companion Backend
-The companion service monitors your local AI agent transcripts and weather data, hosting the REST endpoint for the ESP32:
+### 2. Run the PC Companion Backend
+The companion service monitors your local AI agent transcripts and weather
+data, hosts the REST endpoint the board polls, and advertises itself on the
+network so the board can find it:
 
 ```bash
 # Install dependencies
-pip install flask requests
+pip install -r backend/requirements.txt
 
 # Launch backend (or double-click TinyScreen.command on macOS)
 python3 backend/app.py
 ```
+
+### 3. Set Up WiFi
+With the board plugged into this computer via USB-C, open
+**[http://localhost:5000/setup](http://localhost:5000/setup)** in
+**Google Chrome or Microsoft Edge** (required — Web Serial isn't supported
+in Safari or Firefox), or click **"🔌 Set Up New Device (WiFi)"** in the
+companion app. Click "Connect & Set Up WiFi," pick the board's serial port
+("USB JTAG/serial debug unit"), and enter your network name and password.
+
+The board saves the credentials, connects, and finds this companion app on
+its own — no further configuration needed. If the board is ever moved to a
+different network, or the router password changes, it automatically falls
+back into setup mode so you can reprovision the same way.
 
 ---
 
@@ -117,12 +123,13 @@ You can test and preview all face animations and companion states without flashi
 │   └── desk_console_oled13_esp32c3.scad
 ├── emulator/                 # Interactive browser visualizers & emulators
 │   ├── qbit_faces_prototype.html
+│   ├── setup.html            # USB WiFi provisioning page (served at /setup)
+│   ├── vendor/               # Self-bundled JS deps, no runtime CDN calls
 │   └── index.html
 ├── tools/                    # Asset generators (GIF animator, format converters)
 │   └── generate_preview_gif.py
-├── src/                      # ESP32-C3 Arduino firmware & secrets template
-│   ├── main.cpp
-│   └── secrets.h.example
+├── src/                      # ESP32-C3 Arduino firmware
+│   └── main.cpp
 ├── platformio.ini            # PlatformIO board & library configuration
 ├── WIRING.md                 # Detailed pinout & wiring schematics
 └── README.md
