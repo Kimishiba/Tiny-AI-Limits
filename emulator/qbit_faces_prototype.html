@@ -3,25 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>QBIT Desktop Companion — Face & Expression Prototype</title>
+  <title>Tiny AI Screen — Robot Faces & Expression Prototype</title>
+  
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg-dark: #0d0f14;
-      --card-bg: #151821;
-      --panel-bg: #1c202c;
-      --border-color: #2b3246;
-      --text-main: #e2e8f0;
-      --text-muted: #8e9bb2;
+      --bg-color: #f9f9f9;
+      --card-bg: #ffffff;
+      --card-alt: #f3f3f3;
+      --border-dark: #1a1c1c;
+      --text-main: #1a1c1c;
+      --text-muted: #5d5f5f;
+      --accent-orange: #FF5F1F;
+      --accent-orange-hover: #fe5e1e;
+      --accent-orange-light: #ffdbcf;
+      --accent-green: #15803d;
+      --accent-green-bg: #dcfce7;
+      --accent-red: #ba1a1a;
+      --accent-red-bg: #ffdad6;
       --oled-blue: #00f0ff;
       --oled-yellow: #ffb703;
       --oled-green: #39ff14;
       --oled-white: #ffffff;
       --oled-color: var(--oled-blue);
       --oled-glow: rgba(0, 240, 255, 0.45);
-      --accent-alert: #ff0055;
+      --border-width: 4px;
+      --border-thin: 2px;
+      --shadow-offset: 6px;
+      --shadow-offset-sm: 4px;
     }
 
     * {
@@ -31,170 +45,207 @@
     }
 
     body {
-      background-color: var(--bg-dark);
+      background-color: var(--bg-color);
       color: var(--text-main);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 1.5rem 1rem 3rem 1rem;
+      line-height: 1.5;
+      overflow-x: hidden;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 1.5rem;
+    ::selection {
+      background-color: var(--accent-orange);
+      color: #ffffff;
     }
 
-    header h1 {
-      font-size: 1.7rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #00f0ff 0%, #ffb703 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.3rem;
+    /* Neo-Brutalist Utility Classes */
+    .neo-border { border: var(--border-width) solid var(--border-dark); }
+    .neo-border-thin { border: var(--border-thin) solid var(--border-dark); }
+    .neo-shadow { box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark); }
+    .neo-shadow-sm { box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0px 0px var(--border-dark); }
+
+    .font-anybody { font-family: 'Anybody', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-hanken { font-family: 'Hanken Grotesk', sans-serif; }
+
+    /* Navigation Bar */
+    header.neo-header {
+      background: var(--card-bg);
+      border-bottom: var(--border-width) solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0px 4px 0px 0px var(--border-dark);
     }
 
-    header p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    .main-layout {
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
       display: flex;
-      flex-wrap: wrap;
-      gap: 1.8rem;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo-badge {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.25rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      letter-spacing: -0.04em;
+    }
+
+    .brand-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-btn {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.4rem 0.85rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .nav-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .nav-btn:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+      background: var(--accent-orange-light);
+      color: var(--text-main);
+    }
+
+    .nav-btn.active:hover {
+      background: var(--accent-orange-hover);
+      color: #ffffff;
+    }
+
+    /* Main Container */
+    main.main-layout {
+      flex: 1;
       max-width: 1200px;
       width: 100%;
-      justify-content: center;
-      align-items: flex-start;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
     }
 
-    /* --- 3D ROBOT DESKTOP COMPANION CHASSIS --- */
-    .robot-stage {
+    @media (max-width: 960px) {
+      main.main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Robot Stage Box */
+    .robot-stage-box {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 1.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      position: relative;
+      gap: 1.25rem;
     }
 
-    .robot-body {
-      position: relative;
-      background: linear-gradient(145deg, #2b3040, #181b24);
-      padding: 26px 30px 28px 30px;
-      border-radius: 28px;
-      box-shadow: 
-        0 25px 60px rgba(0, 0, 0, 0.8),
-        inset 0 2px 2px rgba(255, 255, 255, 0.12),
-        0 0 0 2px #3b4259;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      user-select: none;
-      z-index: 2;
-    }
-
-    /* Robot Ears / Antennas */
-    .robot-ear {
-      position: absolute;
-      top: 40px;
-      width: 14px;
-      height: 38px;
-      background: linear-gradient(180deg, #475569, #1e293b);
-      border-radius: 8px;
-      border: 1px solid #64748b;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    }
-    .robot-ear.left { left: -12px; }
-    .robot-ear.right { right: -12px; }
-
-    /* Robot Cute Arms */
-    .robot-arm {
-      position: absolute;
-      top: 95px;
-      width: 16px;
-      height: 52px;
-      background: linear-gradient(180deg, #334155, #0f172a);
-      border-radius: 12px;
-      border: 1px solid #475569;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.6);
-      transform-origin: top center;
-      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .robot-arm.left {
-      left: -14px;
-      transform: rotate(12deg);
-    }
-    .robot-arm.right {
-      right: -14px;
-      transform: rotate(-12deg);
-    }
-    .robot-body:hover .robot-arm.left {
-      transform: rotate(32deg) translateY(-4px);
-    }
-    .robot-body:hover .robot-arm.right {
-      transform: rotate(-32deg) translateY(-4px);
-    }
-
-    /* Robot Legs */
-    .robot-legs-container {
-      display: flex;
-      gap: 60px;
-      margin-top: -12px;
-      z-index: 1;
-    }
-    .robot-leg {
-      width: 28px;
-      height: 30px;
-      background: linear-gradient(180deg, #1e293b, #0f172a);
-      border-radius: 0 0 14px 14px;
-      border: 1px solid #334155;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.7);
-    }
-
-    /* Header above OLED */
-    .bezel-top {
+    .bezel-topbar {
       width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding: 0 4px;
+      border-bottom: var(--border-thin) solid var(--border-dark);
+      padding-bottom: 0.75rem;
     }
 
-    .robot-logo {
-      font-family: 'Fira Code', monospace;
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      color: #94a3b8;
+    .bezel-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 0.5rem;
     }
 
-    .touch-sensor-badge {
-      font-size: 0.65rem;
-      padding: 2px 7px;
-      border-radius: 10px;
-      background: rgba(0, 240, 255, 0.12);
-      color: var(--oled-color);
-      border: 1px solid rgba(0, 240, 255, 0.25);
-      font-family: 'Fira Code', monospace;
+    .touch-indicator-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: var(--accent-orange-light);
+      color: var(--accent-orange);
+      text-transform: uppercase;
     }
 
-    /* OLED Screen Glass */
+    /* Robot 3D Chassis (Restyled in Neo-Brutalist Frame) */
+    .robot-body-chassis {
+      position: relative;
+      background: #11141d;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 6px 6px 0px 0px var(--border-dark);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 480px;
+      user-select: none;
+    }
+
     .oled-screen-bezel {
-      background: #020305;
-      padding: 8px;
-      border-radius: 12px;
-      border: 2px solid #11141d;
-      box-shadow: 
-        inset 0 0 20px rgba(0,0,0,1),
-        0 0 0 1px #3a4156;
+      background: #000000;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.9);
       cursor: pointer;
       position: relative;
+      width: 100%;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .oled-screen-bezel:active {
@@ -203,100 +254,128 @@
 
     canvas#oledCanvas {
       display: block;
-      width: 512px;  /* 128x64 scaled up 4x for crisp OLED pixels */
-      height: 256px;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 2 / 1;
       background-color: #000000;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-      border-radius: 6px;
-      box-shadow: 0 0 25px var(--oled-glow);
+      box-shadow: 0 0 20px var(--oled-glow);
     }
 
     .scanlines-overlay {
       position: absolute;
-      top: 8px;
-      left: 8px;
-      right: 8px;
-      bottom: 8px;
+      top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
-      background: linear-gradient(
-        rgba(18, 16, 16, 0) 50%, 
-        rgba(0, 0, 0, 0.25) 50%
-      ), linear-gradient(
-        90deg,
-        rgba(255, 0, 0, 0.03),
-        rgba(0, 255, 0, 0.01),
-        rgba(0, 0, 255, 0.03)
-      );
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
       background-size: 100% 4px, 6px 100%;
-      border-radius: 6px;
       opacity: 0.6;
     }
 
-    .interaction-hint {
-      margin-top: 18px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      text-align: center;
+    .touch-hint-bar {
+      width: 100%;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      padding: 0.65rem 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 0.5rem;
     }
 
-    .interaction-hint kbd {
-      background: #232838;
-      border: 1px solid #3d4560;
-      padding: 2px 7px;
-      border-radius: 5px;
-      font-family: 'Fira Code', monospace;
-      color: var(--oled-color);
-      font-size: 0.75rem;
+    .touch-hint-bar strong {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.1rem 0.35rem;
+      font-weight: 800;
     }
 
-    /* --- CONTROL PANELS --- */
-    .controls-container {
-      flex: 1;
-      min-width: 340px;
+    /* Controls Column */
+    .controls-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .neo-card {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 1.2rem;
     }
 
-    .card {
-      background-color: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 1.2rem 1.4rem;
-    }
-
-    .card-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--oled-color);
-      margin-bottom: 0.9rem;
+    .card-title-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding-bottom: 0.6rem;
+    }
+
+    .card-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Mode Pill Group */
+    .hud-mode-pill {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+    }
+
+    .hud-mode-btn {
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      color: var(--text-main);
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 0.5rem 0.25rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .hud-mode-btn:hover {
+      background: var(--accent-orange-light);
+    }
+
+    .hud-mode-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
     }
 
     /* Emotion Grid Buttons */
     .emotion-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.55rem;
+      gap: 0.6rem;
     }
 
     .btn-emo {
-      background: #141721;
-      border: 1px solid var(--border-color);
-      border-radius: 9px;
+      background: var(--card-bg);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
       color: var(--text-main);
-      padding: 0.65rem 0.4rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      font-family: inherit;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.82rem;
+      font-weight: 800;
+      font-family: 'Anybody', sans-serif;
+      text-transform: uppercase;
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -306,258 +385,321 @@
     }
 
     .btn-emo .emoji {
-      font-size: 1.15rem;
+      font-size: 1.35rem;
     }
 
     .btn-emo:hover {
-      background: #232838;
-      border-color: #4b5574;
-      transform: translateY(-1px);
+      background: var(--accent-orange-light);
+      transform: translate(1px, 1px);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    .btn-emo:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0px 0px 0px 0px var(--border-dark);
     }
 
     .btn-emo.active {
-      background: rgba(0, 240, 255, 0.15);
-      border-color: var(--oled-color);
+      background: var(--accent-orange);
       color: #ffffff;
-      box-shadow: 0 0 12px var(--oled-glow);
     }
 
     /* Color Theme selector */
     .theme-picker {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 0.5rem;
-      margin-top: 0.6rem;
     }
 
     .theme-dot {
-      flex: 1;
-      height: 28px;
-      border-radius: 6px;
-      border: 2px solid transparent;
+      height: 36px;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.7rem;
-      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
       color: #000;
-      transition: transform 0.1s ease;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
     }
-    .theme-dot:hover { transform: scale(1.04); }
-    .theme-dot.active { border-color: #ffffff; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+
+    .theme-dot:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+    }
+
+    .theme-dot.active {
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
+    }
 
     /* Sliders and Toggles */
     .ctrl-row {
       display: flex;
       flex-direction: column;
       gap: 0.35rem;
-      margin-bottom: 0.85rem;
+      margin-bottom: 0.6rem;
     }
 
     .ctrl-row label {
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
       display: flex;
       justify-content: space-between;
+      text-transform: uppercase;
     }
 
     .ctrl-row label span.val {
-      font-family: 'Fira Code', monospace;
-      color: var(--oled-color);
-      font-weight: 600;
+      color: var(--accent-orange);
+      background: rgba(255, 95, 31, 0.12);
+      padding: 0.1rem 0.4rem;
+      border: 1px solid var(--accent-orange);
     }
 
     input[type="range"] {
-      accent-color: var(--oled-color);
+      -webkit-appearance: none;
+      appearance: none;
       width: 100%;
-      height: 6px;
-      background: #11141d;
-      border-radius: 3px;
+      height: 10px;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
       outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent-orange);
+      border: var(--border-thin) solid var(--border-dark);
+      cursor: pointer;
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
     }
 
     .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.4rem 0;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      padding: 0.75rem 1rem;
+    }
+
+    .toggle-label {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 600;
     }
 
     .switch {
       position: relative;
       display: inline-block;
-      width: 42px;
-      height: 22px;
+      width: 44px;
+      height: 24px;
     }
+
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute;
       cursor: pointer;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #232838;
-      transition: .2s;
-      border-radius: 22px;
+      background-color: #cbd5e1;
+      border: var(--border-thin) solid var(--border-dark);
+      transition: .15s;
     }
+
     .slider:before {
       position: absolute;
       content: "";
-      height: 16px;
-      width: 16px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .2s;
-      border-radius: 50%;
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--border-dark);
+      transition: .15s;
     }
-    input:checked + .slider { background-color: var(--oled-color); }
+
+    input:checked + .slider { background-color: var(--accent-orange); }
     input:checked + .slider:before {
-      transform: translateX(20px);
-      background-color: #000;
+      transform: translateX(18px);
+      background-color: #ffffff;
     }
 
-    /* Tabs for Code and Docs */
-    .tab-bar {
-      display: flex;
-      gap: 0.4rem;
-      margin-bottom: 0.8rem;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 0.5rem;
-    }
-
-    .tab-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-family: inherit;
-      font-size: 0.8rem;
-      font-weight: 700;
+    .neo-btn-action {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
+      padding: 0.65rem 1rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
       cursor: pointer;
-      padding: 4px 10px;
-      border-radius: 6px;
-    }
-
-    .tab-btn.active {
-      color: var(--oled-color);
-      background: rgba(255,255,255,0.06);
-    }
-
-    .code-preview {
-      background: #0a0c11;
-      border: 1px solid #1e2433;
-      border-radius: 8px;
-      padding: 0.8rem;
-      font-family: 'Fira Code', monospace;
-      font-size: 0.73rem;
-      max-height: 220px;
-      overflow-y: auto;
-      color: #93c5fd;
-      line-height: 1.45;
-    }
-
-    .btn-action {
-      margin-top: 0.6rem;
-      width: 100%;
-      padding: 0.6rem;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: #232838;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
+      transition: all 0.15s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-    }
-    .btn-action:hover {
-      background: #2f364c;
-      border-color: var(--oled-color);
+      gap: 0.5rem;
+      width: 100%;
     }
 
-    /* Mode selector (Full Face vs Split HUD) */
-    .hud-mode-pill {
-      display: flex;
+    .neo-btn-action:hover {
+      background: var(--accent-orange-light);
+      transform: translate(1px, 1px);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    .neo-btn-action:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0px 0px 0px 0px var(--border-dark);
+    }
+
+    .code-preview {
       background: #11141d;
-      border-radius: 8px;
-      padding: 3px;
-      gap: 3px;
-      margin-bottom: 0.8rem;
-    }
-    .hud-mode-btn {
-      flex: 1;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-family: inherit;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
-      font-weight: 600;
-      padding: 5px 0;
-      border-radius: 6px;
-      cursor: pointer;
+      max-height: 220px;
+      overflow-y: auto;
+      color: #93c5fd;
+      line-height: 1.5;
     }
-    .hud-mode-btn.active {
-      background: #232838;
-      color: var(--oled-color);
+
+    /* Footer */
+    footer.neo-footer {
+      background: var(--border-dark);
+      color: #ffffff;
+      border-top: var(--border-width) solid var(--border-dark);
+      padding: 2rem 1.5rem;
+      margin-top: auto;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .footer-brand {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: var(--accent-orange);
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .footer-links a {
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-orange);
+    }
+
+    .footer-copy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>QBIT DESKTOP COMPANION PROTOTYPE</h1>
-    <p>128x64 OLED Face & Expression Animation Engine with Live ESP32 Companion Simulation</p>
+  <!-- Neo-Raw Header -->
+  <header class="neo-header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <div class="brand-logo-badge">TS</div>
+        <div class="brand-title">TINY AI SCREEN // ROBOT FACES</div>
+      </a>
+      <div class="nav-links">
+        <a href="/emulator" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">tv</span>
+          Emulator
+        </a>
+        <a href="/faces" class="nav-btn active">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">smart_toy</span>
+          Faces
+        </a>
+        <a href="/setup" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
+          WiFi Setup
+        </a>
+      </div>
+    </div>
   </header>
 
-  <div class="main-layout">
+  <!-- Main Grid Layout -->
+  <main class="main-layout">
 
-    <!-- LEFT: 3D ROBOT CHASSIS & OLED DISPLAY -->
-    <div class="robot-stage">
-      <div class="robot-body">
-        <div class="robot-ear left"></div>
-        <div class="robot-ear right"></div>
-        <div class="robot-arm left" id="leftArm"></div>
-        <div class="robot-arm right" id="rightArm"></div>
-
-        <div class="bezel-top">
-          <div class="robot-logo">
-            <span>●</span> QBIT <span>//</span> C3-SUPERMINI
-          </div>
-          <div class="touch-sensor-badge" id="touchBadge">TOUCH: IDLE</div>
+    <!-- Left Column: Robot Stage Box -->
+    <div class="robot-stage-box">
+      <div class="bezel-topbar">
+        <div class="bezel-tag">
+          <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">smart_toy</span>
+          QBIT // C3-SUPERMINI
         </div>
+        <div class="touch-indicator-pill" id="touchBadge">
+          TOUCH: IDLE
+        </div>
+      </div>
 
+      <div class="robot-body-chassis">
         <div class="oled-screen-bezel" id="oledBezel" onclick="pokeRobot()" title="Click screen to Poke / Boop the robot!">
           <canvas id="oledCanvas" width="128" height="64"></canvas>
           <div class="scanlines-overlay" id="scanlines"></div>
         </div>
       </div>
 
-      <div class="robot-legs-container">
-        <div class="robot-leg"></div>
-        <div class="robot-leg"></div>
-      </div>
-
-      <div class="interaction-hint">
-        💡 Click display to <kbd>POKE / BOOP</kbd> robot or switch emotions below
+      <div class="touch-hint-bar">
+        <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">touch_app</span>
+        Click display to <strong>POKE / BOOP</strong> robot or select an emotion below
       </div>
     </div>
 
-    <!-- RIGHT: INTERACTIVE CONTROL PANEL -->
-    <div class="controls-container">
+    <!-- Right Column: Control Panels -->
+    <div class="controls-column">
 
-      <!-- SECTION 1: EXPRESSIONS SELECTOR -->
-      <div class="card">
-        <div class="card-title">
-          <span>Expressions & Moods</span>
-          <span id="fpsBadge" style="font-family:'Fira Code'; font-size:0.75rem; color:var(--text-muted);">30 FPS</span>
+      <!-- Expressions & Moods -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">mood</span>
+            Expressions &amp; Moods
+          </div>
+          <span id="fpsBadge" class="font-mono" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">30 FPS</span>
         </div>
 
         <div class="hud-mode-pill">
-          <button class="hud-mode-btn active" id="modeFull" onclick="setDisplayLayout('FULL_FACE')">Full Screen Face</button>
-          <button class="hud-mode-btn" id="modeSplit" onclick="setDisplayLayout('SPLIT_HUD')">Split (Face + Limits HUD)</button>
-          <button class="hud-mode-btn" id="modeAuto" onclick="setDisplayLayout('AUTO_CYCLE')">Auto Companion</button>
+          <button class="hud-mode-btn active" id="modeFull" onclick="setDisplayLayout('FULL_FACE')">Full Face</button>
+          <button class="hud-mode-btn" id="modeSplit" onclick="setDisplayLayout('SPLIT_HUD')">Split HUD</button>
+          <button class="hud-mode-btn" id="modeAuto" onclick="setDisplayLayout('AUTO_CYCLE')">Auto Cycle</button>
         </div>
 
         <div class="emotion-grid">
@@ -575,7 +717,7 @@
           </button>
           <button class="btn-emo" id="emo_alert" onclick="setEmotion('ALERT')">
             <span class="emoji">🚨</span>
-            <span>Alert / Req</span>
+            <span>Alert</span>
           </button>
           <button class="btn-emo" id="emo_thinking" onclick="setEmotion('THINKING')">
             <span class="emoji">🤔</span>
@@ -587,11 +729,11 @@
           </button>
           <button class="btn-emo" id="emo_love" onclick="setEmotion('LOVE')">
             <span class="emoji">💖</span>
-            <span>Love Eyes</span>
+            <span>Love</span>
           </button>
           <button class="btn-emo" id="emo_sleepy" onclick="setEmotion('SLEEPY')">
             <span class="emoji">😴</span>
-            <span>Sleeping</span>
+            <span>Sleepy</span>
           </button>
           <button class="btn-emo" id="emo_dizzy" onclick="setEmotion('DIZZY')">
             <span class="emoji">🌀</span>
@@ -600,15 +742,20 @@
         </div>
       </div>
 
-      <!-- SECTION 2: AI COMPANION SIMULATION CONTROLS -->
-      <div class="card">
-        <div class="card-title">
-          <span>AI Desktop Simulation</span>
-          <button class="btn-action" onclick="pokeRobot()" style="width:auto; margin:0; padding:2px 8px; font-size:0.7rem;">👋 Boop / Poke</button>
+      <!-- AI Desktop Simulation Controls -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">psychology</span>
+            AI Companion Telemetry
+          </div>
+          <button class="neo-btn-action" onclick="pokeRobot()" style="width: auto; padding: 0.25rem 0.65rem; font-size: 0.75rem;">
+            👋 Boop Robot
+          </button>
         </div>
 
-        <div class="toggle-row">
-          <span style="font-size: 0.85rem; color: var(--accent-alert); font-weight: 600;">Agent Waiting for Approval</span>
+        <div class="toggle-row" style="background: var(--accent-orange-light);">
+          <span class="toggle-label" style="font-weight: 700;">Agent Waiting for Approval</span>
           <label class="switch">
             <input type="checkbox" id="agentAlertToggle" onchange="toggleAgentAlert(this.checked)">
             <span class="slider"></span>
@@ -626,10 +773,13 @@
         </div>
       </div>
 
-      <!-- SECTION 3: DISPLAY SETTINGS & OLED THEME -->
-      <div class="card">
-        <div class="card-title">
-          <span>OLED Customization</span>
+      <!-- OLED Customization -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">palette</span>
+            OLED Color Palette
+          </div>
         </div>
 
         <div class="theme-picker">
@@ -639,8 +789,8 @@
           <div class="theme-dot" style="background:#ffffff;" onclick="setOledColor('WHITE')">WHITE</div>
         </div>
 
-        <div class="toggle-row" style="margin-top: 0.6rem;">
-          <span style="font-size: 0.85rem;">CRT Scanlines & Pixel Glow</span>
+        <div class="toggle-row" style="margin-top: 0.4rem;">
+          <span class="toggle-label">CRT Scanlines &amp; Pixel Glow</span>
           <label class="switch">
             <input type="checkbox" checked onchange="toggleScanlines(this.checked)">
             <span class="slider"></span>
@@ -648,21 +798,45 @@
         </div>
       </div>
 
-      <!-- SECTION 4: LIVE C++ CODE EXPORT -->
-      <div class="card">
-        <div class="tab-bar">
-          <button class="tab-btn active" id="tabCode">C++ PROGMEM Export</button>
+      <!-- Live C++ Code Export -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">code</span>
+            C++ PROGMEM Export
+          </div>
         </div>
 
         <div id="codeTabContent">
           <pre class="code-preview" id="cppCodeBox">// Generating live C++ Bitmap PROGMEM Arrays for ESP32 Adafruit_SSD1306 / U8g2...</pre>
-          <button class="btn-action" onclick="copyCppCode()">📋 Copy C++ Header Code</button>
+          <button class="neo-btn-action" onclick="copyCppCode()" style="margin-top: 0.75rem;">
+            <span class="material-symbols-outlined" style="font-size: 1rem;">content_copy</span>
+            Copy C++ Header Code
+          </button>
         </div>
       </div>
 
     </div>
 
-  </div>
+  </main>
+
+  <!-- Neo-Raw Footer -->
+  <footer class="neo-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        TINY AI SCREEN // NEO-RAW
+      </div>
+      <div class="footer-links">
+        <a href="/emulator">Emulator</a>
+        <a href="/faces">Faces Prototype</a>
+        <a href="/setup">WiFi Setup</a>
+        <a href="https://github.com" target="_blank" rel="noopener">Firmware Docs</a>
+      </div>
+      <div class="footer-copy">
+        © 2026 TINY AI SCREEN. NEO-RAW SYSTEM DESIGN.
+      </div>
+    </div>
+  </footer>
 
   <script>
     // =========================================================================

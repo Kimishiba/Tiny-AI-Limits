@@ -3,23 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Desktop Tiny Screen — ESP32 Display Emulator</title>
+  <title>Tiny AI Screen — ESP32 Display Emulator</title>
+  
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;700;800&family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg-dark: #0f1015;
-      --card-bg: #181920;
-      --panel-bg: #1e2029;
-      --border-color: #2e3240;
-      --text-main: #e2e8f0;
-      --text-muted: #94a3b8;
-      --accent-yellow: #ffff00;
-      --accent-cyan: #00ffff;
-      --accent-lime: #00ff00;
-      --accent-amber: #ff6600;
-      --accent-blue: #3b82f6;
+      --bg-color: #f9f9f9;
+      --card-bg: #ffffff;
+      --card-alt: #f3f3f3;
+      --border-dark: #1a1c1c;
+      --text-main: #1a1c1c;
+      --text-muted: #5d5f5f;
+      --accent-orange: #FF5F1F;
+      --accent-orange-hover: #fe5e1e;
+      --accent-orange-light: #ffdbcf;
+      --accent-green: #15803d;
+      --accent-green-bg: #dcfce7;
+      --accent-red: #ba1a1a;
+      --accent-red-bg: #ffdad6;
+      --border-width: 4px;
+      --border-thin: 2px;
+      --shadow-offset: 6px;
+      --shadow-offset-sm: 4px;
     }
 
     * {
@@ -29,271 +39,379 @@
     }
 
     body {
-      background-color: var(--bg-dark);
+      background-color: var(--bg-color);
       color: var(--text-main);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 2rem 1rem;
+      line-height: 1.5;
+      overflow-x: hidden;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 2rem;
+    ::selection {
+      background-color: var(--accent-orange);
+      color: #ffffff;
     }
 
-    header h1 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #ffff00 0%, #00ffff 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.4rem;
+    /* Neo-Brutalist Utility Classes */
+    .neo-border {
+      border: var(--border-width) solid var(--border-dark);
     }
 
-    header p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
+    .neo-border-thin {
+      border: var(--border-thin) solid var(--border-dark);
     }
 
-    .main-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2rem;
-      max-width: 1100px;
-      width: 100%;
-      justify-content: center;
-      align-items: flex-start;
+    .neo-shadow {
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
     }
 
-    /* --- HARDWARE BEZEL STYLING --- */
-    .device-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .neo-shadow-sm {
+      box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0px 0px var(--border-dark);
     }
 
-    .hardware-bezel {
-      background: linear-gradient(145deg, #252833, #15171e);
-      padding: 24px 28px 30px 28px;
-      border-radius: 20px;
-      box-shadow: 
-        0 20px 50px rgba(0, 0, 0, 0.7),
-        inset 0 1px 1px rgba(255, 255, 255, 0.1),
-        0 0 0 1px #2a2e3d;
-      position: relative;
-      user-select: none;
+    .font-anybody { font-family: 'Anybody', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-hanken { font-family: 'Hanken Grotesk', sans-serif; }
+
+    /* Navigation Bar */
+    header.neo-header {
+      background: var(--card-bg);
+      border-bottom: var(--border-width) solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0px 4px 0px 0px var(--border-dark);
     }
 
-    .bezel-header {
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 14px;
     }
 
-    .bezel-title {
-      font-family: 'Fira Code', monospace;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #64748b;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .status-leds {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
     }
 
-    .led {
+    .brand-logo-badge {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.25rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      letter-spacing: -0.04em;
+    }
+
+    .brand-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-btn {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.4rem 0.85rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .nav-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .nav-btn:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+      background: var(--accent-orange-light);
+      color: var(--text-main);
+    }
+
+    .nav-btn.active:hover {
+      background: var(--accent-orange-hover);
+      color: #ffffff;
+    }
+
+    /* Main Container */
+    main.main-layout {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      main.main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Hardware Bezel Box */
+    .device-box {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .bezel-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-thin) solid var(--border-dark);
+      padding-bottom: 0.75rem;
+    }
+
+    .bezel-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .indicator-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .led-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: #334155;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+      background-color: var(--accent-green);
+      border: 1px solid var(--border-dark);
     }
 
-    .led.pwr {
-      background-color: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
+    .led-dot.offline {
+      background-color: var(--accent-red);
     }
 
-    .led.wifi {
-      background-color: #3b82f6;
-      box-shadow: 0 0 8px #3b82f6;
-    }
-
-    .led.wifi.offline {
-      background-color: #ef4444;
-      box-shadow: 0 0 8px #ef4444;
-    }
-
-    .screen-glass {
+    /* Screen Glass & Canvas */
+    .screen-glass-container {
+      background: #000000;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
       position: relative;
-      border-radius: 8px;
       overflow: hidden;
-      box-shadow: 
-        inset 0 0 12px rgba(0,0,0,0.9),
-        0 0 0 3px #111319,
-        0 0 0 4px #333848;
       cursor: pointer;
-      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.1s ease;
     }
 
-    /* Glossy overlay */
-    .screen-glass::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 40%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);
-      pointer-events: none;
+    .screen-glass-container:active {
+      transform: scale(0.99);
     }
 
-    canvas {
+    canvas#tftCanvas {
       display: block;
-      width: 480px;  /* 320x240 scaled up 1.5x for crisp view */
-      height: 360px;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
 
-    .touch-hint {
-      margin-top: 12px;
+    .touch-hint-bar {
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      padding: 0.65rem 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 0.8rem;
-      color: var(--text-muted);
+      color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 0.5rem;
     }
 
-    .touch-hint span {
-      background: #2e3240;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-family: 'Fira Code', monospace;
-      color: var(--accent-yellow);
+    .touch-hint-bar strong {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.1rem 0.35rem;
+      font-weight: 800;
     }
 
-    /* --- CONTROL PANEL --- */
-    .control-panel {
-      flex: 1;
-      min-width: 320px;
-      background-color: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 1.5rem;
+    /* Controls Column */
+    .controls-column {
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
     }
 
-    .panel-section-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--accent-cyan);
-      margin-bottom: 0.8rem;
+    .neo-card {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 1.5rem;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 1.2rem;
     }
 
-    .btn-group {
+    .card-title-bar {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding-bottom: 0.6rem;
+    }
+
+    .card-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
       gap: 0.5rem;
     }
 
-    .btn {
-      flex: 1;
-      padding: 0.6rem 0.8rem;
-      background: #2a2e3d;
+    /* Screen Mode Button Group */
+    .mode-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+    }
+
+    .neo-btn {
+      background: var(--card-bg);
       color: var(--text-main);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-family: inherit;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
+      padding: 0.65rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
       font-size: 0.85rem;
-      font-weight: 600;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      text-decoration: none;
+    }
+
+    .neo-btn:hover {
+      background: var(--accent-orange-light);
+      transform: translate(1px, 1px);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    .neo-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0px 0px 0px 0px var(--border-dark);
+    }
+
+    .neo-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .neo-btn-primary {
+      background: var(--accent-orange);
+      color: #ffffff;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
+      padding: 0.85rem 1.25rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 900;
+      text-transform: uppercase;
       cursor: pointer;
       transition: all 0.15s ease;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
-    }
-
-    .btn:hover {
-      background: #363b4e;
-      border-color: #474d66;
-    }
-
-    .btn.active {
-      background: var(--accent-yellow);
-      color: #000;
-      border-color: var(--accent-yellow);
-    }
-
-    .btn-secondary {
-      background: #181920;
-    }
-
-    .control-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-      margin-bottom: 0.8rem;
-    }
-
-    .control-row label {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .control-row label span.val {
-      color: var(--accent-yellow);
-      font-family: 'Fira Code', monospace;
-    }
-
-    input[type="range"] {
-      accent-color: var(--accent-cyan);
+      gap: 0.5rem;
       width: 100%;
-      height: 6px;
-      background: #2a2e3d;
-      border-radius: 3px;
-      outline: none;
     }
 
-    input[type="text"] {
-      width: 100%;
-      padding: 0.5rem 0.75rem;
-      background: #14151b;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      color: var(--text-main);
-      font-family: 'Fira Code', monospace;
-      font-size: 0.85rem;
+    .neo-btn-primary:hover {
+      background: var(--accent-orange-hover);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
     }
 
-    input[type="text"]:focus {
-      border-color: var(--accent-cyan);
-      outline: none;
+    .neo-btn-primary:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0px 0px 0px 0px var(--border-dark);
     }
 
+    /* Toggles & Inputs */
     .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.5rem 0;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      padding: 0.75rem 1rem;
+    }
+
+    .toggle-label {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 600;
     }
 
     .switch {
@@ -313,147 +431,308 @@
       position: absolute;
       cursor: pointer;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #2a2e3d;
-      transition: .2s;
-      border-radius: 24px;
+      background-color: #cbd5e1;
+      border: var(--border-thin) solid var(--border-dark);
+      transition: .15s;
     }
 
     .slider:before {
       position: absolute;
       content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .2s;
-      border-radius: 50%;
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--border-dark);
+      transition: .15s;
     }
 
     input:checked + .slider {
-      background-color: var(--accent-cyan);
+      background-color: var(--accent-orange);
     }
 
     input:checked + .slider:before {
-      transform: translateX(20px);
-      background-color: #000;
+      transform: translateX(18px);
+      background-color: #ffffff;
+    }
+
+    /* Range Controls & Inputs */
+    .ctrl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .ctrl-row label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      text-transform: uppercase;
+    }
+
+    .ctrl-row label span.val {
+      color: var(--accent-orange);
+      background: rgba(255, 95, 31, 0.12);
+      padding: 0.1rem 0.4rem;
+      border: 1px solid var(--accent-orange);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent-orange);
+      border: var(--border-thin) solid var(--border-dark);
+      cursor: pointer;
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      background: var(--card-bg);
+      border: var(--border-thin) solid var(--border-dark);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      font-weight: 700;
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent-orange);
     }
 
     .status-badge {
-      font-family: 'Fira Code', monospace;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
       font-size: 0.75rem;
-      padding: 2px 8px;
-      border-radius: 12px;
-      background: rgba(34, 197, 94, 0.15);
-      color: #4ade80;
+      padding: 0.2rem 0.55rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      text-transform: uppercase;
     }
 
     .status-badge.offline {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
+      background: var(--accent-red-bg);
+      color: var(--accent-red);
+    }
+
+    /* Footer */
+    footer.neo-footer {
+      background: var(--border-dark);
+      color: #ffffff;
+      border-top: var(--border-width) solid var(--border-dark);
+      padding: 2rem 1.5rem;
+      margin-top: auto;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .footer-brand {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: var(--accent-orange);
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .footer-links a {
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-orange);
+    }
+
+    .footer-copy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>TINY DISPLAY EMULATOR</h1>
-    <p>Real-time pixel emulator for 320x240 ESP32 TFT Display (PlatformIO / TFT_eSPI)</p>
+  <!-- Neo-Raw Header -->
+  <header class="neo-header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <div class="brand-logo-badge">TS</div>
+        <div class="brand-title">TINY AI SCREEN // EMULATOR</div>
+      </a>
+      <div class="nav-links">
+        <a href="/emulator" class="nav-btn active">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">tv</span>
+          Emulator
+        </a>
+        <a href="/faces" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">smart_toy</span>
+          Faces
+        </a>
+        <a href="/setup" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
+          WiFi Setup
+        </a>
+      </div>
+    </div>
   </header>
 
-  <div class="main-container">
+  <!-- Main Grid Layout -->
+  <main class="main-layout">
 
-    <!-- HARDWARE BEZEL CONTAINER -->
-    <div class="device-wrapper">
-      <div class="hardware-bezel">
-        <div class="bezel-header">
-          <div class="bezel-title">ESP32-C3 // TFT 320x240</div>
-          <div class="status-leds">
-            <div class="led pwr" title="Power OK"></div>
-            <div id="wifiLed" class="led wifi" title="Backend Stream Sync"></div>
-          </div>
+    <!-- Left Column: Display Screen Box -->
+    <div class="device-box">
+      <div class="bezel-topbar">
+        <div class="bezel-tag">
+          <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">monitor</span>
+          ESP32-C3 // TFT 320x240
         </div>
-
-        <div class="screen-glass" id="screenGlass" title="Click anywhere to simulate Touch / Screen Switch">
-          <canvas id="tftCanvas" width="320" height="240"></canvas>
+        <div class="status-indicators">
+          <div class="indicator-pill">
+            <span class="led-dot"></span>
+            PWR: OK
+          </div>
+          <div class="indicator-pill" id="wifiLedPill">
+            <span id="wifiLed" class="led-dot"></span>
+            STREAM
+          </div>
         </div>
       </div>
 
-      <div class="touch-hint">
-        💡 Click display screen to cycle modes (or tap <span>LIMITS</span> / <span>WEATHER</span> / <span>FLIP CLOCK</span> tabs)
+      <div class="screen-glass-container" id="screenGlass" title="Click screen to simulate touch interaction">
+        <canvas id="tftCanvas" width="320" height="240"></canvas>
+      </div>
+
+      <div class="touch-hint-bar">
+        <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">touch_app</span>
+        Click display to cycle screen modes (or use <strong>LIMITS</strong> / <strong>WEATHER</strong> / <strong>CLOCK</strong> below)
       </div>
     </div>
 
-    <!-- CONTROL PANEL -->
-    <div class="control-panel">
+    <!-- Right Column: Control Panels -->
+    <div class="controls-column">
 
-      <!-- SECTION 1: SCREEN NAVIGATION -->
-      <div>
-        <div class="panel-section-title">
-          <span>Active Display Mode</span>
+      <!-- Active Display Mode -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">view_carousel</span>
+            Display Mode
+          </div>
+          <a href="/faces" class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.75rem; padding: 0.3rem 0.6rem;">
+            🤖 QBIT Faces
+          </a>
         </div>
-        <div class="btn-group">
-          <button class="btn active" id="btnLimits" onclick="switchScreen(0)">LIMITS</button>
-          <button class="btn" id="btnWeather" onclick="switchScreen(1)">WEATHER</button>
-          <button class="btn" id="btnClock" onclick="switchScreen(2)">FLIP CLOCK</button>
-          <a href="qbit_faces_prototype.html" class="btn" style="text-decoration:none; color:inherit; background:rgba(0,240,255,0.15); border-color:#00f0ff;">🤖 QBIT FACES</a>
+        <div class="mode-btn-grid">
+          <button class="neo-btn active" id="btnLimits" onclick="switchScreen(0)">LIMITS</button>
+          <button class="neo-btn" id="btnWeather" onclick="switchScreen(1)">WEATHER</button>
+          <button class="neo-btn" id="btnClock" onclick="switchScreen(2)">FLIP CLOCK</button>
         </div>
       </div>
 
-      <!-- SECTION 2: LIVE BACKEND SYNC -->
-      <div>
-        <div class="panel-section-title">
-          <span>Backend Connection</span>
+      <!-- Live Backend Connection -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">sync</span>
+            Backend Telemetry
+          </div>
           <span id="backendStatus" class="status-badge">POLLING (5000)</span>
         </div>
+
         <div class="toggle-row">
-          <span style="font-size: 0.85rem;">Fetch from http://localhost:5000/data</span>
+          <span class="toggle-label">Poll live data from <code>http://localhost:5000/data</code></span>
           <label class="switch">
             <input type="checkbox" id="backendToggle" checked onchange="toggleBackendSync(this.checked)">
             <span class="slider"></span>
           </label>
         </div>
-        <button class="btn btn-secondary" onclick="fetchBackendData()" style="width: 100%; margin-top: 0.5rem;">
-          🔄 Force Fetch Now
+
+        <button class="neo-btn" onclick="fetchBackendData()" style="width: 100%;">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">refresh</span>
+          Force Fetch Telemetry Now
         </button>
       </div>
 
-      <!-- SECTION 3: HARDWARE INTERACTIVE CONTROL -->
-      <div>
-        <div class="panel-section-title">
-          <span>Simulation Controls</span>
-          <button class="btn btn-secondary" onclick="triggerReboot()" style="padding: 2px 8px; font-size: 0.75rem;">Reboot ESP32</button>
+      <!-- Interactive Hardware Simulation -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">tune</span>
+            Simulation Controls
+          </div>
+          <button class="neo-btn" onclick="triggerReboot()" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+            Reboot ESP32
+          </button>
         </div>
 
-        <div class="toggle-row">
-          <span style="font-size: 0.85rem; color: var(--accent-amber); font-weight: 600;">Simulate Agent Alert (`waiting_for_input`)</span>
+        <div class="toggle-row" style="background: var(--accent-orange-light);">
+          <span class="toggle-label" style="font-weight: 700;">Simulate Agent Alert (<code>waiting_for_input</code>)</span>
           <label class="switch">
             <input type="checkbox" id="agentInputToggle" onchange="toggleAgentInput(this.checked)">
             <span class="slider"></span>
           </label>
         </div>
 
-        <div class="control-row">
-          <label>Agent Prompt: <span class="val" id="promptTextVal">APPROVE PLAN</span></label>
+        <div class="ctrl-row" style="margin-top: 0.5rem;">
+          <label>Agent Alert Banner: <span class="val" id="promptTextVal">APPROVE PLAN</span></label>
           <input type="text" id="promptTextInput" value="APPROVE PLAN" oninput="updatePromptText(this.value)">
         </div>
 
-        <div class="control-row" style="margin-top: 0.6rem;">
+        <div class="ctrl-row">
           <label>Claude Remaining %: <span class="val" id="claudeVal">85%</span></label>
           <input type="range" id="claudeSlider" min="0" max="100" value="85" oninput="updateClaudeVal(this.value)">
         </div>
 
-        <div class="control-row">
+        <div class="ctrl-row">
           <label>Antigravity Remaining %: <span class="val" id="antiVal">60%</span></label>
           <input type="range" id="antiSlider" min="0" max="100" value="60" oninput="updateAntiVal(this.value)">
         </div>
 
-        <div class="control-row">
+        <div class="ctrl-row">
           <label>Current Temp (°C): <span class="val" id="tempVal">23.5°C</span></label>
           <input type="range" id="tempSlider" min="-10" max="45" step="0.5" value="23.5" oninput="updateTempVal(this.value)">
         </div>
 
-        <div class="control-row">
+        <div class="ctrl-row">
           <label>Hours Until Rain: <span class="val" id="rainVal">2.0 hrs</span></label>
           <input type="range" id="rainSlider" min="-1" max="12" step="1" value="2" oninput="updateRainVal(this.value)">
         </div>
@@ -461,7 +740,25 @@
 
     </div>
 
-  </div>
+  </main>
+
+  <!-- Neo-Raw Footer -->
+  <footer class="neo-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        TINY AI SCREEN // NEO-RAW
+      </div>
+      <div class="footer-links">
+        <a href="/emulator">Emulator</a>
+        <a href="/faces">Faces Prototype</a>
+        <a href="/setup">WiFi Setup</a>
+        <a href="https://github.com" target="_blank" rel="noopener">Firmware Docs</a>
+      </div>
+      <div class="footer-copy">
+        © 2026 TINY AI SCREEN. NEO-RAW SYSTEM DESIGN.
+      </div>
+    </div>
+  </footer>
 
   <script>
     // --- EMULATOR COLOR DEFINITIONS (Matching TFT_eSPI definitions) ---
