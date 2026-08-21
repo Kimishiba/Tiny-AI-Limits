@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Desktop Tiny Screen — ESP32 Display Emulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;600;700;800&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f1015;
+      --card-bg: #181920;
+      --panel-bg: #1e2029;
+      --border-color: #2e3240;
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-yellow: #ffff00;
+      --accent-cyan: #00ffff;
+      --accent-lime: #00ff00;
+      --accent-amber: #ff6600;
+      --accent-blue: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffff00 0%, #00ffff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.4rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .main-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      max-width: 1100px;
+      width: 100%;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* --- HARDWARE BEZEL STYLING --- */
+    .device-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hardware-bezel {
+      background: linear-gradient(145deg, #252833, #15171e);
+      padding: 24px 28px 30px 28px;
+      border-radius: 20px;
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.7),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1),
+        0 0 0 1px #2a2e3d;
+      position: relative;
+      user-select: none;
+    }
+
+    .bezel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .bezel-title {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .status-leds {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #334155;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .led.pwr {
+      background-color: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+    }
+
+    .led.wifi {
+      background-color: #3b82f6;
+      box-shadow: 0 0 8px #3b82f6;
+    }
+
+    .led.wifi.offline {
+      background-color: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+    }
+
+    .screen-glass {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 
+        inset 0 0 12px rgba(0,0,0,0.9),
+        0 0 0 3px #111319,
+        0 0 0 4px #333848;
+      cursor: pointer;
+      background: #000;
+    }
+
+    /* Glossy overlay */
+    .screen-glass::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 100%);
+      pointer-events: none;
+    }
+
+    canvas {
+      display: block;
+      width: 480px;  /* 320x240 scaled up 1.5x for crisp view */
+      height: 360px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .touch-hint {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .touch-hint span {
+      background: #2e3240;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-yellow);
+    }
+
+    /* --- CONTROL PANEL --- */
+    .control-panel {
+      flex: 1;
+      min-width: 320px;
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .panel-section-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-cyan);
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 0.6rem 0.8rem;
+      background: #2a2e3d;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .btn:hover {
+      background: #363b4e;
+      border-color: #474d66;
+    }
+
+    .btn.active {
+      background: var(--accent-yellow);
+      color: #000;
+      border-color: var(--accent-yellow);
+    }
+
+    .btn-secondary {
+      background: #181920;
+    }
+
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .control-row label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-row label span.val {
+      color: var(--accent-yellow);
+      font-family: 'Fira Code', monospace;
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent-cyan);
+      width: 100%;
+      height: 6px;
+      background: #2a2e3d;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background: #14151b;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent-cyan);
+      outline: none;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #2a2e3d;
+      transition: .2s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-cyan);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+      background-color: #000;
+    }
+
+    .status-badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+    }
+
+    .status-badge.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>TINY DISPLAY EMULATOR</h1>
+    <p>Real-time pixel emulator for 320x240 ESP32 TFT Display (PlatformIO / TFT_eSPI)</p>
+  </header>
+
+  <div class="main-container">
+
+    <!-- HARDWARE BEZEL CONTAINER -->
+    <div class="device-wrapper">
+      <div class="hardware-bezel">
+        <div class="bezel-header">
+          <div class="bezel-title">ESP32-C3 // TFT 320x240</div>
+          <div class="status-leds">
+            <div class="led pwr" title="Power OK"></div>
+            <div id="wifiLed" class="led wifi" title="Backend Stream Sync"></div>
+          </div>
+        </div>
+
+        <div class="screen-glass" id="screenGlass" title="Click anywhere to simulate Touch / Screen Switch">
+          <canvas id="tftCanvas" width="320" height="240"></canvas>
+        </div>
+      </div>
+
+      <div class="touch-hint">
+        💡 Click display screen to cycle modes (or tap <span>LIMITS</span> / <span>WEATHER</span> / <span>FLIP CLOCK</span> tabs)
+      </div>
+    </div>
+
+    <!-- CONTROL PANEL -->
+    <div class="control-panel">
+
+      <!-- SECTION 1: SCREEN NAVIGATION -->
+      <div>
+        <div class="panel-section-title">
+          <span>Active Display Mode</span>
+        </div>
+        <div class="btn-group">
+          <button class="btn active" id="btnLimits" onclick="switchScreen(0)">LIMITS</button>
+          <button class="btn" id="btnWeather" onclick="switchScreen(1)">WEATHER</button>
+          <button class="btn" id="btnClock" onclick="switchScreen(2)">FLIP CLOCK</button>
+          <a href="qbit_faces_prototype.html" class="btn" style="text-decoration:none; color:inherit; background:rgba(0,240,255,0.15); border-color:#00f0ff;">🤖 QBIT FACES</a>
+        </div>
+      </div>
+
+      <!-- SECTION 2: LIVE BACKEND SYNC -->
+      <div>
+        <div class="panel-section-title">
+          <span>Backend Connection</span>
+          <span id="backendStatus" class="status-badge">POLLING (5000)</span>
+        </div>
+        <div class="toggle-row">
+          <span style="font-size: 0.85rem;">Fetch from http://localhost:5000/data</span>
+          <label class="switch">
+            <input type="checkbox" id="backendToggle" checked onchange="toggleBackendSync(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <button class="btn btn-secondary" onclick="fetchBackendData()" style="width: 100%; margin-top: 0.5rem;">
+          🔄 Force Fetch Now
+        </button>
+      </div>
+
+      <!-- SECTION 3: HARDWARE INTERACTIVE CONTROL -->
+      <div>
+        <div class="panel-section-title">
+          <span>Simulation Controls</span>
+          <button class="btn btn-secondary" onclick="triggerReboot()" style="padding: 2px 8px; font-size: 0.75rem;">Reboot ESP32</button>
+        </div>
+
+        <div class="toggle-row">
+          <span style="font-size: 0.85rem; color: var(--accent-amber); font-weight: 600;">Simulate Agent Alert (`waiting_for_input`)</span>
+          <label class="switch">
+            <input type="checkbox" id="agentInputToggle" onchange="toggleAgentInput(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-row">
+          <label>Agent Prompt: <span class="val" id="promptTextVal">APPROVE PLAN</span></label>
+          <input type="text" id="promptTextInput" value="APPROVE PLAN" oninput="updatePromptText(this.value)">
+        </div>
+
+        <div class="control-row" style="margin-top: 0.6rem;">
+          <label>Claude Remaining %: <span class="val" id="claudeVal">85%</span></label>
+          <input type="range" id="claudeSlider" min="0" max="100" value="85" oninput="updateClaudeVal(this.value)">
+        </div>
+
+        <div class="control-row">
+          <label>Antigravity Remaining %: <span class="val" id="antiVal">60%</span></label>
+          <input type="range" id="antiSlider" min="0" max="100" value="60" oninput="updateAntiVal(this.value)">
+        </div>
+
+        <div class="control-row">
+          <label>Current Temp (°C): <span class="val" id="tempVal">23.5°C</span></label>
+          <input type="range" id="tempSlider" min="-10" max="45" step="0.5" value="23.5" oninput="updateTempVal(this.value)">
+        </div>
+
+        <div class="control-row">
+          <label>Hours Until Rain: <span class="val" id="rainVal">2.0 hrs</span></label>
+          <input type="range" id="rainSlider" min="-1" max="12" step="1" value="2" oninput="updateRainVal(this.value)">
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // --- EMULATOR COLOR DEFINITIONS (Matching TFT_eSPI definitions) ---
+    const KINETIC_YELLOW = "#FFFF00";
+    const KINETIC_CYAN   = "#00FFFF";
+    const KINETIC_LIME   = "#00FF00";
+    const KINETIC_AMBER  = "#FF6600";
+    const KINETIC_BLACK  = "#000000";
+    const KINETIC_DARK   = "#181C24";
+
+    const canvas = document.getElementById("tftCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Display State
+    let currentScreen = 0; // 0: LIMITS, 1: WEATHER, 2: FLIP CLOCK
+    let isBooting = false;
+    let bootStep = 0;
+
+    // Data State (mirrors backend GET /data)
+    let claude_limit = 500000;
+    let claude_remaining = 425000;
+    let antigravity_limit = 100;
+    let antigravity_remaining = 60;
+    let current_temperature = 23.5;
+    let hours_until_rain = 2;
+    let date_string = "THU 06 AUG";
+    let waiting_for_input = false;
+    let prompt_text = "APPROVE PLAN";
+
+    // Time keeping
+    let server_hour = 12;
+    let server_minute = 45;
+    let server_second = 22;
+    let lastTimeSync = Date.now();
+
+    // Animations & Blinking
+    let blinkState = false;
+    let lastBlinkTime = Date.now();
+    let transitionProgress = 1.0;
+    let prevScreen = 0;
+    let nextScreen = 0;
+    let backendSyncEnabled = true;
+    let syncIntervalId = null;
+
+    // Offscreen Sprites
+    const offscreenCurrent = document.createElement("canvas");
+    offscreenCurrent.width = 320;
+    offscreenCurrent.height = 240;
+    const ctxCurrent = offscreenCurrent.getContext("2d");
+
+    const offscreenNext = document.createElement("canvas");
+    offscreenNext.width = 320;
+    offscreenNext.height = 240;
+    const ctxNext = offscreenNext.getContext("2d");
+
+    function getNowTime() {
+      const elapsed = Math.floor((Date.now() - lastTimeSync) / 1000);
+      const totalSecs = (server_hour * 3600 + server_minute * 60 + server_second) + elapsed;
+      const h = Math.floor(totalSecs / 3600) % 24;
+      const m = Math.floor(totalSecs / 60) % 60;
+      const s = totalSecs % 60;
+      return { h, m, s, totalSecs };
+    }
+
+    // --- DRAWING HELPER FUNCTIONS ---
+    function drawLimitsUI(c) {
+      const now = getNowTime();
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(0, 0, 320, 240);
+
+      // 1. Top Header Bar (0 to 24)
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(0, 0, 320, 24);
+      c.fillStyle = KINETIC_YELLOW;
+      c.font = "bold 13px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText(date_string, 10, 16);
+
+      c.textAlign = "right";
+      c.fillText(current_temperature.toFixed(1) + " C", 310, 16);
+
+      // 2. Main Content Area (Yellow)
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(5, 24, 310, 140);
+
+      // Vertical Divider
+      const midX = 180;
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(midX, 24, 5, 140);
+
+      // Percentages
+      const claude_p = claude_limit > 0 ? claude_remaining / claude_limit : 0;
+      const anti_p = antigravity_limit > 0 ? antigravity_remaining / antigravity_limit : 0;
+
+      // CLAUDE SECTION
+      const lx = 12;
+      const y1 = 30;
+      c.fillStyle = KINETIC_BLACK;
+      c.font = "bold 14px 'Inter', sans-serif";
+      c.textAlign = "left";
+      c.fillText("CLAUDE", lx, y1 + 14);
+      c.textAlign = "right";
+      c.fillText(Math.round(claude_p * 100) + "%", midX - 8, y1 + 14);
+
+      // Claude Progress Bar
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(lx, y1 + 25, midX - 20, 24);
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(lx + 3, y1 + 28, midX - 26, 18);
+      const c_width = Math.floor((midX - 26) * claude_p);
+      if (c_width > 0) {
+        c.fillStyle = KINETIC_CYAN;
+        c.fillRect(lx + 3, y1 + 28, c_width, 18);
+      }
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(lx + 3 + c_width, y1 + 28, 3, 18);
+
+      // Raw Values
+      c.font = "10px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText(`${claude_remaining} / ${claude_limit}`, lx, y1 + 64);
+
+      // ANTIGRAVITY SECTION
+      const y2 = 100;
+      c.fillStyle = KINETIC_BLACK;
+      c.font = "bold 14px 'Inter', sans-serif";
+      c.fillText("ANTIGRAVITY", lx, y2 + 14);
+      c.textAlign = "right";
+      c.fillText(Math.round(anti_p * 100) + "%", midX - 8, y2 + 14);
+
+      // Progress Bar
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(lx, y2 + 25, midX - 20, 24);
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(lx + 3, y2 + 28, midX - 26, 18);
+      const a_width = Math.floor((midX - 26) * anti_p);
+      if (a_width > 0) {
+        c.fillStyle = KINETIC_LIME;
+        c.fillRect(lx + 3, y2 + 28, a_width, 18);
+      }
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(lx + 3 + a_width, y2 + 28, 3, 18);
+
+      // Raw Values
+      c.font = "10px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText(`${antigravity_remaining} / ${antigravity_limit}`, lx, y2 + 64);
+
+      // SYSTEM STREAM (Right)
+      const rx = midX + 10;
+      if (waiting_for_input) {
+        const alertColor = blinkState ? KINETIC_AMBER : KINETIC_BLACK;
+        const textColor  = blinkState ? KINETIC_BLACK : KINETIC_AMBER;
+
+        c.fillStyle = alertColor;
+        c.fillRect(rx - 4, 26, 130, 134);
+        c.fillStyle = textColor;
+        c.font = "bold 11px 'Fira Code', monospace";
+        c.textAlign = "left";
+        c.fillText("! ATTENTION !", rx, 44);
+        c.fillText("> AGENT: WAITING", rx, 62);
+        c.fillText("> INPUT REQ", rx, 80);
+        c.fillText("> " + prompt_text, rx, 98);
+        c.fillText("> ACTION NEEDED", rx, 116);
+        if (blinkState) {
+          c.fillRect(rx, 126, 12, 12);
+        }
+      } else {
+        c.fillStyle = KINETIC_BLACK;
+        c.font = "bold 11px 'Fira Code', monospace";
+        c.textAlign = "left";
+        c.fillText("SYSTEM STREAM", rx, 42);
+        c.fillRect(rx, 46, 120, 2);
+
+        c.font = "10px 'Fira Code', monospace";
+        c.fillText("> KERNEL: ACTIVE", rx, 62);
+        c.fillText("> MEM_SYNC: 0X2A", rx, 80);
+        c.fillText("> PWR_CELL: NOM", rx, 98);
+        c.fillText("> FR_RATE: 60FPS", rx, 116);
+        c.fillText("> UPLINK: OK", rx, 134);
+      }
+
+      // 3. Status Bar (164 to 194)
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(0, 164, 320, 30);
+      c.font = "11px 'Fira Code', monospace";
+      if (waiting_for_input) {
+        c.fillStyle = KINETIC_AMBER;
+        c.textAlign = "left";
+        c.fillText("! INPUT REQUIRED !", 10, 183);
+        c.textAlign = "right";
+        c.fillText("STATUS: WAITING", 310, 183);
+        c.fillStyle = blinkState ? KINETIC_AMBER : KINETIC_BLACK;
+        c.fillRect(185, 174, 10, 10);
+      } else {
+        c.fillStyle = KINETIC_YELLOW;
+        c.textAlign = "left";
+        const timeStr = `${String(now.h).padStart(2,'0')}:${String(now.m).padStart(2,'0')}:${String(now.s).padStart(2,'0')}.04`;
+        c.fillText(timeStr, 10, 183);
+        c.textAlign = "right";
+        c.fillText("STATUS: OPERATIONAL", 310, 183);
+        c.fillStyle = KINETIC_LIME;
+        c.fillRect(175, 174, 10, 10);
+      }
+
+      // 4. Navigation Footer (194 to 240)
+      const tabW = 320 / 4;
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(0, 194, tabW, 46);
+
+      // Icon Grid
+      const cx1 = tabW / 2;
+      const cy1 = 194 + 23;
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(cx1 - 8, cy1 - 8, 6, 6);
+      c.fillRect(cx1 + 2, cy1 - 8, 6, 6);
+      c.fillRect(cx1 - 8, cy1 + 2, 6, 6);
+      c.fillRect(cx1 + 2, cy1 + 2, 6, 6);
+
+      // Tab lines
+      c.strokeStyle = KINETIC_DARK;
+      c.lineWidth = 1;
+      c.beginPath();
+      c.moveTo(tabW, 194); c.lineTo(tabW, 240);
+      c.moveTo(tabW*2, 194); c.lineTo(tabW*2, 240);
+      c.moveTo(tabW*3, 194); c.lineTo(tabW*3, 240);
+      c.stroke();
+
+      // Icon 2 (Chart)
+      const cx2 = (tabW * 1) + (tabW / 2);
+      c.strokeRect(cx2 - 8, cy1 - 8, 16, 16);
+      c.fillStyle = KINETIC_DARK;
+      c.fillRect(cx2 - 4, cy1, 3, 8);
+      c.fillRect(cx2, cy1 - 4, 3, 12);
+
+      // Icon 3 (Chip)
+      const cx3 = (tabW * 2) + (tabW / 2);
+      c.strokeRect(cx3 - 6, cy1 - 6, 12, 12);
+      c.fillRect(cx3 - 8, cy1 - 3, 2, 6);
+      c.fillRect(cx3 + 6, cy1 - 3, 2, 6);
+
+      // Icon 4 (Gear)
+      const cx4 = (tabW * 3) + (tabW / 2);
+      c.beginPath(); c.arc(cx4, cy1, 6, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.moveTo(cx4 - 9, cy1); c.lineTo(cx4 + 9, cy1); c.stroke();
+      c.beginPath(); c.moveTo(cx4, cy1 - 9); c.lineTo(cx4, cy1 + 9); c.stroke();
+    }
+
+    function drawWeatherUI(c) {
+      const now = getNowTime();
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(0, 0, 320, 240);
+
+      // 2. Main Frame Border
+      c.strokeStyle = KINETIC_YELLOW;
+      c.lineWidth = 2;
+      c.strokeRect(1, 1, 318, 238);
+
+      // 3. Header
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(0, 0, 320, 28);
+      c.fillStyle = KINETIC_BLACK;
+      c.font = "bold 13px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText(date_string, 10, 18);
+      c.textAlign = "right";
+      c.fillText(current_temperature.toFixed(1) + " C", 310, 18);
+
+      // 4. Central Weather Block (Temperature Box with Background Sun)
+      const bx = 10, by = 38, bw = 170, bh = 110;
+      c.strokeStyle = KINETIC_CYAN;
+      c.lineWidth = 1;
+      c.strokeRect(bx, by, bw, bh);
+
+      c.fillStyle = KINETIC_CYAN;
+      c.font = "bold 11px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText("LOC: NEO_BERLIN", bx + 8, by + 18);
+
+    const CONDENSED_HUD_DIGITS = [
+      [0b011110, 0b111111, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b111111, 0b011110], // 0
+      [0b001100, 0b011100, 0b111100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b001100, 0b111111, 0b111111], // 1
+      [0b011110, 0b111111, 0b110011, 0b000011, 0b000011, 0b000110, 0b001100, 0b011000, 0b110000, 0b110000, 0b110000, 0b110000, 0b111111, 0b111111, 0b111111, 0b111111], // 2
+      [0b111111, 0b111111, 0b000011, 0b000011, 0b000011, 0b011111, 0b011111, 0b000011, 0b000011, 0b000011, 0b000011, 0b000011, 0b110011, 0b111111, 0b111111, 0b011110], // 3
+      [0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b111111, 0b111111, 0b000011, 0b000011, 0b000011, 0b000011, 0b000011, 0b000011, 0b000011], // 4
+      [0b111111, 0b111111, 0b110000, 0b110000, 0b110000, 0b111110, 0b111111, 0b000011, 0b000011, 0b000011, 0b000011, 0b000011, 0b110011, 0b111111, 0b111111, 0b011110], // 5
+      [0b011110, 0b111111, 0b110000, 0b110000, 0b110000, 0b111110, 0b111111, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b111111, 0b111111, 0b011110], // 6
+      [0b111111, 0b111111, 0b000011, 0b000110, 0b000110, 0b001100, 0b001100, 0b011000, 0b011000, 0b110000, 0b110000, 0b110000, 0b110000, 0b110000, 0b110000, 0b110000], // 7
+      [0b011110, 0b111111, 0b110011, 0b110011, 0b110011, 0b011110, 0b011110, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b110011, 0b111111, 0b111111, 0b011110], // 8
+      [0b011110, 0b111111, 0b110011, 0b110011, 0b110011, 0b111111, 0b011111, 0b000011, 0b000011, 0b000011, 0b000011, 0b000011, 0b110011, 0b111111, 0b111111, 0b011110]  // 9
+    ];
+
+    function drawCondensedHUDDigit(c, startX, startY, digit, color) {
+      if (digit < 0 || digit > 9) return;
+      const pW = 4, pH = 3;
+      c.fillStyle = color;
+      for (let r = 0; r < 16; r++) {
+        const rowBits = CONDENSED_HUD_DIGITS[digit][r];
+        for (let col = 0; col < 6; col++) {
+          if (rowBits & (1 << (5 - col))) {
+            c.fillRect(startX + col * pW, startY + r * pH, pW, pH);
+          }
+        }
+      }
+    }
+
+      // Background Sun Graphic (Shifted to far right edge so half protrudes outside box)
+      const sunX = bx + bw - 18; // x = 162
+      const sunY = by + 58;      // y = 102
+      c.save();
+      c.beginPath();
+      c.rect(bx, by, bw, bh);
+      c.clip(); // Clip sun rays inside box boundaries
+
+      c.fillStyle = "#888800"; // Muted dark gold/yellow sun backdrop (#888800)
+      c.beginPath();
+      c.arc(sunX, sunY, 32, 0, Math.PI * 2);
+      c.fill();
+
+      for (let i = 0; i < 12; i++) {
+        const angle = i * 30 * 0.0174533;
+        const rx = sunX + Math.cos(angle) * 44;
+        const ry = sunY + Math.sin(angle) * 44;
+        c.fillRect(rx - 3, ry - 3, 7, 7);
+      }
+      c.restore();
+
+      // Option 3: Modern Ultra-Bold Condensed HUD Temperature Digits
+      const curT = Math.floor(current_temperature * 10);
+      const t1 = Math.floor(curT / 100) % 10;
+      const t2 = Math.floor(curT / 10) % 10;
+      const t3 = curT % 10;
+
+      let tX = bx + 10;
+      const tY = by + 46;
+
+      if (t1 > 0) {
+        drawCondensedHUDDigit(c, tX, tY, t1, KINETIC_YELLOW);
+        tX += 28;
+      }
+      drawCondensedHUDDigit(c, tX, tY, t2, KINETIC_YELLOW);
+      tX += 28;
+
+      // Decimal point dot
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(tX + 2, tY + 40, 6, 6);
+      tX += 12;
+
+      drawCondensedHUDDigit(c, tX, tY, t3, KINETIC_YELLOW);
+      tX += 28;
+
+      // Degree symbol & C
+      c.strokeStyle = KINETIC_YELLOW;
+      c.lineWidth = 2;
+      c.beginPath(); c.arc(tX + 4, tY + 8, 4, 0, Math.PI*2); c.stroke();
+      c.font = "bold 24px 'Fira Code', monospace";
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillText("C", tX + 16, tY + 24);
+
+      // Redraw box boundary over clipped sun
+      c.strokeStyle = KINETIC_YELLOW;
+      c.lineWidth = 1;
+      c.strokeRect(bx, by, bw, bh);
+
+      // 5. Rain Forecast Bar (Cyan)
+      const rx = 10, ry = 158, rw = 300, rh = 65;
+      c.strokeStyle = KINETIC_CYAN;
+      c.lineWidth = 1;
+      c.strokeRect(rx, ry, rw, rh);
+      c.fillStyle = KINETIC_CYAN;
+      c.font = "bold 11px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText("HOURS UNTIL RAIN", rx + 8, ry + 18);
+
+      c.font = "bold 36px 'VT323', monospace";
+      c.textAlign = "right";
+      if (hours_until_rain === -1) {
+        c.fillText("NONE", rx + rw - 10, ry + 42);
+      } else {
+        const rStr = (hours_until_rain < 10 ? "0" : "") + hours_until_rain + ".0";
+        c.fillText(rStr, rx + rw - 10, ry + 42);
+      }
+
+      // 12 Progress segments
+      for (let i = 0; i < 12; i++) {
+        const bar_w = 20;
+        const spacing = 4;
+        const bar_x = rx + 8 + (i * (bar_w + spacing));
+        if (i < (hours_until_rain > 0 ? hours_until_rain : 8)) {
+          c.fillRect(bar_x, ry + 45, bar_w, 12);
+        } else {
+          c.strokeRect(bar_x, ry + 45, bar_w, 12);
+        }
+      }
+
+      // 6. Sidebar: Diagnostics
+      const sx = 190, sy = 38, sw = 120, sh = 110;
+      c.strokeStyle = KINETIC_YELLOW;
+      c.strokeRect(sx, sy, sw, sh);
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(sx, sy, sw, 20);
+
+      c.fillStyle = KINETIC_BLACK;
+      c.font = "bold 11px 'Fira Code', monospace";
+      c.textAlign = "center";
+      c.fillText("DIAGNOSTICS", sx + (sw/2), sy + 14);
+
+      c.fillStyle = KINETIC_CYAN;
+      c.font = "10px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText("> DATA_RECV", sx + 8, sy + 40);
+      c.fillText("[OK]", sx + 8, sy + 54);
+
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillText("> TEMP_SYNC:", sx + 8, sy + 74);
+
+      // 7. Footer
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(0, 225, 320, 15);
+      c.fillStyle = KINETIC_BLACK;
+      c.font = "10px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText("STATUS: OK", 5, 236);
+      c.textAlign = "right";
+      c.fillText("08:45:22 // CLD_01", 315, 236);
+    }
+
+    const MOCKUP_DIGITS_8X16 = [
+      [0b01111110, 0b11111111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11111111, 0b01111110], // 0
+      [0b00011110, 0b00111110, 0b01111110, 0b11011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b00011110, 0b11111111, 0b11111111], // 1
+      [0b01111110, 0b11111111, 0b11100111, 0b11100111, 0b00000111, 0b00001111, 0b00011110, 0b00111100, 0b01111000, 0b11110000, 0b11100000, 0b11100000, 0b11111111, 0b11111111, 0b11111111, 0b11111111], // 2
+      [0b11111111, 0b11111111, 0b00000111, 0b00000111, 0b00011111, 0b00011111, 0b00000111, 0b00000111, 0b00000111, 0b00000111, 0b11100111, 0b11100111, 0b11111111, 0b11111111, 0b01111110, 0b00111100], // 3
+      [0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11111111, 0b11111111, 0b11111111, 0b00000111, 0b00000111, 0b00000111, 0b00000111, 0b00000111, 0b00000111], // 4
+      [0b11111111, 0b11111111, 0b11100000, 0b11100000, 0b11111110, 0b11111111, 0b00000111, 0b00000111, 0b00000111, 0b00000111, 0b11100111, 0b11100111, 0b11111111, 0b11111111, 0b01111110, 0b00111100], // 5
+      [0b01111110, 0b11111111, 0b11100000, 0b11100000, 0b11111110, 0b11111111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11111111, 0b11111111, 0b01111110, 0b00111100], // 6
+      [0b11111111, 0b11111111, 0b00000111, 0b00001111, 0b00011110, 0b00011110, 0b00111100, 0b00111100, 0b01111000, 0b01111000, 0b11110000, 0b11110000, 0b11100000, 0b11100000, 0b11100000, 0b11100000], // 7
+      [0b01111110, 0b11111111, 0b11100111, 0b11100111, 0b01111110, 0b01111110, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11100111, 0b11111111, 0b11111111, 0b01111110, 0b00111100], // 8
+      [0b01111110, 0b11111111, 0b11100111, 0b11100111, 0b11100111, 0b11111111, 0b01111111, 0b00000111, 0b00000111, 0b00000111, 0b00000111, 0b00000111, 0b11111111, 0b11111111, 0b01111110, 0b00111100]  // 9
+    ];
+
+    function drawMockupChunkyDigit(c, cardX, cardY, cardW, cardH, digit, color) {
+      if (digit < 0 || digit > 9) return;
+      const startX = cardX + 11;
+      const startY = cardY + 25;
+      const pW = 4;
+      const pH = 4;
+      c.fillStyle = color;
+      for (let r = 0; r < 16; r++) {
+        const rowBits = MOCKUP_DIGITS_8X16[digit][r];
+        for (let col = 0; col < 8; col++) {
+          if (rowBits & (1 << (7 - col))) {
+            c.fillRect(startX + col * pW, startY + r * pH, pW, pH);
+          }
+        }
+      }
+    }
+
+    function drawSingleDigitCard(c, cardX, cardY, cardW, cardH, digit) {
+      const midY = cardY + Math.floor(cardH / 2);
+      const halfH = Math.floor(cardH / 2);
+
+      // Card Base
+      c.fillStyle = "#2D2D2E";
+      c.beginPath();
+      c.roundRect(cardX, cardY, cardW, cardH, 6);
+      c.fill();
+      c.strokeStyle = "#19191B";
+      c.lineWidth = 1;
+      c.stroke();
+
+      // Top Half Flap (#444449)
+      c.fillStyle = "#444449";
+      c.beginPath();
+      c.roundRect(cardX, cardY, cardW, halfH, [6, 6, 0, 0]);
+      c.fill();
+
+      // Bottom Half Flap (#2D2D2E)
+      c.fillStyle = "#2D2D2E";
+      c.beginPath();
+      c.roundRect(cardX, midY, cardW, halfH, [0, 0, 6, 6]);
+      c.fill();
+
+      // Mockup Chunky Retro Pixel Digit
+      drawMockupChunkyDigit(c, cardX, cardY, cardW, cardH, digit, KINETIC_YELLOW);
+
+      // Cyan Split Line
+      c.strokeStyle = KINETIC_CYAN;
+      c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(cardX + 2, midY);
+      c.lineTo(cardX + cardW - 2, midY);
+      c.stroke();
+
+      // Side Clips (Cyan Brackets)
+      c.fillStyle = KINETIC_CYAN;
+      c.fillRect(cardX - 4, midY - 4, 6, 8);
+      c.fillRect(cardX + cardW - 2, midY - 4, 6, 8);
+    }
+
+    let prevEmuM = -1;
+    let emuFlipProgress = 1.0;
+
+    function drawSingleDigitCardAnimated(c, cardX, cardY, cardW, cardH, oldDigit, newDigit, progress) {
+      if (progress <= 0) return drawSingleDigitCard(c, cardX, cardY, cardW, cardH, oldDigit);
+      if (progress >= 1) return drawSingleDigitCard(c, cardX, cardY, cardW, cardH, newDigit);
+
+      const midY = cardY + Math.floor(cardH / 2);
+      const topH = Math.floor(cardH / 2);
+      const botH = Math.floor(cardH / 2);
+
+      c.fillStyle = "#2D2D2E";
+      c.beginPath();
+      c.roundRect(cardX, cardY, cardW, cardH, 6);
+      c.fill();
+      c.strokeStyle = "#19191B";
+      c.lineWidth = 1;
+      c.stroke();
+
+      // 1. Top half background shows NEW digit
+      c.fillStyle = "#444449";
+      c.beginPath();
+      c.roundRect(cardX, cardY, cardW, topH, [6, 6, 0, 0]);
+      c.fill();
+      drawMockupChunkyDigit(c, cardX, cardY, cardW, cardH, newDigit, KINETIC_YELLOW);
+
+      // 2. Bottom half background shows OLD digit
+      c.fillStyle = "#2D2D2E";
+      c.beginPath();
+      c.roundRect(cardX, midY, cardW, botH, [0, 0, 6, 6]);
+      c.fill();
+      drawMockupChunkyDigit(c, cardX, cardY, cardW, cardH, oldDigit, KINETIC_YELLOW);
+
+      // 3. 3D Flap Fold Animation
+      if (progress < 0.5) {
+        const scale = 1.0 - (progress * 2.0);
+        const flapH = Math.floor(topH * scale);
+        if (flapH > 0) {
+          const flapY = midY - flapH;
+          c.fillStyle = "#444449";
+          c.fillRect(cardX + 2, flapY, cardW - 4, flapH);
+          drawMockupChunkyDigit(c, cardX, cardY, cardW, cardH, oldDigit, KINETIC_YELLOW);
+
+          c.fillStyle = "rgba(0,0,0,0.6)";
+          c.fillRect(cardX + 2, midY - Math.min(6, flapH), cardW - 4, Math.min(6, flapH));
+        }
+      } else {
+        const scale = (progress - 0.5) * 2.0;
+        const flapH = Math.floor(botH * scale);
+        if (flapH > 0) {
+          c.fillStyle = "#2D2D2E";
+          c.fillRect(cardX + 2, midY + 1, cardW - 4, flapH);
+          drawMockupChunkyDigit(c, cardX, cardY, cardW, cardH, newDigit, KINETIC_YELLOW);
+        }
+      }
+
+      // Cyan Split Line & Side Clips
+      c.strokeStyle = KINETIC_CYAN;
+      c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(cardX + 2, midY);
+      c.lineTo(cardX + cardW - 2, midY);
+      c.stroke();
+
+      c.fillStyle = KINETIC_CYAN;
+      c.fillRect(cardX - 4, midY - 4, 6, 8);
+      c.fillRect(cardX + cardW - 2, midY - 4, 6, 8);
+    }
+
+    function drawFlipClockUI(c) {
+      const now = getNowTime();
+      // Outer Yellow Enclosure Bezel Frame
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(0, 0, 320, 240);
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(6, 5, 308, 230);
+
+      // Double Cyan Frame
+      c.strokeStyle = KINETIC_CYAN;
+      c.lineWidth = 2;
+      c.strokeRect(8, 7, 304, 226);
+      c.strokeRect(11, 10, 298, 220);
+
+      // 1. Header Bar
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(13, 12, 294, 26);
+      c.strokeStyle = KINETIC_CYAN;
+      c.lineWidth = 1;
+      c.strokeRect(13, 12, 294, 26);
+
+      // Left yellow date box
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(15, 14, 105, 22);
+      c.fillStyle = KINETIC_BLACK;
+      c.font = "bold 12px 'Fira Code', monospace";
+      c.textAlign = "left";
+      c.fillText(date_string, 20, 30);
+
+      // Right header title
+      c.fillStyle = KINETIC_CYAN;
+      c.textAlign = "right";
+      c.fillText("FLIP CLOCK", 300, 30);
+
+      // 2. Colon Dots
+      const colonX = 160;
+      c.fillStyle = (now.s % 2 === 0) ? KINETIC_YELLOW : KINETIC_DARK;
+      c.beginPath(); c.arc(colonX, 92, 7, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(colonX, 130, 7, 0, Math.PI*2); c.fill();
+
+      // Digits & Flip Animation Handling (Expanded Cards using freed label area)
+      const cardW = 54, cardH = 134, cardY = 44;
+      const h1X = 24, h2X = 88;
+      const m1X = 178, m2X = 242;
+
+      const h = now.h, m = now.m;
+
+      if (prevEmuM !== -1 && prevEmuM !== m) {
+        emuFlipProgress = 0.0;
+      }
+      prevEmuM = m;
+
+      if (emuFlipProgress < 1.0) {
+        emuFlipProgress += 0.08;
+        if (emuFlipProgress > 1.0) emuFlipProgress = 1.0;
+      }
+
+      const oldM = (m > 0) ? m - 1 : 59;
+      const h1 = Math.floor(h / 10), h2 = h % 10;
+      const m1_new = Math.floor(m / 10), m2_new = m % 10;
+      const m1_old = Math.floor(oldM / 10), m2_old = oldM % 10;
+
+      drawSingleDigitCard(c, h1X, cardY, cardW, cardH, h1);
+      drawSingleDigitCard(c, h2X, cardY, cardW, cardH, h2);
+
+      if (emuFlipProgress < 1.0) {
+        if (m1_old !== m1_new) drawSingleDigitCardAnimated(c, m1X, cardY, cardW, cardH, m1_old, m1_new, emuFlipProgress);
+        else drawSingleDigitCard(c, m1X, cardY, cardW, cardH, m1_new);
+
+        if (m2_old !== m2_new) drawSingleDigitCardAnimated(c, m2X, cardY, cardW, cardH, m2_old, m2_new, emuFlipProgress);
+        else drawSingleDigitCard(c, m2X, cardY, cardW, cardH, m2_new);
+      } else {
+        drawSingleDigitCard(c, m1X, cardY, cardW, cardH, m1_new);
+        drawSingleDigitCard(c, m2X, cardY, cardW, cardH, m2_new);
+      }
+
+      // 4. Seconds Progress Bar
+      const barX = 24, barY = 184, barW = 272, barH = 14;
+      c.strokeStyle = KINETIC_CYAN;
+      c.strokeRect(barX, barY, barW, barH);
+      const fillW = Math.floor((barW - 4) * now.s / 59);
+      if (fillW > 0) {
+        const cyanW = Math.floor(fillW * 0.7);
+        const yellowW = fillW - cyanW;
+        if (cyanW > 0) {
+          c.fillStyle = KINETIC_CYAN;
+          c.fillRect(barX + 2, barY + 2, cyanW, barH - 4);
+        }
+        if (yellowW > 0) {
+          c.fillStyle = KINETIC_YELLOW;
+          c.fillRect(barX + 2 + cyanW, barY + 2, yellowW, barH - 4);
+        }
+      }
+
+      // 5. Footer Tabs
+      const tabW = 296 / 3;
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(12, 200, 296, 32);
+      c.strokeStyle = KINETIC_CYAN;
+      c.beginPath(); c.moveTo(12, 200); c.lineTo(308, 200); c.stroke();
+
+      // Tab 1: LIMITS (Dark Teal)
+      c.fillStyle = "#004048";
+      c.fillRect(12, 201, tabW, 31);
+      c.font = "bold 12px 'Fira Code', monospace";
+      c.fillStyle = KINETIC_CYAN;
+      c.textAlign = "center";
+      c.fillText("LIMITS", 12 + tabW / 2, 220);
+
+      // Tab 2: WEATHER (Dark Teal)
+      c.fillStyle = "#004048";
+      c.fillRect(12 + tabW, 201, tabW, 31);
+      c.fillStyle = KINETIC_CYAN;
+      c.fillText("WEATHER", 12 + tabW + (tabW / 2), 220);
+
+      // Tab 3: FLIP CLOCK (Active - Filled Yellow)
+      c.fillStyle = KINETIC_YELLOW;
+      c.fillRect(12 + tabW * 2, 201, tabW, 31);
+      c.fillStyle = KINETIC_BLACK;
+      c.fillText("FLIP CLOCK", 12 + (tabW * 2) + (tabW / 2), 220);
+
+      c.strokeStyle = KINETIC_CYAN;
+      c.beginPath();
+      c.moveTo(12 + tabW, 201); c.lineTo(12 + tabW, 232);
+      c.moveTo(12 + tabW * 2, 201); c.lineTo(12 + tabW * 2, 232);
+      c.stroke();
+    }
+
+    function renderScreenState(screenId, ctxTarget) {
+      if (screenId === 0) drawLimitsUI(ctxTarget);
+      else if (screenId === 1) drawWeatherUI(ctxTarget);
+      else if (screenId === 2) drawFlipClockUI(ctxTarget);
+    }
+
+    // --- MAIN RENDER LOOP ---
+    function render() {
+      // Handle Blinking LED / Alert Timer (500ms)
+      if (Date.now() - lastBlinkTime >= 500) {
+        blinkState = !blinkState;
+        lastBlinkTime = Date.now();
+      }
+
+      if (isBooting) {
+        ctx.fillStyle = KINETIC_BLACK;
+        ctx.fillRect(0, 0, 320, 240);
+        ctx.fillStyle = KINETIC_YELLOW;
+        ctx.font = "bold 16px 'Fira Code', monospace";
+        ctx.textAlign = "center";
+        if (bootStep === 1) {
+          ctx.fillText("Connecting WiFi...", 160, 110);
+        } else if (bootStep === 2) {
+          ctx.fillText("WiFi Connected!", 160, 110);
+        } else if (bootStep === 3) {
+          ctx.fillStyle = KINETIC_CYAN;
+          ctx.fillText("[OTA] Checking GitHub...", 160, 110);
+        }
+        requestAnimationFrame(render);
+        return;
+      }
+
+      // Handle Screen Slide Transition Animation
+      if (transitionProgress < 1.0) {
+        transitionProgress += 0.05; // 20 frames transition
+        if (transitionProgress >= 1.0) transitionProgress = 1.0;
+
+        renderScreenState(prevScreen, ctxCurrent);
+        renderScreenState(nextScreen, ctxNext);
+
+        const xOffset = Math.floor(320 * transitionProgress);
+        ctx.fillStyle = KINETIC_BLACK;
+        ctx.fillRect(0, 0, 320, 240);
+        ctx.drawImage(offscreenCurrent, -xOffset, 0);
+        ctx.drawImage(offscreenNext, 320 - xOffset, 0);
+      } else {
+        renderScreenState(currentScreen, ctx);
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // --- INTERACTIVE ACTIONS ---
+    function switchScreen(screenIdx) {
+      if (isBooting || screenIdx === currentScreen) return;
+      prevScreen = currentScreen;
+      nextScreen = screenIdx;
+      currentScreen = screenIdx;
+      transitionProgress = 0.0;
+
+      document.querySelectorAll(".btn-group .btn").forEach((b, i) => {
+        b.classList.toggle("active", i === screenIdx);
+      });
+    }
+
+    document.getElementById("screenGlass").addEventListener("click", () => {
+      const nextIdx = (currentScreen + 1) % 3;
+      switchScreen(nextIdx);
+    });
+
+    function toggleAgentInput(checked) {
+      waiting_for_input = checked;
+    }
+
+    function updatePromptText(val) {
+      prompt_text = val.trim() || "INPUT REQ";
+      document.getElementById("promptTextVal").innerText = prompt_text;
+    }
+
+    function updateClaudeVal(val) {
+      claude_remaining = Math.round((val / 100) * claude_limit);
+      document.getElementById("claudeVal").innerText = val + "%";
+    }
+
+    function updateAntiVal(val) {
+      antigravity_remaining = Math.round((val / 100) * antigravity_limit);
+      document.getElementById("antiVal").innerText = val + "%";
+    }
+
+    function updateTempVal(val) {
+      current_temperature = parseFloat(val);
+      document.getElementById("tempVal").innerText = val + "°C";
+    }
+
+    function updateRainVal(val) {
+      hours_until_rain = parseInt(val);
+      document.getElementById("rainVal").innerText = hours_until_rain === -1 ? "NONE" : hours_until_rain + ".0 hrs";
+    }
+
+    function triggerReboot() {
+      isBooting = true;
+      bootStep = 1;
+      setTimeout(() => { bootStep = 2; }, 1000);
+      setTimeout(() => { bootStep = 3; }, 2000);
+      setTimeout(() => {
+        isBooting = false;
+        bootStep = 0;
+      }, 3000);
+    }
+
+    // --- BACKEND DATA FETCHING ---
+    async function fetchBackendData() {
+      const wifiLed = document.getElementById("wifiLed");
+      const backendStatus = document.getElementById("backendStatus");
+      try {
+        const res = await fetch("http://localhost:5000/data", { method: "GET" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.claude) {
+            claude_limit = data.claude.limit || 500000;
+            claude_remaining = data.claude.remaining || 500000;
+            document.getElementById("claudeSlider").value = Math.round((claude_remaining/claude_limit)*100);
+            document.getElementById("claudeVal").innerText = Math.round((claude_remaining/claude_limit)*100) + "%";
+          }
+          if (data.antigravity) {
+            antigravity_limit = data.antigravity.limit || 200;
+            antigravity_remaining = data.antigravity.remaining !== undefined ? data.antigravity.remaining : 200;
+            document.getElementById("antiSlider").value = Math.round((antigravity_remaining/antigravity_limit)*100);
+            document.getElementById("antiVal").innerText = Math.round((antigravity_remaining/antigravity_limit)*100) + "%";
+          }
+          if (data.weather) {
+            current_temperature = data.weather.temperature || 20.0;
+            hours_until_rain = data.weather.hours_until_rain ?? -1;
+            date_string = data.weather.date_string || "SUN 01 AUG";
+            document.getElementById("tempSlider").value = current_temperature;
+            document.getElementById("tempVal").innerText = current_temperature.toFixed(1) + "°C";
+            document.getElementById("rainSlider").value = hours_until_rain;
+            document.getElementById("rainVal").innerText = hours_until_rain === -1 ? "NONE" : hours_until_rain + ".0 hrs";
+          }
+          if (data.time) {
+            server_hour = data.time.hours;
+            server_minute = data.time.minutes;
+            server_second = data.time.seconds;
+            lastTimeSync = Date.now();
+          }
+          if (data.agent) {
+            waiting_for_input = !!data.agent.waiting_for_input;
+            prompt_text = data.agent.prompt_text || "APPROVE PLAN";
+            document.getElementById("agentInputToggle").checked = waiting_for_input;
+            document.getElementById("promptTextInput").value = prompt_text;
+            document.getElementById("promptTextVal").innerText = prompt_text;
+          }
+
+          wifiLed.className = "led wifi";
+          backendStatus.className = "status-badge";
+          backendStatus.innerText = "CONNECTED";
+        } else {
+          throw new Error("HTTP error " + res.status);
+        }
+      } catch (err) {
+        wifiLed.className = "led wifi offline";
+        backendStatus.className = "status-badge offline";
+        backendStatus.innerText = "DISCONNECTED";
+      }
+    }
+
+    function toggleBackendSync(enabled) {
+      backendSyncEnabled = enabled;
+      if (enabled) {
+        fetchBackendData();
+        syncIntervalId = setInterval(fetchBackendData, 5000);
+      } else {
+        if (syncIntervalId) clearInterval(syncIntervalId);
+      }
+    }
+
+    // Start App & Polling
+    fetchBackendData();
+    syncIntervalId = setInterval(fetchBackendData, 5000);
+    render();
+  </script>
+</body>
+</html>
