@@ -2025,19 +2025,19 @@
       else if (screenId === 3) drawGC9A01RoundFlipUI(ctxTarget);
     }
 
-    // --- SHIBA INU MASCOT ("KIMI") LARGE HEAD PEEK ANIMATION ENGINE ---
+    // --- SHIBA INU MASCOT ("KIMI") VIDEO-ACCURATE ANIMATION ENGINE ---
     let shibaEnabled = true;
-    let shibaState = "HIDDEN"; // "HIDDEN", "PEEK_IN", "CURIOUS", "PEEK_OUT"
+    let shibaState = "HIDDEN"; // "HIDDEN", "RISING", "SMILE", "WINK", "PANT", "RETRACTING"
     let shibaStartTime = 0;
     let shibaProgress = 0.0;
     let lastShibaAutoTrigger = Date.now();
-    const SHIBA_AUTO_INTERVAL = 20000; // Auto peek every 20s
+    const SHIBA_AUTO_INTERVAL = 22000; // Auto trigger every 22s
 
     function triggerShibaWalk() {
-      shibaState = "PEEK_IN";
+      shibaState = "RISING";
       shibaStartTime = Date.now();
       shibaProgress = 0.0;
-      updateShibaBadge("PEEKING IN");
+      updateShibaBadge("RISING UP");
     }
 
     function toggleShibaAuto(checked) {
@@ -2056,7 +2056,7 @@
     function drawShibaInuMascot(c, nowTime) {
       if (!shibaEnabled && shibaState === "HIDDEN") return;
 
-      // Auto-trigger peek cycle periodically
+      // Auto-trigger cycle periodically
       if (shibaEnabled && shibaState === "HIDDEN") {
         if (nowTime - lastShibaAutoTrigger >= SHIBA_AUTO_INTERVAL) {
           lastShibaAutoTrigger = nowTime;
@@ -2067,38 +2067,62 @@
       if (shibaState === "HIDDEN") return;
 
       const elapsed = nowTime - shibaStartTime;
+      let expression = "SMILE"; // "SMILE", "WINK", "PANT"
+      let headTilt = 0;
+      let earTwitchL = 0;
+      let earTwitchR = 0;
 
-      if (shibaState === "PEEK_IN") {
-        // Smooth ease-out slide in (0.0 -> 1.0 in ~1000ms)
-        const t = Math.min(1.0, elapsed / 1000);
+      // Sequence timeline matching reference video (~8.2s total cycle)
+      if (elapsed < 2200) {
+        // 1. Rise up from bottom circular bezel (0.0s - 2.2s)
+        shibaState = "RISING";
+        const t = Math.min(1.0, elapsed / 2200);
         shibaProgress = 1 - Math.pow(1 - t, 3); // Cubic ease out
-        if (t >= 1.0) {
-          shibaState = "CURIOUS";
-          shibaStartTime = nowTime;
-          updateShibaBadge("CURIOUS PEEK");
-        }
-      } else if (shibaState === "CURIOUS") {
+        expression = "SMILE";
+        headTilt = Math.sin(t * Math.PI) * 0.02;
+        updateShibaBadge("RISING UP");
+      } else if (elapsed < 3800) {
+        // 2. Alert & Curious Smile (2.2s - 3.8s)
+        shibaState = "SMILE";
         shibaProgress = 1.0;
-        // Stay peeking, looking around and blinking for 4.5 seconds
-        if (elapsed >= 4500) {
-          shibaState = "PEEK_OUT";
-          shibaStartTime = nowTime;
-          updateShibaBadge("SLIDING OUT");
-        }
-      } else if (shibaState === "PEEK_OUT") {
-        // Smooth ease-in slide out (1.0 -> 0.0 in ~800ms)
-        const t = Math.min(1.0, elapsed / 800);
+        expression = "SMILE";
+        headTilt = Math.sin((elapsed - 2200) * 0.004) * 0.035;
+        earTwitchL = Math.sin((elapsed - 2200) * 0.015) * 0.08;
+        updateShibaBadge("CURIOUS SMILE");
+      } else if (elapsed < 5400) {
+        // 3. Playful Wink (3.8s - 5.4s) -> Left eye open, Right eye winking!
+        shibaState = "WINK";
+        shibaProgress = 1.0;
+        expression = "WINK";
+        headTilt = 0.045 + Math.sin((elapsed - 3800) * 0.005) * 0.02;
+        earTwitchR = -0.08;
+        updateShibaBadge("PLAYFUL WINK 😉");
+      } else if (elapsed < 6800) {
+        // 4. Joyful Open-Mouth Dog Pant (5.4s - 6.8s)
+        shibaState = "PANT";
+        shibaProgress = 1.0;
+        expression = "PANT";
+        headTilt = -0.03 + Math.sin((elapsed - 5400) * 0.006) * 0.03;
+        earTwitchL = 0.05;
+        earTwitchR = 0.05;
+        updateShibaBadge("HAPPY PANT 👅");
+      } else if (elapsed < 8200) {
+        // 5. Smooth Retract back down below bottom bezel (6.8s - 8.2s)
+        shibaState = "RETRACTING";
+        const t = Math.min(1.0, (elapsed - 6800) / 1400);
         shibaProgress = Math.pow(1 - t, 3); // Cubic ease in
-        if (t >= 1.0) {
-          shibaState = "HIDDEN";
-          shibaProgress = 0.0;
-          lastShibaAutoTrigger = nowTime;
-          updateShibaBadge("IDLE");
-          return;
-        }
+        expression = "SMILE";
+        updateShibaBadge("RETRACTING");
+      } else {
+        // Finished cycle
+        shibaState = "HIDDEN";
+        shibaProgress = 0.0;
+        lastShibaAutoTrigger = nowTime;
+        updateShibaBadge("IDLE");
+        return;
       }
 
-      // On Round Screen, clip to the circular screen interior so the mascot emerges directly from the bottom circle edge!
+      // Clip to circular screen on Round Screen mode
       c.save();
       const isRound = (currentScreen === 3);
       if (isRound) {
@@ -2107,308 +2131,305 @@
         c.clip();
       }
 
-      // Coordinates for bottom peek:
-      // Bottom circle perimeter is at (160, 234).
-      // startY = 275 (hidden below bottom bezel), targetY = 175 (peeking up into the screen).
-      const startY = 275;
-      const targetY = isRound ? 174 : 172;
+      // Coordinates for bottom peek (Center X=160)
+      // Hidden Y=290 (well below bottom edge 234), Fully up Y=146 (covering lower sub-HUD & lower cards)
+      const startY = 290;
+      const targetY = isRound ? 146 : 144;
       const curX = 160;
       const curY = startY + (targetY - startY) * shibaProgress;
-
-      // Subtle curious head tilt and breathing
-      const headTilt = (shibaState === "CURIOUS") ? Math.sin(elapsed * 0.003) * 0.06 : 0.0;
-      const earTwitchL = (shibaState === "CURIOUS" && (elapsed % 2400 < 200)) ? Math.sin(elapsed * 0.05) * 0.15 : 0;
-      const earTwitchR = (shibaState === "CURIOUS" && (elapsed % 3600 < 200)) ? -Math.sin(elapsed * 0.05) * 0.15 : 0;
-      const pawPat = (shibaState === "CURIOUS") ? Math.sin(elapsed * 0.006) * 1.5 : 0;
 
       c.save();
       c.translate(curX, curY);
       c.rotate(headTilt);
 
-      // --- 1. Soft Dynamic Drop Shadow Over UI Underneath ---
+      // --- 1. Soft Translucent Contact Shadow Over Sub-HUD / Lower Cards ---
       c.save();
-      c.fillStyle = "rgba(0, 0, 0, 0.65)";
+      c.fillStyle = "rgba(0, 0, 0, 0.70)";
       c.beginPath();
-      c.ellipse(0, 18, 44, 30, 0, 0, Math.PI * 2);
+      c.ellipse(0, 24, 56, 38, 0, 0, Math.PI * 2);
       c.fill();
       c.restore();
 
-      // --- 2. WAGGING TAIL (Peeking from behind neck) ---
-      const tailWag = Math.sin(nowTime * 0.018) * 0.45;
-      c.save();
-      c.translate(-24, 22);
-      c.rotate(tailWag);
-      c.lineWidth = 10;
-      c.strokeStyle = "#E89438"; // Golden Shiba coat
-      c.lineCap = "round";
+      // --- 2. BROAD SHOULDERS / CHEST BASE ---
+      c.fillStyle = "#D37B2C";
       c.beginPath();
-      c.arc(0, -8, 12, 0.4 * Math.PI, 1.8 * Math.PI, false);
-      c.stroke();
-      // White tail tip
-      c.lineWidth = 8;
-      c.strokeStyle = "#FFFDF7";
-      c.beginPath();
-      c.arc(0, -8, 12, 1.3 * Math.PI, 1.7 * Math.PI, false);
-      c.stroke();
-      c.restore();
-
-      // --- 3. RED BANDANA COLLAR WITH GOLD BELL ---
-      c.fillStyle = "#E74C3C";
-      c.beginPath();
-      c.moveTo(-28, 22);
-      c.lineTo(24, 28);
-      c.lineTo(0, 44);
-      c.closePath();
-      c.fill();
-      // Bandana folds & shadow
-      c.fillStyle = "#C0392B";
-      c.beginPath();
-      c.moveTo(-10, 26);
-      c.lineTo(0, 44);
-      c.lineTo(8, 28);
-      c.fill();
-      // Gold Bell
-      c.fillStyle = "#F1C40F";
-      c.beginPath();
-      c.arc(0, 36, 4.5, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = "#D4AC0D";
-      c.beginPath();
-      c.arc(0, 37.5, 1.5, 0, Math.PI * 2);
+      c.ellipse(0, 52, 54, 42, 0, 0, Math.PI * 2);
       c.fill();
 
-      // --- 4. EARS (Pointed, Triangular, Authentic Shiba) ---
-      // Left Ear (Background)
+      // White Chest Urajiro Fur
+      c.fillStyle = "#FFFDF8";
+      c.beginPath();
+      c.ellipse(0, 56, 32, 34, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // --- 3. EARS (Triangular, Pointed, Authentic Dark Edges & Peach Lining) ---
+      // Left Ear
       c.save();
-      c.translate(-22, -26);
-      c.rotate(-0.25 + earTwitchL);
-      c.fillStyle = "#B36312"; // Outer dark trim
+      c.translate(-30, -32);
+      c.rotate(-0.24 + earTwitchL);
+      // Dark brown outer edge
+      c.fillStyle = "#5C2E0B";
       c.beginPath();
-      c.moveTo(-12, 18);
-      c.lineTo(-4, -18);
-      c.lineTo(16, 14);
+      c.moveTo(-16, 26);
+      c.lineTo(-6, -26);
+      c.lineTo(22, 20);
       c.closePath();
       c.fill();
-      c.fillStyle = "#E89438"; // Base tan
+      // Honey-Tan base
+      c.fillStyle = "#D37B2C";
       c.beginPath();
-      c.moveTo(-9, 16);
-      c.lineTo(-3, -15);
-      c.lineTo(13, 13);
+      c.moveTo(-12, 23);
+      c.lineTo(-5, -22);
+      c.lineTo(18, 18);
       c.closePath();
       c.fill();
-      c.fillStyle = "#FFB6B0"; // Peach inner ear
+      // Peach/pink inner ear
+      c.fillStyle = "#FFAAA6";
       c.beginPath();
-      c.moveTo(-6, 14);
-      c.lineTo(-3, -10);
-      c.lineTo(8, 12);
+      c.moveTo(-8, 18);
+      c.lineTo(-4, -14);
+      c.lineTo(11, 15);
       c.closePath();
       c.fill();
-      // White inner ear fluff
-      c.fillStyle = "#FFFDF7";
+      // Fluffy white inner fur tufts
+      c.fillStyle = "#FFFDF8";
       c.beginPath();
-      c.arc(-1, 8, 4.5, 0, Math.PI * 2);
+      c.arc(-1, 10, 6, 0, Math.PI * 2);
+      c.arc(5, 12, 5, 0, Math.PI * 2);
       c.fill();
       c.restore();
 
-      // Right Ear (Foreground)
+      // Right Ear
       c.save();
-      c.translate(22, -26);
-      c.rotate(0.25 + earTwitchR);
-      c.fillStyle = "#B36312";
+      c.translate(30, -32);
+      c.rotate(0.24 + earTwitchR);
+      // Dark brown outer edge
+      c.fillStyle = "#5C2E0B";
       c.beginPath();
-      c.moveTo(-16, 14);
-      c.lineTo(4, -18);
-      c.lineTo(12, 18);
+      c.moveTo(-22, 20);
+      c.lineTo(6, -26);
+      c.lineTo(16, 26);
       c.closePath();
       c.fill();
-      c.fillStyle = "#E89438";
+      // Honey-Tan base
+      c.fillStyle = "#D37B2C";
       c.beginPath();
-      c.moveTo(-13, 13);
-      c.lineTo(3, -15);
-      c.lineTo(9, 16);
+      c.moveTo(-18, 18);
+      c.lineTo(5, -22);
+      c.lineTo(12, 23);
       c.closePath();
       c.fill();
-      c.fillStyle = "#FFB6B0";
+      // Peach/pink inner ear
+      c.fillStyle = "#FFAAA6";
       c.beginPath();
-      c.moveTo(-8, 12);
-      c.lineTo(3, -10);
-      c.lineTo(6, 14);
+      c.moveTo(-11, 15);
+      c.lineTo(4, -14);
+      c.lineTo(8, 18);
       c.closePath();
       c.fill();
-      // White inner ear fluff
-      c.fillStyle = "#FFFDF7";
+      // Fluffy white inner fur tufts
+      c.fillStyle = "#FFFDF8";
       c.beginPath();
-      c.arc(1, 8, 4.5, 0, Math.PI * 2);
+      c.arc(1, 10, 6, 0, Math.PI * 2);
+      c.arc(-5, 12, 5, 0, Math.PI * 2);
       c.fill();
       c.restore();
 
-      // --- 5. HEAD BASE (Full, Fluffy Round Shiba Cheeks) ---
+      // --- 4. HEAD BASE (Full, Fluffy Round Shiba Cheeks) ---
       // Honey-Tan Head Outer Dome
-      c.fillStyle = "#E89438";
+      c.fillStyle = "#D37B2C";
       c.beginPath();
-      c.ellipse(0, -4, 34, 30, 0, 0, Math.PI * 2);
+      c.ellipse(0, -6, 46, 40, 0, 0, Math.PI * 2);
       c.fill();
 
-      // Fluffy Cheeks Left & Right (Broad urajiro shape)
+      // Fluffy Broad Cheeks Left & Right
       c.beginPath();
-      c.ellipse(-18, 6, 20, 18, -0.2, 0, Math.PI * 2);
-      c.ellipse(18, 6, 20, 18, 0.2, 0, Math.PI * 2);
+      c.ellipse(-25, 8, 28, 25, -0.22, 0, Math.PI * 2);
+      c.ellipse(25, 8, 28, 25, 0.22, 0, Math.PI * 2);
       c.fill();
 
-      // --- 6. CREAMY WHITE URAJIRO (Cheeks, Muzzle & Eyebrows) ---
-      c.fillStyle = "#FFFDF7"; // Soft warm white
+      // --- 5. CREAMY WHITE URAJIRO (Cheeks, Forehead & Muzzle) ---
+      c.fillStyle = "#FFFDF8"; // Pristine soft cream white
 
-      // Left Cheek Puff
+      // Left Fluffy Cheek
       c.beginPath();
-      c.ellipse(-16, 8, 17, 15, -0.25, 0, Math.PI * 2);
+      c.ellipse(-23, 10, 24, 21, -0.25, 0, Math.PI * 2);
       c.fill();
 
-      // Right Cheek Puff
+      // Right Fluffy Cheek
       c.beginPath();
-      c.ellipse(16, 8, 17, 15, 0.25, 0, Math.PI * 2);
+      c.ellipse(23, 10, 24, 21, 0.25, 0, Math.PI * 2);
       c.fill();
 
-      // Center Muzzle Fur
+      // Center Muzzle
       c.beginPath();
-      c.ellipse(0, 10, 15, 12, 0, 0, Math.PI * 2);
+      c.ellipse(0, 14, 21, 18, 0, 0, Math.PI * 2);
       c.fill();
 
-      // White Forehead Bridge
+      // Forehead White Triangle
       c.beginPath();
-      c.moveTo(-5, -6);
-      c.lineTo(0, -18);
-      c.lineTo(5, -6);
+      c.moveTo(-7, -8);
+      c.lineTo(0, -26);
+      c.lineTo(7, -8);
       c.closePath();
       c.fill();
 
-      // --- 7. SIGNATURE WHITE EYEBROW DOTS (Maro Marks) ---
-      c.fillStyle = "#FFFDF7";
+      // Soft Tan Shading around Muzzle Crease
+      c.fillStyle = "rgba(184, 94, 22, 0.25)";
       c.beginPath();
-      c.arc(-13, -16, 4.2, 0, Math.PI * 2);
-      c.arc(13, -16, 4.2, 0, Math.PI * 2);
+      c.ellipse(0, 5, 16, 12, 0, 0, Math.PI * 2);
       c.fill();
 
-      // --- 8. EXPRESSIVE EYES (Blinking Animation) ---
-      const blinkCycle = (nowTime % 3000);
-      const isBlinking = blinkCycle < 160;
+      // --- 6. SIGNATURE WHITE EYEBROW MARKS (Maro Dots) ---
+      c.fillStyle = "#FFFDF8";
+      c.beginPath();
+      c.arc(-18, -22, 5.5, 0, Math.PI * 2);
+      c.arc(18, -22, 5.5, 0, Math.PI * 2);
+      c.fill();
 
-      if (isBlinking) {
-        // Happy curved squint eyes (smiling Shiba face!)
-        c.lineWidth = 3.2;
+      // --- 7. EXPRESSIVE EYES (Almond Shape, Catchlights, Winking) ---
+      const isLeftEyeOpen = true; // Left eye stays open
+      const isRightEyeOpen = (expression !== "WINK"); // Right eye winks during WINK phase
+
+      // Left Eye
+      if (isLeftEyeOpen) {
+        // Almond eye socket & dark rim
+        c.fillStyle = "#16191F";
+        c.beginPath();
+        c.ellipse(-19, -10, 7.5, 8.5, -0.15, 0, Math.PI * 2);
+        c.fill();
+
+        // Warm amber-brown iris
+        c.fillStyle = "#803E0E";
+        c.beginPath();
+        c.arc(-18.5, -9.5, 4.8, 0, Math.PI * 2);
+        c.fill();
+
+        // Dark pupil
+        c.fillStyle = "#0A0C0E";
+        c.beginPath();
+        c.arc(-18.5, -9.5, 3.2, 0, Math.PI * 2);
+        c.fill();
+
+        // Specular white catchlights
+        c.fillStyle = "#FFFFFF";
+        c.beginPath();
+        c.arc(-20.5, -12.5, 2.6, 0, Math.PI * 2);
+        c.arc(-16.5, -7.5, 1.4, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      // Right Eye (Open vs Playful Wink)
+      if (isRightEyeOpen) {
+        c.fillStyle = "#16191F";
+        c.beginPath();
+        c.ellipse(19, -10, 7.5, 8.5, 0.15, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#803E0E";
+        c.beginPath();
+        c.arc(18.5, -9.5, 4.8, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#0A0C0E";
+        c.beginPath();
+        c.arc(18.5, -9.5, 3.2, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#FFFFFF";
+        c.beginPath();
+        c.arc(17.0, -12.5, 2.6, 0, Math.PI * 2);
+        c.arc(21.0, -7.5, 1.4, 0, Math.PI * 2);
+        c.fill();
+      } else {
+        // Playful Wink Expression (Curved line with happy cheek wrinkle)
+        c.lineWidth = 3.8;
         c.strokeStyle = "#16191F";
         c.lineCap = "round";
 
         c.beginPath();
-        c.arc(-14, -7, 6, 1.15 * Math.PI, 1.85 * Math.PI);
+        c.arc(19, -9, 8.5, 1.15 * Math.PI, 1.85 * Math.PI);
         c.stroke();
 
+        // Wink eye crease
+        c.lineWidth = 2.2;
         c.beginPath();
-        c.arc(14, -7, 6, 1.15 * Math.PI, 1.85 * Math.PI);
+        c.moveTo(11, -7);
+        c.lineTo(7, -5);
+        c.moveTo(27, -7);
+        c.lineTo(31, -5);
         c.stroke();
-      } else {
-        // Glossy almond eyes
-        c.fillStyle = "#16191F";
-        c.beginPath();
-        c.ellipse(-14, -7, 5.5, 6.2, -0.15, 0, Math.PI * 2);
-        c.ellipse(14, -7, 5.5, 6.2, 0.15, 0, Math.PI * 2);
-        c.fill();
-
-        // Warm amber iris ring
-        c.fillStyle = "#783B0E";
-        c.beginPath();
-        c.arc(-13.5, -6.5, 3.2, 0, Math.PI * 2);
-        c.arc(13.5, -6.5, 3.2, 0, Math.PI * 2);
-        c.fill();
-
-        // Pupil
-        c.fillStyle = "#0A0C0E";
-        c.beginPath();
-        c.arc(-13.5, -6.5, 2.2, 0, Math.PI * 2);
-        c.arc(13.5, -6.5, 2.2, 0, Math.PI * 2);
-        c.fill();
-
-        // Specular Catchlights (Crisp white reflections)
-        c.fillStyle = "#FFFFFF";
-        c.beginPath();
-        c.arc(-15, -9, 2.0, 0, Math.PI * 2);
-        c.arc(12.5, -9, 2.0, 0, Math.PI * 2);
-        c.fill();
-        c.beginPath();
-        c.arc(-12, -5, 1.0, 0, Math.PI * 2);
-        c.arc(15.5, -5, 1.0, 0, Math.PI * 2);
-        c.fill();
       }
 
-      // --- 9. NOSE, SNOUT & SMILE ---
-      // Black Button Nose
-      c.fillStyle = "#1A1C22";
+      // --- 8. NOSE, SNOUT & MOUTH ---
+      // Black Button Leather Nose
+      c.fillStyle = "#181A1F";
       c.beginPath();
-      c.ellipse(0, 4, 5.5, 4.0, 0, 0, Math.PI * 2);
+      c.ellipse(0, 5, 7.5, 5.5, 0, 0, Math.PI * 2);
       c.fill();
-      // Nose highlight
+      // Nose top specular highlight
+      c.fillStyle = "#717886";
+      c.beginPath();
+      c.ellipse(-2.0, 3.5, 2.6, 1.5, -0.2, 0, Math.PI * 2);
+      c.fill();
+
+      // Whisker dots on muzzle
       c.fillStyle = "#6B7280";
       c.beginPath();
-      c.ellipse(-1.5, 3, 2.0, 1.2, -0.2, 0, Math.PI * 2);
+      c.arc(-11, 10, 1.0, 0, Math.PI * 2);
+      c.arc(-8, 13, 1.0, 0, Math.PI * 2);
+      c.arc(8, 13, 1.0, 0, Math.PI * 2);
+      c.arc(11, 10, 1.0, 0, Math.PI * 2);
       c.fill();
 
-      // Smile Crease & Mouth
-      c.lineWidth = 2.0;
-      c.strokeStyle = "#1A1C22";
-      c.lineCap = "round";
-      c.beginPath();
-      c.moveTo(0, 8);
-      c.lineTo(0, 11);
-      c.moveTo(-7, 12);
-      c.quadraticCurveTo(-4, 15, 0, 11);
-      c.quadraticCurveTo(4, 15, 7, 12);
-      c.stroke();
+      if (expression === "PANT") {
+        // Open-Mouth Happy Dog Pant
+        c.lineWidth = 2.6;
+        c.strokeStyle = "#181A1F";
+        c.lineCap = "round";
 
-      // Tiny Cute Pink Tongue Blep!
-      c.fillStyle = "#FF6B81";
-      c.beginPath();
-      c.arc(0, 15, 3.2, 0, Math.PI, false);
-      c.fill();
+        // Upper lip line
+        c.beginPath();
+        c.moveTo(0, 10);
+        c.lineTo(0, 14);
+        c.moveTo(-9, 15);
+        c.quadraticCurveTo(-4, 18, 0, 14);
+        c.quadraticCurveTo(4, 18, 9, 15);
+        c.stroke();
 
-      // --- 10. TWO PAWS CLINGING / RESTING OVER EDGE ---
-      // Left Paw
-      c.save();
-      c.translate(-24, 25 + pawPat);
-      c.fillStyle = "#FFFDF7";
-      c.beginPath();
-      c.ellipse(0, 0, 8.5, 7, -0.2, 0, Math.PI * 2);
-      c.fill();
-      c.strokeStyle = "#E2D9C8";
-      c.lineWidth = 1.2;
-      c.stroke();
-      // Cute toe pads
-      c.fillStyle = "#FFB6B0";
-      c.beginPath();
-      c.arc(-3, -1, 1.8, 0, Math.PI * 2);
-      c.arc(0, -3, 1.8, 0, Math.PI * 2);
-      c.arc(3, -1, 1.8, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
+        // Open mouth cavity
+        c.fillStyle = "#3A1018";
+        c.beginPath();
+        c.ellipse(0, 22, 11, 9, 0, 0, Math.PI * 2);
+        c.fill();
 
-      // Right Paw
-      c.save();
-      c.translate(24, 25 - pawPat);
-      c.fillStyle = "#FFFDF7";
-      c.beginPath();
-      c.ellipse(0, 0, 8.5, 7, 0.2, 0, Math.PI * 2);
-      c.fill();
-      c.strokeStyle = "#E2D9C8";
-      c.lineWidth = 1.2;
-      c.stroke();
-      // Cute toe pads
-      c.fillStyle = "#FFB6B0";
-      c.beginPath();
-      c.arc(-3, -1, 1.8, 0, Math.PI * 2);
-      c.arc(0, -3, 1.8, 0, Math.PI * 2);
-      c.arc(3, -1, 1.8, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
+        // Cute Pink Tongue resting on lower lip
+        c.fillStyle = "#FF5E7E";
+        c.beginPath();
+        c.ellipse(0, 24, 7.5, 9.5, 0, 0, Math.PI * 2);
+        c.fill();
+        // Tongue center crease
+        c.lineWidth = 1.4;
+        c.strokeStyle = "#E03B5D";
+        c.beginPath();
+        c.moveTo(0, 18);
+        c.lineTo(0, 29);
+        c.stroke();
+      } else {
+        // Closed Gentle Smile
+        c.lineWidth = 2.6;
+        c.strokeStyle = "#181A1F";
+        c.lineCap = "round";
+        c.beginPath();
+        c.moveTo(0, 10);
+        c.lineTo(0, 14);
+        c.moveTo(-9, 15);
+        c.quadraticCurveTo(-4, 19, 0, 14);
+        c.quadraticCurveTo(4, 19, 9, 15);
+        c.stroke();
+      }
 
-      c.restore(); // Restore main translation & rotation
+      c.restore(); // Restore head translate/rotate
       c.restore(); // Restore circular clip path
     }
 
