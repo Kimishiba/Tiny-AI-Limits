@@ -1712,7 +1712,7 @@
       function draw2x2FlipCard(posX, posY, oldDigit, newDigit, progress) {
         const midY = posY + cardH / 2;
         const halfH = cardH / 2;
-        const numFont = "900 55px 'Anybody', 'JetBrains Mono', sans-serif";
+        const numFont = "900 58px 'Anybody', 'JetBrains Mono', sans-serif";
 
         const COLOR_TOP_FRONT = "#222633"; // Lighter slate for upper half / front face
         const COLOR_BOT_BACK  = "#12141c"; // Deeper obsidian for lower half / back face
@@ -1732,7 +1732,7 @@
         c.stroke();
 
         if (progress >= 1.0 || oldDigit === newDigit) {
-          // --- STATIC SPLIT-FLAP (Distinct Two-Tone Front & Back) ---
+          // --- STATIC SPLIT-FLAP (Distinct Two-Tone Front & Back with Taller Numerals) ---
           // Top Half (Front Face tone)
           c.save();
           c.beginPath();
@@ -1744,11 +1744,16 @@
           c.clip();
           c.fillStyle = COLOR_TOP_FRONT;
           c.fillRect(posX, posY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
+          c.scale(0.95, 1.12);
           c.font = numFont;
           c.fillStyle = "#ffffff";
           c.textAlign = "center";
           c.textBaseline = "middle";
-          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.fillText(newDigit, 0, 0);
+          c.restore();
           c.restore();
 
           // Bottom Half (Lower Face tone)
@@ -1762,11 +1767,16 @@
           c.clip();
           c.fillStyle = COLOR_BOT_BACK;
           c.fillRect(posX, midY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
+          c.scale(0.95, 1.12);
           c.font = numFont;
           c.fillStyle = "#eceef4";
           c.textAlign = "center";
           c.textBaseline = "middle";
-          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.fillText(newDigit, 0, 0);
+          c.restore();
           c.restore();
 
         } else {
@@ -1782,11 +1792,16 @@
           c.clip();
           c.fillStyle = COLOR_TOP_FRONT;
           c.fillRect(posX, posY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
+          c.scale(0.95, 1.12);
           c.font = numFont;
           c.fillStyle = "#ffffff";
           c.textAlign = "center";
           c.textBaseline = "middle";
-          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.fillText(newDigit, 0, 0);
+          c.restore();
           c.restore();
 
           // 2. Static Bottom Half Background (Shows OLD digit on Back Face tone)
@@ -1800,11 +1815,16 @@
           c.clip();
           c.fillStyle = COLOR_BOT_BACK;
           c.fillRect(posX, midY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
+          c.scale(0.95, 1.12);
           c.font = numFont;
           c.fillStyle = "#eceef4";
           c.textAlign = "center";
           c.textBaseline = "middle";
-          c.fillText(oldDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.fillText(oldDigit, 0, 0);
+          c.restore();
           c.restore();
 
           // 3. Falling / Unfolding 3D Flap
@@ -1826,7 +1846,7 @@
             // Flap Glyph (Top half of OLD digit)
             c.save();
             c.translate(posX + cardW / 2, midY);
-            c.scale(1.0, scale);
+            c.scale(0.95, scale * 1.12);
             c.font = numFont;
             c.fillStyle = "#ffffff";
             c.textAlign = "center";
@@ -1855,7 +1875,7 @@
             // Flap Glyph (Bottom half of NEW digit)
             c.save();
             c.translate(posX + cardW / 2, midY);
-            c.scale(1.0, scale);
+            c.scale(0.95, scale * 1.12);
             c.font = numFont;
             c.fillStyle = "#eceef4";
             c.textAlign = "center";
