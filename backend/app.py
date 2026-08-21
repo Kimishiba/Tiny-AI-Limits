@@ -97,19 +97,34 @@ def get_location():
     except:
         return 51.5074, -0.1278, "LONDON"
 
+# The ESP32 polls /data every 3s, and get_weather() used to hit ip-api.com +
+# open-meteo.com on every single call -- ~28,800 requests/day to each free
+# API, which exhausts open-meteo's daily quota well before the day is over
+# (seen as a 429 "Daily API request limit exceeded", masquerading as a
+# "location not found" style all-zero fallback on the OLED). Weather doesn't
+# need second-by-second freshness anyway, so cache it.
+_weather_cache = {"data": None, "timestamp": 0}
+_WEATHER_CACHE_TTL_SECONDS = 600
+
 def get_weather():
+    now = time.time()
+    if _weather_cache["data"] is not None and (now - _weather_cache["timestamp"]) < _WEATHER_CACHE_TTL_SECONDS:
+        return _weather_cache["data"]
+
     lat, lon, loc_name = get_location()
     try:
         url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&hourly=precipitation"
         res = requests.get(url, timeout=5)
         data = res.json()
-        
+        if res.status_code != 200:
+            raise Exception(f"HTTP {res.status_code}: {data.get('reason', data)}")
+
         current_temp = data['current_weather']['temperature']
-        
+
         hours_until_rain = -1
         hourly_precip = data['hourly']['precipitation']
         current_time = data['current_weather']['time']
-        
+
         try:
             current_index = data['hourly']['time'].index(current_time)
             for i in range(current_index, len(hourly_precip)):
@@ -119,20 +134,28 @@ def get_weather():
         except ValueError:
             pass
 
-        return {
+        result = {
             "temperature": current_temp,
             "hours_until_rain": hours_until_rain,
             "date_string": datetime.now().strftime("%a %d %b").upper(),
             "location_name": loc_name
         }
+        _weather_cache["data"] = result
+        _weather_cache["timestamp"] = now
+        return result
     except Exception as e:
         print(f"Weather error: {e}")
-        return {
+        result = {
             "temperature": 0.0,
             "hours_until_rain": -1,
             "date_string": "ERR",
             "location_name": "UNKNOWN"
         }
+        # Cache failures too (briefly) so a rate-limited/down API doesn't get
+        # hammered again on the very next 3s poll.
+        _weather_cache["data"] = result
+        _weather_cache["timestamp"] = now
+        return result
 
 # --- Claude Data Extraction Logic ---
 def get_claude_dirs():
