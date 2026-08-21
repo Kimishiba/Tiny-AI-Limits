@@ -164,11 +164,15 @@ def get_weather():
         return result
     except Exception as e:
         print(f"Weather error: {e}")
+        # loc_name was already resolved successfully above (this failure is
+        # about the weather API, not location) -- keep it instead of
+        # discarding it for a generic "UNKNOWN" that makes it look like
+        # location detection failed too.
         result = {
             "temperature": 0.0,
             "hours_until_rain": -1,
             "date_string": "ERR",
-            "location_name": "UNKNOWN"
+            "location_name": loc_name
         }
         # Cache failures too (briefly) so a rate-limited/down API doesn't get
         # hammered again on the very next 3s poll.
