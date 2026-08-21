@@ -87,7 +87,6 @@ ScreenMode currentScreen = SCREEN_FACE;
 bool wifiConnected = false;
 bool oledFound = false;
 uint8_t oledAddress = 0x3C;
-int blinkCounter = 0;
 
 // ==========================================
 // FACE & BLINKING ANIMATION ENGINE
@@ -407,9 +406,13 @@ void renderClockWeatherScreen() {
     display.print("Desktop Companion");
 }
 
+const unsigned long agentAlertFlashPeriodMs = 350;
+
 void renderAgentAlertScreen() {
-    blinkCounter++;
-    bool inverted = (blinkCounter % 2 == 0);
+    // Toggle on elapsed time, not per render call -- this screen now renders
+    // at 30 FPS for the other animated screens, and a per-call toggle would
+    // flicker at ~15Hz (unreadable) instead of a clear, visible flash.
+    bool inverted = ((millis() / agentAlertFlashPeriodMs) % 2 == 0);
 
     if (inverted) {
         display.fillRect(0, 0, 128, 64, SSD1306_WHITE);
