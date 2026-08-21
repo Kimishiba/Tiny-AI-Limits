@@ -1517,8 +1517,8 @@
 
       // 2. Bezel Casing Ring (Simulating round watch housing / Spinning Kinetic Broken Alert Ring)
       if (waiting_for_input) {
-        // Continuous smooth rotation angle driven by system timestamp
-        const spinAngle = (Date.now() / 400) % (Math.PI * 2);
+        // Continuous smooth rotation angle driven by system timestamp (25% slower: 533ms divisor)
+        const spinAngle = (Date.now() / 533) % (Math.PI * 2);
 
         // Dark amber track underlay
         c.strokeStyle = "#241804";
