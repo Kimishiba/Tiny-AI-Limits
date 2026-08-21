@@ -779,6 +779,30 @@
         </button>
       </div>
 
+      <!-- Shiba Mascot Animation Overlay Card -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">pets</span>
+            Shiba Inu Mascot ("Kimi")
+          </div>
+          <span id="shibaStateBadge" class="status-badge" style="background: #ffdbcf; color: #1a1c1c;">IDLE</span>
+        </div>
+
+        <div class="toggle-row">
+          <span class="toggle-label" style="font-weight: 700;">Periodic Walk-In &amp; Wag Overlay</span>
+          <label class="switch">
+            <input type="checkbox" id="shibaAutoToggle" checked onchange="toggleShibaAuto(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <button class="neo-btn" onclick="triggerShibaWalk()" style="width: 100%; background: var(--accent-orange); color: #ffffff; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">directions_walk</span>
+          🐾 Trigger Shiba Walk &amp; Wag Now
+        </button>
+      </div>
+
     </div>
 
   </main>
@@ -2001,6 +2025,298 @@
       else if (screenId === 3) drawGC9A01RoundFlipUI(ctxTarget);
     }
 
+    // --- SHIBA INU MASCOT ("KIMI") ANIMATION ENGINE ---
+    let shibaEnabled = true;
+    let shibaState = "HIDDEN"; // "HIDDEN", "WALKING_IN", "WAGGING", "WALKING_OUT"
+    let shibaStartTime = 0;
+    let shibaX = -60;
+    const shibaY = 166; // Lower third traversal across circular screen
+    const shibaStopX = 145;
+    let lastShibaAutoTrigger = Date.now();
+    const SHIBA_AUTO_INTERVAL = 22000; // Trigger every 22s
+
+    function triggerShibaWalk() {
+      shibaState = "WALKING_IN";
+      shibaStartTime = Date.now();
+      shibaX = -60;
+      updateShibaBadge("WALKING IN");
+    }
+
+    function toggleShibaAuto(checked) {
+      shibaEnabled = checked;
+      if (!checked && shibaState !== "HIDDEN") {
+        shibaState = "HIDDEN";
+        updateShibaBadge("IDLE");
+      }
+    }
+
+    function updateShibaBadge(text) {
+      const badge = document.getElementById("shibaStateBadge");
+      if (badge) badge.textContent = text;
+    }
+
+    function drawShibaInuMascot(c, nowTime) {
+      if (!shibaEnabled && shibaState === "HIDDEN") return;
+
+      // Auto-trigger walk cycle periodically
+      if (shibaEnabled && shibaState === "HIDDEN") {
+        if (nowTime - lastShibaAutoTrigger >= SHIBA_AUTO_INTERVAL) {
+          lastShibaAutoTrigger = nowTime;
+          triggerShibaWalk();
+        }
+      }
+
+      if (shibaState === "HIDDEN") return;
+
+      const elapsed = nowTime - shibaStartTime;
+      let walkCycle = 0;
+      let isWalking = false;
+      let wagAngle = 0;
+
+      if (shibaState === "WALKING_IN") {
+        isWalking = true;
+        walkCycle = elapsed * 0.013; // trotting frequency
+        shibaX = -60 + elapsed * 0.062; // smooth translation to stopX
+        wagAngle = Math.sin(elapsed * 0.012) * 0.28;
+
+        if (shibaX >= shibaStopX) {
+          shibaX = shibaStopX;
+          shibaState = "WAGGING";
+          shibaStartTime = nowTime;
+          updateShibaBadge("WAGGING TAIL");
+        }
+      } else if (shibaState === "WAGGING") {
+        isWalking = false;
+        shibaX = shibaStopX;
+        // Excited happy tail wagging
+        wagAngle = Math.sin(elapsed * 0.026) * 0.65; // fast happy wag
+
+        // Wag for 4.2 seconds, then walk out
+        if (elapsed >= 4200) {
+          shibaState = "WALKING_OUT";
+          shibaStartTime = nowTime;
+          updateShibaBadge("WALKING OUT");
+        }
+      } else if (shibaState === "WALKING_OUT") {
+        isWalking = true;
+        walkCycle = elapsed * 0.013;
+        shibaX = shibaStopX + elapsed * 0.068;
+        wagAngle = Math.sin(elapsed * 0.014) * 0.32;
+
+        if (shibaX > 370) {
+          shibaState = "HIDDEN";
+          lastShibaAutoTrigger = nowTime;
+          updateShibaBadge("IDLE");
+          return;
+        }
+      }
+
+      // Draw Shiba Mascot at (shibaX, shibaY) on top of the UI
+      c.save();
+      c.translate(shibaX, shibaY);
+
+      // 1. Soft Dynamic Translucent Ground Shadow (Covers UI underneath smoothly)
+      const shadowW = isWalking ? 44 + Math.sin(walkCycle * 2) * 4 : 46;
+      c.fillStyle = "rgba(0, 0, 0, 0.52)";
+      c.beginPath();
+      c.ellipse(0, 20, shadowW / 2, 5.5, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // Body Bobbing while walking / breathing
+      const bodyBob = isWalking ? Math.abs(Math.sin(walkCycle * 2)) * 2.8 : Math.sin(elapsed * 0.005) * 0.9;
+      c.translate(0, -bodyBob);
+
+      // --- 2. BACK LEGS (Background Walking Trot) ---
+      const legPhase1 = Math.sin(walkCycle);
+      const legPhase2 = Math.cos(walkCycle);
+
+      // Back Right Leg
+      c.save();
+      c.translate(-14, 8);
+      c.rotate(isWalking ? -legPhase1 * 0.45 : 0);
+      c.fillStyle = "#B36312"; // Darker shaded back leg
+      c.fillRect(-3, 0, 6, 12);
+      c.fillStyle = "#FFF5E6"; // White sock paw
+      c.fillRect(-3, 8, 6, 4);
+      c.restore();
+
+      // Front Right Leg
+      c.save();
+      c.translate(14, 8);
+      c.rotate(isWalking ? -legPhase2 * 0.45 : 0);
+      c.fillStyle = "#B36312";
+      c.fillRect(-3, 0, 6, 12);
+      c.fillStyle = "#FFF5E6";
+      c.fillRect(-3, 8, 6, 4);
+      c.restore();
+
+      // --- 3. CURLED FLUFFY TAIL (Wagging) ---
+      c.save();
+      c.translate(-22, -4);
+      c.rotate(wagAngle);
+      c.fillStyle = "#E58E26";
+      c.beginPath();
+      c.arc(0, -6, 9, 0.5 * Math.PI, 1.85 * Math.PI, false);
+      c.lineWidth = 7.5;
+      c.strokeStyle = "#E58E26";
+      c.lineCap = "round";
+      c.stroke();
+      // White fluffy tail tip
+      c.strokeStyle = "#FFF5E6";
+      c.lineWidth = 6;
+      c.beginPath();
+      c.arc(0, -6, 9, 1.3 * Math.PI, 1.75 * Math.PI, false);
+      c.stroke();
+      c.restore();
+
+      // --- 4. MAIN TORSO / BODY ---
+      c.fillStyle = "#E58E26"; // Golden Shiba tan
+      c.beginPath();
+      if (typeof c.roundRect === "function") {
+        c.roundRect(-22, -10, 42, 22, [10, 12, 10, 10]);
+      } else {
+        c.fillRect(-22, -10, 42, 22);
+      }
+      c.fill();
+
+      // Creamy chest & belly fur
+      c.fillStyle = "#FFF5E6";
+      c.beginPath();
+      c.arc(-2, 4, 12, 0, Math.PI, false);
+      c.fill();
+
+      // --- 5. FRONT LEGS (Foreground Walking Trot) ---
+      // Back Left Leg
+      c.save();
+      c.translate(-12, 8);
+      c.rotate(isWalking ? legPhase2 * 0.5 : 0);
+      c.fillStyle = "#E58E26";
+      c.fillRect(-3, 0, 6, 12);
+      c.fillStyle = "#FFF5E6";
+      c.fillRect(-3, 8, 6, 4);
+      c.restore();
+
+      // Front Left Leg
+      c.save();
+      c.translate(16, 8);
+      c.rotate(isWalking ? legPhase1 * 0.5 : 0);
+      c.fillStyle = "#E58E26";
+      c.fillRect(-3, 0, 6, 12);
+      c.fillStyle = "#FFF5E6";
+      c.fillRect(-3, 8, 6, 4);
+      c.restore();
+
+      // --- 6. SHIBA HEAD ---
+      c.save();
+      const headBob = isWalking ? Math.sin(walkCycle * 2) * 1.2 : Math.sin(elapsed * 0.008) * 0.7;
+      c.translate(16, -14 + headBob);
+
+      // Ears
+      // Left Ear
+      c.fillStyle = "#B36312";
+      c.beginPath();
+      c.moveTo(-10, -6);
+      c.lineTo(-6, -20);
+      c.lineTo(0, -6);
+      c.fill();
+      c.fillStyle = "#FFAAA6"; // Peach inner ear
+      c.beginPath();
+      c.moveTo(-8, -7);
+      c.lineTo(-6, -17);
+      c.lineTo(-2, -7);
+      c.fill();
+
+      // Right Ear
+      c.fillStyle = "#E58E26";
+      c.beginPath();
+      c.moveTo(2, -6);
+      c.lineTo(8, -20);
+      c.lineTo(14, -6);
+      c.fill();
+      c.fillStyle = "#FFAAA6";
+      c.beginPath();
+      c.moveTo(4, -7);
+      c.lineTo(8, -17);
+      c.lineTo(12, -7);
+      c.fill();
+
+      // Round Head Base
+      c.fillStyle = "#E58E26";
+      c.beginPath();
+      c.arc(2, -4, 15, 0, Math.PI * 2);
+      c.fill();
+
+      // Fluffy White Cheeks & Muzzle
+      c.fillStyle = "#FFF5E6";
+      c.beginPath();
+      c.ellipse(7, -1, 9, 7, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.ellipse(-4, 0, 7, 6, -0.2, 0, Math.PI * 2);
+      c.fill();
+
+      // White Eyebrow Dots (Classic Shiba Inu feature!)
+      c.fillStyle = "#FFF5E6";
+      c.beginPath();
+      c.arc(0, -10, 2.3, 0, Math.PI * 2);
+      c.arc(8, -10, 2.3, 0, Math.PI * 2);
+      c.fill();
+
+      // Eyes (Blinking animation)
+      const blinkCycle = (nowTime % 3200);
+      const isBlinking = blinkCycle < 140;
+
+      c.fillStyle = "#1E272C";
+      if (isBlinking) {
+        // Happy curved squint eye
+        c.lineWidth = 1.8;
+        c.strokeStyle = "#1E272C";
+        c.beginPath();
+        c.arc(6, -6, 3, 1.1 * Math.PI, 1.9 * Math.PI);
+        c.stroke();
+      } else {
+        // Expressive dark almond eyes with catchlight
+        c.beginPath();
+        c.arc(6, -6, 3.2, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = "#FFFFFF";
+        c.beginPath();
+        c.arc(7.2, -7.2, 1.1, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      // Snout / Button Nose
+      c.fillStyle = "#1E272C";
+      c.beginPath();
+      c.ellipse(13, -2, 2.8, 2.2, 0, 0, Math.PI * 2);
+      c.fill();
+
+      // Cute Smile
+      c.lineWidth = 1.2;
+      c.strokeStyle = "#1E272C";
+      c.beginPath();
+      c.arc(11, 2, 2.5, 0.1 * Math.PI, 0.9 * Math.PI);
+      c.stroke();
+
+      // Red Bandana / Collar with Gold Tag
+      c.fillStyle = "#E74C3C";
+      c.beginPath();
+      c.moveTo(-8, 5);
+      c.lineTo(6, 12);
+      c.lineTo(8, 5);
+      c.lineTo(-4, 4);
+      c.fill();
+
+      // Gold Coin / Bell
+      c.fillStyle = "#F1C40F";
+      c.beginPath();
+      c.arc(0, 9, 2.2, 0, Math.PI * 2);
+      c.fill();
+
+      c.restore(); // Restore head
+      c.restore(); // Restore main mascot translation
+    }
+
     // --- MAIN RENDER LOOP ---
     function render() {
       // Handle Blinking LED / Alert Timer (500ms)
@@ -2043,6 +2359,9 @@
       } else {
         renderScreenState(currentScreen, ctx);
       }
+
+      // Draw Shiba Inu Mascot walking & wagging layer on top of whatever is at the back!
+      drawShibaInuMascot(ctx, Date.now());
 
       requestAnimationFrame(render);
     }
