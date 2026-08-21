@@ -23,8 +23,7 @@ def load_config():
         "manual_location_name": "Berlin",
         "lat": 52.5200,
         "lon": 13.4050,
-        "antigravity_5h_quota": 200,
-        "antigravity_cycle_start": None
+        "antigravity_5h_quota": 200
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -255,28 +254,20 @@ def scan_antigravity_5h_limits(quota_limit=None):
     total_steps = 0
     now = time.time()
 
-    # Google's 5h quota is (almost certainly) a fixed-duration window anchored
-    # to first use, like Claude's own rate limit -- it resets sharply back to
-    # 100%, it doesn't continuously erode/regenerate. A plain trailing "last
-    # 5 real-time hours" window doesn't behave that way: right after a real
-    # reset, it still includes turns from *before* the reset (they're still
-    # within the last 5h), so used% looks far higher than reality until those
-    # age out -- which is exactly the pattern behind our repeated recalibration
-    # (750 -> 1033 -> 3800) as the window slowly caught up rather than the
-    # true limit actually changing. Track our own fixed 5h cycle instead:
-    # once it's been running >=5h, snap to a fresh one starting now.
-    cycle_start = config.get("antigravity_cycle_start")
-    if cycle_start is None or (now - cycle_start) >= 5 * 3600:
-        cycle_start = now
-        config["antigravity_cycle_start"] = cycle_start
-        save_config(config)
+    # Confirmed (2026-08-21): this is a genuine rolling window, not a
+    # fixed-duration session like Claude's -- each turn individually ages
+    # out exactly 5h after it happened, so "used" is the sum of everything
+    # in the trailing 5 real-time hours. A prior attempt modeled this as a
+    # fixed cycle anchored to first use (reset sharply every 5h); that was
+    # based on a wrong assumption and has been reverted.
+    five_hours_ago = now - (5 * 3600)
 
     brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
     if os.path.exists(brain_dir):
         pattern = os.path.join(brain_dir, "*", ".system_generated", "logs", "transcript.jsonl")
         for filepath in glob.glob(pattern):
             try:
-                if os.path.getmtime(filepath) < cycle_start:
+                if os.path.getmtime(filepath) < five_hours_ago:
                     continue
                 with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
@@ -290,7 +281,7 @@ def scan_antigravity_5h_limits(quota_limit=None):
                             # Convert ISO string e.g. 2026-08-07T14:50:00Z to epoch time
                             try:
                                 dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                                if dt.timestamp() >= cycle_start:
+                                if dt.timestamp() >= five_hours_ago:
                                     total_steps += 1
                             except Exception:
                                 pass
