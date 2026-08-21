@@ -242,6 +242,19 @@ def scan_claude_tokens_today():
                 pass
     return total_tokens
 
+# Antigravity ships as several separate products -- the standalone GUI app,
+# the CLI ("agy"), and the IDE extension -- each running its own process with
+# its own session data under a differently-named sibling of ~/.gemini. A
+# session in any one of them can be the one waiting on the user, so anything
+# that needs to inspect "brain" transcripts has to check all of them, not just
+# the GUI app's. (~/.gemini/antigravity-backup is a stale backup directory,
+# not a live product, so it's deliberately excluded.)
+def _antigravity_brain_dirs():
+    home = os.path.expanduser("~")
+    candidates = ["antigravity", "antigravity-cli", "antigravity-ide"]
+    dirs = [os.path.join(home, ".gemini", name, "brain") for name in candidates]
+    return [d for d in dirs if os.path.exists(d)]
+
 # --- Antigravity Data Extraction Logic (fallback heuristic) ---
 # Superseded by get_antigravity_quota() below, which reads the real quota
 # from Antigravity's own local RPC endpoint when it's running. This heuristic
@@ -264,8 +277,7 @@ def scan_antigravity_5h_limits(quota_limit=None):
     # based on a wrong assumption and has been reverted.
     five_hours_ago = now - (5 * 3600)
 
-    brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
-    if os.path.exists(brain_dir):
+    for brain_dir in _antigravity_brain_dirs():
         pattern = os.path.join(brain_dir, "*", ".system_generated", "logs", "transcript.jsonl")
         for filepath in glob.glob(pattern):
             try:
@@ -462,15 +474,17 @@ def get_data():
     waiting_for_input = False
     prompt_text = "INPUT REQ"
     try:
-        brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
-        if os.path.exists(brain_dir):
-            # Multiple Antigravity sessions can run concurrently. Checking only
-            # the single most-recently-modified transcript misses a session
-            # that's frozen waiting for an answer while a different, unrelated
-            # session is still actively working (and therefore keeps looking
-            # "more recent"). Check every transcript touched recently, not
-            # just the newest one, and alert on the first pending one found.
-            now_ts = time.time()
+        # Multiple Antigravity sessions -- including across different
+        # products (GUI app, CLI, IDE extension) -- can run concurrently.
+        # Checking only the single most-recently-modified transcript misses a
+        # session that's frozen waiting for an answer while a different,
+        # unrelated session is still actively working (and therefore keeps
+        # looking "more recent"). Check every transcript touched recently,
+        # not just the newest one, and alert on the first pending one found.
+        now_ts = time.time()
+        for brain_dir in _antigravity_brain_dirs():
+            if waiting_for_input:
+                break
             for root, dirs, files in os.walk(brain_dir):
                 if "transcript.jsonl" not in files:
                     continue
