@@ -96,9 +96,12 @@ jobs:
           name: companion-app-${{ matrix.os }}
           path: bin_output/${{ matrix.asset_name }}
 
-  release:
-    name: Publish Release Artifacts
-    needs: [build_esp32_firmware, build_companion_app]
+  # Two separate releases from the same trigger tag (e.g. pushing v1.2.0
+  # creates both "firmware-v1.2.0" and "app-v1.2.0") -- the board and the
+  # companion app version and get downloaded independently.
+  release_firmware:
+    name: Publish Firmware Release
+    needs: [build_esp32_firmware]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
@@ -109,6 +112,24 @@ jobs:
           name: esp32-firmware
           path: release_assets/esp32
 
+      - name: Create Firmware Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: firmware-${{ github.ref_name }}
+          files: release_assets/esp32/firmware.bin
+          name: Firmware ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release_companion_app:
+    name: Publish Companion App Release
+    needs: [build_companion_app]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Download Windows Companion Artifact
         uses: actions/download-artifact@v4
         with:
@@ -127,13 +148,12 @@ jobs:
           name: companion-app-ubuntu-latest
           path: release_assets/companion
 
-      - name: Create GitHub Release
+      - name: Create Companion App Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release_assets/esp32/firmware.bin
-            release_assets/companion/*
-          name: Release ${{ github.ref_name }}
+          tag_name: app-${{ github.ref_name }}
+          files: release_assets/companion/*
+          name: Companion App ${{ github.ref_name }}
           draft: false
           prerelease: false
         env:
