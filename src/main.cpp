@@ -478,7 +478,9 @@ const char* getWiFiStatusStr(wl_status_t status) {
 
 String backendUrl = "";
 unsigned long lastMdnsResolve = 0;
-const unsigned long mdnsResolveCooldownMs = 30000;
+const unsigned long mdnsResolveCooldownMs = 10000;
+int consecutiveFetchFailures = 0;
+const int maxConsecutiveFailuresBeforeReResolve = 3;
 
 // Resolves the Mac's Bonjour hostname to its current IP via mDNS, so the
 // backend URL keeps working regardless of which WiFi network the Mac is on
@@ -520,13 +522,22 @@ void fetchBackendData() {
 
     int httpCode = http.GET();
     if (httpCode <= 0) {
-        // Connection-level failure (not just a bad HTTP status) -- the
-        // Mac's IP likely changed. Re-resolve on the next fetch attempt.
+        // Connection-level failure (not just a bad HTTP status). A single
+        // blip on a flaky network doesn't mean the IP changed -- discarding
+        // the URL immediately used to leave agentData (including the alert
+        // flag) frozen for up to mdnsResolveCooldownMs with no fetch
+        // attempted at all. Only re-resolve after several in a row.
         httpStatusMsg = "CONN_ERR " + String(httpCode);
-        backendUrl = "";
         http.end();
+        consecutiveFetchFailures++;
+        if (consecutiveFetchFailures >= maxConsecutiveFailuresBeforeReResolve) {
+            backendUrl = "";
+            consecutiveFetchFailures = 0;
+            lastMdnsResolve = 0; // allow the next poll to re-resolve immediately
+        }
         return;
     }
+    consecutiveFetchFailures = 0;
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
         StaticJsonDocument<2048> doc;
