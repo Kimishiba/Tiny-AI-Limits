@@ -1642,8 +1642,8 @@
         c.stroke();
       }
 
-      // 6. Central 2x2 Matrix Animated Flip Cards (Taller 46x68px, 4px gap, 52px Font)
-      const cardW = 46, cardH = 68, gap = 4;
+      // 6. Central 2x2 Matrix Animated Flip Cards (46x68px, 6px gap, 52px Font)
+      const cardW = 46, cardH = 68, gap = 6;
       const h = now.h, m = now.m;
       const dH1 = Math.floor(h / 10), dH2 = h % 10;
       const dM1 = Math.floor(m / 10), dM2 = m % 10;
@@ -1836,19 +1836,38 @@
         c.fillStyle = "#343a4e";
         c.fillRect(posX, midY + 0.5, cardW, 0.8);
 
-        // Mechanical Hinge Pivot Brackets (Left & Right)
+        // Mechanical Retaining Hinge Brackets (Both Left & Right of each card, including Center Seam)
         function drawHingeBracket(hx) {
-          c.fillStyle = "#0c0e14";
+          const bw = 5;
+          const bh = 12;
+          const bx = hx - bw / 2;
+          const by = midY - bh / 2;
+
+          // 1. Dark Lug Bracket Housing
+          c.fillStyle = "#12151f";
           c.beginPath();
           if (typeof c.roundRect === "function") {
-            c.roundRect(hx - 2, midY - 5, 4, 10, 1.5);
+            c.roundRect(bx, by, bw, bh, 2);
           } else {
-            c.fillRect(hx - 2, midY - 5, 4, 10);
+            c.fillRect(bx, by, bw, bh);
           }
           c.fill();
-          c.fillStyle = "#58607a";
-          c.fillRect(hx - 1, midY - 1, 2, 2);
+          c.strokeStyle = "#384058";
+          c.lineWidth = 1.0;
+          c.stroke();
+
+          // 2. Inset Polished Steel / Metallic Pivot Pin
+          c.fillStyle = "#8a96ab";
+          c.fillRect(bx + 1, midY - 2.5, bw - 2, 5);
+
+          // 3. Highlight Reflection & Shadow Seam
+          c.fillStyle = "#dce3f2";
+          c.fillRect(bx + 1, midY - 2.5, bw - 2, 1);
+          c.fillStyle = "#252b3b";
+          c.fillRect(bx + 1, midY + 1.5, bw - 2, 1);
         }
+
+        // Draw left and right retaining clips on each card
         drawHingeBracket(posX);
         drawHingeBracket(posX + cardW);
       }
