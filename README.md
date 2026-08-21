@@ -22,7 +22,7 @@ It combines an expressive, retro animated robot face with real-time hardware gau
   - Randomized blinking intervals with realistic double-blinks.
   - **Mood Reactions:**
     - *Normal Idle:* Friendly, calm blinking and glancing.
-    - *Low Quota (< 20%):* Droopy/sleepy eyes with animated falling sweat droplets.
+    - *Heavy Usage Today:* Droopy/sleepy eyes with animated falling sweat droplets once your real Claude token usage for the day crosses a calibrated threshold.
     - *Agent Attention Alert:* Flashes shocked wide eyes and a retro warning banner when an AI coding agent is waiting for user approval.
 - **📊 Real-Time AI Quota Monitoring:** Monitors Claude Code token consumption, plus your *real* Antigravity quota — read directly from Antigravity's own local API, not a guess. If you're signed into multiple Antigravity accounts at once, pick which one to track from the companion app.
 - **🌦️ Local Weather & Digital Clock:** Displays temperature, rain forecasts, and live synchronized time.
@@ -61,9 +61,14 @@ Nothing is hardcoded per-user at compile time anymore — the same firmware
 works for anyone. WiFi is provisioned at runtime over USB, and the board
 finds the companion app on the network automatically.
 
+> **Prefer not to build from source?** Tagged versions publish two separate
+> [GitHub Releases](../../releases) — `firmware-vX.Y.Z` (the `firmware.bin`
+> to flash) and `app-vX.Y.Z` (companion app executables for Windows/macOS/Linux,
+> no Python install needed). Grab those and skip straight to step 3 below.
+
 ### 1. Build & Flash Firmware
 Using **PlatformIO** (only needed once per board — skip this if you received
-an already-flashed device):
+an already-flashed device or downloaded a `firmware-vX.Y.Z` release):
 
 ```bash
 # Build firmware
@@ -75,8 +80,11 @@ python3 -m platformio run --target upload
 
 ### 2. Run the PC Companion Backend
 The companion service monitors your local AI agent transcripts and weather
-data, hosts the REST endpoint the board polls, and advertises itself on the
-network so the board can find it:
+data, reads your real Antigravity quota, hosts the REST endpoint the board
+polls, and advertises itself on the network so the board can find it.
+
+If you downloaded an `app-vX.Y.Z` release, just run that executable directly.
+Otherwise, from source:
 
 ```bash
 # Install dependencies
