@@ -91,6 +91,14 @@ def serve_setup_vendor(filename):
         return "Not found", 404
     return send_file(safe_path)
 
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    assets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "assets")
+    safe_path = os.path.normpath(os.path.join(assets_dir, filename))
+    if not safe_path.startswith(assets_dir) or not os.path.exists(safe_path):
+        return "Not found", 404
+    return send_file(safe_path)
+
 # --- Geocoding Helper ---
 def geocode_city(city_name):
     try:
