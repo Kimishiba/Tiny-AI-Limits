@@ -60,6 +60,14 @@ def serve_emulator():
         return send_file(emulator_path)
     return "Emulator file not found", 404
 
+@app.route('/faces')
+@app.route('/qbit')
+def serve_qbit_prototype():
+    prototype_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "qbit_faces_prototype.html")
+    if os.path.exists(prototype_path):
+        return send_file(prototype_path)
+    return "QBIT Prototype file not found", 404
+
 # --- Geocoding Helper ---
 def geocode_city(city_name):
     try:
