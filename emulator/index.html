@@ -1712,7 +1712,7 @@
       function draw2x2FlipCard(posX, posY, oldDigit, newDigit, progress) {
         const midY = posY + cardH / 2;
         const halfH = cardH / 2;
-        const numFont = "900 58px 'Anybody', 'JetBrains Mono', sans-serif";
+        const numFont = "900 64px 'Anybody', 'JetBrains Mono', sans-serif";
 
         const COLOR_TOP_FRONT = "#222633"; // Lighter slate for upper half / front face
         const COLOR_BOT_BACK  = "#12141c"; // Deeper obsidian for lower half / back face
@@ -1732,7 +1732,7 @@
         c.stroke();
 
         if (progress >= 1.0 || oldDigit === newDigit) {
-          // --- STATIC SPLIT-FLAP (Distinct Two-Tone Front & Back with Taller Numerals) ---
+          // --- STATIC SPLIT-FLAP (Distinct Two-Tone Front & Back with Ultra-Tall Numerals) ---
           // Top Half (Front Face tone)
           c.save();
           c.beginPath();
@@ -1747,7 +1747,7 @@
 
           c.save();
           c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
-          c.scale(0.95, 1.12);
+          c.scale(0.92, 1.25);
           c.font = numFont;
           c.fillStyle = "#ffffff";
           c.textAlign = "center";
@@ -1770,7 +1770,7 @@
 
           c.save();
           c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
-          c.scale(0.95, 1.12);
+          c.scale(0.92, 1.25);
           c.font = numFont;
           c.fillStyle = "#eceef4";
           c.textAlign = "center";
@@ -1795,7 +1795,7 @@
 
           c.save();
           c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
-          c.scale(0.95, 1.12);
+          c.scale(0.92, 1.25);
           c.font = numFont;
           c.fillStyle = "#ffffff";
           c.textAlign = "center";
@@ -1818,7 +1818,7 @@
 
           c.save();
           c.translate(posX + cardW / 2, posY + cardH / 2 + 1);
-          c.scale(0.95, 1.12);
+          c.scale(0.92, 1.25);
           c.font = numFont;
           c.fillStyle = "#eceef4";
           c.textAlign = "center";
@@ -1846,7 +1846,7 @@
             // Flap Glyph (Top half of OLD digit)
             c.save();
             c.translate(posX + cardW / 2, midY);
-            c.scale(0.95, scale * 1.12);
+            c.scale(0.92, scale * 1.25);
             c.font = numFont;
             c.fillStyle = "#ffffff";
             c.textAlign = "center";
@@ -1875,7 +1875,7 @@
             // Flap Glyph (Bottom half of NEW digit)
             c.save();
             c.translate(posX + cardW / 2, midY);
-            c.scale(0.95, scale * 1.12);
+            c.scale(0.92, scale * 1.25);
             c.font = numFont;
             c.fillStyle = "#eceef4";
             c.textAlign = "center";
