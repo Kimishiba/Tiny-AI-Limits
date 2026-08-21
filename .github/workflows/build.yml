@@ -104,6 +104,8 @@ jobs:
     needs: [build_esp32_firmware]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Download ESP32 Firmware Artifact
@@ -128,6 +130,8 @@ jobs:
     needs: [build_companion_app]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Download Windows Companion Artifact
