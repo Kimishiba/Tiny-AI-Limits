@@ -1609,7 +1609,7 @@
       }
 
       // 4. Curved Inside Quota Badges (CLAUDE % and ANTIGRAVITY %)
-      const textRadius = 90;
+      const textRadius = 86.5;
       const badgeFont = "900 10.5px 'JetBrains Mono', 'Fira Code', monospace";
 
       // Claude % Curved along inside of Left Arc (Clockwise around left perimeter)
@@ -1638,9 +1638,9 @@
 
       c.fillText(rainStr, cx, cy - 93);
 
-      // 5. Dual Side-Flanking Radial Arcs (0% at bottom, 100% at top)
+      // 5. Dual Side-Flanking Radial Arcs (Main 7px + Secondary Inner Thin 2px)
       const arcR = 105;
-      c.lineWidth = 8;
+      const innerArcR = 96;
       c.lineCap = "round";
 
       // Left Arc Track (0.70 PI at bottom up to 1.30 PI at top)
@@ -1648,18 +1648,33 @@
       const topAngleLeft    = 1.30 * Math.PI; // Top (100%)
       const totalSweepLeft  = topAngleLeft - bottomAngleLeft;
 
-      // Left Background Track
+      // Left 1: Outer Main Background Track
+      c.lineWidth = 7;
       c.strokeStyle = "rgba(0, 229, 255, 0.16)";
       c.beginPath();
-      c.arc(cx, cy, arcR, bottomAngleLeft, topAngleLeft, false); // Clockwise from bottom to top
+      c.arc(cx, cy, arcR, bottomAngleLeft, topAngleLeft, false);
       c.stroke();
 
-      // Left Active Arc (Claude Quota: grows upwards from bottom to top)
+      // Left 2: Inner Secondary Thin Background Track
+      c.lineWidth = 2;
+      c.strokeStyle = "rgba(0, 229, 255, 0.22)";
+      c.beginPath();
+      c.arc(cx, cy, innerArcR, bottomAngleLeft, topAngleLeft, false);
+      c.stroke();
+
+      // Left Active Outer Main Arc
       if (claudePct > 0) {
         const activeEndLeft = bottomAngleLeft + (claudePct / 100) * totalSweepLeft;
+        c.lineWidth = 7;
         c.strokeStyle = "#00E5FF";
         c.beginPath();
         c.arc(cx, cy, arcR, bottomAngleLeft, activeEndLeft, false);
+        c.stroke();
+
+        // Left Active Inner Secondary Thin Arc
+        c.lineWidth = 2;
+        c.beginPath();
+        c.arc(cx, cy, innerArcR, bottomAngleLeft, activeEndLeft, false);
         c.stroke();
       }
 
@@ -1667,18 +1682,33 @@
       const bottomAngleRight = 0.30 * Math.PI; // Bottom (0%)
       const totalSweepRight  = 0.60 * Math.PI; // ~108 degrees sweep
 
-      // Right Background Track
+      // Right 1: Outer Main Background Track
+      c.lineWidth = 7;
       c.strokeStyle = "rgba(255, 122, 0, 0.16)";
       c.beginPath();
-      c.arc(cx, cy, arcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true); // Counter-clockwise upwards
+      c.arc(cx, cy, arcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true);
       c.stroke();
 
-      // Right Active Arc (Antigravity Quota: grows upwards from bottom to top)
+      // Right 2: Inner Secondary Thin Background Track
+      c.lineWidth = 2;
+      c.strokeStyle = "rgba(255, 122, 0, 0.22)";
+      c.beginPath();
+      c.arc(cx, cy, innerArcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true);
+      c.stroke();
+
+      // Right Active Outer Main Arc
       if (antiPct > 0) {
         const activeEndRight = bottomAngleRight - (antiPct / 100) * totalSweepRight;
+        c.lineWidth = 7;
         c.strokeStyle = "#FF7A00";
         c.beginPath();
         c.arc(cx, cy, arcR, bottomAngleRight, activeEndRight, true);
+        c.stroke();
+
+        // Right Active Inner Secondary Thin Arc
+        c.lineWidth = 2;
+        c.beginPath();
+        c.arc(cx, cy, innerArcR, bottomAngleRight, activeEndRight, true);
         c.stroke();
       }
 
