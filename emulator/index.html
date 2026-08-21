@@ -1509,6 +1509,7 @@
     function drawGC9A01RoundFlipUI(c) {
       const now = getNowTime();
       const cx = 160, cy = 120, rScreen = 114;
+      const alertActive = Boolean(waiting_for_input && blinkState);
 
       // 1. Outer Dark Bezel Canvas Background
       c.fillStyle = "#0c0e14";
@@ -1918,6 +1919,9 @@
       draw2x2FlipCard(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
 
       // 7. Bottom Sub-HUD (Date & Weather Stacked, or Agent Alert)
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
       if (waiting_for_input) {
         c.font = "bold 10px 'JetBrains Mono', monospace";
         c.fillStyle = alertActive ? "#FFB800" : "#996e00";
