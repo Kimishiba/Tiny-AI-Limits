@@ -21,7 +21,7 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-const unsigned long wifiConnectTimeoutMs = 15000;
+const unsigned long wifiConnectTimeoutMs = 30000;
 
 
 
@@ -369,7 +369,20 @@ void setup() {
     delay(100);
 
     Serial.printf("\n[WiFi] Connecting to '%s'...\n", ssid);
+    // Force-disable PMF (802.11w): some enterprise APs (e.g. Ubiquiti UniFi)
+    // run WPA2/WPA3 mixed mode with PMF, which the ESP32 WiFi stack
+    // negotiates unreliably, causing intermittent AUTH_FAIL/handshake
+    // timeouts even with the correct password. WiFi.begin() alone doesn't
+    // expose this, so configure it directly via esp_wifi before connecting.
     WiFi.begin(ssid, password);
+    wifi_config_t wifiConfig = {};
+    esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
+    wifiConfig.sta.pmf_cfg.capable = false;
+    wifiConfig.sta.pmf_cfg.required = false;
+    esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
+    WiFi.disconnect(false);
+    delay(100);
+    esp_wifi_connect();
 
     unsigned long connectStart = millis();
     int attempts = 0;
