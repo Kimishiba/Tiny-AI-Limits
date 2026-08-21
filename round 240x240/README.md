@@ -2,7 +2,8 @@
 
 An ultra-compact desktop telemetry HUD and 2×2 mechanical split-flap flip clock designed for the **GC9A01 1.28″ circular IPS display (240×240)** powered by the **ESP32-C3 SuperMini**.
 
-![Enclosure 3D Render](assets/gc9a01_3d_enclosure_render.jpg)
+![Enclosure Front View](assets/gc9a01_3d_enclosure_render.jpg)
+![Enclosure Rear View](assets/gc9a01_enclosure_rear_view.jpg)
 
 ---
 
