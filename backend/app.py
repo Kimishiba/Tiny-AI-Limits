@@ -464,55 +464,72 @@ def get_data():
     try:
         brain_dir = os.path.expanduser("~/.gemini/antigravity/brain")
         if os.path.exists(brain_dir):
-            latest_mod = 0
-            latest_transcript = None
+            # Multiple Antigravity sessions can run concurrently. Checking only
+            # the single most-recently-modified transcript misses a session
+            # that's frozen waiting for an answer while a different, unrelated
+            # session is still actively working (and therefore keeps looking
+            # "more recent"). Check every transcript touched recently, not
+            # just the newest one, and alert on the first pending one found.
+            now_ts = time.time()
             for root, dirs, files in os.walk(brain_dir):
-                if "transcript.jsonl" in files:
-                    fp = os.path.join(root, "transcript.jsonl")
-                    mtime = os.path.getmtime(fp)
-                    if mtime > latest_mod:
-                        latest_mod = mtime
-                        latest_transcript = fp
+                if "transcript.jsonl" not in files:
+                    continue
+                fp = os.path.join(root, "transcript.jsonl")
+                mtime = os.path.getmtime(fp)
 
-            # A pending question/permission/plan-approval is only ever the
-            # LAST line of the transcript -- once answered, the agent appends
-            # a new step (e.g. type ASK_QUESTION) right after it. 30 minutes
-            # of slack accounts for realistic human reaction time; the file
-            # simply stops being written while a question is outstanding.
-            if latest_transcript and (time.time() - latest_mod) < 1800:
-                with open(latest_transcript, "r", encoding="utf-8", errors="ignore") as f:
-                    lines = [l for l in f.readlines() if l.strip()]
-                if lines:
-                    try:
-                        last_step = json.loads(lines[-1])
-                    except Exception:
-                        last_step = None
-                    if last_step and last_step.get("type") == "PLANNER_RESPONSE":
-                        for tc in last_step.get("tool_calls", []) or []:
-                            name = tc.get("name")
-                            args = tc.get("args", {}) or {}
-                            if name == "ask_question":
-                                waiting_for_input = True
-                                prompt_text = "ANSWER Q"
-                                break
-                            if name == "ask_permission":
-                                waiting_for_input = True
-                                prompt_text = "GRANT PERM"
-                                break
-                            meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                            if isinstance(meta_raw, str):
-                                try:
-                                    meta = json.loads(meta_raw)
-                                except Exception:
-                                    meta = {}
-                            elif isinstance(meta_raw, dict):
-                                meta = meta_raw
-                            else:
-                                meta = {}
-                            if meta.get("RequestFeedback") is True:
-                                waiting_for_input = True
-                                prompt_text = "APPROVE PLAN"
-                                break
+                # A pending question/permission/plan-approval is only ever the
+                # LAST line of the transcript -- once answered, the agent appends
+                # a new step (e.g. type ASK_QUESTION) right after it. 30 minutes
+                # of slack accounts for realistic human reaction time; the file
+                # simply stops being written while a question is outstanding.
+                if now_ts - mtime >= 1800:
+                    continue
+
+                try:
+                    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                        lines = [l for l in f.readlines() if l.strip()]
+                except Exception:
+                    continue
+                if not lines:
+                    continue
+                try:
+                    last_step = json.loads(lines[-1])
+                except Exception:
+                    continue
+                if not last_step or last_step.get("type") != "PLANNER_RESPONSE":
+                    continue
+
+                found = False
+                for tc in last_step.get("tool_calls", []) or []:
+                    name = tc.get("name")
+                    args = tc.get("args", {}) or {}
+                    if name == "ask_question":
+                        waiting_for_input = True
+                        prompt_text = "ANSWER Q"
+                        found = True
+                        break
+                    if name == "ask_permission":
+                        waiting_for_input = True
+                        prompt_text = "GRANT PERM"
+                        found = True
+                        break
+                    meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                    if isinstance(meta_raw, str):
+                        try:
+                            meta = json.loads(meta_raw)
+                        except Exception:
+                            meta = {}
+                    elif isinstance(meta_raw, dict):
+                        meta = meta_raw
+                    else:
+                        meta = {}
+                    if meta.get("RequestFeedback") is True:
+                        waiting_for_input = True
+                        prompt_text = "APPROVE PLAN"
+                        found = True
+                        break
+                if found:
+                    break
     except Exception as e:
         print(f"Agent check error: {e}")
 
