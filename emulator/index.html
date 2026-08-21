@@ -325,11 +325,37 @@
       gap: 0.5rem;
     }
 
+    .neo-select {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.35rem 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+      border-radius: 4px;
+      transition: border-color 0.15s ease;
+    }
+
+    .neo-select:focus {
+      border-color: var(--accent-orange);
+    }
+
     /* Screen Mode Button Group */
     .mode-btn-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
       gap: 0.6rem;
+    }
+
+    #rectModeGrid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    #roundModeGrid {
+      grid-template-columns: 1fr;
     }
 
     .neo-btn {
@@ -621,7 +647,7 @@
     <!-- Left Column: Display Screen Box -->
     <div class="device-box">
       <div class="bezel-topbar">
-        <div class="bezel-tag">
+        <div class="bezel-tag" id="bezelTag">
           <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">monitor</span>
           ESP32-C3 // TFT 320x240
         </div>
@@ -652,19 +678,30 @@
 
       <!-- Active Display Mode -->
       <div class="neo-card">
-        <div class="card-title-bar">
-          <div class="card-title">
+        <div class="card-title-bar" style="flex-wrap: wrap; gap: 0.6rem;">
+          <div class="card-title" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
             <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">view_carousel</span>
-            Display Mode
+            <span>Screen Type:</span>
+            <select id="screenTypeSelect" class="neo-select" onchange="onScreenTypeChange(this.value)">
+              <option value="round" selected>🔘 GC9A01 Round (240x240)</option>
+              <option value="rect">📺 Rectangular TFT (320x240)</option>
+            </select>
           </div>
           <a href="/faces" class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.75rem; padding: 0.3rem 0.6rem;">
             🤖 QBIT Faces
           </a>
         </div>
-        <div class="mode-btn-grid">
-          <button class="neo-btn active" id="btnLimits" onclick="switchScreen(0)">LIMITS</button>
+
+        <!-- Rectangular Screen Modes -->
+        <div id="rectModeGrid" class="mode-btn-grid" style="display: none;">
+          <button class="neo-btn" id="btnLimits" onclick="switchScreen(0)">LIMITS</button>
           <button class="neo-btn" id="btnWeather" onclick="switchScreen(1)">WEATHER</button>
           <button class="neo-btn" id="btnClock" onclick="switchScreen(2)">FLIP CLOCK</button>
+        </div>
+
+        <!-- Round Screen Mode -->
+        <div id="roundModeGrid" class="mode-btn-grid">
+          <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK & DUAL RADIAL GAUGES</button>
         </div>
       </div>
 
@@ -736,6 +773,10 @@
           <label>Hours Until Rain: <span class="val" id="rainVal">2.0 hrs</span></label>
           <input type="range" id="rainSlider" min="-1" max="12" step="1" value="2" oninput="updateRainVal(this.value)">
         </div>
+
+        <button class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.8rem; margin-top: 0.8rem; width: 100%; border-color: var(--accent-orange);" onclick="incrementMinuteSim()">
+          ⏱️ Test Minute Flip (+1 Min)
+        </button>
       </div>
 
     </div>
@@ -1261,6 +1302,16 @@
     let prevEmuM = -1;
     let emuFlipProgress = 1.0;
 
+    let roundPrevDigits = [-1, -1, -1, -1];
+    let roundOldDigits = [0, 0, 0, 0];
+    let roundFlipProgress = [1.0, 1.0, 1.0, 1.0];
+
+    function incrementMinuteSim() {
+      server_minute = (server_minute + 1) % 60;
+      if (server_minute === 0) server_hour = (server_hour + 1) % 24;
+      lastTimeSync = Date.now();
+    }
+
     function drawSingleDigitCardAnimated(c, cardX, cardY, cardW, cardH, oldDigit, newDigit, progress) {
       if (progress <= 0) return drawSingleDigitCard(c, cardX, cardY, cardW, cardH, oldDigit);
       if (progress >= 1) return drawSingleDigitCard(c, cardX, cardY, cardW, cardH, newDigit);
@@ -1455,10 +1506,340 @@
       c.stroke();
     }
 
+    function drawGC9A01RoundFlipUI(c) {
+      const now = getNowTime();
+      const cx = 160, cy = 120, rScreen = 114;
+
+      // 1. Outer Dark Bezel Canvas Background
+      c.fillStyle = "#0c0e14";
+      c.fillRect(0, 0, 320, 240);
+
+      // 2. Bezel Casing Ring (Simulating round watch housing)
+      const alertActive = waiting_for_input && blinkState;
+      c.strokeStyle = alertActive ? "#FFB800" : "#1f2330";
+      c.lineWidth = 6;
+      c.beginPath();
+      c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+      c.stroke();
+
+      // Screen background (Deep OLED Black)
+      c.fillStyle = "#000000";
+      c.beginPath();
+      c.arc(cx, cy, rScreen, 0, Math.PI * 2);
+      c.fill();
+
+      // 3. Quota Ratios
+      const claudePct = Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
+      const antiPct = Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
+
+      // Helper for Curved Clockwise Text along a circular arc
+      function drawCurvedTextClockwise(ctx, text, centerX, centerY, radius, centerAngleRad, color, font) {
+        ctx.save();
+        ctx.font = font;
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const charWidths = [];
+        let totalWidth = 0;
+        for (let i = 0; i < text.length; i++) {
+          const w = ctx.measureText(text[i]).width * 1.12;
+          charWidths.push(w);
+          totalWidth += w;
+        }
+
+        const totalAngle = totalWidth / radius;
+        let currentAngle = centerAngleRad - totalAngle / 2;
+
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          const chAngle = charWidths[i] / radius;
+          const midAngle = currentAngle + chAngle / 2;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(midAngle);
+          ctx.translate(0, -radius);
+          ctx.fillText(ch, 0, 0);
+          ctx.restore();
+
+          currentAngle += chAngle;
+        }
+        ctx.restore();
+      }
+
+      // 4. Curved Inside Quota Badges & Top Sync LED
+      const textRadius = 90;
+      const badgeFont = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
+
+      // Claude % Curved along inside of Left Arc (Clockwise around left perimeter)
+      drawCurvedTextClockwise(c, "CLD " + claudePct + "%", cx, cy, textRadius, -Math.PI / 2, "#00E5FF", badgeFont);
+
+      // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
+      drawCurvedTextClockwise(c, "AGY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
+
+      // 4. Top Crown: Hours Until Rain Indicator (Replacing LED dot)
+      c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      let rainStr = "";
+      if (hours_until_rain === -1 || hours_until_rain === null || hours_until_rain === undefined) {
+        rainStr = "NO RAIN ☀️";
+        c.fillStyle = "#94a3b8";
+      } else if (hours_until_rain === 0) {
+        rainStr = "RAIN NOW 🌧️";
+        c.fillStyle = "#38bdf8";
+      } else {
+        const hVal = (typeof hours_until_rain === "number") ? hours_until_rain.toFixed(0) : hours_until_rain;
+        rainStr = "RAIN: " + hVal + "h 🌧️";
+        c.fillStyle = (hours_until_rain <= 3) ? "#38bdf8" : "#cbd5e1";
+      }
+
+      c.fillText(rainStr, cx, cy - 93);
+
+      // 5. Dual Side-Flanking Radial Arcs (0% at bottom, 100% at top)
+      const arcR = 105;
+      c.lineWidth = 8;
+      c.lineCap = "round";
+
+      // Left Arc Track (0.70 PI at bottom up to 1.30 PI at top)
+      const bottomAngleLeft = 0.70 * Math.PI; // Bottom (0%)
+      const topAngleLeft    = 1.30 * Math.PI; // Top (100%)
+      const totalSweepLeft  = topAngleLeft - bottomAngleLeft;
+
+      // Left Background Track
+      c.strokeStyle = "rgba(0, 229, 255, 0.16)";
+      c.beginPath();
+      c.arc(cx, cy, arcR, bottomAngleLeft, topAngleLeft, false); // Clockwise from bottom to top
+      c.stroke();
+
+      // Left Active Arc (Claude Quota: grows upwards from bottom to top)
+      if (claudePct > 0) {
+        const activeEndLeft = bottomAngleLeft + (claudePct / 100) * totalSweepLeft;
+        c.strokeStyle = "#00E5FF";
+        c.beginPath();
+        c.arc(cx, cy, arcR, bottomAngleLeft, activeEndLeft, false);
+        c.stroke();
+      }
+
+      // Right Arc Track (0.30 PI at bottom up to 1.70 PI / -0.30 PI at top)
+      const bottomAngleRight = 0.30 * Math.PI; // Bottom (0%)
+      const totalSweepRight  = 0.60 * Math.PI; // ~108 degrees sweep
+
+      // Right Background Track
+      c.strokeStyle = "rgba(255, 122, 0, 0.16)";
+      c.beginPath();
+      c.arc(cx, cy, arcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true); // Counter-clockwise upwards
+      c.stroke();
+
+      // Right Active Arc (Antigravity Quota: grows upwards from bottom to top)
+      if (antiPct > 0) {
+        const activeEndRight = bottomAngleRight - (antiPct / 100) * totalSweepRight;
+        c.strokeStyle = "#FF7A00";
+        c.beginPath();
+        c.arc(cx, cy, arcR, bottomAngleRight, activeEndRight, true);
+        c.stroke();
+      }
+
+      // 6. Central 2x2 Matrix Animated Flip Cards (Taller 46x68px, 4px gap, 52px Font)
+      const cardW = 46, cardH = 68, gap = 4;
+      const h = now.h, m = now.m;
+      const dH1 = Math.floor(h / 10), dH2 = h % 10;
+      const dM1 = Math.floor(m / 10), dM2 = m % 10;
+
+      const currentDigits = [dH1, dH2, dM1, dM2];
+
+      // Detect Digit Transitions & Drive Animation Progress
+      for (let i = 0; i < 4; i++) {
+        if (roundPrevDigits[i] !== -1 && roundPrevDigits[i] !== currentDigits[i]) {
+          roundOldDigits[i] = roundPrevDigits[i];
+          roundFlipProgress[i] = 0.0;
+        }
+        roundPrevDigits[i] = currentDigits[i];
+
+        if (roundFlipProgress[i] < 1.0) {
+          roundFlipProgress[i] += 0.07; // ~14 frames @ 60fps (~230ms flip)
+          if (roundFlipProgress[i] > 1.0) roundFlipProgress[i] = 1.0;
+        }
+      }
+
+      const x1 = cx - cardW - gap / 2;
+      const x2 = cx + gap / 2;
+      const yTop = cy - cardH - gap / 2;
+      const yBottom = cy + gap / 2;
+
+      function draw2x2FlipCard(posX, posY, oldDigit, newDigit, progress) {
+        const midY = posY + cardH / 2;
+        const halfH = cardH / 2;
+        const numFont = "900 52px 'Anybody', 'JetBrains Mono', sans-serif";
+
+        // Card Base Container
+        c.fillStyle = "#181b24";
+        c.beginPath();
+        if (typeof c.roundRect === "function") {
+          c.roundRect(posX, posY, cardW, cardH, 8);
+        } else {
+          c.rect(posX, posY, cardW, cardH);
+        }
+        c.fill();
+        c.strokeStyle = "#282d3d";
+        c.lineWidth = 1.2;
+        c.stroke();
+
+        if (progress >= 1.0 || oldDigit === newDigit) {
+          // Static Unflipped State
+          c.font = numFont;
+          c.fillStyle = "#ffffff";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+        } else {
+          // --- 3D PERSPECTIVE SPLIT-FLAP FLIP ANIMATION ---
+          // 1. Static Top Half Background (Shows NEW digit)
+          c.save();
+          c.beginPath();
+          c.rect(posX, posY, cardW, halfH);
+          c.clip();
+          c.font = numFont;
+          c.fillStyle = "#ffffff";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.restore();
+
+          // 2. Static Bottom Half Background (Shows OLD digit)
+          c.save();
+          c.beginPath();
+          c.rect(posX, midY, cardW, halfH);
+          c.clip();
+          c.font = numFont;
+          c.fillStyle = "#ffffff";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(oldDigit, posX + cardW / 2, posY + cardH / 2 + 1);
+          c.restore();
+
+          // 3. Falling / Unfolding 3D Flap
+          if (progress < 0.5) {
+            // Phase 1: Top half of OLD digit falls forward/downward
+            const scale = Math.cos(progress * Math.PI); // 1.0 -> 0.0
+            const flapH = Math.max(0.1, halfH * scale);
+            const flapY = midY - flapH;
+
+            c.save();
+            c.beginPath();
+            c.rect(posX, flapY, cardW, flapH);
+            c.clip();
+
+            // Flap Face
+            c.fillStyle = "#1e222d";
+            c.fillRect(posX, flapY, cardW, flapH);
+
+            // Flap Glyph (Top half of OLD digit)
+            c.save();
+            c.translate(posX + cardW / 2, midY);
+            c.scale(1.0, scale);
+            c.font = numFont;
+            c.fillStyle = "#ffffff";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(oldDigit, 0, -halfH / 2 + 1);
+            c.restore();
+
+            // Dynamic Drop Shadow
+            c.fillStyle = "rgba(0, 0, 0, " + (progress * 0.7).toFixed(2) + ")";
+            c.fillRect(posX, flapY, cardW, flapH);
+            c.restore();
+          } else {
+            // Phase 2: Bottom half of NEW digit unfolds into place
+            const scale = -Math.cos(progress * Math.PI); // 0.0 -> 1.0
+            const flapH = Math.max(0.1, halfH * scale);
+
+            c.save();
+            c.beginPath();
+            c.rect(posX, midY, cardW, flapH);
+            c.clip();
+
+            // Flap Face
+            c.fillStyle = "#1b1e28";
+            c.fillRect(posX, midY, cardW, flapH);
+
+            // Flap Glyph (Bottom half of NEW digit)
+            c.save();
+            c.translate(posX + cardW / 2, midY);
+            c.scale(1.0, scale);
+            c.font = numFont;
+            c.fillStyle = "#ffffff";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(newDigit, 0, halfH / 2 + 1);
+            c.restore();
+
+            // Receding Shadow
+            c.fillStyle = "rgba(0, 0, 0, " + ((1.0 - progress) * 0.7).toFixed(2) + ")";
+            c.fillRect(posX, midY, cardW, flapH);
+            c.restore();
+          }
+        }
+
+        // Mechanical Horizontal Split Crease (Shadow + Highlight)
+        c.fillStyle = "#08090c";
+        c.fillRect(posX, midY - 1, cardW, 1.5);
+        c.fillStyle = "#252936";
+        c.fillRect(posX, midY + 0.5, cardW, 0.8);
+
+        // Mechanical Hinge Pivot Brackets (Left & Right)
+        function drawHingeBracket(hx) {
+          c.fillStyle = "#101218";
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(hx - 2, midY - 5, 4, 10, 1.5);
+          } else {
+            c.fillRect(hx - 2, midY - 5, 4, 10);
+          }
+          c.fill();
+          c.fillStyle = "#4a5065";
+          c.fillRect(hx - 1, midY - 1, 2, 2);
+        }
+        drawHingeBracket(posX);
+        drawHingeBracket(posX + cardW);
+      }
+
+      // Draw Animated 2x2 Matrix
+      draw2x2FlipCard(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);
+      draw2x2FlipCard(x2, yTop, roundOldDigits[1], dH2, roundFlipProgress[1]);
+      draw2x2FlipCard(x1, yBottom, roundOldDigits[2], dM1, roundFlipProgress[2]);
+      draw2x2FlipCard(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
+
+      // 7. Bottom Sub-HUD (Date & Weather Stacked, or Agent Alert)
+      if (waiting_for_input) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = alertActive ? "#FFB800" : "#996e00";
+        c.fillText("⚠️ AGENT ALERT", cx, cy + 79);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 93);
+      } else {
+        // Line 1: Day & Date
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#94a3b8";
+        c.fillText(date_string.toUpperCase(), cx, cy + 79);
+
+        // Line 2: Temperature & Weather Icon
+        c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
+        c.fillStyle = "#ffffff";
+        const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
+        c.fillText(tempFormatted + "°C ☀️", cx, cy + 93);
+      }
+    }
+
     function renderScreenState(screenId, ctxTarget) {
       if (screenId === 0) drawLimitsUI(ctxTarget);
       else if (screenId === 1) drawWeatherUI(ctxTarget);
       else if (screenId === 2) drawFlipClockUI(ctxTarget);
+      else if (screenId === 3) drawGC9A01RoundFlipUI(ctxTarget);
     }
 
     // --- MAIN RENDER LOOP ---
@@ -1508,6 +1889,14 @@
     }
 
     // --- INTERACTIVE ACTIONS ---
+    function onScreenTypeChange(type) {
+      if (type === "round") {
+        switchScreen(3);
+      } else {
+        if (currentScreen === 3) switchScreen(0);
+      }
+    }
+
     function switchScreen(screenIdx) {
       if (isBooting || screenIdx === currentScreen) return;
       prevScreen = currentScreen;
@@ -1515,12 +1904,38 @@
       currentScreen = screenIdx;
       transitionProgress = 0.0;
 
-      document.querySelectorAll(".btn-group .btn").forEach((b, i) => {
+      // Sync Screen Type Dropdown & Mode Grids
+      const selectElem = document.getElementById("screenTypeSelect");
+      const rectModeGrid = document.getElementById("rectModeGrid");
+      const roundModeGrid = document.getElementById("roundModeGrid");
+      const bezelTag = document.getElementById("bezelTag");
+
+      if (screenIdx === 3) {
+        if (selectElem) selectElem.value = "round";
+        if (rectModeGrid) rectModeGrid.style.display = "none";
+        if (roundModeGrid) roundModeGrid.style.display = "grid";
+        if (bezelTag) {
+          bezelTag.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">radio_button_checked</span> GC9A01 // ROUND 240x240`;
+        }
+      } else {
+        if (selectElem) selectElem.value = "rect";
+        if (rectModeGrid) rectModeGrid.style.display = "grid";
+        if (roundModeGrid) roundModeGrid.style.display = "none";
+        if (bezelTag) {
+          bezelTag.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">monitor</span> ESP32-C3 // TFT 320x240`;
+        }
+      }
+
+      document.querySelectorAll("#rectModeGrid .neo-btn").forEach((b, i) => {
         b.classList.toggle("active", i === screenIdx);
       });
     }
 
     document.getElementById("screenGlass").addEventListener("click", () => {
+      if (currentScreen === 3) {
+        // In round mode, screen tap remains on round
+        return;
+      }
       const nextIdx = (currentScreen + 1) % 3;
       switchScreen(nextIdx);
     });
@@ -1634,6 +2049,12 @@
     // Start App & Polling
     fetchBackendData();
     syncIntervalId = setInterval(fetchBackendData, 5000);
+
+    if (window.location.search.includes("round") || window.location.hash.includes("round") || window.location.pathname.includes("round")) {
+      switchScreen(3);
+    } else {
+      switchScreen(0);
+    }
     render();
   </script>
 </body>

@@ -58,10 +58,11 @@ def add_cors_headers(response):
 @app.route('/')
 @app.route('/emulator')
 @app.route('/simulator')
+@app.route('/round')
 def serve_emulator():
     emulator_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "index.html")
     if os.path.exists(emulator_path):
-        return send_file(emulator_path)
+        return send_file(emulator_path, max_age=0)
     return "Emulator file not found", 404
 
 @app.route('/faces')
