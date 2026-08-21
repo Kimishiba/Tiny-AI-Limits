@@ -151,34 +151,47 @@ def get_claude_dirs():
         dirs.append(os.path.join(user_home, "Library", "Application Support", "claude-code"))
     return [d for d in dirs if os.path.exists(d)]
 
-def scan_claude_tokens():
+# Our corporate Claude plan has no monthly/weekly quota, so there's no real
+# ceiling to show a Xk/limit bar against -- that used to be a fabricated
+# 500k constant. Instead this reports actual tokens processed *today*,
+# deliberately excluding cache_read_input_tokens: a single long session can
+# replay tens of millions of cheap cached-context tokens per turn, which
+# swamps the number with something proportional to turn count rather than
+# real new work (input + output + freshly-cached context).
+def scan_claude_tokens_today():
     total_tokens = 0
-    now = time.time()
+    today_local = datetime.now().date()
     for c_dir in get_claude_dirs():
-        patterns = [
-            os.path.join(c_dir, "*.jsonl"),
-            os.path.join(c_dir, "**", "*.jsonl"),
-            os.path.join(c_dir, "**", "*.json"),
-        ]
-        for pattern in patterns:
-            for filepath in glob.glob(pattern, recursive=True):
-                try:
-                    if os.path.getmtime(filepath) < (now - 7 * 86400):
-                        continue
-                    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-                        for line in f:
-                            if "tokens" in line.lower() or "outputTokens" in line:
-                                try:
-                                    data = json.loads(line)
-                                    if isinstance(data, dict):
-                                        usage = data.get("usage", {}) or data.get("token_usage", {})
-                                        in_tok = usage.get("input_tokens", 0) or data.get("input_tokens", 0) or data.get("inputTokens", 0)
-                                        out_tok = usage.get("output_tokens", 0) or data.get("output_tokens", 0) or data.get("outputTokens", 0)
-                                        total_tokens += (in_tok + out_tok)
-                                except Exception:
-                                    pass
-                except Exception:
-                    pass
+        for filepath in glob.glob(os.path.join(c_dir, "**", "*.jsonl"), recursive=True):
+            try:
+                if os.path.getmtime(filepath) < (time.time() - 2 * 86400):
+                    continue
+                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                        except Exception:
+                            continue
+                        if entry.get("type") != "assistant":
+                            continue
+                        ts = entry.get("timestamp")
+                        if not ts:
+                            continue
+                        try:
+                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
+                        except Exception:
+                            continue
+                        if dt.date() != today_local:
+                            continue
+                        usage = (entry.get("message") or {}).get("usage") or {}
+                        total_tokens += usage.get("input_tokens", 0) or 0
+                        total_tokens += usage.get("output_tokens", 0) or 0
+                        total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
+            except Exception:
+                pass
     return total_tokens
 
 # --- Antigravity Data Extraction Logic ---
@@ -240,10 +253,10 @@ def get_data():
         antigravity_data = {"limit": 200, "used": 0, "remaining": 200, "period": "5h"}
     
     try:
-        used_tokens = scan_claude_tokens()
-        claude_data = {"limit": 500000, "remaining": max(0, 500000 - used_tokens)}
-    except Exception:
-        claude_data = {"limit": 500000, "remaining": 500000}
+        claude_data = {"tokens_today": scan_claude_tokens_today()}
+    except Exception as e:
+        print(f"Claude token scan error: {e}")
+        claude_data = {"tokens_today": 0}
         
     weather_data = get_weather()
     

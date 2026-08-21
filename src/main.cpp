@@ -21,15 +21,22 @@
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-const unsigned long wifiConnectTimeoutMs = 15000;
+// Some networks (e.g. the office guest WiFi's WPA2/WPA3-mixed APs) can take
+// well over 15s to complete the handshake even with PMF disabled; give it
+// enough margin to avoid failing on otherwise-successful connections.
+const unsigned long wifiConnectTimeoutMs = 30000;
 
 // ==========================================
 // DATA STRUCTURES
 // ==========================================
+// Our corporate Claude plan has no monthly/weekly quota, so there's no real
+// ceiling to render a Xk/limit bar against. tokensToday is real usage (input
+// + output + freshly-cached context, today only); heavyUsageThreshold just
+// picks a "you've been grinding today" line for the tired-eyes animation.
 struct ClaudeLimits {
-    long limit = 500000;
-    long remaining = 500000;
+    long tokensToday = 0;
 };
+const long claudeHeavyUsageThreshold = 2500000;
 
 struct AntigravityLimits {
     int limit = 200;
@@ -222,12 +229,10 @@ void renderFaceScreen() {
     int eyeRadius = 8;
     int eyeDist = 26;
 
-    // Check if token quota is low (< 20%): show tired droopy eyes with sweat
-    long claudeUsed = max(0L, claudeData.limit - claudeData.remaining);
-    float claudePercentLeft = claudeData.limit > 0 ? (float)claudeData.remaining / (float)claudeData.limit : 1.0f;
-    bool isLowQuota = (claudePercentLeft < 0.20f) && (claudeData.limit > 0);
+    // Heavy usage today: show tired droopy eyes with sweat
+    bool isHeavyUsage = claudeData.tokensToday > claudeHeavyUsageThreshold;
 
-    if (isLowQuota) {
+    if (isHeavyUsage) {
         // Tired / Low Battery Droopy Eyes
         int tiredH = eyeH / 2;
         display.fillRoundRect(cx - eyeDist - eyeW / 2, cy - 2, eyeW, tiredH, 4, SSD1306_WHITE);
@@ -242,8 +247,8 @@ void renderFaceScreen() {
 
         display.setTextSize(1);
         display.setTextColor(SSD1306_WHITE);
-        display.setCursor(34, 54);
-        display.print("LOW TOKENS");
+        display.setCursor(28, 54);
+        display.print("HEAVY USAGE");
         return;
     }
 
@@ -282,14 +287,9 @@ void renderSplitHUDScreen() {
     display.setCursor(55, 4);
     display.print("AI LIMITS");
 
-    // Claude Progress Bar
-    long claudeUsed = max(0L, claudeData.limit - claudeData.remaining);
-    float claudePercent = claudeData.limit > 0 ? (float)claudeUsed / (float)claudeData.limit : 0.0f;
+    // Claude: no real quota on our plan, so show today's token count directly
     display.setCursor(55, 16);
-    display.print("C:");
-    display.drawRect(68, 16, 56, 7, SSD1306_WHITE);
-    int cFill = (int)(52 * claudePercent);
-    if (cFill > 0) display.fillRect(70, 18, cFill, 3, SSD1306_WHITE);
+    display.printf("C:%ldk/day", claudeData.tokensToday / 1000);
 
     // Antigravity Progress Bar
     float agPercent = agData.limit > 0 ? (float)agData.used / (float)agData.limit : 0.0f;
@@ -317,10 +317,24 @@ void drawHeader(const char* title, const char* rightTag = "") {
 
     if (strlen(rightTag) > 0) {
         int16_t x1, y1;
-        uint16_t w, h;
-        display.getTextBounds(rightTag, 0, 0, &x1, &y1, &w, &h);
-        display.setCursor(126 - w, 2);
-        display.print(rightTag);
+        uint16_t titleW, h;
+        display.getTextBounds(title, 0, 0, &x1, &y1, &titleW, &h);
+        int titleRightEdge = 2 + titleW + 4; // 4px gap after the title
+
+        // Truncate from the end, just enough to stop it clashing with the
+        // title -- long city/location names would otherwise overlap it.
+        String tag = String(rightTag);
+        uint16_t tagW;
+        display.getTextBounds(tag, 0, 0, &x1, &y1, &tagW, &h);
+        while (tag.length() > 0 && (int)(126 - tagW) < titleRightEdge) {
+            tag.remove(tag.length() - 1);
+            display.getTextBounds(tag, 0, 0, &x1, &y1, &tagW, &h);
+        }
+
+        if (tag.length() > 0) {
+            display.setCursor(126 - tagW, 2);
+            display.print(tag);
+        }
     }
     display.drawFastHLine(0, 11, 128, SSD1306_WHITE);
 }
@@ -338,14 +352,11 @@ void drawProgressBar(int x, int y, int w, int h, float percentage) {
 void renderLimitsScreen() {
     drawHeader("AI QUOTAS", wifiConnected ? "ONLINE" : "DEMO");
 
-    // Claude Tokens
-    long claudeUsed = max(0L, claudeData.limit - claudeData.remaining);
-    float claudePercent = claudeData.limit > 0 ? (float)claudeUsed / (float)claudeData.limit : 0.0f;
-
+    // Claude Tokens: corporate plan has no monthly/weekly quota, so there's
+    // no ceiling to show a bar against -- just today's real usage.
     display.setTextSize(1);
     display.setCursor(2, 16);
-    display.printf("Claude: %ldk/%ldk", claudeUsed / 1000, claudeData.limit / 1000);
-    drawProgressBar(2, 26, 124, 6, claudePercent);
+    display.printf("Claude: %ldk today", claudeData.tokensToday / 1000);
 
     // Antigravity Quota
     float agPercent = agData.limit > 0 ? (float)agData.used / (float)agData.limit : 0.0f;
@@ -519,8 +530,7 @@ void fetchBackendData() {
         DeserializationError error = deserializeJson(doc, payload);
 
         if (!error) {
-            claudeData.limit = doc["claude"]["limit"] | 500000L;
-            claudeData.remaining = doc["claude"]["remaining"] | 500000L;
+            claudeData.tokensToday = doc["claude"]["tokens_today"] | 0L;
 
             agData.limit = doc["antigravity"]["limit"] | 200;
             agData.used = doc["antigravity"]["used"] | 0;
