@@ -1,88 +1,125 @@
-# ESP32 AI Companion & Tiny Screen
+# ESP32 AI Companion & Tiny Screen (QBIT-Style Robot)
 
 ![Framework](https://img.shields.io/badge/Framework-Arduino_ESP32--C3-007acc?style=flat-square)
 ![Hardware](https://img.shields.io/badge/Hardware-ESP32--C3_SuperMini-e67e22?style=flat-square)
-![Display](https://img.shields.io/badge/Display-ILI9341_240x320_Touch-brightgreen?style=flat-square)
+![Display](https://img.shields.io/badge/Display-0.96%22_OLED_SSD1306_128x64-brightgreen?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
-An interactive, Wi-Fi enabled desktop companion monitor powered by a compact **ESP32-C3 SuperMini** microcontroller and a 2.8-inch 240x320 ILI9341 SPI Display with Touch Panel. It acts as a dedicated hardware gauge for your AI token limits, pending agent approvals, and local weather forecasts.
+An open-source, Wi-Fi enabled desktop companion robot powered by the ultra-compact **ESP32-C3 SuperMini** microcontroller and a **0.96" 128x64 I2C OLED Display (SSD1306)**.
 
-<p align="center">
-  <img src="img/ai_limits.jpg" width="45%" alt="Neo-Brutalist AI Limits UI">
-  &nbsp;
-  <img src="img/weather.jpg" width="45%" alt="Neo-Brutalist Weather UI">
-</p>
+It combines an expressive, retro animated robot face with real-time hardware gauges for your AI coding token quotas (Claude Code & Antigravity CLI), agent plan approval notifications, and local weather forecasts.
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-- **Live AI Quota & Limits Monitoring:** Displays real-time Claude Code token consumption and Antigravity CLI quota limits.
-- **Agent Attention Alert:** Flashes a retro amber warning screen when an AI coding agent is waiting for user plan approval or input.
-- **Weather & Forecast:** Auto-detects location via IP or allows manual location configuration, displaying current temperature and hours until rain.
-- **Direct GitHub HTTPS OTA Updates:** ESP32 automatically queries GitHub Releases on boot. If a new version tag is pushed, it flashes wirelessly over Wi-Fi!
-- **Cross-Platform PC Companion App:** Desktop utility (macOS, Windows, Linux) to configure weather locations, inspect backend data, and check for ESP32 firmware updates.
+- **👀 Expressive Animated Face & Blinking Engine:**
+  - 30 FPS non-blocking animation engine with natural eyelid physics and saccadic eye movements (looking center, left, right, and up).
+  - Randomized blinking intervals with realistic double-blinks.
+  - **Mood Reactions:**
+    - *Normal Idle:* Friendly, calm blinking and glancing.
+    - *Low Quota (< 20%):* Droopy/sleepy eyes with animated falling sweat droplets.
+    - *Agent Attention Alert:* Flashes shocked wide eyes and a retro warning banner when an AI coding agent is waiting for user approval.
+- **📊 Real-Time AI Quota Monitoring:** Monitors Claude Code token consumption and Antigravity CLI quota percentage.
+- **🌦️ Local Weather & Digital Clock:** Displays temperature, rain forecasts, and live synchronized time.
+- **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Face (8s) $\rightarrow$ Split HUD (8s) $\rightarrow$ Detailed Quotas (8s) $\rightarrow$ Clock & Weather (8s).
+- **📡 Automatic Zero-Config mDNS Backend Discovery:** The ESP32 discovers your PC's companion backend automatically via `tiny-ai-companion.local`—no need to hardcode local IP addresses!
+- **📶 Robust Wi-Fi Connectivity:** Tuned RF TX power to prevent voltage brownouts on USB power, with PMF auto-negotiation compatibility for mixed WPA2/WPA3 enterprise routers.
+- **🖥️ Web Simulator & Prototype:** Interactive browser visualizer (`/faces` or `/emulator`) to test all 10+ robot emotions and companion states.
+- **🖨️ 3D-Printable Enclosure:** Parametric OpenSCAD and STL files included in `enclosure/` for desktop casing.
 
 ---
 
-## Hardware & Components
+## 🛠️ Hardware & Pinout
 
+### Required Components
 - **Microcontroller:** [ESP32-C3 SuperMini Development Board](https://nl.aliexpress.com/item/1005006121404100.html) (RISC-V 160MHz, Wi-Fi & BLE, USB-C)
-- **Display Module:** [2.8" 240x320 SPI TFT LCD Display Module with Touch Panel (ILI9341)](https://nl.aliexpress.com/item/1005004557916570.html)
-- **Wiring:** Dupont jumper wires (Follow pinouts in [WIRING.md](WIRING.md))
+- **Display Module:** 0.96" or 1.3" I2C Monochrome OLED Display (128x64, SSD1306 / SH1106)
+- **Wiring:** 4x Female-to-Female or Male-to-Male Dupont jumper wires
+
+### Standard Wiring Table (Hardware I2C)
+
+| OLED Pin (0.96" SSD1306) | ESP32-C3 SuperMini Pin | Description |
+| :--- | :--- | :--- |
+| **GND** | **GND** (Pin 2, Left Header) | Ground |
+| **VCC** | **3V3** (Pin 3, Left Header) | 3.3V Power |
+| **SCL / SCK** | **GPIO 9** (Pin 13, Right Header) | I2C Clock (400 kHz) |
+| **SDA** | **GPIO 8** (Pin 14, Right Header) | I2C Data |
+
+*(For alternative 4-in-a-row pinouts or breadboard layouts, see [WIRING.md](WIRING.md)).*
 
 ---
 
-## Desktop Companion App (macOS & Windows)
+## 🚀 Getting Started
 
-The companion application runs locally on your computer to serve data to the ESP32 screen.
+### 1. Configure Wi-Fi Credentials
+Create a file named `include/secrets.h` (or copy from `include/secrets.example.h` if available):
 
-### Pre-built Executables
-Download the standalone executable for your operating system from the **[GitHub Releases Page](../../releases)**:
-- **Windows:** `TinyAIScreenCompanion-Windows.exe`
-- **macOS:** `TinyAIScreenCompanion-macOS`
-- **Linux:** `TinyAIScreenCompanion-Linux`
+```cpp
+#pragma once
 
-### Running from Source
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+const char* backend_url = "http://tiny-ai-companion.local:5000/data";
+```
+
+### 2. Build & Flash Firmware
+Using **PlatformIO**:
+
 ```bash
-cd backend
+# Build firmware
+python3 -m platformio run
+
+# Upload to ESP32 over USB-C
+python3 -m platformio run --target upload
+```
+
+### 3. Run the PC Companion Backend
+The companion service monitors your local AI agent transcripts and weather data, hosting the REST endpoint for the ESP32:
+
+```bash
+# Install dependencies
 pip install flask requests
-python app.py
-```
 
-### Companion App Features
-1. **Location Settings:** Toggle between IP auto-detection or type a custom city name (e.g. `"Milan"`, `"Tokyo"`).
-2. **Firmware Update Checker:** One-click check against GitHub API to see if a newer ESP32 release is available.
-3. **Local Server:** Hosts the REST endpoint (`http://<YOUR_IP>:5000/data`) polled by the ESP32 over Wi-Fi.
+# Launch backend (or double-click TinyScreen.command on macOS)
+python3 backend/app.py
+```
 
 ---
 
-## Firmware Build & GitHub Actions CI/CD
+## 🎨 Interactive Browser Prototype
 
-This repository uses **GitHub Actions** for automated build and release pipelines:
+You can test and preview all face animations and companion states without flashing hardware:
 
-- **On Code Push / PR:** Automatically verifies that PlatformIO builds the ESP32 firmware cleanly and PyInstaller compiles the companion executables.
-- **On Version Tag Push (`git tag v0.1 && git push origin v0.1`):**
-  1. Compiles `firmware.bin` for ESP32.
-  2. Compiles standalone Companion App executables for macOS, Windows, and Linux.
-  3. Automatically creates a GitHub Release and attaches all binaries.
+1. Start the backend: `python3 backend/app.py`
+2. Open in your browser:
+   * **Robot Face Visualizer:** `http://localhost:5000/faces`
+   * **Full Display Emulator:** `http://localhost:5000/emulator`
 
 ---
 
-## Getting Started
+## 📂 Project Structure
 
-### 1. Wiring the Display
-Follow the detailed pinout guide in [WIRING.md](WIRING.md).
-
-### 2. Initial ESP32 Setup (USB)
-1. Open this project in VS Code with **PlatformIO**.
-2. Configure your Wi-Fi credentials (`ssid`, `password`) and GitHub details (`github_user`, `github_repo`) in [`src/main.cpp`](src/main.cpp).
-3. Connect your ESP32-C3 via USB and click **Upload**.
-
-### 3. Future Updates (Over-The-Air)
-You never need to plug the ESP32 into USB again for updates! When you are ready for a new version:
-```bash
-git tag v0.1
-git push origin v0.1
 ```
-GitHub Actions will build the release, and your ESP32 screen will update itself over Wi-Fi on its next boot!
+├── backend/                  # Python Flask companion service & token trackers
+│   └── app.py
+├── enclosure/                # 3D printable case models & assembly guide
+│   ├── top_case.stl
+│   ├── bottom_base.stl
+│   └── desk_console_oled13_esp32c3.scad
+├── emulator/                 # Interactive browser visualizers & emulators
+│   ├── qbit_faces_prototype.html
+│   └── index.html
+├── include/                  # Configuration & secrets
+│   └── secrets.h
+├── src/                      # ESP32-C3 Arduino firmware
+│   └── main.cpp
+├── platformio.ini            # PlatformIO board & library configuration
+├── WIRING.md                 # Detailed pinout & wiring schematics
+└── README.md
+```
+
+---
+
+## 📄 License
+MIT License. Feel free to use, modify, and build your own desktop companion!
