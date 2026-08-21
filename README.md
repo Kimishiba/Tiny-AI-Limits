@@ -57,7 +57,11 @@ It combines an expressive, retro animated robot face with real-time hardware gau
 ## 🚀 Getting Started
 
 ### 1. Configure Wi-Fi Credentials
-Create a file named `include/secrets.h` (or copy from `include/secrets.example.h` if available):
+Copy `src/secrets.h.example` to `src/secrets.h` and configure your network:
+
+```bash
+cp src/secrets.h.example src/secrets.h
+```
 
 ```cpp
 #pragma once
@@ -114,10 +118,11 @@ You can test and preview all face animations and companion states without flashi
 ├── emulator/                 # Interactive browser visualizers & emulators
 │   ├── qbit_faces_prototype.html
 │   └── index.html
-├── include/                  # Configuration & secrets
-│   └── secrets.h
-├── src/                      # ESP32-C3 Arduino firmware
-│   └── main.cpp
+├── tools/                    # Asset generators (GIF animator, format converters)
+│   └── generate_preview_gif.py
+├── src/                      # ESP32-C3 Arduino firmware & secrets template
+│   ├── main.cpp
+│   └── secrets.h.example
 ├── platformio.ini            # PlatformIO board & library configuration
 ├── WIRING.md                 # Detailed pinout & wiring schematics
 └── README.md
