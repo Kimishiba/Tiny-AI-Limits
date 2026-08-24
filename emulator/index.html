@@ -743,7 +743,7 @@
         </div>
 
         <div class="toggle-row" style="background: var(--accent-orange-light);">
-          <span class="toggle-label" style="font-weight: 700;">Simulate Agent Alert (<code>waiting_for_input</code>)</span>
+          <span class="toggle-label" style="font-weight: 700;">⚠️ Simulate Agent Alert (<code>waiting_for_input</code>)</span>
           <label class="switch">
             <input type="checkbox" id="agentInputToggle" onchange="toggleAgentInput(this.checked)">
             <span class="slider"></span>
@@ -755,7 +755,30 @@
           <input type="text" id="promptTextInput" value="APPROVE PLAN" oninput="updatePromptText(this.value)">
         </div>
 
-        <div class="ctrl-row">
+        <!-- Work Complete Simulation -->
+        <div class="toggle-row" style="background: var(--accent-green-bg); margin-top: 0.75rem;">
+          <span class="toggle-label" style="font-weight: 700; color: var(--accent-green);">✨ Simulate Work Complete (<code>completion_flash</code>)</span>
+          <label class="switch">
+            <input type="checkbox" id="workCompleteToggle" onchange="toggleWorkComplete(this.checked)">
+            <span class="slider" style="background-color: #a7f3d0;"></span>
+          </label>
+        </div>
+
+        <div class="ctrl-row" style="margin-top: 0.5rem;">
+          <label>Completion Banner: <span class="val" id="completionTextVal">WORK COMPLETE</span></label>
+          <input type="text" id="completionTextInput" value="WORK COMPLETE" oninput="updateCompletionText(this.value)">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.6rem;">
+          <button class="neo-btn" style="background: #dcfce7; font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: var(--accent-green); color: #14532d;" onclick="triggerCompletionPulse(10)">
+            ⚡ Trigger 10s Flash
+          </button>
+          <button class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: var(--accent-orange);" onclick="triggerApprovalAlert('APPROVE PLAN')">
+            📋 Plan Review Alert
+          </button>
+        </div>
+
+        <div class="ctrl-row" style="margin-top: 0.75rem;">
           <label>Claude Remaining %: <span class="val" id="claudeVal">85%</span></label>
           <input type="range" id="claudeSlider" min="0" max="100" value="85" oninput="updateClaudeVal(this.value)">
         </div>
@@ -775,7 +798,7 @@
           <input type="range" id="rainSlider" min="-1" max="12" step="1" value="2" oninput="updateRainVal(this.value)">
         </div>
 
-        <button class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.8rem; margin-top: 0.8rem; width: 100%; border-color: var(--accent-orange);" onclick="incrementMinuteSim()">
+        <button class="neo-btn" style="background: var(--card-alt); font-size: 0.8rem; margin-top: 0.8rem; width: 100%; border-color: var(--border-dark);" onclick="incrementMinuteSim()">
           ⏱️ Test Minute Flip (+1 Min)
         </button>
       </div>
@@ -804,12 +827,14 @@
 
   <script>
     // --- EMULATOR COLOR DEFINITIONS (Matching TFT_eSPI definitions) ---
-    const KINETIC_YELLOW = "#FFFF00";
-    const KINETIC_CYAN   = "#00FFFF";
-    const KINETIC_LIME   = "#00FF00";
-    const KINETIC_AMBER  = "#FF6600";
-    const KINETIC_BLACK  = "#000000";
-    const KINETIC_DARK   = "#181C24";
+    const KINETIC_YELLOW  = "#FFFF00";
+    const KINETIC_CYAN    = "#00FFFF";
+    const KINETIC_LIME    = "#00FF00";
+    const KINETIC_AMBER   = "#FF6600";
+    const KINETIC_EMERALD = "#00FF88";
+    const KINETIC_MINT    = "#A7F3D0";
+    const KINETIC_BLACK   = "#000000";
+    const KINETIC_DARK    = "#181C24";
 
     const canvas = document.getElementById("tftCanvas");
     const ctx = canvas.getContext("2d");
@@ -829,6 +854,9 @@
     let date_string = "THU 06 AUG";
     let waiting_for_input = false;
     let prompt_text = "APPROVE PLAN";
+    let work_completed = false;
+    let completion_text = "WORK COMPLETE";
+    let completionCountdownTimer = null;
 
     // Time keeping
     let server_hour = 12;
@@ -968,6 +996,28 @@
         if (blinkState) {
           c.fillRect(rx, 126, 12, 12);
         }
+      } else if (work_completed) {
+        const completeBg = blinkState ? "#064e3b" : "#022c22";
+        const textColor = blinkState ? "#00FF88" : "#A7F3D0";
+
+        c.fillStyle = completeBg;
+        c.fillRect(rx - 4, 26, 130, 134);
+        c.strokeStyle = "#00FF88";
+        c.lineWidth = 1.5;
+        c.strokeRect(rx - 4, 26, 130, 134);
+
+        c.fillStyle = textColor;
+        c.font = "bold 11px 'Fira Code', monospace";
+        c.textAlign = "left";
+        c.fillText("★ TASK COMPLETE ★", rx, 44);
+        c.fillText("> AGENT: FINISHED", rx, 62);
+        c.fillText("> STATUS: SUCCESS", rx, 80);
+        c.fillText("> " + (completion_text || "ALL DONE"), rx, 98);
+        c.fillText("> READY FOR NEXT", rx, 116);
+        if (blinkState) {
+          c.fillStyle = "#00FF88";
+          c.fillRect(rx, 126, 12, 12);
+        }
       } else {
         c.fillStyle = KINETIC_BLACK;
         c.font = "bold 11px 'Fira Code', monospace";
@@ -994,6 +1044,14 @@
         c.textAlign = "right";
         c.fillText("STATUS: WAITING", 310, 183);
         c.fillStyle = blinkState ? KINETIC_AMBER : KINETIC_BLACK;
+        c.fillRect(185, 174, 10, 10);
+      } else if (work_completed) {
+        c.fillStyle = "#00FF88";
+        c.textAlign = "left";
+        c.fillText("★ WORK COMPLETED ★", 10, 183);
+        c.textAlign = "right";
+        c.fillText("STATUS: DONE", 310, 183);
+        c.fillStyle = blinkState ? "#00FF88" : "#064e3b";
         c.fillRect(185, 174, 10, 10);
       } else {
         c.fillStyle = KINETIC_YELLOW;
@@ -1507,18 +1565,9 @@
       c.stroke();
     }
 
-    function drawGC9A01RoundFlipUI(c) {
-      const now = getNowTime();
-      const cx = 160, cy = 120, rScreen = 114;
-      const alertActive = Boolean(waiting_for_input && blinkState);
-
-      // 1. Outer Dark Bezel Canvas Background
-      c.fillStyle = "#0c0e14";
-      c.fillRect(0, 0, 320, 240);
-
-      // 2. Bezel Casing Ring (Simulating round watch housing / Spinning Kinetic Broken Alert Ring)
+    function drawGC9A01BezelRing(c, cx, cy, rScreen) {
       if (waiting_for_input) {
-        // Continuous smooth rotation angle driven by system timestamp (25% slower: 533ms divisor)
+        // Continuous smooth rotation angle driven by system timestamp
         const spinAngle = (Date.now() / 533) % (Math.PI * 2);
 
         // Dark amber track underlay
@@ -1536,7 +1585,7 @@
         c.strokeStyle = "#FFB800";
         c.lineWidth = 5;
         c.lineCap = "round";
-        c.setLineDash([34, 14, 12, 14, 46, 18, 16, 14]); // Broken segmented pattern
+        c.setLineDash([34, 14, 12, 14, 46, 18, 16, 14]);
         c.beginPath();
         c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
         c.stroke();
@@ -1554,6 +1603,52 @@
         c.setLineDash([]);
 
         c.restore();
+      } else if (work_completed) {
+        // Celebratory Neon Emerald Wave Pulse & Orbital Sparks
+        const nowMs = Date.now();
+        const spinAngle = (nowMs / 400) % (Math.PI * 2);
+        const pulsePhase = (nowMs % 1000) / 1000; // 0.0 -> 1.0 expanding ripple
+        const pulseRadius = rScreen + 1 + pulsePhase * 7;
+        const pulseAlpha = Math.max(0, 1.0 - pulsePhase);
+
+        // 1. Expanding Outward Ripple Ring
+        c.save();
+        c.strokeStyle = `rgba(0, 255, 136, ${pulseAlpha * 0.8})`;
+        c.lineWidth = 2 + (1 - pulsePhase) * 3.5;
+        c.beginPath();
+        c.arc(cx, cy, pulseRadius, 0, Math.PI * 2);
+        c.stroke();
+
+        // 2. Base Dark Emerald Track
+        c.strokeStyle = "#032e1e";
+        c.lineWidth = 6;
+        c.beginPath();
+        c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+
+        // 3. Dual Forward & Reverse Orbiting Emerald Streaks
+        c.translate(cx, cy);
+        c.rotate(spinAngle);
+        c.strokeStyle = "#00FF88";
+        c.lineWidth = 5;
+        c.lineCap = "round";
+        c.setLineDash([28, 16, 8, 16, 44, 20, 12, 16]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+
+        // 4. Sparkling Mint Highlights
+        c.rotate(-spinAngle * 2.4);
+        c.strokeStyle = "#A7F3D0";
+        c.lineWidth = 3;
+        c.lineCap = "round";
+        c.setLineDash([6, 36, 12, 44]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+        c.restore();
       } else {
         // Normal state: Static sleek gunmetal bezel ring
         c.strokeStyle = "#1f2330";
@@ -1562,6 +1657,19 @@
         c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
         c.stroke();
       }
+    }
+
+    function drawGC9A01RoundFlipUI(c) {
+      const now = getNowTime();
+      const cx = 160, cy = 120, rScreen = 114;
+      const alertActive = Boolean(waiting_for_input && blinkState);
+
+      // 1. Outer Dark Bezel Canvas Background
+      c.fillStyle = "#0c0e14";
+      c.fillRect(0, 0, 320, 240);
+
+      // 2. Bezel Casing Ring (Normal, Alert, or Work Complete Pulse)
+      drawGC9A01BezelRing(c, cx, cy, rScreen);
 
       // Screen background (Deep OLED Black)
       c.fillStyle = "#000000";
@@ -2003,7 +2111,7 @@
       draw2x2FlipCard(x1, yBottom, roundOldDigits[2], dM1, roundFlipProgress[2]);
       draw2x2FlipCard(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
 
-      // 7. Bottom Sub-HUD (Date & Weather Stacked, or Agent Alert)
+      // 7. Bottom Sub-HUD (Date & Weather Stacked, or Agent Alert, or Work Complete)
       c.textAlign = "center";
       c.textBaseline = "middle";
 
@@ -2015,6 +2123,14 @@
         c.font = "bold 11px 'JetBrains Mono', monospace";
         c.fillStyle = "#ffffff";
         c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 95);
+      } else if (work_completed) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = blinkState ? "#00FF88" : "#059669";
+        c.fillText("✨ TASK COMPLETE ✨", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
         // Line 1: Day & Date
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
@@ -2031,13 +2147,14 @@
 
     function drawGC9A01RoundFaceUI(c) {
       const cx = 160, cy = 120, rScreen = 114;
+      const alertActive = Boolean(waiting_for_input && blinkState);
 
-      // 1. Static Sleek Bezel Ring
-      c.strokeStyle = "#1f2330";
-      c.lineWidth = 6;
-      c.beginPath();
-      c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
-      c.stroke();
+      // 1. Outer Dark Bezel Canvas Background
+      c.fillStyle = "#0c0e14";
+      c.fillRect(0, 0, 320, 240);
+
+      // 2. Bezel Casing Ring (Normal, Alert, or Work Complete Pulse)
+      drawGC9A01BezelRing(c, cx, cy, rScreen);
 
       // Screen background (Deep OLED Black)
       c.fillStyle = "#000000";
@@ -2101,7 +2218,8 @@
       const eyeW = 54, eyeH = 80;
       const leftEyeX = cx - 52;
       const rightEyeX = cx + 52;
-      const eyeY = cy;
+      const bounceY = work_completed ? Math.sin(Date.now() / 180) * 3 : 0;
+      const eyeY = cy + bounceY;
 
       // EYES BLINK & SACCADE PHYSICS
       const blinkCycle = (Math.floor(Date.now() / 4000) % 2 === 0);
@@ -2110,11 +2228,14 @@
       const curH = eyeH * scaleY;
       const cornerR = Math.min(26, curH / 2);
 
+      const eyeGlowColor = work_completed ? "rgba(0, 255, 136, 0.85)" : (waiting_for_input ? "rgba(255, 184, 0, 0.85)" : "rgba(0, 229, 255, 0.75)");
+      const eyeFillColor = work_completed ? "#00FF88" : (waiting_for_input ? "#FFB800" : "#00E5FF");
+
       // Draw Left Capsule Eye
       c.save();
-      c.shadowColor = "rgba(0, 229, 255, 0.75)";
+      c.shadowColor = eyeGlowColor;
       c.shadowBlur = 16;
-      c.fillStyle = "#00E5FF";
+      c.fillStyle = eyeFillColor;
       c.beginPath();
       if (typeof c.roundRect === "function") {
         c.roundRect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR);
@@ -2142,7 +2263,7 @@
         c.fill();
       }
 
-      // 4. Bottom Sub-HUD (Date & Weather / Agent Alert)
+      // 4. Bottom Sub-HUD (Date & Weather / Agent Alert / Work Complete)
       c.textAlign = "center";
       c.textBaseline = "middle";
 
@@ -2154,6 +2275,14 @@
         c.font = "bold 11px 'JetBrains Mono', monospace";
         c.fillStyle = "#ffffff";
         c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 95);
+      } else if (work_completed) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = blinkState ? "#00FF88" : "#059669";
+        c.fillText("✨ TASK COMPLETE ✨", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
         c.fillStyle = "#94a3b8";
@@ -2278,11 +2407,69 @@
 
     function toggleAgentInput(checked) {
       waiting_for_input = checked;
+      if (checked) {
+        work_completed = false;
+        const completeToggle = document.getElementById("workCompleteToggle");
+        if (completeToggle) completeToggle.checked = false;
+        if (completionCountdownTimer) {
+          clearTimeout(completionCountdownTimer);
+          completionCountdownTimer = null;
+        }
+      }
+    }
+
+    function toggleWorkComplete(checked) {
+      work_completed = checked;
+      if (checked) {
+        waiting_for_input = false;
+        const alertToggle = document.getElementById("agentInputToggle");
+        if (alertToggle) alertToggle.checked = false;
+      }
+    }
+
+    function triggerCompletionPulse(durationSeconds = 10) {
+      work_completed = true;
+      waiting_for_input = false;
+      const completeToggle = document.getElementById("workCompleteToggle");
+      const alertToggle = document.getElementById("agentInputToggle");
+      if (completeToggle) completeToggle.checked = true;
+      if (alertToggle) alertToggle.checked = false;
+
+      if (completionCountdownTimer) clearTimeout(completionCountdownTimer);
+      completionCountdownTimer = setTimeout(() => {
+        work_completed = false;
+        if (completeToggle) completeToggle.checked = false;
+        completionCountdownTimer = null;
+      }, durationSeconds * 1000);
+    }
+
+    function triggerApprovalAlert(planText = "APPROVE PLAN") {
+      waiting_for_input = true;
+      work_completed = false;
+      prompt_text = planText;
+      const completeToggle = document.getElementById("workCompleteToggle");
+      const alertToggle = document.getElementById("agentInputToggle");
+      if (completeToggle) completeToggle.checked = false;
+      if (alertToggle) alertToggle.checked = true;
+      const promptInput = document.getElementById("promptTextInput");
+      if (promptInput) promptInput.value = planText;
+      const promptVal = document.getElementById("promptTextVal");
+      if (promptVal) promptVal.innerText = planText;
+      if (completionCountdownTimer) {
+        clearTimeout(completionCountdownTimer);
+        completionCountdownTimer = null;
+      }
     }
 
     function updatePromptText(val) {
       prompt_text = val.trim() || "INPUT REQ";
       document.getElementById("promptTextVal").innerText = prompt_text;
+    }
+
+    function updateCompletionText(val) {
+      completion_text = val.trim() || "WORK COMPLETE";
+      const el = document.getElementById("completionTextVal");
+      if (el) el.innerText = completion_text;
     }
 
     function updateClaudeVal(val) {
@@ -2354,9 +2541,22 @@
           if (data.agent) {
             waiting_for_input = !!data.agent.waiting_for_input;
             prompt_text = data.agent.prompt_text || "APPROVE PLAN";
-            document.getElementById("agentInputToggle").checked = waiting_for_input;
-            document.getElementById("promptTextInput").value = prompt_text;
-            document.getElementById("promptTextVal").innerText = prompt_text;
+            work_completed = !!data.agent.work_completed || !!data.agent.completion_flash || (data.agent.state === "completed");
+            if (data.agent.completion_text) {
+              completion_text = data.agent.completion_text;
+            }
+            const agentToggle = document.getElementById("agentInputToggle");
+            if (agentToggle) agentToggle.checked = waiting_for_input;
+            const completeToggle = document.getElementById("workCompleteToggle");
+            if (completeToggle) completeToggle.checked = work_completed;
+            const promptInput = document.getElementById("promptTextInput");
+            if (promptInput) promptInput.value = prompt_text;
+            const promptVal = document.getElementById("promptTextVal");
+            if (promptVal) promptVal.innerText = prompt_text;
+            const compInput = document.getElementById("completionTextInput");
+            if (compInput) compInput.value = completion_text;
+            const compVal = document.getElementById("completionTextVal");
+            if (compVal) compVal.innerText = completion_text;
           }
 
           wifiLed.className = "led wifi";

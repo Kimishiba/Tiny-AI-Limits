@@ -493,24 +493,43 @@ def get_antigravity_quota():
 # --- Flask Endpoints ---
 test_alert_override = False
 test_alert_prompt = "APPROVE PLAN"
+test_complete_override = False
+test_complete_prompt = "WORK COMPLETE"
 
 @app.route('/api/test_alert', methods=['GET', 'POST'])
 def handle_test_alert():
-    global test_alert_override, test_alert_prompt
+    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt
     data = request.json or request.args or {}
-    if "active" in data or "enabled" in data:
-        val = data.get("active") or data.get("enabled")
-        test_alert_override = str(val).lower() in ["true", "1", "yes", "active", "on"]
+    mode = data.get("mode") or data.get("type") or ""
+    
+    if mode == "complete" or "complete" in data or "completed" in data:
+        val = data.get("complete") if "complete" in data else data.get("completed")
+        if val is not None:
+            test_complete_override = str(val).lower() in ["true", "1", "yes", "active", "on"]
+        else:
+            test_complete_override = not test_complete_override
+        if test_complete_override:
+            test_alert_override = False
     else:
-        test_alert_override = not test_alert_override
+        if "active" in data or "enabled" in data:
+            val = data.get("active") or data.get("enabled")
+            test_alert_override = str(val).lower() in ["true", "1", "yes", "active", "on"]
+        else:
+            test_alert_override = not test_alert_override
+        if test_alert_override:
+            test_complete_override = False
 
     if "prompt" in data and data["prompt"]:
-        test_alert_prompt = str(data["prompt"])
+        if test_complete_override:
+            test_complete_prompt = str(data["prompt"])
+        else:
+            test_alert_prompt = str(data["prompt"])
 
     return jsonify({
         "status": "ok",
         "test_alert_active": test_alert_override,
-        "prompt_text": test_alert_prompt
+        "test_complete_active": test_complete_override,
+        "prompt_text": test_complete_prompt if test_complete_override else test_alert_prompt
     })
 
 @app.route('/data', methods=['GET'])
@@ -530,19 +549,20 @@ def get_data():
     weather_data = get_weather()
     
     waiting_for_input = False
+    work_completed = False
     prompt_text = "INPUT REQ"
+    completion_text = "WORK COMPLETE"
+
     if test_alert_override:
         waiting_for_input = True
         prompt_text = test_alert_prompt
+    elif test_complete_override:
+        work_completed = True
+        completion_text = test_complete_prompt
     else:
         try:
             # Multiple Antigravity sessions -- including across different
             # products (GUI app, CLI, IDE extension) -- can run concurrently.
-            # Checking only the single most-recently-modified transcript misses a
-            # session that's frozen waiting for an answer while a different,
-            # unrelated session is still actively working (and therefore keeps
-            # looking "more recent"). Check every transcript touched recently,
-            # not just the newest one, and alert on the first pending one found.
             now_ts = time.time()
             for brain_dir in _antigravity_brain_dirs():
                 if waiting_for_input:
@@ -553,11 +573,7 @@ def get_data():
                     fp = os.path.join(root, "transcript.jsonl")
                     mtime = os.path.getmtime(fp)
 
-                    # A pending question/permission/plan-approval is only ever the
-                    # LAST line of the transcript -- once answered, the agent appends
-                    # a new step (e.g. type ASK_QUESTION) right after it. 30 minutes
-                    # of slack accounts for realistic human reaction time; the file
-                    # simply stops being written while a question is outstanding.
+                    # 30 minutes of slack accounts for realistic human reaction time
                     if now_ts - mtime >= 1800:
                         continue
 
@@ -575,19 +591,19 @@ def get_data():
                     if not last_step or last_step.get("type") != "PLANNER_RESPONSE":
                         continue
 
-                    found = False
+                    found_pending = False
                     for tc in last_step.get("tool_calls", []) or []:
                         name = tc.get("name")
                         args = tc.get("args", {}) or {}
                         if name == "ask_question":
                             waiting_for_input = True
                             prompt_text = "ANSWER Q"
-                            found = True
+                            found_pending = True
                             break
                         if name == "ask_permission":
                             waiting_for_input = True
                             prompt_text = "GRANT PERM"
-                            found = True
+                            found_pending = True
                             break
                         meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
                         if isinstance(meta_raw, str):
@@ -602,15 +618,21 @@ def get_data():
                         if meta.get("RequestFeedback") is True:
                             waiting_for_input = True
                             prompt_text = "APPROVE PLAN"
-                            found = True
+                            found_pending = True
                             break
-                    if found:
+
+                    if found_pending:
                         break
+                    elif (now_ts - mtime) < 25:
+                        # Step finished recently without requiring feedback -> Work Completed!
+                        work_completed = True
+                        completion_text = "WORK COMPLETE"
         except Exception as e:
             print(f"Agent check error: {e}")
 
-
     now = datetime.now()
+    agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
+
     return jsonify({
         "claude": claude_data,
         "antigravity": antigravity_data,
@@ -623,7 +645,11 @@ def get_data():
         },
         "agent": {
             "waiting_for_input": waiting_for_input,
-            "prompt_text": prompt_text
+            "work_completed": work_completed,
+            "completion_flash": work_completed,
+            "state": agent_state,
+            "prompt_text": prompt_text,
+            "completion_text": completion_text
         },
         "device": {
             "screen_type": config.get("screen_type", "auto")
