@@ -7,4 +7,8 @@
 - Include the Google Antigravity co-author trailer on all commits:
   `Co-Authored-By: Google Antigravity <google-antigravity@users.noreply.github.com>`
 
+## Enclosure & CAD Workflow
+- Do NOT generate or update technical drawing sheets (`generate_technical_drawings.py` or `.png` blueprints) unless explicitly requested by the user.
+
+
 
