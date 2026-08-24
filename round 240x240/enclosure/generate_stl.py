@@ -6,7 +6,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
 Replicates the Cyberdeck Unit 01 Desk Console concept render:
 - Sculpted two-tier tapered pedestal stand with 22° V-saddle cradle and rear cable channel
 - 36mm deep octagonal housing pod with 44x44x29.5mm DuPont cable & upward pin header clearance
-- Correctly oriented ESP32-C3 rails aligned with the left-flank USB-C port opening
+- Integrated ESP32-C3 locking rail standoffs with 16 pin-registration holes (2.54mm pitch) and rear thrust stop
 - Front bezel plate with raised circular ring and 4 M2 counterbored screw pockets
 """
 
@@ -114,33 +114,38 @@ def generate_main_housing():
             
     housing = chassis - cuts
     
-    # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails on rear floor
-    # Correct orientation: USB-C port faces left (-X direction) towards the USB-C opening.
-    # Long axis (L = 23.0mm) runs along X: from x = -21.5 to x = +1.5mm (center x = -10.0mm).
-    # Short axis (W = 18.4mm) runs along Y: from y = -9.2 to y = +9.2mm (center y = 0.0mm).
-    # Guide rails run along the top and bottom edges (Y = +/-9.2mm) in the X direction!
+    # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails with Pin-Locking Holes
+    # Board orientation: Long axis along X (23mm), short axis along Y (17.8mm).
+    # USB-C port faces left (-X) directly toward the USB-C opening.
     esp_l, esp_w = 23.0, 18.4
     rail_h = 2.5
+    rail_z_top = floor_t + rail_h
     esp_center_x = -10.0
     
-    # Top guide rail (+Y edge, running along X)
-    rail_top = m3d.Manifold.cube([esp_l, 2.0, rail_h + 2.5], center=True).translate([
-        esp_center_x, esp_w / 2.0 - 1.0, floor_t + (rail_h + 2.5) / 2.0
-    ])
-    # Bottom guide rail (-Y edge, running along X)
-    rail_bot = m3d.Manifold.cube([esp_l, 2.0, rail_h + 2.5], center=True).translate([
-        esp_center_x, -esp_w / 2.0 + 1.0, floor_t + (rail_h + 2.5) / 2.0
-    ])
-    # Rear support pad (at +X end, running along Y)
-    pad_rear = m3d.Manifold.cube([3.0, esp_w, rail_h], center=True).translate([
-        esp_center_x + esp_l / 2.0 - 1.5, 0, floor_t + rail_h / 2.0
-    ])
-    # Front support pad (at -X end near USB port, running along Y)
-    pad_front = m3d.Manifold.cube([3.0, esp_w, rail_h], center=True).translate([
-        esp_center_x - esp_l / 2.0 + 1.5, 0, floor_t + rail_h / 2.0
+    # Top and Bottom Standoff Rails centered along the pin header lines at Y = +/-7.62mm (0.6" row spacing)
+    rail_top = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
+    rail_bot = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
+    
+    # Rear mechanical thrust stop block (+X end) to resist USB-C cable insertion forces
+    rear_stop = m3d.Manifold.cube([2.5, 18.4, rail_h + 3.0], center=True).translate([
+        esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.0) / 2.0
     ])
     
-    return housing + rail_top + rail_bot + pad_rear + pad_front
+    standoffs = rail_top + rail_bot + rear_stop
+    
+    # 16 Pin-Locking Registration Holes (2 rows of 8 holes at 2.54mm pitch, dia=1.5mm, depth=2.0mm)
+    # The downward-protruding solder tails from the upward pin headers lock securely into these holes!
+    pin_cuts = m3d.Manifold()
+    x0 = -18.3 # Position of first pin from left USB-C edge
+    for k in range(8):
+        px = x0 + k * 2.54
+        hole_top = m3d.Manifold.cylinder(2.2, 0.75, 0.75, 16).translate([px, 7.62, rail_z_top - 2.0])
+        hole_bot = m3d.Manifold.cylinder(2.2, 0.75, 0.75, 16).translate([px, -7.62, rail_z_top - 2.0])
+        pin_cuts = pin_cuts + hole_top + hole_bot
+        
+    standoffs_locked = standoffs - pin_cuts
+    
+    return housing + standoffs_locked
 
 def generate_desk_stand():
     base_w = 64.0
@@ -207,7 +212,7 @@ def main():
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (Correctly Oriented ESP32-C3 Rails towards USB-C Port)
+    # 2. Main Housing Enclosure (with 16 Pin-Locking Holes & Thrust Stop)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod")

@@ -100,7 +100,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (36mm Deep, Correctly Oriented ESP32-C3 Rails towards Left USB-C)
+// 2. MAIN HOUSING POD (36mm Deep, Pin-Locking Standoffs & Rear Thrust Stop)
 module main_housing() {
     cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 29.5mm internal clearance
     esp_center_x = -10.0;
@@ -132,23 +132,32 @@ module main_housing() {
         }
     }
     
-    // Internal ESP32-C3 SuperMini Mounting Standoff Rails (Aligned with USB-C Port along X)
-    translate([esp_center_x, 0, floor_t]) {
-        // Top guide rail (+Y edge, running along X)
-        translate([-esp_l/2, esp_w/2 - 2.0, 0])
-            cube([esp_l, 2.0, esp_standoff_h + 2.5]);
-            
-        // Bottom guide rail (-Y edge, running along X)
-        translate([-esp_l/2, -esp_w/2, 0])
-            cube([esp_l, 2.0, esp_standoff_h + 2.5]);
-            
-        // Rear support pad (+X end)
-        translate([esp_l/2 - 3.0, -esp_w/2, 0])
-            cube([3.0, esp_w, esp_standoff_h]);
-            
-        // Front support pad (-X end near USB port)
-        translate([-esp_l/2, -esp_w/2, 0])
-            cube([3.0, esp_w, esp_standoff_h]);
+    // Internal ESP32-C3 SuperMini Mounting Standoff Rails with 16 Pin-Locking Holes
+    difference() {
+        union() {
+            translate([esp_center_x, 0, floor_t]) {
+                // Top standoff rail along Y = +7.62mm (pin row)
+                translate([-esp_l/2, 7.62 - 1.7, 0])
+                    cube([esp_l, 3.4, esp_standoff_h]);
+                    
+                // Bottom standoff rail along Y = -7.62mm (pin row)
+                translate([-esp_l/2, -7.62 - 1.7, 0])
+                    cube([esp_l, 3.4, esp_standoff_h]);
+                    
+                // Rear thrust stop block (+X end)
+                translate([esp_l/2, -esp_w/2, 0])
+                    cube([2.5, esp_w, esp_standoff_h + 3.0]);
+            }
+        }
+        
+        // 16 Pin Locking Holes (2 rows of 8 holes at 2.54mm pitch)
+        for (k = [0:7]) {
+            px = -18.3 + k * 2.54;
+            translate([px, 7.62, floor_t + esp_standoff_h - 2.0])
+                cylinder(d = 1.5, h = 2.1);
+            translate([px, -7.62, floor_t + esp_standoff_h - 2.0])
+                cylinder(d = 1.5, h = 2.1);
+        }
     }
 }
 
