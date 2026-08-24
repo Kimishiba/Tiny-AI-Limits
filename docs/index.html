@@ -1174,17 +1174,34 @@
           <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">cable</span>
           Wiring & Pinout Reference
         </h2>
-        <div class="section-subtitle">ESP32-C3 SuperMini Pin Configuration</div>
+        <div class="section-subtitle">Visual Vector Diagrams & Pin Configuration</div>
       </div>
 
+      <!-- Diagram Selector Tabs -->
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+        <button class="tab-btn active" id="tabWiringRound" onclick="switchWiringDiagram('round')" style="padding: 0.65rem 1.2rem; font-size: 0.9rem;">
+          🔘 GC9A01 1.28" Round SPI Diagram
+        </button>
+        <button class="tab-btn" id="tabWiringOled" onclick="switchWiringDiagram('oled')" style="padding: 0.65rem 1.2rem; font-size: 0.9rem;">
+          📺 SSD1306 0.96"/1.3" OLED I2C Diagram
+        </button>
+      </div>
+
+      <!-- SVG Diagram Container -->
+      <div class="neo-box" style="padding: 1rem; background: #0f1218; margin-bottom: 1.75rem; overflow: hidden;">
+        <img id="wiringSvgImg" src="./assets/img/wiring_gc9a01_round.svg" alt="ESP32-C3 Wiring Diagram" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+      </div>
+
+      <!-- Pinout Table Reference -->
       <div class="wiring-table-wrap">
-        <table class="neo-table">
+        <table class="neo-table" id="wiringTable">
           <thead>
             <tr>
               <th>Function</th>
               <th>Display Pin (GC9A01 / SSD1306)</th>
               <th>ESP32-C3 SuperMini Pin</th>
               <th>Physical Header Location</th>
+              <th>Wire Color Cue</th>
               <th>Description</th>
             </tr>
           </thead>
@@ -1194,6 +1211,7 @@
               <td><code>VCC</code></td>
               <td><code>3V3</code></td>
               <td>Left Header (Pin 3)</td>
+              <td><span style="color: #ef4444; font-weight: 800;">● Red</span></td>
               <td>3.3V Power Supply</td>
             </tr>
             <tr>
@@ -1201,6 +1219,7 @@
               <td><code>GND</code></td>
               <td><code>GND</code></td>
               <td>Left Header (Pin 2)</td>
+              <td><span style="color: #64748b; font-weight: 800;">● Black</span></td>
               <td>Common Ground</td>
             </tr>
             <tr>
@@ -1208,6 +1227,7 @@
               <td><code>SCL / SCK</code></td>
               <td><code>GPIO 9</code></td>
               <td>Right Header (Pin 13)</td>
+              <td><span style="color: #eab308; font-weight: 800;">● Yellow</span></td>
               <td>Hardware I2C Clock</td>
             </tr>
             <tr>
@@ -1215,6 +1235,7 @@
               <td><code>SDA</code></td>
               <td><code>GPIO 8</code></td>
               <td>Right Header (Pin 14)</td>
+              <td><span style="color: #06b6d4; font-weight: 800;">● Cyan</span></td>
               <td>Hardware I2C Data</td>
             </tr>
             <tr>
@@ -1222,6 +1243,7 @@
               <td><code>SCL / SCK</code></td>
               <td><code>GPIO 4</code></td>
               <td>Left Header (Pin 8)</td>
+              <td><span style="color: #eab308; font-weight: 800;">● Yellow</span></td>
               <td>Hardware SPI Clock</td>
             </tr>
             <tr>
@@ -1229,6 +1251,7 @@
               <td><code>SDA / MOSI</code></td>
               <td><code>GPIO 6</code></td>
               <td>Right Header (Pin 16)</td>
+              <td><span style="color: #06b6d4; font-weight: 800;">● Cyan</span></td>
               <td>Hardware SPI MOSI</td>
             </tr>
             <tr>
@@ -1236,6 +1259,7 @@
               <td><code>CS</code></td>
               <td><code>GPIO 5</code></td>
               <td>Left Header (Pin 9)</td>
+              <td><span style="color: #a855f7; font-weight: 800;">● Purple</span></td>
               <td>GC9A01 Chip Select</td>
             </tr>
             <tr>
@@ -1243,6 +1267,7 @@
               <td><code>DC</code></td>
               <td><code>GPIO 7</code></td>
               <td>Right Header (Pin 15)</td>
+              <td><span style="color: #10b981; font-weight: 800;">● Green</span></td>
               <td>GC9A01 Data / Command</td>
             </tr>
             <tr>
@@ -1250,12 +1275,22 @@
               <td><code>RST / RES</code></td>
               <td><code>GPIO 1</code></td>
               <td>Left Header (Pin 5)</td>
+              <td><span style="color: #f97316; font-weight: 800;">● Orange</span></td>
               <td>Hardware Reset</td>
+            </tr>
+            <tr>
+              <td><strong>Backlight Control</strong></td>
+              <td><code>BLK</code></td>
+              <td><code>GPIO 0</code></td>
+              <td>Left Header (Pin 4)</td>
+              <td><span style="color: #ec4899; font-weight: 800;">● Pink</span></td>
+              <td>PWM Backlight Dimming / On-Off</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
+
 
     <!-- Section 5: GitHub & Open Source Hub -->
     <section id="github">
@@ -1353,6 +1388,22 @@
         title.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span> SSD1306 128×64 OLED (Monochrome)';
       }
     }
+
+    function switchWiringDiagram(type) {
+      const img = document.getElementById("wiringSvgImg");
+      const tabRound = document.getElementById("tabWiringRound");
+      const tabOled = document.getElementById("tabWiringOled");
+      if (type === "round") {
+        img.src = "./assets/img/wiring_gc9a01_round.svg";
+        tabRound.classList.add("active");
+        tabOled.classList.remove("active");
+      } else {
+        img.src = "./assets/img/wiring_ssd1306_oled.svg";
+        tabOled.classList.add("active");
+        tabRound.classList.remove("active");
+      }
+    }
+
 
     document.getElementById("screenGlass").addEventListener("click", () => {
       setScreenMode(screenMode === "round" ? "oled" : "round");
