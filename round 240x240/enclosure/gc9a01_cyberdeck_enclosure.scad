@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture (Sculpted Trapezoidal Tier 2)
+// 100% Support-Free FDM 3D Printable Architecture (12.5° Upright Stance)
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -47,16 +47,16 @@ esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
 esp_standoff_h     = 1.4;  // Lowered standoff height (mm)
 usbc_center_z      = 6.8;  // Lowered USB-C port centerline (mm)
 
-// Stand Parameters (Sculpted Two-Tier Concept from 3D Render)
+// Stand Parameters (Compact Two-Tier Concept from 3D Render)
 stand_base_w       = 64.0; // Tier 1 base width (mm)
-stand_base_d       = 68.0; // Tier 1 base depth (mm)
-stand_base_h       = 6.0;  // Tier 1 base height (mm)
-stand_trunk_h      = 22.0; // Tier 2 cradle trunk height (mm)
-stand_tilt_deg     = 20.0; // Backward tilt angle from vertical (degrees)
+stand_base_d       = 66.0; // Tier 1 base depth (mm)
+stand_base_h       = 5.5;  // Tier 1 base height (mm)
+stand_trunk_h      = 15.5; // Tier 2 compact cradle trunk height (mm)
+stand_tilt_deg     = 12.5; // Upright backward tilt angle matching 3D render (degrees)
 pin_dist_x         = 20.0; // Alignment pillar X distance from center (mm)
-pin_dist_y         = 22.0; // Alignment pillar Y distance from center (mm)
+pin_dist_y         = 21.0; // Alignment pillar Y distance from center (mm)
 pin_dia            = 5.0;  // Alignment pillar diameter (mm)
-pin_h              = 4.0;  // Alignment pillar height (mm)
+pin_h              = 3.5;  // Alignment pillar height (mm)
 
 // --- MODULES ---
 
@@ -270,15 +270,14 @@ module stand_tier1_base() {
     }
 }
 
-// 4. STAND TIER 2 SCULPTED MONOLITHIC TRAPEZOIDAL PEDESTAL TRUNK
+// 4. STAND TIER 2 COMPACT SCULPTED MONOLITHIC TRAPEZOIDAL PEDESTAL TRUNK (12.5° TILT)
 module stand_tier2_trunk() {
     difference() {
-        // Monolithic Trapezoidal Body with Continuous 4-Sided Draft Angle
         hull() {
             translate([0, 0, stand_base_h])
-                rounded_rect_prism(60.0, 64.0, 0.01, 5.0);
+                rounded_rect_prism(60.0, 62.0, 0.01, 5.0);
             translate([0, 0, stand_base_h + stand_trunk_h - 0.01])
-                rounded_rect_prism(52.0, 56.0, 0.01, 3.5);
+                rounded_rect_prism(53.0, 55.0, 0.01, 4.0);
         }
         
         // 4 Mating Slide Sockets on Bottom Face
@@ -289,8 +288,8 @@ module stand_tier2_trunk() {
             }
         }
         
-        // 20-Degree Angled V-Saddle Cradle Pocket
-        translate([0, 4.0, stand_base_h + stand_trunk_h - 2.5])
+        // 12.5-Degree Angled V-Saddle Cradle Pocket
+        translate([0, 2.0, stand_base_h + stand_trunk_h - 3.0])
             rotate([stand_tilt_deg, 0, 0])
             octagonal_prism(enclosure_width + 0.8, 40.0, 6.2);
     }
@@ -306,11 +305,11 @@ if (part == 1) {
 } else if (part == 4) {
     stand_tier2_trunk();
 } else {
-    // Complete Multi-Part Assembly Preview
+    // Complete Multi-Part Assembly Preview (12.5° Upright Stance)
     translate([0, 0, 24.5])
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
-    translate([0, -2.0, -23.0]) {
+    translate([0, -2.0, -18.0]) {
         color("#5c4033") stand_tier1_base();
         color("#2E3440") stand_tier2_trunk();
     }
