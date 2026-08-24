@@ -2097,26 +2097,27 @@
       }
       c.fillText(rainStr, cx, cy - 93);
 
-      // 3. Central Dual Capsule Pill Eyes (Expressive Qbit Face)
-      const eyeW = 34, eyeH = 52;
-      const leftEyeX = cx - 38;
-      const rightEyeX = cx + 38;
-      const eyeY = cy - 6;
+      // 3. Central Dual Capsule Pill Eyes (Expressive Qbit Face - Enriched Bold Scale)
+      const eyeW = 54, eyeH = 80;
+      const leftEyeX = cx - 52;
+      const rightEyeX = cx + 52;
+      const eyeY = cy;
 
       // EYES BLINK & SACCADE PHYSICS
       const blinkCycle = (Math.floor(Date.now() / 4000) % 2 === 0);
       const isBlinking = (Date.now() % 4000 < 180);
       const scaleY = isBlinking ? 0.08 : 1.0;
       const curH = eyeH * scaleY;
+      const cornerR = Math.min(26, curH / 2);
 
       // Draw Left Capsule Eye
       c.save();
-      c.shadowColor = "rgba(0, 229, 255, 0.65)";
-      c.shadowBlur = 12;
+      c.shadowColor = "rgba(0, 229, 255, 0.75)";
+      c.shadowBlur = 16;
       c.fillStyle = "#00E5FF";
       c.beginPath();
       if (typeof c.roundRect === "function") {
-        c.roundRect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, eyeW / 2);
+        c.roundRect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR);
       } else {
         c.rect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH);
       }
@@ -2125,7 +2126,7 @@
       // Draw Right Capsule Eye
       c.beginPath();
       if (typeof c.roundRect === "function") {
-        c.roundRect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, eyeW / 2);
+        c.roundRect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR);
       } else {
         c.rect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH);
       }
@@ -2136,8 +2137,8 @@
       if (!isBlinking) {
         c.fillStyle = "#ffffff";
         c.beginPath();
-        c.arc(leftEyeX - 4, eyeY - 10, 4.5, 0, Math.PI * 2);
-        c.arc(rightEyeX - 4, eyeY - 10, 4.5, 0, Math.PI * 2);
+        c.arc(leftEyeX - 7, eyeY - 16, 7, 0, Math.PI * 2);
+        c.arc(rightEyeX - 7, eyeY - 16, 7, 0, Math.PI * 2);
         c.fill();
       }
 

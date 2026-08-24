@@ -244,26 +244,26 @@ void updateFacePhysics(unsigned long now) {
 // OLED DRAWING ROUTINES
 // ==========================================
 void drawCyberEye(int cx, int cy, float openPct, float pupilX, float pupilY, bool isRight) {
-    int maxW = 34;
-    int maxH = 26;
+    int maxW = 44;
+    int maxH = 36;
     int curH = (int)(maxH * openPct);
     if (curH < 2) curH = 2;
 
     int rX = cx - maxW / 2;
     int rY = cy - curH / 2;
 
-    oledDisplay.drawRoundRect(rX, rY, maxW, curH, 4, SSD1306_WHITE);
+    oledDisplay.fillRoundRect(rX, rY, maxW, curH, 12, SSD1306_WHITE);
 
-    if (curH > 6) {
-        int pX = cx + (int)pupilX;
-        int pY = cy + (int)pupilY;
-        oledDisplay.fillCircle(pX, pY, 4, SSD1306_WHITE);
+    if (curH > 8) {
+        int pX = cx - 5 + (int)pupilX;
+        int pY = cy - 6 + (int)pupilY;
+        oledDisplay.fillCircle(pX, pY, 3, SSD1306_BLACK);
     }
 }
 
 void renderFaceScreen() {
-    drawCyberEye(38, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, false);
-    drawCyberEye(90, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, true);
+    drawCyberEye(36, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, false);
+    drawCyberEye(92, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, true);
 }
 
 void renderSplitHUDScreen() {
@@ -873,6 +873,92 @@ void drawGC9A01RoundFlipUI() {
             sprintf(tempBuf, "%.1f C", weatherData.temp);
             gcPrintCentered(tempBuf, cx, cy + 94, GC_COLOR_WHITE);
         }
+    }
+}
+
+void drawGC9A01RoundFaceUI() {
+    int cx = 120, cy = 120, rScreen = 114;
+
+    uint16_t colCyan = gcGfx->color565(0, 229, 255);       // #00E5FF Qbit Cyan
+    uint16_t colBezel = gcGfx->color565(31, 35, 48);       // #1F2330 Bezel Ring
+    uint16_t colRain = gcGfx->color565(56, 189, 248);      // #38BDF8 Sky Blue
+    uint16_t colGray = gcGfx->color565(148, 163, 184);     // #94A3B8 Slate Gray
+    uint16_t colAmber = gcGfx->color565(255, 184, 0);      // #FFB800 Kinetic Amber
+
+    // 1. Static Bezel Ring
+    static bool bezelDrawn = false;
+    if (!bezelDrawn) {
+        bezelDrawn = true;
+        gcGfx->drawCircle(cx, cy, 116, colBezel);
+        gcGfx->drawCircle(cx, cy, 117, colBezel);
+    }
+
+    // 2. Top Crown: Connection Status LED & Rain Indicator
+    uint16_t dotCol = wifiConnected ? gcGfx->color565(34, 197, 94) : gcGfx->color565(239, 68, 68);
+    gcGfx->fillCircle(cx, cy - 105, 3, dotCol);
+
+    char rainStr[24];
+    if (weatherData.hours_until_rain < 0) {
+        strcpy(rainStr, "NO RAIN");
+    } else if (weatherData.hours_until_rain == 0) {
+        strcpy(rainStr, "RAIN NOW");
+    } else {
+        sprintf(rainStr, "RAIN IN %dh", weatherData.hours_until_rain);
+    }
+    gcGfx->setTextSize(1);
+    gcPrintCentered(rainStr, cx, cy - 93, colRain);
+
+    // 3. Central Dual Capsule Pill Eyes (Expressive Qbit Face - Enriched Bold Scale)
+    int eyeW = 54;
+    int eyeH = 80;
+    int leftEyeX = cx - 52;
+    int rightEyeX = cx + 52;
+    int eyeY = cy;
+
+    float openPct = face.currentOpenPct;
+    int curH = (int)(eyeH * openPct);
+    if (curH < 6) curH = 6;
+    int cornerR = min(26, curH / 2);
+
+    static int lastCurH = -1;
+    static float lastPupilX = -999.0f, lastPupilY = -999.0f;
+
+    if (curH != lastCurH || abs(face.currentPupilX - lastPupilX) > 0.1f || abs(face.currentPupilY - lastPupilY) > 0.1f) {
+        // Redraw eye bounding regions to black
+        gcGfx->fillRect(leftEyeX - eyeW / 2 - 2, eyeY - eyeH / 2 - 2, eyeW + 4, eyeH + 4, GC_COLOR_BLACK);
+        gcGfx->fillRect(rightEyeX - eyeW / 2 - 2, eyeY - eyeH / 2 - 2, eyeW + 4, eyeH + 4, GC_COLOR_BLACK);
+
+        // Fill capsule pill eyes
+        gcGfx->fillRoundRect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR, colCyan);
+        gcGfx->fillRoundRect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR, colCyan);
+
+        // Inner Pupil Iris Highlights (Radius 7px positioned at (-7, -16) relative to eye center)
+        if (openPct > 0.3f) {
+            int pX = (int)face.currentPupilX;
+            int pY = (int)face.currentPupilY;
+            gcGfx->fillCircle(leftEyeX - 7 + pX, eyeY - 16 + pY, 7, GC_COLOR_WHITE);
+            gcGfx->fillCircle(rightEyeX - 7 + pX, eyeY - 16 + pY, 7, GC_COLOR_WHITE);
+        }
+
+        lastCurH = curH;
+        lastPupilX = face.currentPupilX;
+        lastPupilY = face.currentPupilY;
+    }
+
+    // 4. Bottom Sub-HUD (Date & Weather / Agent Alert)
+    if (agentData.waiting_for_input) {
+        bool alertBlink = (millis() / 500) % 2 == 0;
+        gcGfx->fillRect(cx - 60, cy + 74, 120, 32, GC_COLOR_BLACK);
+        gcGfx->setTextSize(1);
+        gcPrintCentered("AGENT ALERT", cx, cy + 80, alertBlink ? colAmber : gcGfx->color565(153, 110, 0));
+        gcPrintCentered(agentData.prompt_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
+    } else {
+        gcGfx->fillRect(cx - 60, cy + 74, 120, 32, GC_COLOR_BLACK);
+        gcGfx->setTextSize(1);
+        gcPrintCentered(timeData.date_str.c_str(), cx, cy + 80, colGray);
+        char tempBuf[16];
+        sprintf(tempBuf, "%.1f C", weatherData.temp);
+        gcPrintCentered(tempBuf, cx, cy + 94, GC_COLOR_WHITE);
     }
 }
 
