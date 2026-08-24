@@ -605,20 +605,18 @@ def get_data():
                     found_pending = False
                     turn_pending_prompt = "INPUT REQ"
 
-                    for l in turn_lines:
+                    for idx_in_turn, l in enumerate(turn_lines):
                         try:
                             entry = json.loads(l)
                             for tc in entry.get("tool_calls", []) or []:
                                 name = tc.get("name")
                                 args = tc.get("args", {}) or {}
-                                if name == "ask_question":
-                                    found_pending = True
-                                    turn_pending_prompt = "ANSWER Q"
-                                    break
-                                elif name == "ask_permission":
-                                    found_pending = True
-                                    turn_pending_prompt = "GRANT PERM"
-                                    break
+                                if name in ("ask_question", "ask_permission"):
+                                    # A question/permission is only pending if it has not yet received a result
+                                    if idx_in_turn == len(turn_lines) - 1:
+                                        found_pending = True
+                                        turn_pending_prompt = "ANSWER Q" if name == "ask_question" else "GRANT PERM"
+                                        break
 
                                 meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
                                 if isinstance(meta_raw, str):
