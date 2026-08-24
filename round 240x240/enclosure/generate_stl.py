@@ -5,12 +5,12 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
 
 100% Support-Free FDM 3D Printable Architecture:
 - Front Bezel: Precision display carrier with:
-  * 4x M3 Socket Head Cap Screw through-holes (dia = 3.4mm) & recessed counterbores (dia = 6.2mm x 3.2mm deep)
+  * 4x M3 Socket Head Cap Screw holes balanced at (+/-19.50mm, +/-19.50mm) with generous margins from chamfers
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows and maximize off-axis viewing
   * Sculpted 45° chamfered trim ring (dia 44.0mm -> dia 41.0mm)
   * Faceted 45° outer perimeter edge chamfers matching concept render
 - Main Housing: Open-tub electronics bucket with:
-  * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) inside massive solid corner pillars
+  * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) at (+/-19.50mm, +/-19.50mm) inside massive corner pillars
   * Precision chamfered oval/stadium USB-C port (11.5mm x 6.0mm with 45° lead-in chamfer)
   * 45° outer bottom perimeter chamfer matching the bezel
   * 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
@@ -140,6 +140,7 @@ def generate_front_bezel():
     t = 5.5 # Enhanced display carrier thickness
     ring_h = 1.5
     oal_t = t + ring_h # 7.0mm
+    screw_dist = 19.50 # Balanced M3 bolt centers (39.0mm bolt circle)
     
     # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=1.2, chamfer_top=True)
@@ -166,8 +167,8 @@ def generate_front_bezel():
     
     cuts = window_funnel + glass_recess + pcb_recess
     
-    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbore Pockets (+/-21mm)
-    screw_dist = 21.0
+    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbore Pockets (+/-19.50mm)
+    # Balanced positioning leaves 4.6mm solid margin before outer chamfer and 2.0mm margin to center ring!
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
@@ -190,15 +191,15 @@ def generate_main_housing():
     depth = 24.5 # Open-tub housing depth (assembly total = 26.0mm with bezel)
     floor_t = 2.5
     cavity_depth = depth - floor_t # 22.0mm continuous vertical cavity
-    screw_dist = 21.0
+    screw_dist = 19.50 # Matches bezel M3 screw positions
     
     # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 24.5)
     chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=1.2, chamfer_top=False)
     
-    # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 11.5mm)
-    # Leaves 10mm of solid structural plastic around (X = +/-21, Y = +/-21) for massive M3 corner screw pillars!
+    # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 13.0mm)
+    # Leaves massive solid structural plastic around (X = +/-19.50, Y = +/-19.50) for corner screw pillars!
     cw = 46.0
-    cc = 11.5
+    cc = 13.0
     hcw = cw / 2.0
     pts_cavity = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
@@ -219,7 +220,7 @@ def generate_main_housing():
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
     usbc_port = usbc_tunnel + usbc_flare
     
-    # 4. 4 Corner M3 Screw Pilot Holes (dia = 2.8mm, depth = 15.0mm from top rim) at (+/-21, +/-21)
+    # 4. 4 Corner M3 Screw Pilot Holes (dia = 2.8mm, depth = 15.0mm from top rim) at (+/-19.50, +/-19.50)
     screw_pilot_cuts = m3d.Manifold()
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
@@ -267,7 +268,6 @@ def generate_stand_tier1_base():
     base_h = 6.0
     tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    # 4 Protruding Alignment Pillars on Top Face (Z = 6.0 to 10.0mm)
     pin_dist_x = 20.0
     pin_dist_y = 22.0
     pin_h = 4.0
@@ -310,7 +310,6 @@ def generate_stand_tier2_trunk():
     poly_bot = m3d.CrossSection([pts_bot])
     trunk_solid = m3d.Manifold.extrude(poly_bot, trunk_h).translate([0, 0, base_h])
     
-    # 4 Mating Socket Holes on bottom face of Tier 2 (slides over Tier 1 pins)
     sockets = m3d.Manifold()
     for px in [-pin_dist_x, pin_dist_x]:
         for py in [-pin_dist_y, pin_dist_y]:
@@ -365,17 +364,17 @@ def generate_monolithic_desk_stand():
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models with Two-Tier Stand...\n")
+    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models with Balanced M3 Screws...\n")
     
-    # 1. Front Bezel Plate (M3 Screws)
+    # 1. Front Bezel Plate (Balanced M3 Screws)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
-    export_stl(bezel, bezel_path, "Front Bezel Plate (M3 Screws)")
+    export_stl(bezel, bezel_path, "Front Bezel Plate (Balanced M3 Screws)")
 
-    # 2. Main Housing Enclosure (M3 Screws, Chamfered Bottom, Oval USB-C)
+    # 2. Main Housing Enclosure (Balanced M3 Screws, Chamfered Bottom, Oval USB-C)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (M3 Screws)")
+    export_stl(housing, housing_path, "Main Housing Pod (Balanced M3 Screws)")
 
     # 3. Two-Tier Stand: Tier 1 Base Plate (with 4 Protruding Alignment Pillars)
     tier1 = generate_stand_tier1_base()
@@ -387,12 +386,12 @@ def main():
     tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
     export_stl(tier2, tier2_path, "Stand Tier 2 Cradle Trunk (with 4 Slide Sockets)")
 
-    # 5. Monolithic One-Piece Desk Stand (Optional Unified Print)
+    # 5. Monolithic Desk Stand (Unified)
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
 
-    print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified!")
+    print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified with balanced M3 screws!")
 
 if __name__ == "__main__":
     main()

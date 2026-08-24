@@ -32,7 +32,7 @@ screen_bolt_dia    = 1.75;  // 1.75mm blind pilot holes (does NOT punch through 
 screen_bolt_depth  = 3.2;   // Blind depth from rear pocket (leaving solid front face)
 
 // Bezel Corner Screws (M3 Socket Cap Screws)
-screw_bolt_circle  = 42.0; // 42mm center-to-center square (x=+/-21, y=+/-21)
+screw_bolt_circle  = 39.0; // 39mm center-to-center square (x=+/-19.50, y=+/-19.50)
 screw_hole_dia     = 3.4;  // M3 clearance through-hole (mm)
 screw_head_dia     = 6.2;  // M3 socket cap head counterbore (mm)
 screw_head_depth   = 3.2;  // Counterbore pocket depth (mm)
@@ -40,7 +40,7 @@ screw_pilot_dia    = 2.8;  // M3 pilot / self-tapping / heat-set insert hole (mm
 
 // Internal Cavity & ESP32-C3 SuperMini Mounting
 cavity_w           = 46.0; // 46mm wide internal bay (mm)
-cavity_chamfer     = 11.5; // 11.5mm corner chamfers to preserve massive solid corner pillars (mm)
+cavity_chamfer     = 13.0; // 13.0mm corner chamfers leaving massive corner screw pillars (mm)
 floor_t            = 2.5;  // Rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
