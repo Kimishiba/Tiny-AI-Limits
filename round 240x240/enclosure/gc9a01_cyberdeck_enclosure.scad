@@ -1,6 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
+// Verified directly against GC9A01 1.28" TFT Module Engineering Blueprint
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -14,10 +15,12 @@ enclosure_depth  = 36.0; // Deepened pod for upward DuPont clearance (mm)
 bezel_thickness  = 4.5;  // Front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 
-// Display Pocket
-display_active_dia = 32.8; // 1.28" visible active area window
-display_pcb_dia    = 37.2; // GC9A01 PCB outer diameter + tolerance (mm)
-display_recess_lip = 1.8;  // Front bezel retention step depth (mm)
+// Display Pocket Dimensions (from Engineering Blueprint)
+display_active_dia = 32.6; // Active LCD A.A window (32.40mm blueprint + 0.2mm clearance)
+display_glass_dia  = 36.0; // Glass / Backlight step (35.6mm blueprint + 0.4mm clearance)
+display_pcb_dia    = 38.6; // Circular PCB body (38.0mm blueprint + 0.6mm clearance)
+display_tab_w      = 23.6; // Bottom connector tab width (22.92mm blueprint + 0.68mm clearance)
+display_tab_h      = 26.8; // Tab height from center (45.5mm total height)
 display_pcb_depth  = 4.0;  // Housing front pocket depth (mm)
 
 // Screw Mounting (M2 Socket Cap or Self-Tapping)
@@ -69,6 +72,15 @@ module rounded_rect_prism(w, d, h, r) {
     }
 }
 
+// Composite GC9A01 Blueprint PCB Pocket
+module gc9a01_blueprint_pocket(h) {
+    union() {
+        cylinder(d = display_pcb_dia, h = h);
+        translate([-display_tab_w / 2, -display_tab_h, 0])
+            cube([display_tab_w, display_tab_h, h]);
+    }
+}
+
 // 1. FRONT BEZEL RING PLATE
 module front_bezel() {
     difference() {
@@ -80,15 +92,19 @@ module front_bezel() {
                 cylinder(d = 44.0, h = 1.5);
         }
         
-        // 1. Center Screen Active View Window (Through-hole with 45-deg inner chamfer)
+        // 1. Center Screen Active View Window (32.6mm through-hole with 45-deg inner chamfer)
         translate([0, 0, -1])
             cylinder(d1 = display_active_dia + 2.0, d2 = display_active_dia, h = bezel_thickness + 3.0);
             
-        // 2. Rear Retention Lip for Display Glass (Hollow step pocket)
+        // 2. Glass Retention Lip (36.0mm dia x 1.6mm deep)
         translate([0, 0, -0.1])
-            cylinder(d = display_pcb_dia, h = display_recess_lip + 0.1);
+            cylinder(d = display_glass_dia, h = 1.7);
             
-        // 3. 4 Corner M2 Screw Holes with Recessed Counterbores
+        // 3. PCB Retention Lip (Upper circle + bottom tab)
+        translate([0, 0, -0.1])
+            gc9a01_blueprint_pocket(1.9);
+            
+        // 4. 4 Corner M2 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, -1])
@@ -100,7 +116,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (36mm Deep, Pin-Locking Standoffs & Rear Thrust Stop)
+// 2. MAIN HOUSING POD (36mm Deep, Blueprint Pocket, Pin-Locking Standoffs)
 module main_housing() {
     cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 29.5mm internal clearance
     esp_center_x = -10.0;
@@ -111,15 +127,15 @@ module main_housing() {
             octagonal_prism(enclosure_width, enclosure_depth, chamfer_size);
         }
         
-        // 1. Front Display PCB Pocket
+        // 1. Front GC9A01 Display PCB Pocket (Exact Blueprint Outline)
         translate([0, 0, enclosure_depth - display_pcb_depth])
-            cylinder(d = display_pcb_dia, h = display_pcb_depth + 0.1);
+            gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
-        // 2. Main DuPont & Electronics Cavity
+        // 2. Main DuPont & Electronics Cavity (44x44x29.5mm)
         translate([-cavity_w/2, -cavity_h/2, floor_t])
             cube([cavity_w, cavity_h, cavity_depth + 0.1]);
             
-        // 3. Left-Side USB-C Port Cutout (along Y, through left wall at x = -27)
+        // 3. Left-Side USB-C Port Cutout
         translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
             cube([12.0, 13.0, 8.0]);
             
