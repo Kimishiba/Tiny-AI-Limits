@@ -116,15 +116,15 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
     poly = m3d.CrossSection([pts])
     return m3d.Manifold.extrude(poly, h)
 
-def make_gc9a01_pcb_pocket(depth_pocket=3.2):
+def make_gc9a01_pcb_pocket(depth_pocket=3.3):
     """
     Creates exact composite shape for GC9A01 PCB:
-    - Upper circular body: 38.6mm dia (38.0mm PCB + 0.6mm tolerance)
-    - Lower connector tab: 23.6mm wide (22.92mm tab + 0.68mm tolerance) extending down to y = -26.5mm
+    - Upper circular body: 38.8mm dia (38.0mm PCB + 0.8mm tolerance [+0.1mm per side])
+    - Lower connector tab: 23.8mm wide (22.92mm tab + 0.88mm tolerance) extending down to y = -26.6mm
     """
-    top_circle = m3d.Manifold.cylinder(depth_pocket, 38.6 / 2.0, 38.6 / 2.0, 64)
-    tab_w = 23.6
-    tab_h = 26.5
+    top_circle = m3d.Manifold.cylinder(depth_pocket, 38.8 / 2.0, 38.8 / 2.0, 64)
+    tab_w = 23.8
+    tab_h = 26.6
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
     return top_circle + tab_box
 
@@ -159,16 +159,17 @@ def generate_front_bezel():
     r_glass = 16.4
     r_front = 19.2
     funnel_h = oal_t + 2.0
-    dr_dz = (r_front - r_glass) / (oal_t - 3.2)
-    r_bot = r_glass - dr_dz * (3.2 - (-1.0))
+    dr_dz = (r_front - r_glass) / (oal_t - 3.3)
+    r_bot = r_glass - dr_dz * (3.3 - (-1.0))
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
     
-    # 4. Glass Step Pocket
-    glass_recess = m3d.Manifold.cylinder(1.7, 36.0 / 2.0, 36.0 / 2.0, 64).translate([0, 0, -0.1])
+    # 4. Glass Step Pocket (+0.1mm clearance per side -> dia 36.2mm)
+    glass_recess = m3d.Manifold.cylinder(1.8, 36.2 / 2.0, 36.2 / 2.0, 64).translate([0, 0, -0.1])
     
     # 5. Rear Retention Lip for PCB
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
+
     
     cuts = window_funnel + glass_recess + pcb_recess
     
