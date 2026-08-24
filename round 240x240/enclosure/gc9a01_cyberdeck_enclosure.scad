@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture
+// 100% Support-Free FDM 3D Printable Architecture with M3 Corner Screws
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -31,12 +31,12 @@ screen_bolt_y      = -18.91; // Y distance from screen center (mm)
 screen_bolt_dia    = 1.75;  // 1.75mm blind pilot holes (does NOT punch through front face)
 screen_bolt_depth  = 3.2;   // Blind depth from rear pocket (leaving solid front face)
 
-// Bezel Corner Screws (M2 Socket Cap or Self-Tapping)
+// Bezel Corner Screws (M3 Socket Cap Screws)
 screw_bolt_circle  = 42.0; // 42mm center-to-center square (x=+/-21, y=+/-21)
-screw_hole_dia     = 2.6;  // M2 / M2.5 clearance through-hole (mm)
-screw_head_dia     = 4.8;  // M2 socket cap head counterbore (mm)
-screw_head_depth   = 2.2;  // Counterbore pocket depth (mm)
-screw_pilot_dia    = 2.0;  // M2 pilot / heat-set insert hole (mm)
+screw_hole_dia     = 3.4;  // M3 clearance through-hole (mm)
+screw_head_dia     = 6.2;  // M3 socket cap head counterbore (mm)
+screw_head_depth   = 3.2;  // Counterbore pocket depth (mm)
+screw_pilot_dia    = 2.8;  // M3 pilot / self-tapping / heat-set insert hole (mm)
 
 // Internal Cavity & ESP32-C3 SuperMini Mounting
 cavity_w           = 46.0; // 46mm wide internal bay (mm)
@@ -143,7 +143,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Sloping Anti-Shadow Aperture + Chamfered Trim Ring + Outer Chamfers)
+// 1. FRONT BEZEL RING PLATE (M3 Screws, Sloping Anti-Shadow Aperture + Chamfers)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -168,7 +168,7 @@ module front_bezel() {
         translate([0, 0, -0.1])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
-        // 4. 4 Corner M2 Screw Holes with Recessed Counterbores
+        // 4. 4 Corner M3 Screw Holes with Recessed Counterbores (dia = 3.4mm, cb = 6.2mm x 3.2mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, -1])
@@ -186,7 +186,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (Open Tub, Chamfered Bottom, Chamfered Oval USB-C Port)
+// 2. MAIN HOUSING POD (M3 Corner Pilot Holes, Open Tub, Chamfered Bottom, Oval USB-C)
 module main_housing() {
     cavity_depth = housing_depth - floor_t; // 22.0mm continuous vertical cavity
     esp_center_x = -10.0;
@@ -204,11 +204,11 @@ module main_housing() {
         // 2. Precision Chamfered Oval/Stadium USB-C Port Cutout
         usbc_stadium_cutter();
             
-        // 3. 4 Corner M2 Screw Pilot Holes (14mm deep at +/-21mm)
+        // 3. 4 Corner M3 Screw Pilot Holes (dia = 2.8mm, depth = 15.0mm at +/-21mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                translate([sx, sy, housing_depth - 14.0])
-                    cylinder(d = screw_pilot_dia, h = 14.1);
+                translate([sx, sy, housing_depth - 15.0])
+                    cylinder(d = screw_pilot_dia, h = 15.1);
             }
         }
     }
@@ -251,7 +251,6 @@ module desk_stand() {
     y_front = stand_shelf_depth + lip_t;
     
     difference() {
-        // 2D Side Profile Extruded Across Width
         rotate([0, -90, 0])
         translate([0, 0, -stand_w/2])
         linear_extrude(height = stand_w) {
@@ -269,12 +268,12 @@ module desk_stand() {
             ]);
         }
         
-        // 1. Central Cable Pass-Through Window (16mm wide)
+        // Central Cable Pass-Through Window (16mm wide)
         translate([0, -10.0, 22.0])
             rotate([-stand_tilt_deg, 0, 0])
             cube([16.0, 30.0, 24.0], center=true);
             
-        // 2. 4 Underside Rubber Feet Recesses (8.2mm dia, 1.4mm deep)
+        // 4 Underside Rubber Feet Recesses (8.2mm dia, 1.4mm deep)
         for (fx = [-stand_w/2 + 10, stand_w/2 - 10]) {
             for (fy = [stand_base_back + 8, stand_shelf_depth - 4]) {
                 translate([fx, fy, -0.1])
