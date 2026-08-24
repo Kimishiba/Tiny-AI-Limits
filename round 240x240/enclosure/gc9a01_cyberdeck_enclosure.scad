@@ -20,7 +20,7 @@ display_active_dia = 32.6; // Active LCD A.A window (32.40mm blueprint + 0.2mm c
 display_glass_dia  = 36.0; // Glass / Backlight step (35.6mm blueprint + 0.4mm clearance)
 display_pcb_dia    = 38.6; // Circular PCB body (38.0mm blueprint + 0.6mm clearance)
 display_tab_w      = 23.6; // Bottom connector tab width (22.92mm blueprint + 0.68mm clearance)
-display_tab_h      = 27.0; // Tab height from center (45.5mm total height)
+display_tab_h      = 26.5; // Tab height from center (45.5mm total height)
 display_pcb_depth  = 4.0;  // Housing front pocket depth (mm)
 
 // Direct Screen Bolting Blind Pilot Holes (1.75mm dia for M2 plastic thread grip)
@@ -121,7 +121,6 @@ module front_bezel() {
         }
         
         // 5. 2 Blind 1.75mm M2 Thread-Gripping Pilot Holes (from back z = -0.1 to z = 3.3)
-        // Solid 1.2mm front face remains untouched!
         for (sx = [-screen_bolt_x, screen_bolt_x]) {
             translate([sx, screen_bolt_y, -0.1])
                 cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
@@ -129,14 +128,14 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (Slim 26mm Depth, Bottom Wire Drop Trench, Pin-Locking Standoffs)
+// 2. MAIN HOUSING POD (Slim 26mm Depth, 100% Solid Enclosed Exterior Bottom Wall)
 module main_housing() {
     cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 19.5mm internal clearance
     esp_center_x = -10.0;
     
     difference() {
         union() {
-            // Outer Solid Chassis
+            // Outer Solid Chassis - Completely solid on all 4 exterior sides (no bottom slit)
             octagonal_prism(enclosure_width, enclosure_depth, chamfer_size);
         }
         
@@ -148,9 +147,9 @@ module main_housing() {
         translate([-cavity_w/2, -cavity_h/2, floor_t])
             cube([cavity_w, cavity_h, cavity_depth + 0.1]);
             
-        // 3. Bottom DuPont Wire Drop Trench (Direct wire drop under 7-pin header into stand channel)
-        translate([-10.0, -29.5, -0.1])
-            cube([20.0, 12.0, enclosure_depth + 0.2]);
+        // 3. Internal Lower Tab Pocket (Clearance inside from Y=-22 to Y=-25.5, leaving 1.5mm solid outer wall)
+        translate([-display_tab_w/2, -25.5, floor_t])
+            cube([display_tab_w, 5.0, cavity_depth + 0.1]);
             
         // 4. Left-Side USB-C Port Cutout
         translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
@@ -217,9 +216,9 @@ module desk_stand() {
             rotate([tilt_angle, 0, 0])
             octagonal_prism(enclosure_width + 0.8, 35.0, 6.2);
             
-        // 2. Rear & Bottom USB-C & DuPont Cable Relief Channel (20mm wide)
-        translate([-10.0, -stand_base_d/2 - 1, -0.1])
-            cube([20.0, stand_base_d + 2, 14.0]);
+        // 2. Rear USB-C Cable Relief Channel (16mm wide)
+        translate([-8.0, -stand_base_d/2 - 1, -0.1])
+            cube([16.0, stand_base_d + 2, 14.0]);
             
         // 3. 4 Bottom Rubber Foot Recesses (8.2mm dia, 1.4mm deep)
         for (fx = [-stand_base_w/2 + 10, stand_base_w/2 - 10]) {
