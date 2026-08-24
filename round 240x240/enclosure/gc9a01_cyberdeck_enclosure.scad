@@ -23,7 +23,12 @@ display_tab_w      = 23.6; // Bottom connector tab width (22.92mm blueprint + 0.
 display_tab_h      = 26.8; // Tab height from center (45.5mm total height)
 display_pcb_depth  = 4.0;  // Housing front pocket depth (mm)
 
-// Screw Mounting (M2 Socket Cap or Self-Tapping)
+// Direct Screen Bolting Holes on Bezel (from Engineering Blueprint)
+screen_bolt_x      = 9.63;  // Half of 19.26mm hole-to-hole pitch (x = +/-9.63mm)
+screen_bolt_y      = -18.91; // Y distance from screen center (mm)
+screen_bolt_dia    = 1.8;   // M2 self-tapping pilot or M2 heat-set insert hole (mm)
+
+// Bezel Corner Screws (M2 Socket Cap or Self-Tapping)
 screw_bolt_circle  = 42.0; // 42mm center-to-center square (x=+/-21, y=+/-21)
 screw_hole_dia     = 2.6;  // M2 / M2.5 clearance through-hole (mm)
 screw_head_dia     = 4.8;  // M2 socket cap head counterbore (mm)
@@ -81,7 +86,7 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE
+// 1. FRONT BEZEL RING PLATE (with 2 Direct Screen Bolting Holes)
 module front_bezel() {
     difference() {
         union() {
@@ -112,6 +117,12 @@ module front_bezel() {
                 translate([sx, sy, bezel_thickness + 1.6 - screw_head_depth])
                     cylinder(d = screw_head_dia, h = screw_head_depth + 0.1);
             }
+        }
+        
+        // 5. 2 Direct Screen-Retaining Pilot Holes (X = +/-9.63mm, Y = -18.91mm)
+        for (sx = [-screen_bolt_x, screen_bolt_x]) {
+            translate([sx, screen_bolt_y, 1.8])
+                cylinder(d = screen_bolt_dia, h = 3.2);
         }
     }
 }

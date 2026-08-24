@@ -3,11 +3,11 @@
 GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
-Reengineered with EXACT blueprint dimensions from the GC9A01 1.28" TFT 240x240 specification:
+Reengineered with direct GC9A01 screen bolting to the front bezel:
+- 2 x M2 screen-retaining threaded pilot holes (X = +/-9.63mm, Y = -18.91mm) matching the GC9A01 tab holes
 - Active LCD A.A: 32.40mm dia
 - Glass / Backlight (BL): 35.6mm dia x 1.5mm thick
 - PCB Outline: 38.0mm circular body with 22.92mm wide bottom tab (total height 45.5mm, 1.6mm thick)
-- 7-pin rear SPI header on bottom tab
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
 - Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
 """
@@ -98,6 +98,14 @@ def generate_front_bezel():
             hole = m3d.Manifold.cylinder(t + 4.0, 1.3, 1.3, 32).translate([sx, sy, -1.0])
             cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + 1.5 - 2.2])
             cuts = cuts + hole + cb
+            
+    # 7. 2 Direct Screen Bolting Pilot Holes for GC9A01 PCB Tab (X = +/-9.63mm, Y = -18.91mm)
+    # Allows 2 x M2 screws to fasten the display directly to the rear of the front bezel
+    screen_holes_x = 9.63
+    screen_holes_y = -18.91
+    for sx in [-screen_holes_x, screen_holes_x]:
+        s_hole = m3d.Manifold.cylinder(3.2, 0.9, 0.9, 32).translate([sx, screen_holes_y, 1.8])
+        cuts = cuts + s_hole
             
     return bezel_solid - cuts
 
@@ -222,7 +230,7 @@ def main():
 
     print("Generating Blueprint-Accurate 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate
+    # 1. Front Bezel Plate (with 2 M2 direct screen bolting holes)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
