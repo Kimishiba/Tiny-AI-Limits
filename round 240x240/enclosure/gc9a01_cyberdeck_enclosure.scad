@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture (Accentuated USB-C Chamfer Only)
+// 100% Support-Free FDM 3D Printable Architecture (Sculpted Trapezoidal Tier 2)
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -47,11 +47,11 @@ esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
 esp_standoff_h     = 1.4;  // Lowered standoff height (mm)
 usbc_center_z      = 6.8;  // Lowered USB-C port centerline (mm)
 
-// Stand Parameters (Two-Tier Concept from 3D Render)
+// Stand Parameters (Sculpted Two-Tier Concept from 3D Render)
 stand_base_w       = 64.0; // Tier 1 base width (mm)
 stand_base_d       = 68.0; // Tier 1 base depth (mm)
 stand_base_h       = 6.0;  // Tier 1 base height (mm)
-stand_trunk_h      = 24.0; // Tier 2 cradle trunk height (mm)
+stand_trunk_h      = 22.0; // Tier 2 cradle trunk height (mm)
 stand_tilt_deg     = 20.0; // Backward tilt angle from vertical (degrees)
 pin_dist_x         = 20.0; // Alignment pillar X distance from center (mm)
 pin_dist_y         = 22.0; // Alignment pillar Y distance from center (mm)
@@ -151,7 +151,6 @@ module usbc_stadium_cutter() {
         translate([-32.0, -3.0, usbc_center_z]) rotate([0, 90, 0]) cylinder(r = 2.75, h = 16.0);
         translate([-32.0, 3.0, usbc_center_z])  rotate([0, 90, 0]) cylinder(r = 2.75, h = 16.0);
     }
-    // Accentuated 45-degree outer lead-in chamfer flare (widening to 15mm x 9mm)
     hull() {
         translate([-29.0, -3.0, usbc_center_z]) rotate([0, 90, 0]) cylinder(r1 = 4.5, r2 = 2.75, h = 3.5);
         translate([-29.0, 3.0, usbc_center_z])  rotate([0, 90, 0]) cylinder(r1 = 4.5, r2 = 2.75, h = 3.5);
@@ -262,9 +261,6 @@ module stand_tier1_base() {
             }
         }
         
-        translate([-8.0, -stand_base_d/2 - 1, -0.1])
-            cube([16.0, stand_base_d + 2, stand_base_h + 1.0]);
-            
         for (fx = [-stand_base_w/2 + 10, stand_base_w/2 - 10]) {
             for (fy = [-stand_base_d/2 + 10, stand_base_d/2 - 10]) {
                 translate([fx, fy, -0.1])
@@ -274,18 +270,18 @@ module stand_tier1_base() {
     }
 }
 
-// 4. STAND TIER 2 CRADLE TRUNK (with 4 Mating Slide Sockets)
+// 4. STAND TIER 2 SCULPTED MONOLITHIC TRAPEZOIDAL PEDESTAL TRUNK
 module stand_tier2_trunk() {
     difference() {
-        translate([0, 0, stand_base_h])
-            linear_extrude(height = stand_trunk_h, scale = [0.92, 0.90])
-            polygon([
-                [-27.0, -29.0], [27.0, -29.0],
-                [29.0, -27.0],  [29.0, 27.0],
-                [27.0, 29.0],   [-27.0, 29.0],
-                [-29.0, 27.0],  [-29.0, -27.0]
-            ]);
-            
+        // Monolithic Trapezoidal Body with Continuous 4-Sided Draft Angle
+        hull() {
+            translate([0, 0, stand_base_h])
+                rounded_rect_prism(60.0, 64.0, 0.01, 5.0);
+            translate([0, 0, stand_base_h + stand_trunk_h - 0.01])
+                rounded_rect_prism(52.0, 56.0, 0.01, 3.5);
+        }
+        
+        // 4 Mating Slide Sockets on Bottom Face
         for (px = [-pin_dist_x, pin_dist_x]) {
             for (py = [-pin_dist_y, pin_dist_y]) {
                 translate([px, py, stand_base_h - 0.1])
@@ -293,12 +289,10 @@ module stand_tier2_trunk() {
             }
         }
         
-        translate([0, 6.0, stand_base_h + 8.0])
+        // 20-Degree Angled V-Saddle Cradle Pocket
+        translate([0, 4.0, stand_base_h + stand_trunk_h - 2.5])
             rotate([stand_tilt_deg, 0, 0])
-            octagonal_prism(enclosure_width + 0.8, 35.0, 6.2);
-            
-        translate([-8.0, -stand_base_d/2 - 1, stand_base_h - 0.1])
-            cube([16.0, stand_base_d + 2, 16.0]);
+            octagonal_prism(enclosure_width + 0.8, 40.0, 6.2);
     }
 }
 
@@ -316,7 +310,7 @@ if (part == 1) {
     translate([0, 0, 24.5])
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
-    translate([0, -10.0, -24.0]) {
+    translate([0, -2.0, -23.0]) {
         color("#5c4033") stand_tier1_base();
         color("#2E3440") stand_tier2_trunk();
     }

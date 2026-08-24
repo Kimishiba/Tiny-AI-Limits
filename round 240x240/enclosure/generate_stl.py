@@ -16,10 +16,9 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) at (+/-19.50mm, +/-19.50mm)
   * 100% solid enclosed outer bottom wall
   * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
-- Two-Tier Desktop Pedestal Stand with Alignment Pillars:
-  * Tier 1 (Base Plate): 4 upward-protruding alignment pillars (dia = 5.0mm x 4.0mm H) with lead-in chamfers
-  * Tier 2 (Cradle Trunk): 4 mating socket holes (dia = 5.4mm x 4.6mm DP) that slide onto Tier 1 with positive mechanical registration
-  * 20° ergonomic V-saddle cradle and 16mm USB-C rear cable relief channel
+- Two-Tier Desktop Pedestal Stand (Replicating 3D Concept Render):
+  * Tier 1 (Base Accent Plate): 64x68x6mm rounded plate with 4 upward alignment pillars (dia = 5.0mm x 4.0mm H)
+  * Tier 2 (Cradle Trunk): Sculpted, monolithic trapezoidal pedestal block with continuous draft angles on all 4 sides, solid sloping front chin, 4 underside mating slide sockets, and 20° angled pod saddle
 """
 
 import math
@@ -98,8 +97,8 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
     faces = np.array(faces, dtype=np.int32)
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
 
-def make_rounded_rect_prism(w, d, h, r, fn=32):
-    """Creates a rounded rectangular base plate with width w, depth d, height h, corner radius r."""
+def make_rounded_rect_2d(w, d, r, fn=32):
+    """Generates 2D polygon vertices for a rounded rectangle."""
     hw = w / 2.0 - r
     hd = d / 2.0 - r
     pts = []
@@ -109,6 +108,11 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
         for i in range(fn // 4 + 1):
             angle = sa + (math.pi / 2.0) * (i / (fn // 4))
             pts.append([cx + r * math.cos(angle), cy + r * math.sin(angle)])
+    return pts
+
+def make_rounded_rect_prism(w, d, h, r, fn=32):
+    """Creates a rounded rectangular base plate with width w, depth d, height h, corner radius r."""
+    pts = make_rounded_rect_2d(w, d, r, fn)
     poly = m3d.CrossSection([pts])
     return m3d.Manifold.extrude(poly, h)
 
@@ -264,7 +268,6 @@ def generate_stand_tier1_base():
     - 64.0mm x 68.0mm x 6.0mm with 6.0mm rounded corners
     - 4 upward-protruding alignment pillars (dia = 5.0mm x 4.0mm H) with lead-in chamfers
     - 4 underside rubber feet recesses (dia = 8.2mm x 1.4mm deep)
-    - 16mm central cable relief slot
     """
     base_w = 64.0
     base_d = 68.0
@@ -286,75 +289,100 @@ def generate_stand_tier1_base():
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, base_h + 1.0], center=True).translate([0, 0, base_h / 2.0])
-    
-    return (tier1_solid + pillars) - feet_cuts - cable_slot
+    return (tier1_solid + pillars) - feet_cuts
 
 def generate_stand_tier2_trunk():
     """
-    Tier 2 Cradle Trunk (Matte Black / Charcoal):
-    - Tapered pedestal trunk body (24.0mm height)
-    - 4 mating socket holes on bottom face (dia = 5.4mm x 4.6mm deep) that slide onto Tier 1 pillars
+    Tier 2 Cradle Trunk (Sculpted Monolithic Trapezoidal Pedestal Block):
+    - Monolithic trapezoidal pedestal block with continuous 10° draft angles on all 4 sides
+    - Solid sloping front chin and solid rear wedge matching 3D concept render
+    - 4 underside mating socket holes (dia = 5.4mm x 4.6mm deep) that slide onto Tier 1 pillars
     - 20° ergonomic V-saddle cradle pocket supporting the 54mm pod
-    - 16mm USB-C rear cable relief channel
     """
     base_h = 6.0
-    trunk_h = 24.0
-    tilt_angle = 20.0
+    trunk_h = 22.0 # Total stand height = 28.0mm
+    tilt_deg = 20.0
     pin_dist_x = 20.0
     pin_dist_y = 22.0
+    pin_dia = 5.0
+    pin_h = 4.0
     
-    pts_bot = [
-        [-27.0, -29.0], [27.0, -29.0],
-        [29.0, -27.0],  [29.0, 27.0],
-        [27.0, 29.0],   [-27.0, 29.0],
-        [-29.0, 27.0],  [-29.0, -27.0]
-    ]
-    poly_bot = m3d.CrossSection([pts_bot])
-    trunk_solid = m3d.Manifold.extrude(poly_bot, trunk_h).translate([0, 0, base_h])
+    # 1. Sculpted Trapezoidal Pedestal Trunk Body (continuous 4-sided draft angle):
+    pts_bot = make_rounded_rect_2d(60.0, 64.0, 5.0, fn=32)
+    pts_top = make_rounded_rect_2d(52.0, 56.0, 3.5, fn=32)
+    n = len(pts_bot)
     
+    verts = []
+    faces = []
+    for x, y in pts_bot:
+        verts.append([x, y, base_h])
+    for x, y in pts_top:
+        verts.append([x, y, base_h + trunk_h])
+    verts = np.array(verts, dtype=np.float32)
+    
+    for i in range(1, n - 1):
+        faces.append([0, i + 1, i])
+    for i in range(n):
+        i_next = (i + 1) % n
+        faces.append([i, i_next, i_next + n])
+        faces.append([i, i_next + n, i + n])
+    for i in range(1, n - 1):
+        faces.append([n, n + i, n + i + 1])
+    faces = np.array(faces, dtype=np.int32)
+    
+    pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
+    
+    # 2. 4 Underside Mating Socket Holes (slide-fit over Tier 1 pillars)
     sockets = m3d.Manifold()
     for px in [-pin_dist_x, pin_dist_x]:
         for py in [-pin_dist_y, pin_dist_y]:
-            sock = m3d.Manifold.cylinder(4.6, 2.7, 2.7, 32).translate([px, py, base_h - 0.1])
+            sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
+    # 3. 20-Degree Angled V-Saddle Cradle Pocket (54.8mm wide octagonal pocket)
     pocket_w = 54.8
-    pocket_h = 35.0
-    pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
-    pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 8.0])
+    pocket_h = 40.0
+    pocket_cut = make_octagonal_prism(pocket_w, pocket_h, 6.2).rotate([tilt_deg, 0, 0]).translate([0, 4.0, base_h + trunk_h - 2.5])
     
-    cable_slot = m3d.Manifold.cube([16.0, 78.0, 16.0], center=True).translate([0, 0, base_h + 6.0])
-    
-    return trunk_solid - sockets - pocket_cut - cable_slot
+    return pedestal_solid - sockets - pocket_cut
 
 def generate_monolithic_desk_stand():
     """Single-piece unified monolithic stand combining Tier 1 and Tier 2."""
     base_w = 64.0
     base_d = 68.0
     base_h = 6.0
-    trunk_h = 24.0
-    tilt_angle = 20.0
+    trunk_h = 22.0
+    tilt_deg = 20.0
     
     tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    pts_bot = [
-        [-27.0, -29.0], [27.0, -29.0],
-        [29.0, -27.0],  [29.0, 27.0],
-        [27.0, 29.0],   [-27.0, 29.0],
-        [-29.0, 27.0],  [-29.0, -27.0]
-    ]
-    poly_bot = m3d.CrossSection([pts_bot])
-    trunk_solid = m3d.Manifold.extrude(poly_bot, trunk_h).translate([0, 0, base_h])
+    pts_bot = make_rounded_rect_2d(60.0, 64.0, 5.0, fn=32)
+    pts_top = make_rounded_rect_2d(52.0, 56.0, 3.5, fn=32)
+    n = len(pts_bot)
     
-    stand_solid = tier1_solid + trunk_solid
+    verts = []
+    faces = []
+    for x, y in pts_bot:
+        verts.append([x, y, base_h])
+    for x, y in pts_top:
+        verts.append([x, y, base_h + trunk_h])
+    verts = np.array(verts, dtype=np.float32)
+    
+    for i in range(1, n - 1):
+        faces.append([0, i + 1, i])
+    for i in range(n):
+        i_next = (i + 1) % n
+        faces.append([i, i_next, i_next + n])
+        faces.append([i, i_next + n, i + n])
+    for i in range(1, n - 1):
+        faces.append([n, n + i, n + i + 1])
+    faces = np.array(faces, dtype=np.int32)
+    
+    pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
     pocket_w = 54.8
-    pocket_h = 35.0
-    pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
-    pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 8.0])
-    
-    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, 16.0], center=True).translate([0, 0, base_h + 6.0])
+    pocket_h = 40.0
+    pocket_cut = make_octagonal_prism(pocket_w, pocket_h, 6.2).rotate([tilt_deg, 0, 0]).translate([0, 4.0, base_h + trunk_h - 2.5])
     
     feet_cuts = m3d.Manifold()
     for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
@@ -362,7 +390,7 @@ def generate_monolithic_desk_stand():
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    return stand_solid - pocket_cut - cable_slot - feet_cuts
+    return (tier1_solid + pedestal_solid) - pocket_cut - feet_cuts
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
@@ -384,10 +412,10 @@ def main():
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
     export_stl(tier1, tier1_path, "Stand Tier 1 Base Plate (with 4 Alignment Pillars)")
 
-    # 4. Two-Tier Stand: Tier 2 Cradle Trunk (with 4 Mating Slide Sockets)
+    # 4. Two-Tier Stand: Tier 2 Sculpted Trapezoidal Pedestal Trunk (with 4 Sockets)
     tier2 = generate_stand_tier2_trunk()
     tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
-    export_stl(tier2, tier2_path, "Stand Tier 2 Cradle Trunk (with 4 Slide Sockets)")
+    export_stl(tier2, tier2_path, "Stand Tier 2 Sculpted Pedestal Trunk (4 Sockets)")
 
     # 5. Monolithic Desk Stand (Unified)
     stand_mono = generate_monolithic_desk_stand()
