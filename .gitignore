@@ -1,6 +1,39 @@
-.pio/
-.DS_Store
-.venv/
+# Secrets, Credentials & Environment
+.env
+.env.*
+!.env.example
+secrets.h
+wifi_secrets.h
+config.json
+*.pem
+*.key
+*.token
+*.log
+
+# Python & Virtual Environments
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+dist/
+build/
+*.egg-info/
+
+# PlatformIO & Embedded Builds
+.pio/
+.pioenvs/
+.piolibdeps/
+.clangd/
+
+# OS & Editor Metadata
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
