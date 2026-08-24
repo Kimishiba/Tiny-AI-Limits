@@ -9,9 +9,9 @@ $fn = 64; // High resolution curves for 3D printing
 // --- PARAMETERS ---
 part = 0; // 0 = All Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Sculpted Desk Stand, 4 = Accent Base
 
-// Outer Dimensions
+// Outer Dimensions (Slim 26mm depth for concept-accurate proportions)
 enclosure_width  = 54.0; // Outer width & height (mm)
-enclosure_depth  = 36.0; // Deepened pod for upward DuPont clearance (mm)
+enclosure_depth  = 26.0; // Slim, sleek pod depth matching concept render (mm)
 bezel_thickness  = 4.5;  // Front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 
@@ -127,9 +127,9 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (36mm Deep, Blueprint Pocket, Pin-Locking Standoffs)
+// 2. MAIN HOUSING POD (Slim 26mm Depth, Blueprint Pocket, Pin-Locking Standoffs)
 module main_housing() {
-    cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 29.5mm internal clearance
+    cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 19.5mm internal clearance
     esp_center_x = -10.0;
     
     difference() {
@@ -142,7 +142,7 @@ module main_housing() {
         translate([0, 0, enclosure_depth - display_pcb_depth])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
-        // 2. Main DuPont & Electronics Cavity (44x44x29.5mm)
+        // 2. Main DuPont & Electronics Cavity (44x44x19.5mm)
         translate([-cavity_w/2, -cavity_h/2, floor_t])
             cube([cavity_w, cavity_h, cavity_depth + 0.1]);
             
@@ -150,11 +150,11 @@ module main_housing() {
         translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
             cube([12.0, 13.0, 8.0]);
             
-        // 4. 4 Corner M2 Screw Pilot Holes (14mm deep)
+        // 4. 4 Corner M2 Screw Pilot Holes (12mm deep)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                translate([sx, sy, enclosure_depth - 14.0])
-                    cylinder(d = screw_pilot_dia, h = 14.1);
+                translate([sx, sy, enclosure_depth - 12.0])
+                    cylinder(d = screw_pilot_dia, h = 12.1);
             }
         }
     }
@@ -209,7 +209,7 @@ module desk_stand() {
         // 1. 22-Degree Angled V-Saddle Cradle Pocket
         translate([0, 6.0, stand_base_h + 10.0])
             rotate([tilt_angle, 0, 0])
-            octagonal_prism(enclosure_width + 0.8, 40.0, 6.2);
+            octagonal_prism(enclosure_width + 0.8, 35.0, 6.2);
             
         // 2. Rear USB-C Cable Relief Channel (16mm wide)
         translate([-8.0, -stand_base_d/2 - 1, -0.1])
@@ -234,9 +234,9 @@ if (part == 1) {
     desk_stand();
 } else {
     // Assembly Preview Mode matching render
-    translate([0, 0, 36.0])
+    translate([0, 0, 26.0])
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
-    translate([0, -18.0, -26.0])
+    translate([0, -16.0, -26.0])
         color("#2E3440") desk_stand();
 }
