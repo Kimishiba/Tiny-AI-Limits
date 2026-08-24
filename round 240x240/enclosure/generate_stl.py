@@ -16,10 +16,9 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) at (+/-19.50mm, +/-19.50mm)
   * 100% solid enclosed outer bottom wall
   * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
-- Two-Tier Desktop Pedestal Stand (Continuous Monolithic Body matching 3D Render):
-  * True upright orientation (14.0° subtle backward tilt from vertical)
-  * Tier 1 (Base Accent Plate): 72x66x5.5mm rounded plate with 4 upward alignment pillars
-  * Tier 2 (Cradle Trunk): 68x62mm base tapering to 62x56mm top (16mm H) with 3.6mm continuous solid side walls connecting the front chin, sides, and rear backplate in a single uninterrupted monolithic block
+- Two-Tier Desktop Pedestal Stand (Replicating Concept Render Exactly):
+  * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
+  * Tier 2 (Cradle Trunk): 60x64mm base tapering to 52x56mm top (16mm H) monolithic truncated trapezoid with a shallow V-saddle cradle notch holding the pod upright at 18.0° backward tilt
 """
 
 import math
@@ -143,20 +142,20 @@ def export_stl(manifold_obj, filepath, name="Model"):
 def generate_front_bezel():
     w = 54.0
     c = 6.0
-    t = 5.5 # Enhanced display carrier thickness
+    t = 5.5
     ring_h = 1.5
-    oal_t = t + ring_h # 7.0mm
-    screw_dist = 19.50 # Balanced M3 bolt centers (39.0mm bolt circle)
-    chamfer_outer = 1.2 # Clean 1.2mm x 45° outer perimeter chamfer
+    oal_t = t + ring_h
+    screw_dist = 19.50
+    chamfer_outer = 1.2
     
     # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
     
-    # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render:
+    # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render
     ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.5, 64).translate([0, 0, t])
     bezel_solid = base + ring_chamfered
     
-    # 3. Wide Sloping Inner Conical Bezel Funnel (Shadow-Free & Off-Axis Visibility):
+    # 3. Wide Sloping Inner Conical Bezel Funnel
     r_glass = 16.4
     r_front = 19.2
     funnel_h = oal_t + 2.0
@@ -165,22 +164,22 @@ def generate_front_bezel():
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
     
-    # 4. Glass Step Pocket: 36.0mm dia x 1.6mm deep (fits 35.6mm BL glass lens)
+    # 4. Glass Step Pocket
     glass_recess = m3d.Manifold.cylinder(1.7, 36.0 / 2.0, 36.0 / 2.0, 64).translate([0, 0, -0.1])
     
-    # 5. Rear Retention Lip for PCB: Upper 38.6mm circle + 23.6mm bottom tab (depth 3.2mm into bezel)
+    # 5. Rear Retention Lip for PCB
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
     
     cuts = window_funnel + glass_recess + pcb_recess
     
-    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbore Pockets (+/-19.50mm)
+    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.2mm from rear) for Screen PCB
+    # 7. 2 Blind M2 Pilot Holes
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -193,16 +192,16 @@ def generate_front_bezel():
 def generate_main_housing():
     w = 54.0
     c = 6.0
-    depth = 24.5 # Open-tub housing depth (assembly total = 26.0mm with bezel)
+    depth = 24.5
     floor_t = 2.5
-    cavity_depth = depth - floor_t # 22.0mm continuous vertical cavity
-    screw_dist = 19.50 # Matches bezel M3 screw positions
-    chamfer_outer = 1.2 # Clean 1.2mm x 45° bottom chamfer
+    cavity_depth = depth - floor_t
+    screw_dist = 19.50
+    chamfer_outer = 1.2
     
     # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 24.5)
     chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False)
     
-    # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 13.0mm)
+    # 2. Main Internal Chamfered Cavity
     cw = 46.0
     cc = 13.0
     hcw = cw / 2.0
@@ -221,13 +220,12 @@ def generate_main_housing():
     c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
     usbc_tunnel = m3d.Manifold.hull(c1 + c2)
     
-    # Accentuated Outer 45-degree Chamfer Flare on USB-C Port (widening to 15.0mm x 9.0mm on outer wall):
     cone1 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
     cone2 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
     usbc_port = usbc_tunnel + usbc_flare
     
-    # 4. 4 Corner M3 Screw Pilot Holes (dia = 2.8mm, depth = 15.0mm from top rim) at (+/-19.50, +/-19.50)
+    # 4. 4 Corner M3 Screw Pilot Holes
     screw_pilot_cuts = m3d.Manifold()
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
@@ -265,17 +263,17 @@ def generate_main_housing():
 def generate_stand_tier1_base():
     """
     Tier 1 Base Plate (Walnut Wood / Accent Material):
-    - 72.0mm x 66.0mm x 5.5mm with 6.0mm rounded corners
-    - 4 upward-protruding alignment pillars (dia = 5.0mm x 3.5mm H) with lead-in chamfers
+    - 64.0mm x 68.0mm x 5.0mm with 6.0mm rounded corners
+    - 4 upward-protruding alignment pillars (dia = 5.0mm x 3.5mm H) with conical lead-in chamfers
     - 4 underside rubber feet recesses (dia = 8.2mm x 1.4mm deep)
     """
-    base_w = 72.0
-    base_d = 66.0
-    base_h = 5.5
+    base_w = 64.0
+    base_d = 68.0
+    base_h = 5.0
     tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    pin_dist_x = 22.0
-    pin_dist_y = 20.0
+    pin_dist_x = 20.0
+    pin_dist_y = 21.0
     pin_h = 3.5
     pillars = m3d.Manifold()
     for px in [-pin_dist_x, pin_dist_x]:
@@ -293,23 +291,24 @@ def generate_stand_tier1_base():
 
 def generate_stand_tier2_trunk():
     """
-    Tier 2 Cradle Trunk (Continuous Monolithic Sculpted Pedestal Block):
-    - Base: 68.0mm x 62.0mm -> Top: 62.0mm x 56.0mm (16.0mm height, total stand height = 21.5mm)
-    - Continuous solid 3.6mm side walls connecting the front chin and rear backrest in a single piece
-    - True upright orientation: 14.0° subtle backward tilt angle matching 3D render
+    Tier 2 Cradle Trunk (Monolithic Truncated Trapezoidal Pedestal with V-Saddle):
+    - Base: 60.0mm x 64.0mm -> Top: 52.0mm x 56.0mm (16.0mm height, total stand height = 21.0mm)
+    - Solid sloping front chin and continuous draft angles matching 3D concept render
+    - Shallow V-saddle cradle notch holding the pod at 18.0° backward tilt
     - 4 underside mating socket holes (dia = 5.4mm x 4.1mm deep)
     """
-    base_h = 5.5
+    base_h = 5.0
     trunk_h = 16.0
-    tilt_deg = 14.0 # Subtle upright tilt from vertical
-    pin_dist_x = 22.0
-    pin_dist_y = 20.0
+    tilt_deg = 18.0
+    rot_angles = [90.0 - tilt_deg, 0.0, 180.0]
+    pin_dist_x = 20.0
+    pin_dist_y = 21.0
     pin_dia = 5.0
     pin_h = 3.5
     
-    # 1. Monolithic Pedestal Body with 4-sided draft angle (68x62 base -> 62x56 top)
-    pts_bot = make_rounded_rect_2d(68.0, 62.0, 5.0, fn=32)
-    pts_top = make_rounded_rect_2d(62.0, 56.0, 4.0, fn=32)
+    # 1. Monolithic Pedestal Body with 4-sided draft angle (60x64 base -> 52x56 top)
+    pts_bot = make_rounded_rect_2d(60.0, 64.0, 5.0, fn=32)
+    pts_top = make_rounded_rect_2d(52.0, 56.0, 3.5, fn=32)
     n = len(pts_bot)
     
     verts = []
@@ -339,36 +338,40 @@ def generate_stand_tier2_trunk():
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    # 3. Exact Negative-Mold Pod Saddle Cutter (standing on bottom edge at 14° tilt):
-    w = 54.8
-    c = 6.2
-    hw = w / 2.0
-    pts_pod = [
-        [-hw + c, -hw], [hw - c, -hw],
-        [hw, -hw + c],  [hw, hw - c],
-        [hw - c, hw],   [-hw + c, hw],
-        [-hw, hw - c],  [-hw, -hw + c]
+    # 3. Exact Pod V-Saddle Negative Mold (with 0.3mm fit clearance):
+    w_c = 54.6
+    c_c = 6.0
+    hw_c = w_c / 2.0
+    pts_c = [
+        [-hw_c + c_c, -hw_c], [hw_c - c_c, -hw_c],
+        [hw_c, -hw_c + c_c],  [hw_c, hw_c - c_c],
+        [hw_c - c_c, hw_c],   [-hw_c + c_c, hw_c],
+        [-hw_c, hw_c - c_c],  [-hw_c, -hw_c + c_c]
     ]
-    poly_pod = m3d.CrossSection([pts_pod])
-    pod_dummy = m3d.Manifold.extrude(poly_pod, 27.0)
+    poly_c = m3d.CrossSection([pts_c])
+    pod_cutter_dummy = m3d.Manifold.extrude(poly_c, 26.8)
     
-    # Rotate pod dummy so it stands upright on its -Y bottom edge facing -Y front, tilted backward by 14°:
-    pod_cutter = pod_dummy.rotate([90.0 - tilt_deg, 0, 0]).translate([0, -2.0, 16.5])
+    # Position cradle pocket on top of pedestal (seated 3.0mm into top face):
+    pod_rot = pod_cutter_dummy.rotate(rot_angles)
+    z_min_pod = pod_rot.to_mesh().vert_properties[:, 2].min()
+    trans = [0.0, -12.0, 18.0 - z_min_pod]
+    pod_cutter = pod_rot.translate(trans)
     
     return pedestal_solid - sockets - pod_cutter
 
 def generate_monolithic_desk_stand():
     """Single-piece unified monolithic stand combining Tier 1 and Tier 2."""
-    base_w = 72.0
-    base_d = 66.0
-    base_h = 5.5
+    base_w = 64.0
+    base_d = 68.0
+    base_h = 5.0
     trunk_h = 16.0
-    tilt_deg = 14.0
+    tilt_deg = 18.0
+    rot_angles = [90.0 - tilt_deg, 0.0, 180.0]
     
     tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    pts_bot = make_rounded_rect_2d(68.0, 62.0, 5.0, fn=32)
-    pts_top = make_rounded_rect_2d(62.0, 56.0, 4.0, fn=32)
+    pts_bot = make_rounded_rect_2d(60.0, 64.0, 5.0, fn=32)
+    pts_top = make_rounded_rect_2d(52.0, 56.0, 3.5, fn=32)
     n = len(pts_bot)
     
     verts = []
@@ -391,18 +394,22 @@ def generate_monolithic_desk_stand():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    w = 54.8
-    c = 6.2
-    hw = w / 2.0
-    pts_pod = [
-        [-hw + c, -hw], [hw - c, -hw],
-        [hw, -hw + c],  [hw, hw - c],
-        [hw - c, hw],   [-hw + c, hw],
-        [-hw, hw - c],  [-hw, -hw + c]
+    w_c = 54.6
+    c_c = 6.0
+    hw_c = w_c / 2.0
+    pts_c = [
+        [-hw_c + c_c, -hw_c], [hw_c - c_c, -hw_c],
+        [hw_c, -hw_c + c_c],  [hw_c, hw_c - c_c],
+        [hw_c - c_c, hw_c],   [-hw_c + c_c, hw_c],
+        [-hw_c, hw_c - c_c],  [-hw_c, -hw_c + c_c]
     ]
-    poly_pod = m3d.CrossSection([pts_pod])
-    pod_dummy = m3d.Manifold.extrude(poly_pod, 27.0)
-    pod_cutter = pod_dummy.rotate([90.0 - tilt_deg, 0, 0]).translate([0, -2.0, 16.5])
+    poly_c = m3d.CrossSection([pts_c])
+    pod_cutter_dummy = m3d.Manifold.extrude(poly_c, 26.8)
+    
+    pod_rot = pod_cutter_dummy.rotate(rot_angles)
+    z_min_pod = pod_rot.to_mesh().vert_properties[:, 2].min()
+    trans = [0.0, -12.0, 18.0 - z_min_pod]
+    pod_cutter = pod_rot.translate(trans)
     
     feet_cuts = m3d.Manifold()
     for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
@@ -432,10 +439,10 @@ def main():
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
     export_stl(tier1, tier1_path, "Stand Tier 1 Base Plate (with 4 Alignment Pillars)")
 
-    # 4. Two-Tier Stand: Tier 2 Upright Monolithic Pedestal Trunk (4 Sockets, Solid Walls)
+    # 4. Two-Tier Stand: Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)
     tier2 = generate_stand_tier2_trunk()
     tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
-    export_stl(tier2, tier2_path, "Stand Tier 2 Monolithic Pedestal Trunk (Solid Walls)")
+    export_stl(tier2, tier2_path, "Stand Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)")
 
     # 5. Monolithic Desk Stand (Unified)
     stand_mono = generate_monolithic_desk_stand()
