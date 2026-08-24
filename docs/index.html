@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tiny AI Limits — Physical AI Telemetry on Your Desk</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #f7f7f8;
+      --card-bg: #ffffff;
+      --card-alt: #f0f1f3;
+      --border-dark: #121316;
+      --text-main: #121316;
+      --text-muted: #5c6068;
+      --accent-orange: #FF5F1F;
+      --accent-orange-hover: #e04b0f;
+      --accent-orange-light: #ffe8df;
+      --accent-cyan: #00d2d3;
+      --accent-green: #10b981;
+      --accent-green-bg: #d1fae5;
+      --border-width: 3px;
+      --border-thin: 2px;
+      --shadow-offset: 5px;
+      --shadow-offset-sm: 3px;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background-color: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    /* Sticky Navigation */
+    header.neo-header {
+      background: var(--card-bg);
+      border-bottom: var(--border-width) solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 0 0 rgba(0,0,0,0.05);
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo-badge {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.2rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      border-radius: 6px;
+    }
+
+    .brand-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.4rem 0.8rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.12s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 6px;
+    }
+
+    .nav-btn:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+      background: var(--accent-orange-light);
+    }
+
+    .nav-btn.primary {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .nav-btn.primary:hover {
+      background: var(--accent-orange-hover);
+      color: #ffffff;
+    }
+
+    /* Hero Section */
+    .hero-section {
+      background: linear-gradient(180deg, #ffffff 0%, var(--bg-color) 100%);
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding: 3.5rem 1.25rem 2.5rem;
+    }
+
+    .hero-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-orange-light);
+      color: var(--accent-orange);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.35rem 0.9rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-radius: 20px;
+    }
+
+    .hero-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      max-width: 900px;
+    }
+
+    .hero-title span.highlight {
+      color: var(--accent-orange);
+      position: relative;
+      display: inline-block;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 720px;
+      font-weight: 500;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      justify-content: center;
+      margin-top: 0.75rem;
+    }
+
+    .hero-cta {
+      background: var(--accent-orange);
+      color: #ffffff;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 0.85rem 1.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .hero-cta:hover {
+      background: var(--accent-orange-hover);
+      transform: translate(2px, 2px);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
+    }
+
+    .hero-cta.secondary {
+      background: var(--card-bg);
+      color: var(--text-main);
+    }
+
+    .hero-cta.secondary:hover {
+      background: var(--accent-orange-light);
+    }
+
+    .badge-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .badge-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: #ffffff;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    /* Content Container */
+    main.content-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 3.5rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .section-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.8rem;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .section-subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    /* Simulator Layout */
+    .simulator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      .simulator-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .device-bezel-box {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .bezel-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-thin) solid var(--border-dark);
+      padding-bottom: 0.75rem;
+    }
+
+    .bezel-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.88rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .indicator-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: var(--accent-green-bg);
+      color: #065f46;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .led-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      border: 1px solid var(--border-dark);
+    }
+
+    /* Screen Glass & Canvas */
+    .screen-glass {
+      background: #000000;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      aspect-ratio: 1 / 1;
+      max-width: 380px;
+      margin: 0 auto;
+      width: 100%;
+      transition: transform 0.1s ease;
+    }
+
+    .screen-glass.oled-mode {
+      aspect-ratio: 2 / 1;
+      max-width: 440px;
+    }
+
+    .screen-glass:active {
+      transform: scale(0.99);
+    }
+
+    canvas#simCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .touch-hint-bar {
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      border-radius: 6px;
+      padding: 0.6rem 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .touch-hint-bar strong {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+    }
+
+    /* Simulator Controls */
+    .controls-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .neo-card {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .card-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-thin) solid var(--border-dark);
+      padding-bottom: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .card-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .screen-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .tab-btn {
+      background: var(--card-bg);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.6rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+
+    .tab-btn:hover {
+      background: var(--accent-orange-light);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .ctrl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .ctrl-row label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      text-transform: uppercase;
+    }
+
+    .ctrl-row label span.val {
+      color: var(--accent-orange);
+      background: var(--accent-orange-light);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-weight: 800;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--accent-orange);
+      border: var(--border-thin) solid var(--border-dark);
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+    }
+
+    .btn-action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .action-btn {
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.55rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      border-radius: 6px;
+      text-transform: uppercase;
+      transition: all 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+
+    .action-btn:hover {
+      background: var(--accent-orange-light);
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+    }
+
+    .action-btn.alert-active {
+      background: #fef08a;
+      color: #854d0e;
+      border-color: #854d0e;
+    }
+
+    /* Hardware Showcase Grid */
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .showcase-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .showcase-card {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .showcase-img-wrap {
+      background: #11141a;
+      border-bottom: var(--border-width) solid var(--border-dark);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 260px;
+    }
+
+    .showcase-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .showcase-card:hover .showcase-img-wrap img {
+      transform: scale(1.03);
+    }
+
+    .showcase-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--accent-orange);
+      color: #ffffff;
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .showcase-body {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      flex: 1;
+    }
+
+    .showcase-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.35rem;
+      text-transform: uppercase;
+    }
+
+    .spec-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .spec-list li {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .spec-list li .bullet {
+      color: var(--accent-orange);
+      font-weight: 900;
+    }
+
+    /* WebSerial Section */
+    .webserial-box {
+      background: #181b22;
+      color: #ffffff;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      border-radius: var(--radius);
+      padding: 2.25rem;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .webserial-box {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .webserial-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.8rem;
+      text-transform: uppercase;
+      color: #ffffff;
+      margin-bottom: 0.75rem;
+    }
+
+    .webserial-desc {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .webserial-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .step-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: #e2e8f0;
+    }
+
+    .step-num {
+      background: var(--accent-orange);
+      color: #ffffff;
+      font-weight: 900;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .webserial-action-card {
+      background: #232731;
+      border: 2px solid #383e4d;
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Wiring & Pinout */
+    .wiring-table-wrap {
+      overflow-x: auto;
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+
+    table.neo-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    table.neo-table th {
+      background: var(--card-alt);
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    table.neo-table td {
+      border-bottom: var(--border-thin) solid #e2e8f0;
+      padding: 0.75rem 1rem;
+    }
+
+    table.neo-table tr:hover td {
+      background: var(--accent-orange-light);
+    }
+
+    /* Footer */
+    footer.neo-footer {
+      background: var(--border-dark);
+      color: #ffffff;
+      border-top: var(--border-width) solid var(--border-dark);
+      padding: 2.5rem 1.25rem;
+      margin-top: auto;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .footer-brand {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      color: var(--accent-orange);
+      text-transform: uppercase;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .footer-links a {
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-orange);
+    }
+
+    .footer-copy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+  </style>
+
+  <!-- Improv WiFi Serial Web Component -->
+  <script type="module" src="./vendor/improv-wifi-serial-launch-button.bundle.js"></script>
+</head>
+<body>
+
+  <!-- Sticky Header -->
+  <header class="neo-header">
+    <div class="header-inner">
+      <a href="#" class="brand">
+        <div class="brand-logo-badge">⚡</div>
+        <div class="brand-title">TINY AI LIMITS</div>
+      </a>
+      <nav class="nav-links">
+        <a href="#simulator" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">tv</span>
+          Simulator
+        </a>
+        <a href="#showcase" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">view_in_ar</span>
+          Hardware
+        </a>
+        <a href="#wiring" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">cable</span>
+          Wiring
+        </a>
+        <a href="#webserial" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
+          WebSerial
+        </a>
+        <a href="https://github.com/Kimishiba/Tiny-AI-Limits" target="_blank" rel="noopener" class="nav-btn primary">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">star</span>
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-inner">
+      <div class="hero-tag">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">memory</span>
+        Open Source ESP32-C3 Hardware Project
+      </div>
+      <h1 class="hero-title">
+        Physical AI Telemetry <br><span class="highlight">On Your Desk</span>
+      </h1>
+      <p class="hero-desc">
+        A smart desktop companion powered by the <strong>ESP32-C3 SuperMini</strong>. Monitors real-time token quotas for <strong>Claude Code</strong> & <strong>Google Antigravity CLI</strong>, flashes plan approval alerts, and serves as an expressive animated desk robot and split-flap clock.
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#simulator" class="hero-cta">
+          <span class="material-symbols-outlined">play_circle</span>
+          Launch Live Simulator
+        </a>
+        <a href="#showcase" class="hero-cta secondary">
+          <span class="material-symbols-outlined">architecture</span>
+          View 3D Enclosures
+        </a>
+      </div>
+
+      <div class="badge-pill-row">
+        <div class="badge-pill">⚙️ ESP32-C3 SuperMini</div>
+        <div class="badge-pill">🔘 GC9A01 240x240 Round IPS</div>
+        <div class="badge-pill">📺 SSD1306 128x64 OLED</div>
+        <div class="badge-pill">⚡ Dual Circular Radial Arcs</div>
+        <div class="badge-pill">🤖 Expressive Saccadic Eyes</div>
+        <div class="badge-pill">📶 1-Click WebSerial Wi-Fi</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content Container -->
+  <main class="content-container">
+
+    <!-- Section 1: Interactive Display Simulator -->
+    <section id="simulator">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">tv</span>
+          Interactive Hardware Simulator
+        </h2>
+        <div class="section-subtitle">Real-time Canvas Emulation Engine</div>
+      </div>
+
+      <div class="simulator-grid">
+        <!-- Left: Device Screen Glass -->
+        <div class="device-bezel-box">
+          <div class="bezel-topbar">
+            <div class="bezel-tag" id="bezelTitle">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span>
+              GC9A01 240×240 IPS (Round)
+            </div>
+            <div class="status-indicators">
+              <div class="indicator-pill">
+                <span class="led-dot"></span>
+                LIVE 60FPS
+              </div>
+            </div>
+          </div>
+
+          <div class="screen-glass" id="screenGlass" title="Click screen to cycle screens">
+            <canvas id="simCanvas" width="240" height="240"></canvas>
+          </div>
+
+          <div class="touch-hint-bar">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">touch_app</span>
+            Click screen glass to toggle modes or adjust real-time sliders on the right.
+          </div>
+        </div>
+
+        <!-- Right: Simulator Controls -->
+        <div class="controls-stack">
+
+          <!-- Screen Selection -->
+          <div class="neo-card">
+            <div class="card-title-bar">
+              <div class="card-title">
+                <span class="material-symbols-outlined" style="color: var(--accent-orange);">view_carousel</span>
+                Select Screen Edition
+              </div>
+            </div>
+            <div class="screen-tabs">
+              <button class="tab-btn active" id="tabRound" onclick="setScreenMode('round')">
+                🔘 GC9A01 Round (240x240)
+              </button>
+              <button class="tab-btn" id="tabOled" onclick="setScreenMode('oled')">
+                📺 SSD1306 OLED (128x64)
+              </button>
+            </div>
+          </div>
+
+          <!-- Telemetry Sliders & Mock Controls -->
+          <div class="neo-card">
+            <div class="card-title-bar">
+              <div class="card-title">
+                <span class="material-symbols-outlined" style="color: var(--accent-orange);">tune</span>
+                Live Telemetry Controls
+              </div>
+            </div>
+
+            <div class="ctrl-row">
+              <label>Claude Code Remaining: <span class="val" id="claudeVal">68%</span></label>
+              <input type="range" id="claudeSlider" min="0" max="100" value="68" oninput="updateClaude(this.value)">
+            </div>
+
+            <div class="ctrl-row">
+              <label>Antigravity CLI Remaining: <span class="val" id="antiVal">42%</span></label>
+              <input type="range" id="antiSlider" min="0" max="100" value="42" oninput="updateAnti(this.value)">
+            </div>
+
+            <div class="ctrl-row">
+              <label>Current Temperature (°C): <span class="val" id="tempVal">23.5°C</span></label>
+              <input type="range" id="tempSlider" min="-10" max="45" step="0.5" value="23.5" oninput="updateTemp(this.value)">
+            </div>
+
+            <div class="ctrl-row">
+              <label>Rain Forecast: <span class="val" id="rainVal">3 hrs</span></label>
+              <input type="range" id="rainSlider" min="-1" max="12" value="3" oninput="updateRain(this.value)">
+            </div>
+
+            <div class="btn-action-row" style="margin-top: 0.5rem;">
+              <button class="action-btn" id="btnAlert" onclick="toggleAlert()">
+                📋 Trigger Agent Alert
+              </button>
+              <button class="action-btn" onclick="triggerWorkComplete()">
+                ✨ Work Done Flash
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: 3D Hardware Showcase -->
+    <section id="showcase">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">view_in_ar</span>
+          Two Hardware Editions You Can Build
+        </h2>
+        <div class="section-subtitle">Modular 3D-Printable Desktop Pods</div>
+      </div>
+
+      <div class="showcase-grid">
+        <!-- Edition 1: GC9A01 Round Cyberdeck -->
+        <div class="showcase-card">
+          <div class="showcase-img-wrap">
+            <span class="showcase-badge">Flagship Edition</span>
+            <img src="./assets/round/gc9a01_3d_enclosure_render.jpg" alt="GC9A01 Circular Cyberdeck Enclosure Render">
+          </div>
+          <div class="showcase-body">
+            <h3 class="showcase-title">1.28" Circular IPS Cyberdeck</h3>
+            <p style="color: var(--text-muted); font-size: 0.92rem;">
+              An industrial sci-fi pod featuring a vibrant 240×240 circular color screen mounted on an ergonomic 18° backward tilt pedestal.
+            </p>
+            <ul class="spec-list">
+              <li><span class="bullet">▸</span> <strong>Display:</strong> 1.28" GC9A01 Round SPI IPS (240×240, 65K Colors)</li>
+              <li><span class="bullet">▸</span> <strong>UI:</strong> 2×2 Flip Clock + Left/Right Circular Radial Telemetry Arcs</li>
+              <li><span class="bullet">▸</span> <strong>Hardware:</strong> 4× Counterbored M3 Socket Head Cap Screws</li>
+              <li><span class="bullet">▸</span> <strong>Pedestal:</strong> Two-tier modular pedestal with dark walnut base</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Edition 2: SSD1306 OLED Robot Companion -->
+        <div class="showcase-card">
+          <div class="showcase-img-wrap">
+            <span class="showcase-badge">Companion Edition</span>
+            <img src="./assets/img/ssd1306_real_robot_render.jpg" alt="SSD1306 OLED Robot Companion Render">
+          </div>
+          <div class="showcase-body">
+            <h3 class="showcase-title">0.96" / 1.3" OLED Robot Face</h3>
+            <p style="color: var(--text-muted); font-size: 0.92rem;">
+              A retro-futuristic desktop robot featuring physics-driven saccadic eye glances, context-aware mood reactions, and auto-cycling screens.
+            </p>
+            <ul class="spec-list">
+              <li><span class="bullet">▸</span> <strong>Display:</strong> 0.96" or 1.3" Monochrome I2C OLED (128×64)</li>
+              <li><span class="bullet">▸</span> <strong>Moods:</strong> Normal idle, fatigued/sweat (heavy tokens), wide-eyed shock alert</li>
+              <li><span class="bullet">▸</span> <strong>Wiring:</strong> Super simple 4-pin I2C hookup</li>
+              <li><span class="bullet">▸</span> <strong>Enclosure:</strong> Matching chamfered cyberdeck with rectangular aperture</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: 1-Click WebSerial Wi-Fi Setup -->
+    <section id="webserial">
+      <div class="webserial-box">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 1.6rem;">wifi</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 800; color: var(--accent-orange); text-transform: uppercase;">Zero-Tool Provisioning</span>
+          </div>
+          <h2 class="webserial-title">1-Click WebSerial Wi-Fi Setup</h2>
+          <p class="webserial-desc">
+            No need to install Arduino IDE or edit source code to set your Wi-Fi credentials. Connect your ESP32-C3 SuperMini over USB-C and provision your network credentials directly in Chrome / Edge.
+          </p>
+
+          <div class="webserial-steps">
+            <div class="step-item">
+              <span class="step-num">1</span>
+              <span>Plug your ESP32-C3 SuperMini into USB-C.</span>
+            </div>
+            <div class="step-item">
+              <span class="step-num">2</span>
+              <span>Click the <strong>Connect to ESP32</strong> button on the right.</span>
+            </div>
+            <div class="step-item">
+              <span class="step-num">3</span>
+              <span>Select your device port and submit Wi-Fi SSID & Password.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="webserial-action-card">
+          <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--accent-orange);">usb</span>
+          <div style="font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 1.1rem; text-transform: uppercase;">
+            Ready to Connect
+          </div>
+          <improv-wifi-serial-launch-button></improv-wifi-serial-launch-button>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #94a3b8;">
+            * Requires Chrome, Edge, or Chromium-based browsers with WebSerial API.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Interactive Wiring & Pinouts -->
+    <section id="wiring">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">cable</span>
+          Wiring & Pinout Reference
+        </h2>
+        <div class="section-subtitle">ESP32-C3 SuperMini Pin Configuration</div>
+      </div>
+
+      <div class="wiring-table-wrap">
+        <table class="neo-table">
+          <thead>
+            <tr>
+              <th>Function</th>
+              <th>Display Pin (GC9A01 / SSD1306)</th>
+              <th>ESP32-C3 SuperMini Pin</th>
+              <th>Physical Header Location</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Power</strong></td>
+              <td><code>VCC</code></td>
+              <td><code>3V3</code></td>
+              <td>Left Header (Pin 3)</td>
+              <td>3.3V Power Supply</td>
+            </tr>
+            <tr>
+              <td><strong>Ground</strong></td>
+              <td><code>GND</code></td>
+              <td><code>GND</code></td>
+              <td>Left Header (Pin 2)</td>
+              <td>Common Ground</td>
+            </tr>
+            <tr>
+              <td><strong>I2C Clock (OLED)</strong></td>
+              <td><code>SCL / SCK</code></td>
+              <td><code>GPIO 9</code></td>
+              <td>Right Header (Pin 13)</td>
+              <td>Hardware I2C Clock</td>
+            </tr>
+            <tr>
+              <td><strong>I2C Data (OLED)</strong></td>
+              <td><code>SDA</code></td>
+              <td><code>GPIO 8</code></td>
+              <td>Right Header (Pin 14)</td>
+              <td>Hardware I2C Data</td>
+            </tr>
+            <tr>
+              <td><strong>SPI Clock (GC9A01)</strong></td>
+              <td><code>SCL / SCK</code></td>
+              <td><code>GPIO 4</code></td>
+              <td>Left Header (Pin 8)</td>
+              <td>Hardware SPI Clock</td>
+            </tr>
+            <tr>
+              <td><strong>SPI Data (GC9A01)</strong></td>
+              <td><code>SDA / MOSI</code></td>
+              <td><code>GPIO 6</code></td>
+              <td>Right Header (Pin 16)</td>
+              <td>Hardware SPI MOSI</td>
+            </tr>
+            <tr>
+              <td><strong>SPI Chip Select</strong></td>
+              <td><code>CS</code></td>
+              <td><code>GPIO 5</code></td>
+              <td>Left Header (Pin 9)</td>
+              <td>GC9A01 Chip Select</td>
+            </tr>
+            <tr>
+              <td><strong>SPI Data/Command</strong></td>
+              <td><code>DC</code></td>
+              <td><code>GPIO 7</code></td>
+              <td>Right Header (Pin 15)</td>
+              <td>GC9A01 Data / Command</td>
+            </tr>
+            <tr>
+              <td><strong>SPI Reset</strong></td>
+              <td><code>RST / RES</code></td>
+              <td><code>GPIO 1</code></td>
+              <td>Left Header (Pin 5)</td>
+              <td>Hardware Reset</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="neo-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        ⚡ TINY AI LIMITS
+      </div>
+      <div class="footer-links">
+        <a href="#simulator">Simulator</a>
+        <a href="#showcase">Hardware</a>
+        <a href="#wiring">Wiring Guide</a>
+        <a href="#webserial">WebSerial Setup</a>
+        <a href="https://github.com/Kimishiba/Tiny-AI-Limits" target="_blank" rel="noopener">GitHub Repository</a>
+      </div>
+      <div class="footer-copy">
+        © 2026 Tiny AI Limits. Open source under MIT License.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Simulation JavaScript Engine -->
+  <script>
+    const canvas = document.getElementById("simCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let screenMode = "round"; // "round" or "oled"
+    let claudeRemaining = 68;
+    let antiRemaining = 42;
+    let temperature = 23.5;
+    let rainHours = 3;
+    let isAlertActive = false;
+    let isWorkComplete = false;
+    let blinkState = false;
+    let lastBlink = Date.now();
+
+    // Robot Eye Animation State
+    let eyeLookX = 0;
+    let eyeLookY = 0;
+    let eyeTargetX = 0;
+    let eyeTargetY = 0;
+    let eyeBlinkProgress = 0; // 0 = open, 1 = closed
+    let nextGlanceTime = Date.now() + 2000;
+    let nextBlinkTime = Date.now() + 3000;
+
+    function setScreenMode(mode) {
+      screenMode = mode;
+      document.getElementById("tabRound").classList.toggle("active", mode === "round");
+      document.getElementById("tabOled").classList.toggle("active", mode === "oled");
+      const glass = document.getElementById("screenGlass");
+      const title = document.getElementById("bezelTitle");
+
+      if (mode === "round") {
+        canvas.width = 240;
+        canvas.height = 240;
+        glass.classList.remove("oled-mode");
+        title.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span> GC9A01 240×240 IPS (Round)';
+      } else {
+        canvas.width = 128;
+        canvas.height = 64;
+        glass.classList.add("oled-mode");
+        title.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span> SSD1306 128×64 OLED (Monochrome)';
+      }
+    }
+
+    document.getElementById("screenGlass").addEventListener("click", () => {
+      setScreenMode(screenMode === "round" ? "oled" : "round");
+    });
+
+    function updateClaude(val) {
+      claudeRemaining = parseInt(val, 10);
+      document.getElementById("claudeVal").innerText = val + "%";
+    }
+
+    function updateAnti(val) {
+      antiRemaining = parseInt(val, 10);
+      document.getElementById("antiVal").innerText = val + "%";
+    }
+
+    function updateTemp(val) {
+      temperature = parseFloat(val);
+      document.getElementById("tempVal").innerText = val + "°C";
+    }
+
+    function updateRain(val) {
+      rainHours = parseInt(val, 10);
+      document.getElementById("rainVal").innerText = val < 0 ? "Clear" : (val + " hrs");
+    }
+
+    function toggleAlert() {
+      isAlertActive = !isAlertActive;
+      isWorkComplete = false;
+      const btn = document.getElementById("btnAlert");
+      btn.classList.toggle("alert-active", isAlertActive);
+      btn.innerText = isAlertActive ? "⚠️ Alert Active" : "📋 Trigger Agent Alert";
+    }
+
+    function triggerWorkComplete() {
+      isWorkComplete = true;
+      isAlertActive = false;
+      document.getElementById("btnAlert").classList.remove("alert-active");
+      document.getElementById("btnAlert").innerText = "📋 Trigger Agent Alert";
+      setTimeout(() => {
+        isWorkComplete = false;
+      }, 6000);
+    }
+
+    // --- DRAWING: GC9A01 240x240 Circular Display ---
+    function drawRoundDisplay() {
+      const now = new Date();
+      const hStr = String(now.getHours()).padStart(2, "0");
+      const mStr = String(now.getMinutes()).padStart(2, "0");
+
+      ctx.fillStyle = "#0a0c10";
+      ctx.fillRect(0, 0, 240, 240);
+
+      // Circular Mask Guide
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(120, 120, 118, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Background radial gradient
+      const bgGrad = ctx.createRadialGradient(120, 120, 20, 120, 120, 120);
+      bgGrad.addColorStop(0, "#131722");
+      bgGrad.addColorStop(1, "#07090c");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 240, 240);
+
+      // 1. LEFT ARC: Claude Code Quota (Electric Cyan: #00d2d3)
+      const cFrac = Math.max(0, Math.min(1, claudeRemaining / 100));
+      const leftStart = Math.PI * 0.75;
+      const leftEnd = Math.PI * 1.45;
+      
+      // Arc Background track
+      ctx.beginPath();
+      ctx.arc(120, 120, 104, leftStart, leftEnd);
+      ctx.strokeStyle = "rgba(0, 210, 211, 0.15)";
+      ctx.lineWidth = 9;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      // Active Arc
+      if (cFrac > 0) {
+        ctx.beginPath();
+        ctx.arc(120, 120, 104, leftStart, leftStart + (leftEnd - leftStart) * cFrac);
+        ctx.strokeStyle = "#00d2d3";
+        ctx.lineWidth = 9;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      // 2. RIGHT ARC: Antigravity CLI Quota (Safety Orange: #FF5F1F)
+      const aFrac = Math.max(0, Math.min(1, antiRemaining / 100));
+      const rightStart = Math.PI * 0.25;
+      const rightEnd = -Math.PI * 0.45;
+
+      // Arc Background track
+      ctx.beginPath();
+      ctx.arc(120, 120, 104, rightStart, rightEnd, true);
+      ctx.strokeStyle = "rgba(255, 95, 31, 0.15)";
+      ctx.lineWidth = 9;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      // Active Arc
+      if (aFrac > 0) {
+        ctx.beginPath();
+        ctx.arc(120, 120, 104, rightStart, rightStart - (rightStart - rightEnd) * aFrac, true);
+        ctx.strokeStyle = "#FF5F1F";
+        ctx.lineWidth = 9;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      // Inside Gauge Curved Labels
+      ctx.font = "bold 9px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#00d2d3";
+      ctx.textAlign = "left";
+      ctx.fillText(`CLD ${claudeRemaining}%`, 20, 122);
+
+      ctx.fillStyle = "#FF5F1F";
+      ctx.textAlign = "right";
+      ctx.fillText(`AGY ${antiRemaining}%`, 220, 122);
+
+      // 3. TOP CROWN: Weather / Rain Forecast
+      ctx.font = "bold 10px 'JetBrains Mono', monospace";
+      ctx.fillStyle = rainHours >= 0 && rainHours <= 3 ? "#facc15" : "#94a3b8";
+      ctx.textAlign = "center";
+      const rainLabel = rainHours < 0 ? "☀️ CLEAR" : (rainHours === 0 ? "🌧️ RAIN NOW" : `🌧️ RAIN IN ${rainHours}H`);
+      ctx.fillText(rainLabel, 120, 26);
+
+      // 4. CENTER: 2x2 Split-Flap Clock
+      const cardW = 44;
+      const cardH = 50;
+      const cardGap = 5;
+      const startX = 120 - cardW - (cardGap / 2);
+      const startY = 62;
+
+      function drawFlipCard(x, y, char) {
+        ctx.fillStyle = "#1e2330";
+        ctx.strokeStyle = "#384156";
+        ctx.lineWidth = 1.5;
+        
+        // Card Body
+        ctx.beginPath();
+        ctx.roundRect(x, y, cardW, cardH, [5]);
+        ctx.fill();
+        ctx.stroke();
+
+        // Split line
+        ctx.beginPath();
+        ctx.moveTo(x, y + cardH / 2);
+        ctx.lineTo(x + cardW, y + cardH / 2);
+        ctx.strokeStyle = "#0d1017";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Number Text
+        ctx.font = "bold 32px 'Anybody', sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(char, x + cardW / 2, y + cardH / 2);
+      }
+
+      drawFlipCard(startX, startY, hStr[0]);
+      drawFlipCard(startX + cardW + cardGap, startY, hStr[1]);
+      drawFlipCard(startX, startY + cardH + cardGap, mStr[0]);
+      drawFlipCard(startX + cardW + cardGap, startY + cardH + cardGap, mStr[1]);
+
+      // 5. BOTTOM SUB-HUD / ALERT OVERRIDE
+      ctx.textBaseline = "alphabetic";
+      if (isAlertActive) {
+        // Flash alert banner
+        ctx.fillStyle = blinkState ? "#eab308" : "#ca8a04";
+        ctx.beginPath();
+        ctx.roundRect(36, 182, 168, 26, [6]);
+        ctx.fill();
+
+        ctx.font = "bold 11px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "center";
+        ctx.fillText("⚠️ APPROVE PLAN", 120, 199);
+      } else if (isWorkComplete) {
+        ctx.fillStyle = blinkState ? "#10b981" : "#047857";
+        ctx.beginPath();
+        ctx.roundRect(36, 182, 168, 26, [6]);
+        ctx.fill();
+
+        ctx.font = "bold 11px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.fillText("✨ WORK COMPLETE", 120, 199);
+      } else {
+        // Temperature & Date Sub-HUD
+        ctx.font = "bold 11px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "#cbd5e1";
+        ctx.textAlign = "center";
+        ctx.fillText(`${temperature.toFixed(1)}°C • BERLIN`, 120, 196);
+
+        ctx.font = "9px 'JetBrains Mono', monospace";
+        ctx.fillStyle = "#64748b";
+        ctx.fillText("MON 24 AUG", 120, 212);
+      }
+
+      ctx.restore();
+    }
+
+    // --- DRAWING: SSD1306 128x64 OLED Robot Companion ---
+    function drawOledDisplay() {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, 128, 64);
+
+      // Update saccadic eye physics
+      const now = Date.now();
+      if (now > nextGlanceTime) {
+        eyeTargetX = (Math.random() - 0.5) * 12;
+        eyeTargetY = (Math.random() - 0.5) * 6;
+        nextGlanceTime = now + 1500 + Math.random() * 2500;
+      }
+      eyeLookX += (eyeTargetX - eyeLookX) * 0.15;
+      eyeLookY += (eyeTargetY - eyeLookY) * 0.15;
+
+      // Handle randomized blink
+      if (now > nextBlinkTime) {
+        eyeBlinkProgress = 1.0;
+        nextBlinkTime = now + 2500 + Math.random() * 4000;
+      }
+      if (eyeBlinkProgress > 0) {
+        eyeBlinkProgress -= 0.12;
+        if (eyeBlinkProgress < 0) eyeBlinkProgress = 0;
+      }
+
+      if (isAlertActive) {
+        // Wide-eyed shock reaction with warning banner
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, 128, 12);
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 9px 'JetBrains Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("! PLAN APPROVAL !", 64, 9);
+
+        // Huge wide eyes
+        const eyeW = 34;
+        const eyeH = 34;
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(20, 20, eyeW, eyeH, [10]);
+        ctx.roundRect(74, 20, eyeW, eyeH, [10]);
+        ctx.fill();
+
+        // Shock pupils
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(37, 37, 7, 0, Math.PI * 2);
+        ctx.arc(91, 37, 7, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Normal Expressive Robot Eyes
+        const eyeBaseW = 32;
+        const eyeBaseH = 36 * (1 - eyeBlinkProgress);
+        const eyeY = 32 - (eyeBaseH / 2) + eyeLookY;
+
+        ctx.fillStyle = "#ffffff";
+
+        if (eyeBaseH > 3) {
+          // Left Eye
+          ctx.beginPath();
+          ctx.roundRect(24 + eyeLookX, eyeY, eyeBaseW, eyeBaseH, [8]);
+          ctx.fill();
+
+          // Right Eye
+          ctx.beginPath();
+          ctx.roundRect(72 + eyeLookX, eyeY, eyeBaseW, eyeBaseH, [8]);
+          ctx.fill();
+        } else {
+          // Closed eyelid slit
+          ctx.fillRect(24 + eyeLookX, 31, eyeBaseW, 3);
+          ctx.fillRect(72 + eyeLookX, 31, eyeBaseW, 3);
+        }
+
+        // Heavy token usage fatigue (falling sweat droplet)
+        if (claudeRemaining < 25) {
+          const sweatY = 18 + ((now / 15) % 30);
+          ctx.fillRect(114, sweatY, 3, 5);
+        }
+      }
+    }
+
+    // Main 60 FPS Render Loop
+    function renderLoop() {
+      const now = Date.now();
+      if (now - lastBlink > 500) {
+        blinkState = !blinkState;
+        lastBlink = now;
+      }
+
+      if (screenMode === "round") {
+        drawRoundDisplay();
+      } else {
+        drawOledDisplay();
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // Start render loop
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>
