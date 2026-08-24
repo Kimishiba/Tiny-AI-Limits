@@ -617,66 +617,70 @@ void drawGC9A01RoundFlipUI() {
     uint16_t colRain = gcGfx->color565(56, 189, 248);      // #38BDF8 Sky Blue
     uint16_t colGray = gcGfx->color565(148, 163, 184);     // #94A3B8 Slate Gray
 
-    // 1. Static Bezel or Spinning Bold Hazard Arc Dashes (Zero-smearing differential rendering)
+    // 1. Static Bezel or Flashing Static Hazard Arc Dashes (500ms ON / 500ms OFF)
     static bool bezelDrawn = false;
-    static float lastSpinAngle = -1.0f;
+    static bool lastFlashState = false;
+    static bool lastWaitingState = false;
 
-    uint16_t colHazardAmber = gcGfx->color565(255, 184, 0);   // #FFB800 Kinetic Amber
-    uint16_t colHazardYellow = gcGfx->color565(255, 232, 85);  // #FFE855 Electric Yellow
+    uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
 
     if (agentData.waiting_for_input) {
         bezelDrawn = false;
+        bool flashOn = (millis() / 500) % 2 == 0;
 
-        // Erase outer bezel band (radii 113 to 120) to black before drawing updated rotated dashes
-        if (lastSpinAngle >= 0.0f) {
-            for (float deg = 0.0f; deg < 360.0f; deg += 0.5f) {
-                float rad = deg * 0.0174532925f;
-                float cosR = cosf(rad);
-                float sinR = sinf(rad);
-                for (int r = 113; r <= 120; r++) {
-                    gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_BLACK);
+        if (flashOn != lastFlashState || !lastWaitingState) {
+            lastFlashState = flashOn;
+            lastWaitingState = true;
+
+            if (flashOn) {
+                // ON Phase (flashOn == true): Draw 6 static arc dashes
+                // (each dash 25 deg long, 35 deg gap, fixed angles 0, 60, 120, 180, 240, 300, radii 115..118 in Kinetic Amber #FFB800)
+                for (int i = 0; i < 6; i++) {
+                    float dashStart = i * 60.0f;
+                    float dashEnd = dashStart + 25.0f;
+
+                    for (float d = dashStart; d <= dashEnd; d += 0.4f) {
+                        float rad = d * 0.0174532925f;
+                        float cosR = cosf(rad);
+                        float sinR = sinf(rad);
+
+                        for (int r = 115; r <= 118; r++) {
+                            gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colHazardAmber);
+                        }
+                    }
                 }
+            } else {
+                // OFF Phase (flashOn == false): Wipe radii 114..119 across all 360 degrees to GC_COLOR_BLACK
+                for (int r = 114; r <= 119; r++) {
+                    gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
+                }
+                for (float deg = 0.0f; deg < 360.0f; deg += 0.5f) {
+                    float rad = deg * 0.0174532925f;
+                    float cosR = cosf(rad);
+                    float sinR = sinf(rad);
+                    for (int r = 114; r <= 119; r++) {
+                        gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_BLACK);
+                    }
+                }
+
+                // Draw base gunmetal bezel track (#1F2330) on radii 116, 117
+                gcGfx->drawCircle(cx, cy, 116, colBezel);
+                gcGfx->drawCircle(cx, cy, 117, colBezel);
             }
         }
-
-        // Draw 6 bold orbiting hazard arc dashes (each dash is 25 degrees long, 35 deg gap, 5px thick: radii 115..119)
-        float spinAngle = (float)(millis() % 3000) / 3000.0f * 360.0f; // degrees smooth rotation
-        for (int i = 0; i < 6; i++) {
-            float dashStart = spinAngle + i * 60.0f;
-            float dashEnd = dashStart + 25.0f; // 25 deg bold dash
-
-            for (float d = dashStart; d <= dashEnd; d += 0.4f) {
-                float rad = d * 0.0174532925f;
-                float cosR = cosf(rad);
-                float sinR = sinf(rad);
-
-                uint16_t dashCol = (i % 2 == 0) ? colHazardAmber : colHazardYellow;
-                for (int r = 115; r <= 119; r++) {
-                    gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), dashCol);
-                }
-            }
-        }
-        lastSpinAngle = spinAngle;
     } else {
-        if (lastSpinAngle >= 0.0f || !bezelDrawn) {
-            lastSpinAngle = -1.0f;
+        if (lastWaitingState || !bezelDrawn) {
+            lastWaitingState = false;
             bezelDrawn = true;
+            lastFlashState = false;
 
-            // 1. Integer circle erasure across radii 113..120 to wipe any Bresenham boundaries
+            // Final Alert Dismissal Cleanup:
+            // 1. Integer circle wipe across radii 113..120
             for (int r = 113; r <= 120; r++) {
                 gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
             }
 
-            // 2. 100% Guaranteed 360-Degree Polar Wipe: Wipes all radii from 113 to 120 across all 360 degrees to BLACK
-            for (int deg = 0; deg < 360; deg++) {
-                float rad = deg * 0.0174532925f;
-                float cosR = cosf(rad);
-                float sinR = sinf(rad);
-                for (int r = 113; r <= 120; r++) {
-                    gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_BLACK);
-                }
-            }
-
+            // 2. 100% Guaranteed 360-degree polar wipe across radii 113..120 to GC_COLOR_BLACK
             for (float deg = 0.0f; deg < 360.0f; deg += 0.5f) {
                 float rad = deg * 0.0174532925f;
                 float cosR = cosf(rad);
@@ -687,8 +691,8 @@ void drawGC9A01RoundFlipUI() {
             }
 
             // 3. Re-render clean static 2px gunmetal bezel ring (r = 116, 117)
-            gcGfx->drawCircle(cx, cy, rScreen + 2, colBezel);
-            gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
+            gcGfx->drawCircle(cx, cy, 116, colBezel);
+            gcGfx->drawCircle(cx, cy, 117, colBezel);
         }
     }
 
