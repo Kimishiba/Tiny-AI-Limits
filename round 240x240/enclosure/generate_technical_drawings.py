@@ -156,11 +156,11 @@ def generate_sheet_1_front_bezel(output_path):
     print(f"[Sheet 1 Generated]: {output_path}")
 
 def generate_sheet_2_main_housing(output_path):
-    fig, ax = setup_blueprint_canvas(title="PART 2: OPEN-TUB MAIN HOUSING (100% SUPPORT-FREE)")
+    fig, ax = setup_blueprint_canvas(title="PART 2: OPEN-TUB MAIN HOUSING (4 SOLID CORNER PILLARS)")
     draw_title_block(ax, "MAIN HOUSING TUB", 2)
     
     cx, cy = 110, 160
-    ax.text(cx, cy - 45, "VIEW A: FRONT OPEN TUB INTERIOR", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
+    ax.text(cx, cy - 45, "VIEW A: FRONT OPEN TUB & CORNER PILLARS", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     hw, c = 27.0, 6.0
     oct_pts = np.array([
@@ -171,20 +171,23 @@ def generate_sheet_2_main_housing(output_path):
     ]) + [cx, cy]
     ax.add_patch(Polygon(oct_pts, fill=True, facecolor='#162032', edgecolor='#00e5ff', linewidth=1.5))
     
-    # 44x44mm Continuous Open Cavity
-    ax.add_patch(Rectangle((cx - 22, cy - 22), 44, 44, fill=True, facecolor='#0b111e', edgecolor='#4cc9f0', linewidth=1.2))
-    
-    # Internal Lower Tab Clearance Pocket (Y = -22 to -25.5mm)
-    ax.add_patch(Rectangle((cx - 11.8, cy - 25.5), 23.6, 5.0, fill=True, facecolor='#0b111e', edgecolor='#ffd166', linewidth=1.0))
+    # Chamfered Cavity (46mm wide, 11.5mm corner chamfers)
+    hcw, cc = 23.0, 11.5
+    cav_pts = np.array([
+        [-hcw + cc, -hcw], [hcw - cc, -hcw],
+        [hcw, -hcw + cc],  [hcw, hcw - cc],
+        [hcw - cc, hcw],   [-hcw + cc, hcw],
+        [-hcw, hcw - cc],  [-hcw, -hcw + cc]
+    ]) + [cx, cy]
+    ax.add_patch(Polygon(cav_pts, fill=True, facecolor='#0b111e', edgecolor='#4cc9f0', linewidth=1.2))
     
     # Left USB-C Port Cutout
     ax.add_patch(Rectangle((cx - 27.5, cy - 6.5), 6.5, 13, fill=True, facecolor='#060a12', edgecolor='#38b000', linewidth=1.2))
     
-    # 4 Corner Screw Pillars (Ø7.6mm)
+    # 4 Corner Screw Holes (Ø2.0mm) inside massive solid corner pillars (+/-21mm)
     for sx in [-21.0, 21.0]:
         for sy in [-21.0, 21.0]:
-            ax.add_patch(Circle((cx + sx, cy + sy), 3.8, fill=True, facecolor='#1e293b', edgecolor='#f72585', linewidth=1.0))
-            ax.add_patch(Circle((cx + sx, cy + sy), 1.0, fill=True, facecolor='#060a12', edgecolor='#f72585', linewidth=1.0))
+            ax.add_patch(Circle((cx + sx, cy + sy), 1.0, fill=True, facecolor='#060a12', edgecolor='#f72585', linewidth=1.2))
             
     # ESP32-C3 Standoffs
     ax.add_patch(Rectangle((cx - 21.5, cy + 7.62 - 1.7), 23, 3.4, fill=True, facecolor='#1e293b', edgecolor='#a2d2ff', linewidth=1.0))
@@ -196,12 +199,12 @@ def generate_sheet_2_main_housing(output_path):
         ax.add_patch(Circle((px, cy + 7.62), 0.75, fill=True, facecolor='#060a12', edgecolor='#ffbe0b', linewidth=0.8))
         ax.add_patch(Circle((px, cy - 7.62), 0.75, fill=True, facecolor='#060a12', edgecolor='#ffbe0b', linewidth=0.8))
         
-    add_dim_line(ax, (cx - 22, cy + 22), (cx + 22, cy + 22), "44.00 OPEN TUB", offset=4, color='#4cc9f0')
-    add_dim_line(ax, (cx - 27, cy - 27), (cx + 27, cy - 27), "100% SOLID BOTTOM WALL (54.00)", offset=-8, color='#00e5ff')
+    add_dim_line(ax, (cx - 23, cy + 23), (cx + 23, cy + 23), "46.00 BAY", offset=4, color='#4cc9f0')
+    add_dim_line(ax, (cx - 21, cy + 21), (cx + 21, cy + 21), "42.00 B.C.", offset=-6, color='#f72585')
     
-    ax.annotate("CONTINUOUS VERTICAL WALLS\n(ZERO MID-AIR OVERHANGS)\n100% SUPPORT-FREE FDM PRINT", xy=(cx + 15, cy + 22), xytext=(cx + 35, cy + 35),
-                arrowprops=dict(arrowstyle='->', color='#4cc9f0', lw=1.0),
-                color='#4cc9f0', fontsize=7.5, family='monospace', fontweight='bold')
+    ax.annotate("4x SOLID CORNER PILLARS\nØ2.00 PILOT x 14.0mm DP\n(MATCHES FRONT BEZEL BOLTS)", xy=(cx + 21, cy + 21), xytext=(cx + 35, cy + 30),
+                arrowprops=dict(arrowstyle='->', color='#f72585', lw=1.0),
+                color='#f72585', fontsize=7.5, family='monospace', fontweight='bold')
                 
     ax.annotate("USB-C WINDOW\n13.00 x 8.00mm", xy=(cx - 27, cy), xytext=(cx - 48, cy + 18),
                 arrowprops=dict(arrowstyle='->', color='#38b000', lw=1.0),
@@ -211,23 +214,23 @@ def generate_sheet_2_main_housing(output_path):
     ax.text(sx + 15, sy - 45, "VIEW B: SECTION B-B (Z-DEPTH PROFILE)", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     sec_housing = [
-        [sx, sy - 27], [sx + 24.5, sy - 27], [sx + 24.5, sy - 22],
-        [sx + 2.5, sy - 22],
+        [sx, sy - 27], [sx + 24.5, sy - 27], [sx + 24.5, sy - 21],
+        [sx + 2.5, sy - 21],
         [sx + 2.5, sy - 9.3], [sx + 5.0, sy - 9.3], [sx + 5.0, sy - 6.0], [sx + 2.5, sy - 6.0],
         [sx + 2.5, sy + 6.0], [sx + 5.0, sy + 6.0], [sx + 5.0, sy + 9.3], [sx + 2.5, sy + 9.3],
-        [sx + 2.5, sy + 22], [sx + 24.5, sy + 22], [sx + 24.5, sy + 27], [sx, sy + 27]
+        [sx + 2.5, sy + 21], [sx + 24.5, sy + 21], [sx + 24.5, sy + 27], [sx, sy + 27]
     ]
     ax.add_patch(Polygon(sec_housing, fill=True, facecolor='#1b2a4a', edgecolor='#00e5ff', linewidth=1.2, hatch='//'))
     
     add_dim_line(ax, (sx, sy + 27), (sx + 24.5, sy + 27), "24.50 DEPTH", offset=10)
-    add_dim_line(ax, (sx, sy - 22), (sx + 2.5, sy - 22), "2.50", offset=-6)
-    add_dim_line(ax, (sx + 2.5, sy - 22), (sx + 24.5, sy - 22), "22.00 VERTICAL CAVITY", offset=-6, color='#4cc9f0')
+    add_dim_line(ax, (sx, sy - 21), (sx + 2.5, sy - 21), "2.50", offset=-6)
+    add_dim_line(ax, (sx + 2.5, sy - 21), (sx + 24.5, sy - 21), "22.00 VERTICAL CAVITY", offset=-6, color='#4cc9f0')
     
     ax.annotate("ESP32-C3 STANDOFFS (2.5mm H)\n16x Ø1.50 PIN REGISTRATION\nREAR THRUST STOP BLOCK", xy=(sx + 5, sy + 7.62), xytext=(sx + 35, sy + 15),
                 arrowprops=dict(arrowstyle='->', color='#a2d2ff', lw=1.0),
                 color='#a2d2ff', fontsize=7.5, family='monospace', fontweight='bold')
                 
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. VERTICAL STRAIGHT WALLS & CORNER PILLARS RUN 100% UNINTERRUPTED TO TOP RIM.\n3. ZERO MID-AIR CEILINGS OR BRIDGES: NO SUPPORTS REQUIRED ANYWHERE INSIDE HOUSING.\n4. 4x CORNER PILOT HOLES (Ø2.0mm x 12mm DP) FOR M2 SCREWS OR HEAT-SET INSERTS.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. 4 MASSIVE SOLID CORNER PILLARS RUN CONTINUOUSLY FROM FLOOR TO TOP RIM.\n3. 4x M2 PILOT HOLES (Ø2.0mm x 14mm DP) AT (+/-21, +/-21) FOR M2 BOLTS OR HEAT-SET INSERTS.\n4. ZERO OVERHANGS ANYWHERE INSIDE HOUSING TUB.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
@@ -326,7 +329,7 @@ def generate_sheet_4_full_assembly(output_path):
 +----+------------------------------------+-----+-------------------------------------------------------------+
 | 01 | Front Bezel Display Carrier Plate  |  1  | 3D Print (Matte Black PETG) | Ø32.6mm Viewport & PCB Pocket |
 | 02 | GC9A01 1.28" Round IPS Module      |  1  | 240x240 Circular Display with 7-Pin SPI Header Bottom Tab  |
-| 03 | Main Housing Pod (Open Tub Bucket) |  1  | 3D Print | 100% Support-Free, Pin-Locks & USB-C Window      |
+| 03 | Main Housing Pod (Open Tub Bucket) |  1  | 3D Print | 4 Solid Corner Pillars & 4x M2 Pilot Holes       |
 | 04 | ESP32-C3 SuperMini MCU Board       |  1  | Pin Headers facing UP | Solder pins lock into standoffs     |
 | 05 | Sculpted Two-Tier Desk Stand       |  1  | 3D Print (Charcoal / Walnut) | 22° V-Saddle & Cable Channel |
 | 06 | Screen Fasteners (M2 x 4mm/6mm)    |  2  | Self-tapping screws into bezel rear blind 1.75mm pilot holes|

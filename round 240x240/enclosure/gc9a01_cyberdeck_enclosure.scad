@@ -37,8 +37,8 @@ screw_head_depth   = 2.2;  // Counterbore pocket depth (mm)
 screw_pilot_dia    = 2.0;  // M2 pilot / heat-set insert hole (mm)
 
 // Internal Cavity & ESP32-C3 SuperMini Mounting
-cavity_w           = 44.0; // Generous internal width for DuPont wire loops (mm)
-cavity_h           = 44.0; // Internal height (mm)
+cavity_w           = 46.0; // 46mm wide internal bay (mm)
+cavity_chamfer     = 11.5; // 11.5mm corner chamfers to preserve massive solid corner pillars (mm)
 floor_t            = 2.5;  // Rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
@@ -53,7 +53,7 @@ tilt_angle         = 22.0; // Ergonomic viewing angle (degrees)
 
 // --- MODULES ---
 
-// Chamfered Cyberdeck Octagonal Prism
+// Chamfered Octagonal Prism
 module octagonal_prism(w, h, c) {
     hw = w / 2;
     linear_extrude(height = h) {
@@ -128,7 +128,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (Open Tub, Zero Overhangs, Continuous Vertical Walls)
+// 2. MAIN HOUSING POD (Open Tub, Massive Corner Pillars, 4 Open M2 Screw Holes)
 module main_housing() {
     cavity_depth = housing_depth - floor_t; // 22.0mm continuous vertical cavity
     esp_center_x = -10.0;
@@ -137,33 +137,21 @@ module main_housing() {
         union() {
             // Outer Solid Chassis
             octagonal_prism(enclosure_width, housing_depth, chamfer_size);
-            
-            // 4 Corner Screw Pillars
-            for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                    translate([sx, sy, floor_t])
-                        cylinder(d = 7.6, h = cavity_depth);
-                }
-            }
         }
         
-        // 1. Continuous Open Tub Cavity (44x44mm from floor to top rim)
-        translate([-cavity_w/2, -cavity_h/2, floor_t])
-            cube([cavity_w, cavity_h, cavity_depth + 0.1]);
+        // 1. Chamfered Open Tub Cavity (width = 46mm, corner chamfer = 11.5mm leaving solid corner pillars)
+        translate([0, 0, floor_t])
+            octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
-        // 2. Internal Lower Tab Clearance Pocket (Y = -22 to -25.5mm)
-        translate([-display_tab_w/2, -25.5, floor_t])
-            cube([display_tab_w, 5.0, cavity_depth + 0.1]);
-            
-        // 3. Left-Side USB-C Port Cutout
+        // 2. Left-Side USB-C Port Cutout
         translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
             cube([12.0, 13.0, 8.0]);
             
-        // 4. 4 Corner M2 Screw Pilot Holes (12mm deep)
+        // 3. 4 Corner M2 Screw Pilot Holes (14mm deep at +/-21mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                translate([sx, sy, housing_depth - 12.0])
-                    cylinder(d = screw_pilot_dia, h = 12.1);
+                translate([sx, sy, housing_depth - 14.0])
+                    cylinder(d = screw_pilot_dia, h = 14.1);
             }
         }
     }
