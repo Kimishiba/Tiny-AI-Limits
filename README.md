@@ -54,9 +54,7 @@ A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Mon
   * *Heavy Usage Today:* Droopy, tired eyes with animated falling sweat droplets as your daily Claude token consumption reaches high thresholds.
   * *Agent Attention Alert:* Wide-eyed shock animation and retro warning banners when an AI coding agent is waiting for user approval.
 * **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Robot Face $\to$ Split HUD $\to$ Quota Telemetry Bars $\to$ Clock & Weather.
-* **Enclosure Options:** 
-  * *Cyberdeck Pod:* Matching chamfered pod with rectangular bezel aperture, brass M3 hardware, and two-tier pedestal stand.
-  * *Desk Console / Macropad:* Angled desk console incorporating 3 mechanical Cherry MX keyboard switches and an EC11 rotary encoder knob for quick system control and macro triggering.
+* **Enclosure Architecture:** Matching chamfered cyberdeck pod with rectangular bezel aperture, brass M3 hardware, and two-tier pedestal stand.
 
 ---
 
@@ -70,7 +68,7 @@ A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Mon
 | **Claude & Antigravity Gauges** | Dual Continuous $180^\circ$ Radial Arcs | Horizontal Telemetry Progress Bars |
 | **Agent Approval Warning** | High-Contrast Yellow/Orange Sub-HUD Alert | Shocked Wide-Eye Animation & Flashing Banner |
 | **Weather & Rain Forecast** | Top Crown Indicator + Temperature Sub-HUD | Dedicated Cycling Weather Screen |
-| **Desk Stand** | Modular Two-Tier Pedestal (Walnut + Cradle) | Two-Tier Pedestal OR Angled Macropad Case |
+| **Desk Stand** | Modular Two-Tier Pedestal (Walnut + Cradle) | Modular Two-Tier Pedestal (Walnut + Cradle) |
 
 ---
 
@@ -105,7 +103,7 @@ The ultra-compact ESP32-C3 SuperMini board powers both versions via USB-C (3.3V 
 | **SCL / SCK** | **GPIO 9** | Hardware I2C Clock (400 kHz) |
 | **SDA** | **GPIO 8** | Hardware I2C Data |
 
-*(For optional Macropad switches and rotary encoder pinout, see [`enclosure/ASSEMBLY_AND_WIRING.md`](enclosure/ASSEMBLY_AND_WIRING.md) and [`WIRING.md`](WIRING.md)).*
+*(For breadboard hookup instructions, see [`WIRING.md`](WIRING.md)).*
 
 ---
 
@@ -113,15 +111,12 @@ The ultra-compact ESP32-C3 SuperMini board powers both versions via USB-C (3.3V 
 
 All enclosure CAD models are **100% support-free FDM 3D printable** and available in both parametric OpenSCAD sources and verified watertight STLs:
 
-### Models Included:
-* **Round GC9A01 Enclosure (`round 240x240/enclosure/`):**
-  * `gc9a01_front_bezel.stl` — Front bezel display carrier with anti-shadow conical bevel and M3 counterbores.
-  * `gc9a01_main_housing.stl` — Enclosure bucket with lowered USB-C port and M3 corner pilot holes.
-  * `gc9a01_stand_tier1_base.stl` — Tier 1 base plate with 4 alignment pillars and rubber feet recesses (ideal for wood PLA or dark walnut).
-  * `gc9a01_stand_tier2_trunk.stl` — Tier 2 sculpted monolithic pedestal trunk with 4 slide sockets and $18^\circ$ V-saddle cradle notch.
-  * `gc9a01_desk_stand.stl` — Unified single-piece monolithic desk stand.
-* **OLED Console / Macropad (`enclosure/`):**
-  * `top_case.stl` & `bottom_base.stl` — Angled desktop console for 1.3" OLED, 3 Cherry MX switches, and EC11 rotary knob.
+### Models Included (`round 240x240/enclosure/`):
+* `gc9a01_front_bezel.stl` — Front bezel display carrier with anti-shadow conical bevel and M3 counterbores.
+* `gc9a01_main_housing.stl` — Enclosure bucket with lowered USB-C port and M3 corner pilot holes.
+* `gc9a01_stand_tier1_base.stl` — Tier 1 base plate with 4 alignment pillars and rubber feet recesses (ideal for wood PLA or dark walnut).
+* `gc9a01_stand_tier2_trunk.stl` — Tier 2 sculpted monolithic pedestal trunk with 4 slide sockets and $18^\circ$ V-saddle cradle notch.
+* `gc9a01_desk_stand.stl` — Unified single-piece monolithic desk stand.
 
 ---
 
@@ -181,10 +176,6 @@ Preview and interact with all screens, animations, and telemetry states in real 
 │   └── assets/               # 3D concept renders, animated demo GIF & mascot frames
 │       ├── gc9a01_3d_enclosure_render.jpg
 │       └── gc9a01_round_display_demo.gif
-├── enclosure/                # SSD1306 Desk Console & Macropad Enclosure
-│   ├── desk_console_oled13_esp32c3.scad
-│   ├── top_case.stl
-│   └── bottom_base.stl
 ├── emulator/                 # Interactive browser visualizers & emulators
 │   ├── index.html            # Canvas emulator for Round & Rectangular HUDs
 │   ├── qbit_faces_prototype.html
