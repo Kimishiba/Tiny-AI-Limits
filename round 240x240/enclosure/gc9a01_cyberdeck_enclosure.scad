@@ -44,8 +44,9 @@ cavity_chamfer     = 13.0; // 13.0mm corner chamfers leaving massive corner scre
 floor_t            = 2.5;  // Rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
-esp_standoff_h     = 1.4;  // Lowered standoff height (mm)
-usbc_center_z      = 6.8;  // Lowered USB-C port centerline (mm)
+esp_standoff_h     = 2.5;  // ESP32 standoff rail height (mm)
+usbc_center_z      = 8.25; // Elevated USB-C port centerline with ample clearance (mm)
+
 
 // Stand Parameters (Exact Concept Render Proportions)
 stand_base_w       = 64.0; // Tier 1 base width (mm)
@@ -215,7 +216,12 @@ module main_housing() {
         // 2. Lowered Precision Chamfered Oval/Stadium USB-C Port Cutout
         usbc_stadium_cutter();
             
-        // 3. 4 Corner M3 Screw Pilot Holes
+        // 3. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to top)
+        translate([-13.0, -26.0, floor_t])
+            cube([26.0, 5.0, cavity_depth + 0.1]);
+            
+        // 4. 4 Corner M3 Screw Pilot Holes
+
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, housing_depth - 15.0])

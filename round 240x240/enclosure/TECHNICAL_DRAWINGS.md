@@ -27,15 +27,16 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 * **Function:** Open electronics bucket with continuous vertical walls and zero mid-air ceilings.
 * **Outer Profile:** $54.00\text{mm} \times 54.00\text{mm} \times 24.50\text{mm}$ depth with $6.00\text{mm} \times 45^\circ$ corner chamfers.
 * **Solid Enclosed Bottom Wall:** 100% continuous, solid outer perimeter walls (zero exterior bottom slits or holes).
-* **Electronics & Wire Cavity:** $44.00\text{mm} \times 44.00\text{mm} \times 22.00\text{mm}$ continuous vertical open tub from floor ($Z = 2.5\text{mm}$) to top rim ($Z = 24.5\text{mm}$).
-* **Corner Screw Pillars:** $4 \times \varnothing 7.60\text{mm}$ solid pillars running from floor to rim with $\varnothing 2.00\text{mm} \times 12.00\text{mm}$ pilot holes.
-* **Internal Lower Tab Pocket:** $23.60\text{mm} \text{ wide} \times 5.00\text{mm} \text{ deep}$ internal pocket ($Y = -22.00\text{mm} \to -25.50\text{mm}$) inside the shell, maintaining a solid $1.50\text{mm}$ bottom outer wall.
-* **USB-C Side Window:** $13.00\text{mm} \text{ wide} \times 8.00\text{mm} \text{ tall}$ through left wall at $X = -27.00\text{mm}$.
+* **Electronics & Wire Cavity:** $46.00\text{mm} \times 46.00\text{mm} \times 22.00\text{mm}$ continuous vertical open tub from floor ($Z = 2.5\text{mm}$) to top rim ($Z = 24.5\text{mm}$).
+* **Corner Screw Pillars:** $4 \times$ solid pillars running from floor to rim with $\varnothing 2.80\text{mm} \times 15.00\text{mm}$ pilot holes at $X = \pm 19.50\text{mm}, Y = \pm 19.50\text{mm}$ ($39.00\text{mm}$ Bolt Circle) for M3 screws or heat-set brass inserts.
+* **DuPont Connector & Wire Trench:** $26.00\text{mm} \text{ wide} \times 5.00\text{mm} \text{ deep}$ internal trench ($Y = -21.00\text{mm} \to -26.00\text{mm}$) running full depth ($22.00\text{mm}$), keeping a solid $1.00\text{mm}$ outer bottom wall.
+* **Elevated USB-C Port:** Precision oval cutout with $45^\circ$ lead-in chamfer centered at $Z = 8.25\text{mm}$ on left wall at $X = -27.00\text{mm}$.
 * **ESP32-C3 SuperMini Mounting:**
   * Standoff rails at $Y = \pm 7.62\text{mm}$ ($0.6''$ pin row spacing), height $2.50\text{mm}$.
   * $16 \times \varnothing 1.50\text{mm}$ blind pin-registration holes ($2.00\text{mm}$ deep) at $2.54\text{mm}$ pitch along $X$.
   * Rear mechanical thrust stop block ($2.50\text{mm}$ thick) at $+X$ end.
 * **3D Print Orientation:** Print flat on rear backplate ($Z = 0$ on bed). **Zero supports required.**
+
 
 ---
 

@@ -186,13 +186,17 @@ def generate_sheet_2_main_housing(output_path):
     ]) + [cx, cy]
     ax.add_patch(Polygon(cav_pts, fill=True, facecolor='#0b111e', edgecolor='#4cc9f0', linewidth=1.2))
     
+    # DuPont Connector Wire Trench (26mm wide x 5mm deep, Y=-21 to Y=-26)
+    ax.add_patch(Rectangle((cx - 13.0, cy - 26.0), 26.0, 5.0, fill=True, facecolor='#0b111e', edgecolor='#ff7b00', linewidth=1.2, linestyle='--'))
+    add_dim_line(ax, (cx - 13.0, cy - 26.0), (cx + 13.0, cy - 26.0), "26.00 DUPONT TRENCH", offset=-8, color='#ff7b00')
+    
     # Left USB-C Port Cutout
     ax.add_patch(Rectangle((cx - 27.5, cy - 6.5), 6.5, 13, fill=True, facecolor='#060a12', edgecolor='#38b000', linewidth=1.2))
     
-    # 4 Corner Screw Holes (Ø2.0mm) inside massive solid corner pillars (+/-21mm)
-    for sx in [-21.0, 21.0]:
-        for sy in [-21.0, 21.0]:
-            ax.add_patch(Circle((cx + sx, cy + sy), 1.0, fill=True, facecolor='#060a12', edgecolor='#f72585', linewidth=1.2))
+    # 4 Corner Screw Pilot Holes (M3 @ +/-19.50mm)
+    for sx in [-19.50, 19.50]:
+        for sy in [-19.50, 19.50]:
+            ax.add_patch(Circle((cx + sx, cy + sy), 1.4, fill=True, facecolor='#060a12', edgecolor='#f72585', linewidth=1.2))
             
     # ESP32-C3 Standoffs
     ax.add_patch(Rectangle((cx - 21.5, cy + 7.62 - 1.7), 23, 3.4, fill=True, facecolor='#1e293b', edgecolor='#a2d2ff', linewidth=1.0))
@@ -205,13 +209,13 @@ def generate_sheet_2_main_housing(output_path):
         ax.add_patch(Circle((px, cy - 7.62), 0.75, fill=True, facecolor='#060a12', edgecolor='#ffbe0b', linewidth=0.8))
         
     add_dim_line(ax, (cx - 23, cy + 23), (cx + 23, cy + 23), "46.00 BAY", offset=4, color='#4cc9f0')
-    add_dim_line(ax, (cx - 21, cy + 21), (cx + 21, cy + 21), "42.00 B.C.", offset=-6, color='#f72585')
+    add_dim_line(ax, (cx - 19.50, cy + 19.50), (cx + 19.50, cy + 19.50), "39.00 B.C.", offset=-6, color='#f72585')
     
-    ax.annotate("4x SOLID CORNER PILLARS\nØ2.00 PILOT x 14.0mm DP\n(MATCHES FRONT BEZEL BOLTS)", xy=(cx + 21, cy + 21), xytext=(cx + 35, cy + 30),
+    ax.annotate("4x SOLID CORNER PILLARS\nØ2.80 PILOT x 15.0mm DP\n(M3 SOCKET HEAD CAP BOLTS)", xy=(cx + 19.50, cy + 19.50), xytext=(cx + 35, cy + 30),
                 arrowprops=dict(arrowstyle='->', color='#f72585', lw=1.0),
                 color='#f72585', fontsize=7.5, family='monospace', fontweight='bold')
                 
-    ax.annotate("USB-C WINDOW\n13.00 x 8.00mm", xy=(cx - 27, cy), xytext=(cx - 48, cy + 18),
+    ax.annotate("ELEVATED USB-C PORT\nZ = 8.25mm CENTERLINE", xy=(cx - 27, cy), xytext=(cx - 48, cy + 18),
                 arrowprops=dict(arrowstyle='->', color='#38b000', lw=1.0),
                 color='#38b000', fontsize=7.5, family='monospace', fontweight='bold')
 
@@ -235,8 +239,9 @@ def generate_sheet_2_main_housing(output_path):
                 arrowprops=dict(arrowstyle='->', color='#a2d2ff', lw=1.0),
                 color='#a2d2ff', fontsize=7.5, family='monospace', fontweight='bold')
                 
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. 4 MASSIVE SOLID CORNER PILLARS RUN CONTINUOUSLY FROM FLOOR TO TOP RIM.\n3. 4x M2 PILOT HOLES (Ø2.0mm x 14mm DP) AT (+/-21, +/-21) FOR M2 BOLTS OR HEAT-SET INSERTS.\n4. ZERO OVERHANGS ANYWHERE INSIDE HOUSING TUB.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. 4 MASSIVE SOLID CORNER PILLARS RUN CONTINUOUSLY FROM FLOOR TO TOP RIM.\n3. 4x M3 PILOT HOLES (Ø2.8mm x 15mm DP) AT (+/-19.5, +/-19.5) FOR M3 BOLTS OR HEAT-SET INSERTS.\n4. DUPONT TRENCH (26.0 x 22.0mm) PROVIDES 100% UNOBSTRUCTED CONNECTOR & WIRE ROUTING CLEARANCE.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
+
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
