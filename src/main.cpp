@@ -433,42 +433,175 @@ void drawVectorDigit(int x, int y, int digit, uint16_t color) {
     }
 }
 
-void drawGC9A01FlipCard(int posX, int posY, int cardW, int cardH, int digit, bool isTopHalf) {
+void drawVectorDigitHalf(int x, int y, int digit, uint16_t color, bool topHalfOnly, float yScale = 1.0f) {
+    int t = 5;
+    int w = 26;
+    int h = (int)(52 * yScale);
+    if (h < 2) return;
+    int midY = y + h / 2 - t / 2;
+    int botY = y + h - t;
+    int rightX = x + w - t;
+
+    auto drawBar = [&](int bx, int by, int bw, int bh, int r) {
+        if (topHalfOnly && by >= y + h / 2) return;
+        if (!topHalfOnly && by + bh <= y + h / 2) return;
+        gcGfx->fillRoundRect(bx, by, bw, bh, r, color);
+    };
+
+    switch (digit) {
+        case 0:
+            drawBar(x, y, w, t, 2);
+            drawBar(x, botY, w, t, 2);
+            drawBar(x, y, t, h, 2);
+            drawBar(rightX, y, t, h, 2);
+            break;
+        case 1:
+            drawBar(x + (w - t) / 2, y, t, h, 2);
+            drawBar(x + (w - t) / 2 - 6, y, 6, t, 1);
+            drawBar(x + 2, botY, w - 4, t, 1);
+            break;
+        case 2:
+            drawBar(x, y, w, t, 2);
+            drawBar(rightX, y, t, h / 2, 2);
+            drawBar(x, midY, w, t, 2);
+            drawBar(x, midY, t, h / 2, 2);
+            drawBar(x, botY, w, t, 2);
+            break;
+        case 3:
+            drawBar(x, y, w, t, 2);
+            drawBar(rightX, y, t, h, 2);
+            drawBar(x + 6, midY, w - 6, t, 2);
+            drawBar(x, botY, w, t, 2);
+            break;
+        case 4:
+            drawBar(x, y, t, h / 2 + 2, 2);
+            drawBar(x, midY, w, t, 2);
+            drawBar(rightX, y, t, h, 2);
+            break;
+        case 5:
+            drawBar(x, y, w, t, 2);
+            drawBar(x, y, t, h / 2, 2);
+            drawBar(x, midY, w, t, 2);
+            drawBar(rightX, midY, t, h / 2, 2);
+            drawBar(x, botY, w, t, 2);
+            break;
+        case 6:
+            drawBar(x, y, w, t, 2);
+            drawBar(x, y, t, h, 2);
+            drawBar(x, midY, w, t, 2);
+            drawBar(rightX, midY, t, h / 2, 2);
+            drawBar(x, botY, w, t, 2);
+            break;
+        case 7:
+            drawBar(x, y, w, t, 2);
+            drawBar(rightX, y, t, h, 2);
+            break;
+        case 8:
+            drawBar(x, y, w, t, 2);
+            drawBar(x, botY, w, t, 2);
+            drawBar(x, midY, w, t, 2);
+            drawBar(x, y, t, h, 2);
+            drawBar(rightX, y, t, h, 2);
+            break;
+        case 9:
+            drawBar(x, y, w, t, 2);
+            drawBar(x, y, t, h / 2, 2);
+            drawBar(x, midY, w, t, 2);
+            drawBar(rightX, y, t, h, 2);
+            drawBar(x, botY, w, t, 2);
+            break;
+        default:
+            break;
+    }
+}
+
+// Helper function for pixel-perfect centered text in Adafruit_GFX / Arduino_GFX
+void gcPrintCentered(const char* str, int centerX, int y, uint16_t color) {
+    if (!str) return;
+    int len = strlen(str);
+    int textW = len * 6 - 1;
+    gcGfx->setTextColor(color);
+    gcGfx->setCursor(centerX - textW / 2, y);
+    gcGfx->print(str);
+}
+
+void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int oldDigit, int newDigit, float progress) {
     int midY = posY + cardH / 2;
     int halfH = cardH / 2;
 
-    uint16_t colTop = gcGfx->color565(26, 30, 40);     // #1A1E28 Dark Slate
-    uint16_t colBot = gcGfx->color565(12, 14, 20);     // #0C0E14 Deep Obsidian
-    uint16_t colBorder = gcGfx->color565(42, 48, 64);  // #2A3040 Card Edge
-    uint16_t colSeam = gcGfx->color565(48, 54, 72);    // #303648 Hinge Line
-    uint16_t colLug = gcGfx->color565(20, 23, 32);     // #141720 Hinge Bracket
-    uint16_t colPin = gcGfx->color565(160, 170, 190);  // #A0AABE Steel Pin
+    uint16_t colTop = gcGfx->color565(34, 38, 51);     // #222633 Slate Top
+    uint16_t colBot = gcGfx->color565(18, 20, 28);     // #12141C Obsidian Bot
+    uint16_t colBorder = gcGfx->color565(43, 48, 66);  // #2B3042 Card Border
+    uint16_t colSeam = gcGfx->color565(52, 58, 78);    // #343A4E Crease Line
+    uint16_t colLug = gcGfx->color565(18, 21, 31);     // #12151F Lug Bracket
+    uint16_t colPin = gcGfx->color565(138, 150, 171);  // #8A96AB Steel Pin
 
-    // Split-face card body with dark charcoal & obsidian shading
-    gcGfx->fillRoundRect(posX, posY, cardW, halfH, 4, colTop);
-    gcGfx->fillRoundRect(posX, midY, cardW, halfH, 4, colBot);
-    gcGfx->drawRoundRect(posX, posY, cardW, cardH, 4, colBorder);
-
-    // Mechanical split crease line
-    gcGfx->drawFastHLine(posX + 2, midY, cardW - 4, GC_COLOR_BLACK);
-    gcGfx->drawFastHLine(posX + 2, midY + 1, cardW - 4, colSeam);
-
-    // Flank retention hinge brackets
-    gcGfx->fillRect(posX - 2, midY - 5, 4, 10, colLug);
-    gcGfx->drawRect(posX - 2, midY - 5, 4, 10, colBorder);
-    gcGfx->drawFastHLine(posX - 1, midY, 2, colPin);
-
-    gcGfx->fillRect(posX + cardW - 2, midY - 5, 4, 10, colLug);
-    gcGfx->drawRect(posX + cardW - 2, midY - 5, 4, 10, colBorder);
-    gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
-
-    // Tall vector numeral
     int numX = posX + (cardW - 26) / 2;
     int numY = posY + (cardH - 52) / 2;
-    drawVectorDigit(numX, numY, digit, GC_COLOR_WHITE);
 
-    // Slit line across numeral
-    gcGfx->drawFastHLine(posX + 2, midY, cardW - 4, GC_COLOR_BLACK);
+    if (progress >= 1.0f || oldDigit == newDigit) {
+        // Static resting card
+        gcGfx->fillRoundRect(posX, posY, cardW, halfH, 4, colTop);
+        gcGfx->fillRoundRect(posX, midY, cardW, halfH, 4, colBot);
+        gcGfx->drawRoundRect(posX, posY, cardW, cardH, 4, colBorder);
+
+        gcGfx->drawFastHLine(posX + 1, midY - 1, cardW - 2, GC_COLOR_BLACK);
+        gcGfx->drawFastHLine(posX + 1, midY, cardW - 2, colSeam);
+
+        drawVectorDigit(numX, numY, newDigit, GC_COLOR_WHITE);
+        gcGfx->drawFastHLine(posX + 2, midY, cardW - 4, GC_COLOR_BLACK);
+    } else {
+        // --- 3D PERSPECTIVE FLIP ANIMATION ---
+        // 1. Static Top Background (Shows NEW digit)
+        gcGfx->fillRoundRect(posX, posY, cardW, halfH, 4, colTop);
+        drawVectorDigitHalf(numX, numY, newDigit, GC_COLOR_WHITE, true);
+
+        // 2. Static Bottom Background (Shows OLD digit)
+        gcGfx->fillRoundRect(posX, midY, cardW, halfH, 4, colBot);
+        drawVectorDigitHalf(numX, numY, oldDigit, gcGfx->color565(236, 238, 244), false);
+
+        // 3. Falling / Unfolding 3D Flap
+        if (progress < 0.5f) {
+            // Phase 1: Top half of OLD digit folds downward
+            float scale = cos(progress * 3.14159f); // 1.0 -> 0.0
+            int flapH = max(1, (int)(halfH * scale));
+            int flapY = midY - flapH;
+
+            // Redraw top visible part
+            gcGfx->fillRect(posX, posY, cardW, halfH - flapH, colTop);
+            drawVectorDigitHalf(numX, numY, newDigit, GC_COLOR_WHITE, true);
+
+            // Draw falling flap
+            gcGfx->fillRect(posX, flapY, cardW, flapH, colTop);
+            drawVectorDigitHalf(numX, flapY, oldDigit, GC_COLOR_WHITE, true, scale);
+        } else {
+            // Phase 2: Bottom half of NEW digit unfolds downward
+            float scale = -cos(progress * 3.14159f); // 0.0 -> 1.0
+            int flapH = max(1, (int)(halfH * scale));
+
+            // Redraw bottom visible part
+            gcGfx->fillRect(posX, midY + flapH, cardW, halfH - flapH, colBot);
+            drawVectorDigitHalf(numX, numY, oldDigit, gcGfx->color565(236, 238, 244), false);
+
+            // Draw unfolding flap
+            gcGfx->fillRect(posX, midY, cardW, flapH, colBot);
+            drawVectorDigitHalf(numX, midY - (int)(26 * scale), newDigit, gcGfx->color565(236, 238, 244), false, scale);
+        }
+
+        // Draw borders & seam
+        gcGfx->drawRoundRect(posX, posY, cardW, cardH, 4, colBorder);
+        gcGfx->drawFastHLine(posX + 1, midY - 1, cardW - 2, GC_COLOR_BLACK);
+        gcGfx->drawFastHLine(posX + 1, midY, cardW - 2, colSeam);
+    }
+
+    // Flank retention hinge brackets (lug width = 4, height = 10, extending 2px outside)
+    gcGfx->fillRoundRect(posX - 2, midY - 5, 4, 10, 1, colLug);
+    gcGfx->drawRoundRect(posX - 2, midY - 5, 4, 10, 1, colBorder);
+    gcGfx->drawFastHLine(posX - 1, midY, 2, colPin);
+
+    gcGfx->fillRoundRect(posX + cardW - 2, midY - 5, 4, 10, 1, colLug);
+    gcGfx->drawRoundRect(posX + cardW - 2, midY - 5, 4, 10, 1, colBorder);
+    gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
 }
 
 void drawGC9A01RoundFlipUI() {
@@ -508,20 +641,18 @@ void drawGC9A01RoundFlipUI() {
         lastHoursUntilRain = weatherData.hours_until_rain;
         gcGfx->fillRect(cx - 50, cy - 98, 100, 14, GC_COLOR_BLACK);
         gcGfx->setTextSize(1);
-        gcGfx->setCursor(cx - 32, cy - 93);
         if (weatherData.hours_until_rain == -1) {
-            gcGfx->setTextColor(colGray);
-            gcGfx->print("NO RAIN");
+            gcPrintCentered("NO RAIN", cx, cy - 93, colGray);
         } else if (weatherData.hours_until_rain == 0) {
-            gcGfx->setTextColor(colRain);
-            gcGfx->print("RAIN NOW");
+            gcPrintCentered("RAIN NOW", cx, cy - 93, colRain);
         } else {
-            gcGfx->setTextColor((weatherData.hours_until_rain <= 3) ? colRain : GC_COLOR_WHITE);
-            gcGfx->printf("RAIN IN %dh", weatherData.hours_until_rain);
+            char rainBuf[20];
+            sprintf(rainBuf, "RAIN IN %dh", weatherData.hours_until_rain);
+            gcPrintCentered(rainBuf, cx, cy - 93, (weatherData.hours_until_rain <= 3) ? colRain : GC_COLOR_WHITE);
         }
     }
 
-    // 3. Solid Continuous Dual Radial Arcs (Redraw on percentage change)
+    // 3. Solid Continuous Dual Radial Arcs & Micro-HUD Badges (Redraw on change)
     int claudePct = 100;
     int antiPct = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
     static int lastClaudePct = -1;
@@ -531,7 +662,7 @@ void drawGC9A01RoundFlipUI() {
         lastClaudePct = claudePct;
         lastAntiPct = antiPct;
 
-        // Left Arc: Claude Cyan (126 deg at bottom to 234 deg at top, step 1 deg)
+        // Left Arc: Claude Cyan (126 deg at bottom to 234 deg at top)
         for (int deg = 126; deg <= 234; deg++) {
             float rad = deg * 0.0174533f;
             float cosR = cos(rad);
@@ -549,7 +680,7 @@ void drawGC9A01RoundFlipUI() {
             }
         }
 
-        // Right Arc: Antigravity Orange (54 deg at bottom to -54 deg at top, step 1 deg)
+        // Right Arc: Antigravity Orange (54 deg at bottom to -54 deg at top)
         for (int deg = 54; deg >= -54; deg--) {
             float rad = deg * 0.0174533f;
             float cosR = cos(rad);
@@ -567,18 +698,25 @@ void drawGC9A01RoundFlipUI() {
             }
         }
 
-        // Gauge Labels
-        gcGfx->setTextSize(1);
-        gcGfx->setTextColor(colCyan);
-        gcGfx->setCursor(cx - 96, cy - 4);
-        gcGfx->print("CLD");
+        // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
+        // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
+        gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
+        gcGfx->drawRoundRect(31, 108, 32, 24, 3, gcGfx->color565(0, 80, 100));
+        gcPrintCentered("CLD", 47, 111, colCyan);
+        char cldPctStr[8];
+        sprintf(cldPctStr, "%d%%", claudePct);
+        gcPrintCentered(cldPctStr, 47, 121, colCyan);
 
-        gcGfx->setTextColor(colOrange);
-        gcGfx->setCursor(cx + 74, cy - 4);
-        gcGfx->print("AGY");
+        // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
+        gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
+        gcGfx->drawRoundRect(177, 108, 32, 24, 3, gcGfx->color565(120, 60, 0));
+        gcPrintCentered("AGY", 193, 111, colOrange);
+        char agyPctStr[8];
+        sprintf(agyPctStr, "%d%%", antiPct);
+        gcPrintCentered(agyPctStr, 193, 121, colOrange);
     }
 
-    // 4. Center 2x2 Split-Flap Clock Matrix (48x72px cards, 6px gap)
+    // 4. Center 2x2 Split-Flap Clock Matrix with 3D Folding Animation
     int cardW = 48, cardH = 72, gap = 6;
     int x1 = cx - cardW - gap / 2;
     int x2 = cx + gap / 2;
@@ -590,22 +728,30 @@ void drawGC9A01RoundFlipUI() {
     int dM1 = timeData.minutes / 10;
     int dM2 = timeData.minutes % 10;
 
-    static int lastRenderedDigits[4] = {-1, -1, -1, -1};
-    if (dH1 != lastRenderedDigits[0]) {
-        lastRenderedDigits[0] = dH1;
-        drawGC9A01FlipCard(x1, yTop, cardW, cardH, dH1, true);
-    }
-    if (dH2 != lastRenderedDigits[1]) {
-        lastRenderedDigits[1] = dH2;
-        drawGC9A01FlipCard(x2, yTop, cardW, cardH, dH2, true);
-    }
-    if (dM1 != lastRenderedDigits[2]) {
-        lastRenderedDigits[2] = dM1;
-        drawGC9A01FlipCard(x1, yBot, cardW, cardH, dM1, false);
-    }
-    if (dM2 != lastRenderedDigits[3]) {
-        lastRenderedDigits[3] = dM2;
-        drawGC9A01FlipCard(x2, yBot, cardW, cardH, dM2, false);
+    int targetDigits[4] = {dH1, dH2, dM1, dM2};
+    static int oldDigits[4] = {-1, -1, -1, -1};
+    static int prevTarget[4] = {-1, -1, -1, -1};
+    static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    for (int i = 0; i < 4; i++) {
+        if (prevTarget[i] != -1 && prevTarget[i] != targetDigits[i]) {
+            oldDigits[i] = prevTarget[i];
+            flipProg[i] = 0.0f; // Start 3D flip animation!
+        }
+        prevTarget[i] = targetDigits[i];
+
+        if (flipProg[i] < 1.0f) {
+            flipProg[i] += 0.10f; // ~10 frames @ 30 FPS = ~300ms flip
+            if (flipProg[i] > 1.0f) flipProg[i] = 1.0f;
+        }
+
+        // Draw card when animating or on first boot
+        if (flipProg[i] < 1.0f || oldDigits[i] == -1) {
+            if (oldDigits[i] == -1) oldDigits[i] = targetDigits[i];
+            int px = (i % 2 == 0) ? x1 : x2;
+            int py = (i < 2) ? yTop : yBot;
+            drawGC9A01AnimatedFlipCard(px, py, cardW, cardH, oldDigits[i], targetDigits[i], flipProg[i]);
+        }
     }
 
     // 5. Stacked Bottom Sub-HUD (Redraw on change)
@@ -621,13 +767,8 @@ void drawGC9A01RoundFlipUI() {
             lastWaiting = true;
             gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
-            gcGfx->setTextColor(alertBlink ? GC_COLOR_AMBER : 0x4200);
-            gcGfx->setCursor(cx - 38, cy + 80);
-            gcGfx->print("AGENT ALERT");
-
-            gcGfx->setTextColor(GC_COLOR_WHITE);
-            gcGfx->setCursor(cx - 42, cy + 94);
-            gcGfx->print(agentData.prompt_text);
+            gcPrintCentered("AGENT ALERT", cx, cy + 80, alertBlink ? GC_COLOR_AMBER : 0x4200);
+            gcPrintCentered(agentData.prompt_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
     } else {
         if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate) {
@@ -636,13 +777,10 @@ void drawGC9A01RoundFlipUI() {
             lastDate = timeData.date_str;
             gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
-            gcGfx->setTextColor(colGray);
-            gcGfx->setCursor(cx - 32, cy + 80);
-            gcGfx->print(timeData.date_str);
-
-            gcGfx->setTextColor(GC_COLOR_WHITE);
-            gcGfx->setCursor(cx - 24, cy + 94);
-            gcGfx->printf("%.1f C", weatherData.temp);
+            gcPrintCentered(timeData.date_str.c_str(), cx, cy + 80, colGray);
+            char tempBuf[16];
+            sprintf(tempBuf, "%.1f C", weatherData.temp);
+            gcPrintCentered(tempBuf, cx, cy + 94, GC_COLOR_WHITE);
         }
     }
 }
@@ -811,6 +949,8 @@ void fetchBackendData() {
         if (!error) {
             if (doc.containsKey("claude")) {
                 claudeData.tokensToday = doc["claude"]["tokens_today"] | 0;
+                if (doc["claude"].containsKey("limit")) claudeData.limit = doc["claude"]["limit"] | 100;
+                if (doc["claude"].containsKey("remaining")) claudeData.remaining = doc["claude"]["remaining"] | 100;
             }
             if (doc.containsKey("antigravity")) {
                 agData.limit = doc["antigravity"]["limit"] | 200;
@@ -822,6 +962,9 @@ void fetchBackendData() {
                 weatherData.temp = doc["weather"]["temp"] | 23.5;
                 weatherData.hours_until_rain = doc["weather"]["hours_until_rain"] | -1;
                 weatherData.location = doc["weather"]["location"] | "DESKTOP";
+                if (doc["weather"].containsKey("date_string")) {
+                    timeData.date_str = doc["weather"]["date_string"].as<String>();
+                }
             }
             if (doc.containsKey("agent")) {
                 agentData.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
@@ -832,6 +975,9 @@ void fetchBackendData() {
                 timeData.minutes = doc["time"]["minutes"] | 0;
                 timeData.seconds = doc["time"]["seconds"] | 0;
                 timeData.time_str = doc["time"]["time_string"] | "12:00:00";
+                if (doc["time"].containsKey("date_string")) {
+                    timeData.date_str = doc["time"]["date_string"].as<String>();
+                }
             }
             if (doc.containsKey("device")) {
                 String devScreen = doc["device"]["screen_type"] | "auto";
