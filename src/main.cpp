@@ -648,16 +648,16 @@ void drawGC9A01RoundFlipUI() {
         }
         lastAngle = spinAngle;
     } else {
-        if (lastAngle >= 0.0f) {
-            // Erase last 6 hazard dots completely when alert completes
-            for (int i = 0; i < 6; i++) {
-                gcGfx->fillCircle(lastPx[i], lastPy[i], 3, GC_COLOR_BLACK);
-            }
+        if (lastAngle >= 0.0f || !bezelDrawn) {
             lastAngle = -1.0f;
-        }
-        if (!bezelDrawn) {
             bezelDrawn = true;
-            // Restore solid gunmetal bezel ring (r = 116, 117)
+
+            // Erase radii rScreen + 1 to rScreen + 5 (radii 115, 116, 117, 118, 119) with GC_COLOR_BLACK
+            for (int r = rScreen + 1; r <= rScreen + 5; r++) {
+                gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
+            }
+
+            // Re-render clean static gunmetal bezel ring on rScreen + 2 and rScreen + 3 (radii 116, 117)
             gcGfx->drawCircle(cx, cy, rScreen + 2, colBezel);
             gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
         }
