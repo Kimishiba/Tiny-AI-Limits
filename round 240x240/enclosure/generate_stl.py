@@ -16,10 +16,11 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) at (+/-19.50mm, +/-19.50mm)
   * 100% solid enclosed outer bottom wall
   * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
-- Two-Tier Desktop Pedestal Stand (Exact 3D Render Stance & Proportion):
-  * Compact, nearly-upright 12.5° backward tilt angle matching render
+- Two-Tier Desktop Pedestal Stand (Exact 3D Render Upright Stance):
+  * True upright orientation (14.0° subtle backward tilt from vertical)
+  * Exact negative-mold pocket for 54x54mm pod standing on its bottom edge
   * Tier 1 (Base Accent Plate): 64x66x5.5mm rounded plate with 4 upward alignment pillars
-  * Tier 2 (Cradle Trunk): Compact 15.5mm sculpted monolithic trapezoidal pedestal block with 4-sided draft angles and 4 underside mating sockets
+  * Tier 2 (Cradle Trunk): 15.5mm sculpted monolithic trapezoidal pedestal block with continuous 4-sided draft angles
 """
 
 import math
@@ -221,6 +222,7 @@ def generate_main_housing():
     c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
     usbc_tunnel = m3d.Manifold.hull(c1 + c2)
     
+    # Accentuated Outer 45-degree Chamfer Flare on USB-C Port (widening to 15.0mm x 9.0mm on outer wall):
     cone1 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
     cone2 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
@@ -292,20 +294,21 @@ def generate_stand_tier1_base():
 
 def generate_stand_tier2_trunk():
     """
-    Tier 2 Cradle Trunk (Compact Sculpted Monolithic Trapezoidal Pedestal Block):
+    Tier 2 Cradle Trunk (Sculpted Monolithic Trapezoidal Pedestal Block):
     - Compact 15.5mm height body (total stand height = 21.0mm)
-    - Subtle 12.5° backward tilt angle matching 3D concept render
-    - Monolithic trapezoidal block with 4-sided draft angles
+    - True upright orientation: 14.0° subtle backward tilt angle matching 3D render
+    - Exact negative-mold pod cradle pocket
     - 4 underside mating socket holes (dia = 5.4mm x 4.1mm deep)
     """
     base_h = 5.5
     trunk_h = 15.5
-    tilt_deg = 12.5 # Nearly-upright subtle tilt angle from 3D render
+    tilt_deg = 14.0 # Subtle upright tilt from vertical
     pin_dist_x = 20.0
     pin_dist_y = 21.0
     pin_dia = 5.0
     pin_h = 3.5
     
+    # 1. Monolithic Pedestal Body with 4-sided draft angle
     pts_bot = make_rounded_rect_2d(60.0, 62.0, 5.0, fn=32)
     pts_top = make_rounded_rect_2d(53.0, 55.0, 4.0, fn=32)
     n = len(pts_bot)
@@ -330,19 +333,31 @@ def generate_stand_tier2_trunk():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    # 4 Underside Mating Socket Holes
+    # 2. 4 Underside Mating Socket Holes
     sockets = m3d.Manifold()
     for px in [-pin_dist_x, pin_dist_x]:
         for py in [-pin_dist_y, pin_dist_y]:
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    # 12.5-Degree Angled V-Saddle Cradle Pocket
-    pocket_w = 54.8
-    pocket_h = 40.0
-    pocket_cut = make_octagonal_prism(pocket_w, pocket_h, 6.2).rotate([tilt_deg, 0, 0]).translate([0, 2.0, base_h + trunk_h - 3.0])
+    # 3. Exact Negative-Mold Pod Saddle Cutter (standing on bottom edge at 14° tilt):
+    # Pod is 54.8mm wide x 54.8mm tall x 27.0mm thick in pod local frame
+    w = 54.8
+    c = 6.2
+    hw = w / 2.0
+    pts_pod = [
+        [-hw + c, -hw], [hw - c, -hw],
+        [hw, -hw + c],  [hw, hw - c],
+        [hw - c, hw],   [-hw + c, hw],
+        [-hw, hw - c],  [-hw, -hw + c]
+    ]
+    poly_pod = m3d.CrossSection([pts_pod])
+    pod_dummy = m3d.Manifold.extrude(poly_pod, 27.0)
     
-    return pedestal_solid - sockets - pocket_cut
+    # Rotate pod dummy so it stands upright on its -Y bottom edge facing -Y front, tilted backward by tilt_deg:
+    pod_cutter = pod_dummy.rotate([90.0 - tilt_deg, 0, 0]).translate([0, 0, 16.0])
+    
+    return pedestal_solid - sockets - pod_cutter
 
 def generate_monolithic_desk_stand():
     """Single-piece unified monolithic stand combining Tier 1 and Tier 2."""
@@ -350,7 +365,7 @@ def generate_monolithic_desk_stand():
     base_d = 66.0
     base_h = 5.5
     trunk_h = 15.5
-    tilt_deg = 12.5
+    tilt_deg = 14.0
     
     tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
@@ -378,9 +393,18 @@ def generate_monolithic_desk_stand():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    pocket_w = 54.8
-    pocket_h = 40.0
-    pocket_cut = make_octagonal_prism(pocket_w, pocket_h, 6.2).rotate([tilt_deg, 0, 0]).translate([0, 2.0, base_h + trunk_h - 3.0])
+    w = 54.8
+    c = 6.2
+    hw = w / 2.0
+    pts_pod = [
+        [-hw + c, -hw], [hw - c, -hw],
+        [hw, -hw + c],  [hw, hw - c],
+        [hw - c, hw],   [-hw + c, hw],
+        [-hw, hw - c],  [-hw, -hw + c]
+    ]
+    poly_pod = m3d.CrossSection([pts_pod])
+    pod_dummy = m3d.Manifold.extrude(poly_pod, 27.0)
+    pod_cutter = pod_dummy.rotate([90.0 - tilt_deg, 0, 0]).translate([0, 0, 16.0])
     
     feet_cuts = m3d.Manifold()
     for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
@@ -388,7 +412,7 @@ def generate_monolithic_desk_stand():
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    return (tier1_solid + pedestal_solid) - pocket_cut - feet_cuts
+    return (tier1_solid + pedestal_solid) - pod_cutter - feet_cuts
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
@@ -410,10 +434,10 @@ def main():
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
     export_stl(tier1, tier1_path, "Stand Tier 1 Base Plate (with 4 Alignment Pillars)")
 
-    # 4. Two-Tier Stand: Tier 2 Compact Sculpted Pedestal Trunk (12.5° Tilt, 4 Sockets)
+    # 4. Two-Tier Stand: Tier 2 Upright Sculpted Pedestal Trunk (14° Tilt, 4 Sockets)
     tier2 = generate_stand_tier2_trunk()
     tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
-    export_stl(tier2, tier2_path, "Stand Tier 2 Compact Pedestal Trunk (12.5° Tilt)")
+    export_stl(tier2, tier2_path, "Stand Tier 2 Upright Pedestal Trunk (14° Tilt)")
 
     # 5. Monolithic Desk Stand (Unified)
     stand_mono = generate_monolithic_desk_stand()

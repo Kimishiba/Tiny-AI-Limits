@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture (12.5° Upright Stance)
+// 100% Support-Free FDM 3D Printable Architecture (True Upright 14° Cradle Stance)
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -52,7 +52,7 @@ stand_base_w       = 64.0; // Tier 1 base width (mm)
 stand_base_d       = 66.0; // Tier 1 base depth (mm)
 stand_base_h       = 5.5;  // Tier 1 base height (mm)
 stand_trunk_h      = 15.5; // Tier 2 compact cradle trunk height (mm)
-stand_tilt_deg     = 12.5; // Upright backward tilt angle matching 3D render (degrees)
+stand_tilt_deg     = 14.0; // Subtle upright backward tilt angle matching 3D render (degrees)
 pin_dist_x         = 20.0; // Alignment pillar X distance from center (mm)
 pin_dist_y         = 21.0; // Alignment pillar Y distance from center (mm)
 pin_dia            = 5.0;  // Alignment pillar diameter (mm)
@@ -270,7 +270,7 @@ module stand_tier1_base() {
     }
 }
 
-// 4. STAND TIER 2 COMPACT SCULPTED MONOLITHIC TRAPEZOIDAL PEDESTAL TRUNK (12.5° TILT)
+// 4. STAND TIER 2 UPRIGHT SCULPTED PEDESTAL TRUNK (14° TILT)
 module stand_tier2_trunk() {
     difference() {
         hull() {
@@ -288,10 +288,10 @@ module stand_tier2_trunk() {
             }
         }
         
-        // 12.5-Degree Angled V-Saddle Cradle Pocket
-        translate([0, 2.0, stand_base_h + stand_trunk_h - 3.0])
-            rotate([stand_tilt_deg, 0, 0])
-            octagonal_prism(enclosure_width + 0.8, 40.0, 6.2);
+        // Exact Negative Mold of Pod (standing on -Y bottom edge, tilted backward by 14°)
+        translate([0, 0, 16.0])
+            rotate([90.0 - stand_tilt_deg, 0, 0])
+            octagonal_prism(enclosure_width + 0.8, 27.0, 6.2);
     }
 }
 
@@ -305,12 +305,12 @@ if (part == 1) {
 } else if (part == 4) {
     stand_tier2_trunk();
 } else {
-    // Complete Multi-Part Assembly Preview (12.5° Upright Stance)
-    translate([0, 0, 24.5])
-        color("#22252B") front_bezel();
-    color("#181A1F") main_housing();
-    translate([0, -2.0, -18.0]) {
-        color("#5c4033") stand_tier1_base();
-        color("#2E3440") stand_tier2_trunk();
-    }
+    // Complete Multi-Part Assembly Preview (14° Upright Stance)
+    translate([0, 0, 16.0])
+        rotate([90.0 - stand_tilt_deg, 0, 0]) {
+            translate([0, 0, 24.5]) color("#22252B") front_bezel();
+            color("#181A1F") main_housing();
+        }
+    color("#5c4033") stand_tier1_base();
+    color("#2E3440") stand_tier2_trunk();
 }
