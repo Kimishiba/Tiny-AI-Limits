@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture with M3 Screws & Two-Tier Stand
+// 100% Support-Free FDM 3D Printable Architecture (Accentuated Chamfers & Lowered USB-C)
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -14,7 +14,7 @@ enclosure_width  = 54.0; // Outer width & height (mm)
 housing_depth    = 24.5; // Open-tub housing depth (mm)
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
-outer_chamfer    = 1.2;  // Perimeter 45-degree outer edge chamfer (mm)
+outer_chamfer    = 1.8;  // Accentuated perimeter 45-degree outer edge chamfer (mm)
 
 // Display Pocket Dimensions (from Engineering Blueprint)
 display_active_dia = 32.8; // Active LCD A.A clearing diameter at glass plane (mm)
@@ -38,13 +38,14 @@ screw_head_dia     = 6.2;  // M3 socket cap head counterbore (mm)
 screw_head_depth   = 3.2;  // Counterbore pocket depth (mm)
 screw_pilot_dia    = 2.8;  // M3 pilot / self-tapping / heat-set insert hole (mm)
 
-// Internal Cavity & ESP32-C3 SuperMini Mounting
+// Internal Cavity & ESP32-C3 SuperMini Mounting (Lowered)
 cavity_w           = 46.0; // 46mm wide internal bay (mm)
 cavity_chamfer     = 13.0; // 13.0mm corner chamfers leaving massive corner screw pillars (mm)
 floor_t            = 2.5;  // Rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
-esp_standoff_h     = 2.5;  // Height above floor for bottom solder joint clearance (mm)
+esp_standoff_h     = 1.4;  // Lowered standoff height (mm)
+usbc_center_z      = 6.8;  // Lowered USB-C port centerline (mm)
 
 // Stand Parameters (Two-Tier Concept from 3D Render)
 stand_base_w       = 64.0; // Tier 1 base width (mm)
@@ -72,7 +73,7 @@ module octagonal_prism(w, h, c) {
     }
 }
 
-// Chamfered Octagonal Base with Perimeter Chamfer (Top or Bottom)
+// Chamfered Octagonal Base with Accentuated Perimeter Chamfer
 module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
     hw1 = w / 2;
     hw2 = (w - 2 * ch) / 2;
@@ -144,28 +145,29 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Chamfered Oval/Stadium USB-C Cutter
+// Lowered Precision Oval USB-C Cutter with Accentuated Lead-In Chamfer
 module usbc_stadium_cutter() {
     hull() {
-        translate([-32.0, -2.75, 8.0]) rotate([0, 90, 0]) cylinder(r = 3.0, h = 16.0);
-        translate([-32.0, 2.75, 8.0])  rotate([0, 90, 0]) cylinder(r = 3.0, h = 16.0);
+        translate([-32.0, -3.0, usbc_center_z]) rotate([0, 90, 0]) cylinder(r = 2.75, h = 16.0);
+        translate([-32.0, 3.0, usbc_center_z])  rotate([0, 90, 0]) cylinder(r = 2.75, h = 16.0);
     }
-    // 45-degree outer lead-in chamfer flare
+    // Accentuated 45-degree outer lead-in chamfer flare
     hull() {
-        translate([-28.5, -2.75, 8.0]) rotate([0, 90, 0]) cylinder(r1 = 4.25, r2 = 3.0, h = 3.0);
-        translate([-28.5, 2.75, 8.0])  rotate([0, 90, 0]) cylinder(r1 = 4.25, r2 = 3.0, h = 3.0);
+        translate([-29.0, -3.0, usbc_center_z]) rotate([0, 90, 0]) cylinder(r1 = 4.5, r2 = 2.75, h = 3.5);
+        translate([-29.0, 3.0, usbc_center_z])  rotate([0, 90, 0]) cylinder(r1 = 4.5, r2 = 2.75, h = 3.5);
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (M3 Screws, Sloping Anti-Shadow Aperture + Chamfers)
+// 1. FRONT BEZEL RING PLATE (Accentuated Chamfers, Balanced M3 Screws)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
     difference() {
         union() {
             chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
+            // Accentuated 45-deg chamfered decorative ring (dia 44.0mm to dia 40.5mm)
             translate([0, 0, bezel_thickness])
-                cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
+                cylinder(d1 = 44.0, d2 = 40.5, h = 1.5);
         }
         
         // 1. Wide Sloping Conical Anti-Shadow Aperture
@@ -198,7 +200,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (M3 Corner Pilot Holes, Open Tub, Chamfered Bottom, Oval USB-C)
+// 2. MAIN HOUSING POD (Lowered USB-C, Accentuated Chamfers, M3 Screws)
 module main_housing() {
     cavity_depth = housing_depth - floor_t;
     esp_center_x = -10.0;
@@ -212,7 +214,7 @@ module main_housing() {
         translate([0, 0, floor_t])
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
-        // 2. Precision Chamfered Oval/Stadium USB-C Port Cutout
+        // 2. Lowered Precision Chamfered Oval/Stadium USB-C Port Cutout
         usbc_stadium_cutter();
             
         // 3. 4 Corner M3 Screw Pilot Holes
@@ -224,7 +226,7 @@ module main_housing() {
         }
     }
     
-    // Internal ESP32-C3 SuperMini Mounting Standoff Rails with 16 Pin-Locking Holes
+    // Internal ESP32-C3 SuperMini Lowered Standoff Rails (1.4mm)
     difference() {
         union() {
             translate([esp_center_x, 0, floor_t]) {
@@ -253,7 +255,6 @@ module stand_tier1_base() {
         union() {
             rounded_rect_prism(stand_base_w, stand_base_d, stand_base_h, 6.0);
             
-            // 4 Upward Protruding Alignment Pillars with Chamfered Tops
             for (px = [-pin_dist_x, pin_dist_x]) {
                 for (py = [-pin_dist_y, pin_dist_y]) {
                     translate([px, py, stand_base_h])
@@ -262,11 +263,9 @@ module stand_tier1_base() {
             }
         }
         
-        // Cable Relief Slot
         translate([-8.0, -stand_base_d/2 - 1, -0.1])
             cube([16.0, stand_base_d + 2, stand_base_h + 1.0]);
             
-        // 4 Underside Rubber Feet Recesses
         for (fx = [-stand_base_w/2 + 10, stand_base_w/2 - 10]) {
             for (fy = [-stand_base_d/2 + 10, stand_base_d/2 - 10]) {
                 translate([fx, fy, -0.1])
@@ -288,7 +287,6 @@ module stand_tier2_trunk() {
                 [-29.0, 27.0],  [-29.0, -27.0]
             ]);
             
-        // 4 Mating Sockets on Bottom Face
         for (px = [-pin_dist_x, pin_dist_x]) {
             for (py = [-pin_dist_y, pin_dist_y]) {
                 translate([px, py, stand_base_h - 0.1])
@@ -296,12 +294,10 @@ module stand_tier2_trunk() {
             }
         }
         
-        // 20-Degree Angled V-Saddle Cradle Pocket
         translate([0, 6.0, stand_base_h + 8.0])
             rotate([stand_tilt_deg, 0, 0])
             octagonal_prism(enclosure_width + 0.8, 35.0, 6.2);
             
-        // Rear Cable Relief Slot
         translate([-8.0, -stand_base_d/2 - 1, stand_base_h - 0.1])
             cube([16.0, stand_base_d + 2, 16.0]);
     }
@@ -322,7 +318,7 @@ if (part == 1) {
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
     translate([0, -10.0, -24.0]) {
-        color("#5c4033") stand_tier1_base(); // Walnut wood tier 1
-        color("#2E3440") stand_tier2_trunk(); // Charcoal trunk tier 2
+        color("#5c4033") stand_tier1_base();
+        color("#2E3440") stand_tier2_trunk();
     }
 }
