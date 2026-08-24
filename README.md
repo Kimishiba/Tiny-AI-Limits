@@ -22,7 +22,7 @@ You can build **Tiny AI Limits** in either of two distinct physical form factors
 <p align="center">
   <img src="./round 240x240/assets/gc9a01_3d_enclosure_render.jpg" alt="GC9A01 Circular Cyberdeck 3D Render" width="460">
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./round 240x240/assets/gc9a01_enclosure_rear_view.jpg" alt="GC9A01 Cyberdeck Rear View 3D Render" width="460">
+  <img src="./round 240x240/assets/gc9a01_round_display_demo.gif" alt="GC9A01 Circular Display UI Animation Demo" width="460">
 </p>
 
 An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 IPS Color Display (GC9A01 SPI)** resting at an ergonomic $18^\circ$ backward tilt on a two-tier modular pedestal.
@@ -178,7 +178,9 @@ Preview and interact with all screens, animations, and telemetry states in real 
 │   │   ├── gc9a01_stand_tier1_base.stl
 │   │   ├── gc9a01_stand_tier2_trunk.stl
 │   │   └── gc9a01_desk_stand.stl
-│   └── assets/               # 3D concept renders & mascot frames
+│   └── assets/               # 3D concept renders, animated demo GIF & mascot frames
+│       ├── gc9a01_3d_enclosure_render.jpg
+│       └── gc9a01_round_display_demo.gif
 ├── enclosure/                # SSD1306 Desk Console & Macropad Enclosure
 │   ├── desk_console_oled13_esp32c3.scad
 │   ├── top_case.stl
