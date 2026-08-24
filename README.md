@@ -1,5 +1,6 @@
 # ⚡ Tiny AI Limits & Desktop Companion (ESP32-C3)
 
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-kimishiba.github.io%2FTiny--AI--Limits-FF5F1F?style=flat-square)](https://kimishiba.github.io/Tiny-AI-Limits/)
 ![Framework](https://img.shields.io/badge/Framework-Arduino_ESP32--C3-007acc?style=flat-square)
 ![Hardware](https://img.shields.io/badge/Hardware-ESP32--C3_SuperMini-e67e22?style=flat-square)
 ![Displays](https://img.shields.io/badge/Displays-GC9A01_Round_%7C_SSD1306_OLED-brightgreen?style=flat-square)
@@ -7,7 +8,10 @@
 
 An open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-compact **ESP32-C3 SuperMini** microcontroller.
 
+👉 **[Try the In-Browser Hardware Simulator & Showcase Site](https://kimishiba.github.io/Tiny-AI-Limits/)**
+
 It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas for **Claude Code** and **Google Antigravity CLI**, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
+
 
 ---
 
