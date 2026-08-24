@@ -584,47 +584,78 @@ def get_data():
                         continue
                     if not lines:
                         continue
-                    try:
-                        last_step = json.loads(lines[-1])
-                    except Exception:
-                        continue
-                    if not last_step or last_step.get("type") != "PLANNER_RESPONSE":
+
+                    # Find index of last user input to define the current turn
+                    last_user_idx = -1
+                    for idx in range(len(lines) - 1, -1, -1):
+                        try:
+                            entry = json.loads(lines[idx])
+                            if entry.get("type") == "USER_INPUT" or entry.get("source") == "USER_EXPLICIT":
+                                last_user_idx = idx
+                                break
+                        except Exception:
+                            pass
+
+                    # Steps in current turn (after last USER_INPUT)
+                    turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
+                    if not turn_lines:
                         continue
 
+                    # Scan current turn for tools asking for approval / input
                     found_pending = False
-                    for tc in last_step.get("tool_calls", []) or []:
-                        name = tc.get("name")
-                        args = tc.get("args", {}) or {}
-                        if name == "ask_question":
-                            waiting_for_input = True
-                            prompt_text = "ANSWER Q"
+                    turn_pending_prompt = "INPUT REQ"
+
+                    for l in turn_lines:
+                        try:
+                            entry = json.loads(l)
+                            for tc in entry.get("tool_calls", []) or []:
+                                name = tc.get("name")
+                                args = tc.get("args", {}) or {}
+                                if name == "ask_question":
+                                    found_pending = True
+                                    turn_pending_prompt = "ANSWER Q"
+                                    break
+                                elif name == "ask_permission":
+                                    found_pending = True
+                                    turn_pending_prompt = "GRANT PERM"
+                                    break
+
+                                meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                                if isinstance(meta_raw, str):
+                                    try: meta = json.loads(meta_raw)
+                                    except Exception: meta = {}
+                                elif isinstance(meta_raw, dict):
+                                    meta = meta_raw
+                                else:
+                                    meta = {}
+
+                                target_file = str(args.get("TargetFile", "")).lower() if isinstance(args, dict) else ""
+                                if meta.get("RequestFeedback") is True or "implementation_plan" in target_file:
+                                    if meta.get("RequestFeedback") is not False:
+                                        found_pending = True
+                                        turn_pending_prompt = "APPROVE PLAN"
+                                        break
+                            if found_pending:
+                                break
+                        except Exception:
+                            pass
+
+                    # Also check if implementation_plan.md in conversation dir was modified in current turn
+                    conv_dir = os.path.dirname(os.path.dirname(fp))
+                    plan_path = os.path.join(conv_dir, "implementation_plan.md")
+                    if not found_pending and os.path.exists(plan_path):
+                        plan_mtime = os.path.getmtime(plan_path)
+                        # If plan was created/updated within last 30m and after or around the last turn began
+                        if (now_ts - plan_mtime < 1800) and (last_user_idx == -1 or plan_mtime >= mtime - 180):
                             found_pending = True
-                            break
-                        if name == "ask_permission":
-                            waiting_for_input = True
-                            prompt_text = "GRANT PERM"
-                            found_pending = True
-                            break
-                        meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                        if isinstance(meta_raw, str):
-                            try:
-                                meta = json.loads(meta_raw)
-                            except Exception:
-                                meta = {}
-                        elif isinstance(meta_raw, dict):
-                            meta = meta_raw
-                        else:
-                            meta = {}
-                        if meta.get("RequestFeedback") is True:
-                            waiting_for_input = True
-                            prompt_text = "APPROVE PLAN"
-                            found_pending = True
-                            break
+                            turn_pending_prompt = "APPROVE PLAN"
 
                     if found_pending:
+                        waiting_for_input = True
+                        prompt_text = turn_pending_prompt
                         break
-                    elif (now_ts - mtime) < 25:
-                        # Step finished recently without requiring feedback -> Work Completed!
+                    elif (now_ts - mtime) < 30:
+                        # Turn finished recently without requiring feedback -> Work Completed!
                         work_completed = True
                         completion_text = "WORK COMPLETE"
         except Exception as e:
@@ -979,15 +1010,13 @@ class TinyScreenMacStatusBarApp(object):
         app.run()
 
 if __name__ == '__main__':
-    # Start Flask server in background thread
-    t = Thread(target=start_flask, daemon=True)
-    t.start()
-
     if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
         print(f"[INFO] Running in server-only mode at http://localhost:{PORT}")
-        while True:
-            time.sleep(1)
+        start_flask()
     else:
-        # Launch macOS Status Bar App
+        # Start Flask server in background thread
+        t = Thread(target=start_flask, daemon=True)
+        t.start()
+        # Launch macOS Status Bar App or Windows GUI
         statusBarApp = TinyScreenMacStatusBarApp()
         statusBarApp.run()
