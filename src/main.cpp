@@ -617,24 +617,50 @@ void drawGC9A01RoundFlipUI() {
     uint16_t colRain = gcGfx->color565(56, 189, 248);      // #38BDF8 Sky Blue
     uint16_t colGray = gcGfx->color565(148, 163, 184);     // #94A3B8 Slate Gray
 
-    // 1. Static Bezel or Spinning Alert Ring
+    // 1. Static Bezel or Spinning Alert Ring (Zero-smearing differential rendering)
     static bool bezelDrawn = false;
+    static float lastAngle = -1.0f;
+    static int lastPx[6] = {0};
+    static int lastPy[6] = {0};
+
     if (agentData.waiting_for_input) {
         bezelDrawn = false;
-        float spinAngle = (float)(millis() % 3350) / 3350.0f * 6.28318f;
-        gcGfx->drawCircle(cx, cy, rScreen + 2, GC_COLOR_DARK_AMBER);
-        gcGfx->drawCircle(cx, cy, rScreen + 3, GC_COLOR_AMBER);
 
-        for (int i = 0; i < 6; i++) {
-            float a = spinAngle + i * 1.047f;
-            int px = cx + (int)(cos(a) * (rScreen + 3));
-            int py = cy + (int)(sin(a) * (rScreen + 3));
-            gcGfx->fillCircle(px, py, 2, GC_COLOR_YELLOW);
+        // Erase previous 6 hazard dots to prevent accumulated yellow smearing
+        if (lastAngle >= 0.0f) {
+            for (int i = 0; i < 6; i++) {
+                gcGfx->fillCircle(lastPx[i], lastPy[i], 3, GC_COLOR_BLACK);
+            }
+            // Redraw base bezel track repaired where erased
+            gcGfx->drawCircle(cx, cy, rScreen + 2, colBezel);
+            gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
         }
-    } else if (!bezelDrawn) {
-        bezelDrawn = true;
-        gcGfx->drawCircle(cx, cy, rScreen + 2, colBezel);
-        gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
+
+        // Calculate new positions and draw 6 orbiting hazard dots
+        float spinAngle = (float)(millis() % 3350) / 3350.0f * 6.2831853f;
+        for (int i = 0; i < 6; i++) {
+            float a = spinAngle + i * 1.04719755f;
+            int newPx = cx + (int)(cos(a) * (rScreen + 3));
+            int newPy = cy + (int)(sin(a) * (rScreen + 3));
+            gcGfx->fillCircle(newPx, newPy, 2, GC_COLOR_YELLOW);
+            lastPx[i] = newPx;
+            lastPy[i] = newPy;
+        }
+        lastAngle = spinAngle;
+    } else {
+        if (lastAngle >= 0.0f) {
+            // Erase last 6 hazard dots completely when alert completes
+            for (int i = 0; i < 6; i++) {
+                gcGfx->fillCircle(lastPx[i], lastPy[i], 3, GC_COLOR_BLACK);
+            }
+            lastAngle = -1.0f;
+        }
+        if (!bezelDrawn) {
+            bezelDrawn = true;
+            // Restore solid gunmetal bezel ring (r = 116, 117)
+            gcGfx->drawCircle(cx, cy, rScreen + 2, colBezel);
+            gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
+        }
     }
 
     // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
