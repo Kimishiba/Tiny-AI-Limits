@@ -700,8 +700,9 @@
         </div>
 
         <!-- Round Screen Mode -->
-        <div id="roundModeGrid" class="mode-btn-grid">
-          <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK & DUAL RADIAL GAUGES</button>
+        <div id="roundModeGrid" class="mode-btn-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK</button>
+          <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES (FACE)</button>
         </div>
       </div>
 
@@ -2025,6 +2026,139 @@
         c.fillStyle = "#ffffff";
         const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
         c.fillText(tempFormatted + "°C ☀️", cx, cy + 95);
+    function drawGC9A01RoundFaceUI(c) {
+      const cx = 160, cy = 120, rScreen = 114;
+
+      // 1. Static Sleek Bezel Ring
+      c.strokeStyle = "#1f2330";
+      c.lineWidth = 6;
+      c.beginPath();
+      c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+      c.stroke();
+
+      // Screen background (Deep OLED Black)
+      c.fillStyle = "#000000";
+      c.beginPath();
+      c.arc(cx, cy, rScreen, 0, Math.PI * 2);
+      c.fill();
+
+      // 2. Top Crown: Backend Connection Status LED & Rain Indicator
+      const ledY = cy - 105;
+      const wifiLedEl = document.getElementById("wifiLed");
+      const backendStatusEl = document.getElementById("backendStatus");
+      const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
+      const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
+
+      let dotCol = "#ef4444";
+      let glowCol = "rgba(239, 68, 68, 0.4)";
+      if (isBackendConn) {
+        dotCol = "#22c55e";
+        glowCol = "rgba(34, 197, 94, 0.6)";
+      } else if (isWifiConn) {
+        dotCol = "#f59e0b";
+        glowCol = "rgba(245, 158, 11, 0.5)";
+      }
+
+      c.save();
+      c.fillStyle = "#12151f";
+      c.beginPath();
+      c.arc(cx, ledY, 3.5, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = "#2b3042";
+      c.lineWidth = 1;
+      c.stroke();
+
+      c.fillStyle = dotCol;
+      c.shadowColor = glowCol;
+      c.shadowBlur = 6;
+      c.beginPath();
+      c.arc(cx, ledY, 2.2, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+
+      c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      let rainStr = "";
+      if (hours_until_rain === -1 || hours_until_rain === null || hours_until_rain === undefined) {
+        rainStr = "NO RAIN ☀️";
+        c.fillStyle = "#94a3b8";
+      } else if (hours_until_rain === 0) {
+        rainStr = "RAIN NOW 🌧️";
+        c.fillStyle = "#38bdf8";
+      } else {
+        const hVal = (typeof hours_until_rain === "number") ? hours_until_rain.toFixed(0) : hours_until_rain;
+        rainStr = "RAIN IN " + hVal + "h 🌧️";
+        c.fillStyle = (hours_until_rain <= 3) ? "#38bdf8" : "#cbd5e1";
+      }
+      c.fillText(rainStr, cx, cy - 93);
+
+      // 3. Central Dual Capsule Pill Eyes (Expressive Qbit Face)
+      const eyeW = 34, eyeH = 52;
+      const leftEyeX = cx - 38;
+      const rightEyeX = cx + 38;
+      const eyeY = cy - 6;
+
+      // EYES BLINK & SACCADE PHYSICS
+      const blinkCycle = (Math.floor(Date.now() / 4000) % 2 === 0);
+      const isBlinking = (Date.now() % 4000 < 180);
+      const scaleY = isBlinking ? 0.08 : 1.0;
+      const curH = eyeH * scaleY;
+
+      // Draw Left Capsule Eye
+      c.save();
+      c.shadowColor = "rgba(0, 229, 255, 0.65)";
+      c.shadowBlur = 12;
+      c.fillStyle = "#00E5FF";
+      c.beginPath();
+      if (typeof c.roundRect === "function") {
+        c.roundRect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, eyeW / 2);
+      } else {
+        c.rect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH);
+      }
+      c.fill();
+
+      // Draw Right Capsule Eye
+      c.beginPath();
+      if (typeof c.roundRect === "function") {
+        c.roundRect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, eyeW / 2);
+      } else {
+        c.rect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH);
+      }
+      c.fill();
+      c.restore();
+
+      // Inner Pupil Iris Highlights
+      if (!isBlinking) {
+        c.fillStyle = "#ffffff";
+        c.beginPath();
+        c.arc(leftEyeX - 4, eyeY - 10, 4.5, 0, Math.PI * 2);
+        c.arc(rightEyeX - 4, eyeY - 10, 4.5, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      // 4. Bottom Sub-HUD (Date & Weather / Agent Alert)
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      if (waiting_for_input) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = alertActive ? "#FFB800" : "#996e00";
+        c.fillText("⚠️ AGENT ALERT", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 95);
+      } else {
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#94a3b8";
+        c.fillText(date_string.toUpperCase(), cx, cy + 81);
+
+        c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
+        c.fillStyle = "#ffffff";
+        const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
+        c.fillText(tempFormatted + "°C ☀️", cx, cy + 95);
       }
     }
 
@@ -2033,6 +2167,7 @@
       else if (screenId === 1) drawWeatherUI(ctxTarget);
       else if (screenId === 2) drawFlipClockUI(ctxTarget);
       else if (screenId === 3) drawGC9A01RoundFlipUI(ctxTarget);
+      else if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
     }
 
     // --- MAIN RENDER LOOP ---
@@ -2103,7 +2238,7 @@
       const roundModeGrid = document.getElementById("roundModeGrid");
       const bezelTag = document.getElementById("bezelTag");
 
-      if (screenIdx === 3) {
+      if (screenIdx === 3 || screenIdx === 4) {
         if (selectElem) selectElem.value = "round";
         if (rectModeGrid) rectModeGrid.style.display = "none";
         if (roundModeGrid) roundModeGrid.style.display = "grid";
@@ -2122,6 +2257,10 @@
       document.querySelectorAll("#rectModeGrid .neo-btn").forEach((b, i) => {
         b.classList.toggle("active", i === screenIdx);
       });
+      const btnRound = document.getElementById("btnRound");
+      const btnRoundFace = document.getElementById("btnRoundFace");
+      if (btnRound) btnRound.classList.toggle("active", screenIdx === 3);
+      if (btnRoundFace) btnRoundFace.classList.toggle("active", screenIdx === 4);
     }
 
     document.getElementById("screenGlass").addEventListener("click", () => {
