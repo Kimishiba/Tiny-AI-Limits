@@ -192,8 +192,9 @@ def generate_front_bezel():
 def generate_main_housing():
     w = 54.0
     c = 6.0
-    depth = 24.5
+    depth = 27.5
     floor_t = 2.5
+
     cavity_depth = depth - floor_t
     screw_dist = 19.50
     chamfer_outer = 1.2
@@ -344,7 +345,7 @@ def generate_stand_tier2_trunk():
             
     # 3. Exact Pod V-Saddle Negative Mold (accommodates full 30.0mm assembled pod with clearance):
     w_c = 54.8
-    slot_depth = 31.2
+    slot_depth = 34.2
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [
@@ -403,7 +404,7 @@ def generate_monolithic_desk_stand():
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
     w_c = 54.8
-    slot_depth = 31.2
+    slot_depth = 34.2
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [

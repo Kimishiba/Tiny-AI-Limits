@@ -223,23 +223,23 @@ def generate_sheet_2_main_housing(output_path):
     ax.text(sx + 15, sy - 45, "VIEW B: SECTION B-B (Z-DEPTH PROFILE)", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     sec_housing = [
-        [sx, sy - 27], [sx + 24.5, sy - 27], [sx + 24.5, sy - 21],
+        [sx, sy - 27], [sx + 27.5, sy - 27], [sx + 27.5, sy - 21],
         [sx + 2.5, sy - 21],
         [sx + 2.5, sy - 9.3], [sx + 5.0, sy - 9.3], [sx + 5.0, sy - 6.0], [sx + 2.5, sy - 6.0],
         [sx + 2.5, sy + 6.0], [sx + 5.0, sy + 6.0], [sx + 5.0, sy + 9.3], [sx + 2.5, sy + 9.3],
-        [sx + 2.5, sy + 21], [sx + 24.5, sy + 21], [sx + 24.5, sy + 27], [sx, sy + 27]
+        [sx + 2.5, sy + 21], [sx + 27.5, sy + 21], [sx + 27.5, sy + 27], [sx, sy + 27]
     ]
     ax.add_patch(Polygon(sec_housing, fill=True, facecolor='#1b2a4a', edgecolor='#00e5ff', linewidth=1.2, hatch='//'))
     
-    add_dim_line(ax, (sx, sy + 27), (sx + 24.5, sy + 27), "24.50 DEPTH", offset=10)
+    add_dim_line(ax, (sx, sy + 27), (sx + 27.5, sy + 27), "27.50 DEPTH", offset=10)
     add_dim_line(ax, (sx, sy - 21), (sx + 2.5, sy - 21), "2.50", offset=-6)
-    add_dim_line(ax, (sx + 2.5, sy - 21), (sx + 24.5, sy - 21), "22.00 VERTICAL CAVITY", offset=-6, color='#4cc9f0')
+    add_dim_line(ax, (sx + 2.5, sy - 21), (sx + 27.5, sy - 21), "25.00 VERTICAL CAVITY", offset=-6, color='#4cc9f0')
     
     ax.annotate("ESP32-C3 STANDOFFS (2.5mm H)\n16x Ø1.50 PIN REGISTRATION\nREAR THRUST STOP BLOCK", xy=(sx + 5, sy + 7.62), xytext=(sx + 35, sy + 15),
                 arrowprops=dict(arrowstyle='->', color='#a2d2ff', lw=1.0),
                 color='#a2d2ff', fontsize=7.5, family='monospace', fontweight='bold')
                 
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. 4 MASSIVE SOLID CORNER PILLARS RUN CONTINUOUSLY FROM FLOOR TO TOP RIM.\n3. 4x M3 PILOT HOLES (Ø2.8mm x 15mm DP) AT (+/-19.5, +/-19.5) FOR M3 BOLTS OR HEAT-SET INSERTS.\n4. DUPONT TRENCH (26.0 x 22.0mm) PROVIDES 100% UNOBSTRUCTED CONNECTOR & WIRE ROUTING CLEARANCE.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. 4 MASSIVE SOLID CORNER PILLARS RUN CONTINUOUSLY FROM FLOOR TO TOP RIM.\n3. 4x M3 PILOT HOLES (Ø2.8mm x 15mm DP) AT (+/-19.5, +/-19.5) FOR M3 BOLTS OR HEAT-SET INSERTS.\n4. DUPONT TRENCH (26.0 x 25.0mm) PROVIDES 100% UNOBSTRUCTED CONNECTOR & WIRE ROUTING CLEARANCE.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
 
             
@@ -261,8 +261,8 @@ def generate_sheet_3_desk_stand(output_path):
     # Stand trunk top profile (54x58)
     ax.add_patch(FancyBboxPatch((cx - 27, cy - 29), 54, 58, boxstyle="round,pad=0,rounding_size=3.5",
                                 fill=True, facecolor='#1f2d42', edgecolor='#4cc9f0', linewidth=1.0))
-    # Deep V-saddle cradle slot (54.8mm wide x 31.2mm depth)
-    ax.add_patch(Rectangle((cx - 27.4, cy - 15.6), 54.8, 31.2, fill=True, facecolor='#0b111e', edgecolor='#ffd166', linewidth=1.5))
+    # Deep V-saddle cradle slot (54.8mm wide x 34.2mm depth)
+    ax.add_patch(Rectangle((cx - 27.4, cy - 17.1), 54.8, 34.2, fill=True, facecolor='#0b111e', edgecolor='#ffd166', linewidth=1.5))
     
     for fx in [-22, 22]:
         for fy in [-24, 24]:
@@ -270,8 +270,8 @@ def generate_sheet_3_desk_stand(output_path):
             
     add_dim_line(ax, (cx - 32, cy + 34), (cx + 32, cy + 34), "64.00 BASE WIDTH", offset=8)
     add_dim_line(ax, (cx + 32, cy - 34), (cx + 32, cy + 34), "68.00 BASE DEPTH", offset=8, is_vertical=True)
-    add_dim_line(ax, (cx - 27.4, cy - 15.6), (cx + 27.4, cy - 15.6), "54.80 SLOT W", offset=-8, color='#ffd166')
-    add_dim_line(ax, (cx + 27.4, cy - 15.6), (cx + 27.4, cy + 15.6), "31.20 SLOT D", offset=4, is_vertical=True, color='#ffd166')
+    add_dim_line(ax, (cx - 27.4, cy - 17.1), (cx + 27.4, cy - 17.1), "54.80 SLOT W", offset=-8, color='#ffd166')
+    add_dim_line(ax, (cx + 27.4, cy - 17.1), (cx + 27.4, cy + 17.1), "34.20 SLOT D", offset=4, is_vertical=True, color='#ffd166')
 
     sx, sy = 275, 160
     ax.text(sx, sy - 45, "VIEW B: SIDE ELEVATION & 22° CRADLE", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
@@ -288,7 +288,7 @@ def generate_sheet_3_desk_stand(output_path):
     ]
     ax.add_patch(Polygon(stand_side_pts, fill=True, facecolor='#1f2d42', edgecolor='#4cc9f0', linewidth=1.5))
     
-    ax.annotate("22.0° ERGONOMIC TILT\n54.8 x 31.2mm SLIDING CRADLE\n12.0mm SEATING POCKET", xy=(sx - 6, sy + 6), xytext=(sx + 8, sy + 25),
+    ax.annotate("22.0° ERGONOMIC TILT\n54.8 x 34.2mm SLIDING CRADLE\n12.0mm SEATING POCKET", xy=(sx - 6, sy + 6), xytext=(sx + 8, sy + 25),
                 arrowprops=dict(arrowstyle='->', color='#ffd166', lw=1.2),
                 color='#ffd166', fontsize=7.5, family='monospace', fontweight='bold')
                 
@@ -296,7 +296,7 @@ def generate_sheet_3_desk_stand(output_path):
     add_dim_line(ax, (sx - 34, sy - 15), (sx - 34, sy - 10), "5.00 TIER 1", offset=-8, is_vertical=True)
     add_dim_line(ax, (sx - 34, sy - 10), (sx - 34, sy + 14), "24.00 TRUNK H", offset=-8, is_vertical=True, color='#4cc9f0')
     
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 22° V-SADDLE CRADLE OFFERS OPTIMAL DESKTOP VIEWING ANGLE WITH ZERO WOBBLE.\n2. 54.8 x 31.2mm CRADLE SLOT ACCOMMODATES FULL ASSEMBLED 30.0mm POD (BEZEL + BODY) WITH 1.2mm CLEARANCE.\n3. TIER 1 BASE (5mm) CAN BE PRINTED IN DUAL MATERIAL / WOOD PLA AS A SEPARATE ACCENT PLATE.\n4. 4x UNDERSIDE RECESSES (Ø8.2mm x 1.5mm DP) FIT STANDARD ADHESIVE SILICONE FEET.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 22° V-SADDLE CRADLE OFFERS OPTIMAL DESKTOP VIEWING ANGLE WITH ZERO WOBBLE.\n2. 54.8 x 34.2mm CRADLE SLOT ACCOMMODATES FULL ASSEMBLED 33.0mm POD (BEZEL + BODY) WITH 1.2mm CLEARANCE.\n3. TIER 1 BASE (5mm) CAN BE PRINTED IN DUAL MATERIAL / WOOD PLA AS A SEPARATE ACCENT PLATE.\n4. 4x UNDERSIDE RECESSES (Ø8.2mm x 1.5mm DP) FIT STANDARD ADHESIVE SILICONE FEET.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
@@ -318,10 +318,11 @@ def generate_sheet_4_full_assembly(output_path):
     ax.text(x2, y2 + 32, "2. GC9A01 1.28\"\nSCREEN MODULE", color='#ffd166', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
     
     x3, y3 = 215, 160
-    ax.add_patch(Rectangle((x3 - 15, y3 - 25), 24.5, 50, fill=True, facecolor='#162032', edgecolor='#4cc9f0', linewidth=1.2))
+    ax.add_patch(Rectangle((x3 - 15, y3 - 25), 27.5, 50, fill=True, facecolor='#162032', edgecolor='#4cc9f0', linewidth=1.2))
     ax.add_patch(Rectangle((x3 - 5, y3 - 8), 12, 16, fill=True, facecolor='#38b000', edgecolor='#55a630', linewidth=1.0))
-    ax.text(x3 - 2, y3 + 32, "3. MAIN HOUSING\nOPEN TUB (24.5mm)", color='#4cc9f0', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
+    ax.text(x3 - 2, y3 + 32, "3. MAIN HOUSING\nOPEN TUB (27.5mm)", color='#4cc9f0', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
     ax.text(x3 + 1, y3 - 2, "ESP32-C3\nSUPERMINI", color='#ffffff', fontsize=6, fontweight='bold', ha='center', family='monospace')
+
     
     x4, y4 = 320, 125
     ax.add_patch(Polygon([[x4 - 25, y4 - 15], [x4 + 25, y4 - 15], [x4 + 20, y4 + 15], [x4 - 20, y4 + 15]],

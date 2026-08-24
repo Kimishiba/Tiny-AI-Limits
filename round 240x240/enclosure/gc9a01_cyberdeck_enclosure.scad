@@ -11,7 +11,8 @@ part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Stand 
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
-housing_depth    = 24.5; // Open-tub housing depth (mm)
+housing_depth    = 27.5; // Open-tub housing depth (+3mm extra wire/DuPont clearance) (mm)
+
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)
@@ -294,10 +295,10 @@ module stand_tier2_trunk() {
             }
         }
         
-        // Deep Negative Cradle Slot for Full 30.0mm Assembled Pod (31.2mm depth with slide clearance)
+        // Deep Negative Cradle Slot for Full 33.0mm Assembled Pod (34.2mm depth with slide clearance)
         translate([0, -4.0, 42.40])
             rotate([90.0 - stand_tilt_deg, 0, 180.0])
-            octagonal_prism(enclosure_width + 0.8, 31.2, 6.0);
+            octagonal_prism(enclosure_width + 0.8, 34.2, 6.0);
     }
 }
 
@@ -314,9 +315,10 @@ if (part == 1) {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance)
     translate([0, -4.0, 42.40])
         rotate([90.0 - stand_tilt_deg, 0, 180.0]) {
-            translate([0, 0, 24.5]) color("#22252B") front_bezel();
+            translate([0, 0, 27.5]) color("#22252B") front_bezel();
             color("#181A1F") main_housing();
         }
     color("#5c4033") stand_tier1_base();
     color("#2E3440") stand_tier2_trunk();
 }
+
