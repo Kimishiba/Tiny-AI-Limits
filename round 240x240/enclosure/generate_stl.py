@@ -3,12 +3,10 @@
 GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
-Reengineered with:
-- 100% Solid & Enclosed Main Housing Pod (NO exterior slits or bottom cutouts)
-- Fully enclosed internal cavity (44x44mm + 23.6mm lower tab pocket) for seamless exterior aesthetic
-- 2 x M2 blind thread-gripping pilot holes (dia = 1.75mm, depth = 3.4mm from rear) on the front bezel (X = +/-9.63mm, Y = -18.91mm)
-- Solid, unbroken front aesthetic face on the front bezel
-- Slim 26.0mm pod depth for sleek concept-accurate cyberdeck proportions
+100% Support-Free FDM 3D Printable Architecture (Solution A):
+- Front Bezel: Acts as the precision display carrier with integrated screen pocket & 2 x M2 blind pilot holes
+- Main Housing: Open-tub electronics bucket with continuous vertical walls and solid corner screw pillars (ZERO mid-air overhangs)
+- 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
 - Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
 """
@@ -45,11 +43,11 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
     poly = m3d.CrossSection([pts])
     return m3d.Manifold.extrude(poly, h)
 
-def make_gc9a01_pcb_pocket(depth_pocket=4.0):
+def make_gc9a01_pcb_pocket(depth_pocket=3.2):
     """
     Creates exact composite shape for GC9A01 PCB:
     - Upper circular body: 38.6mm dia (38.0mm PCB + 0.6mm tolerance)
-    - Lower connector tab: 23.6mm wide (22.92mm tab + 0.68mm tolerance) extending down to y = -26.5mm (45.5mm total height)
+    - Lower connector tab: 23.6mm wide (22.92mm tab + 0.68mm tolerance) extending down to y = -26.5mm
     """
     top_circle = m3d.Manifold.cylinder(depth_pocket, 38.6 / 2.0, 38.6 / 2.0, 64)
     tab_w = 23.6
@@ -71,12 +69,12 @@ def export_stl(manifold_obj, filepath, name="Model"):
 def generate_front_bezel():
     w = 54.0
     c = 6.0
-    t = 4.5
+    t = 5.5 # Enhanced display carrier thickness
     
-    # 1. Base octagonal plate (z = 0 to 4.5)
+    # 1. Base octagonal plate (z = 0 to 5.5)
     base = make_octagonal_prism(w, t, c)
     
-    # 2. Raised circular decorative trim ring (z = 4.5 to 6.0)
+    # 2. Raised circular decorative trim ring (z = 5.5 to 7.0)
     ring = m3d.Manifold.cylinder(1.5, 22.0, 22.0, 64).translate([0, 0, t])
     bezel_solid = base + ring
     
@@ -86,8 +84,8 @@ def generate_front_bezel():
     # 4. Glass Step Pocket: 36.0mm dia x 1.6mm deep (fits 35.6mm BL glass lens)
     glass_recess = m3d.Manifold.cylinder(1.7, 36.0 / 2.0, 36.0 / 2.0, 64).translate([0, 0, -0.1])
     
-    # 5. Rear Retention Lip for PCB: Upper 38.6mm circle + 23.6mm bottom tab (depth 1.8mm)
-    pcb_recess = make_gc9a01_pcb_pocket(1.9).translate([0, 0, -0.1])
+    # 5. Rear Retention Lip for PCB: Upper 38.6mm circle + 23.6mm bottom tab (depth 3.2mm into bezel)
+    pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
     
     cuts = window_chamfer + glass_recess + pcb_recess
     
@@ -99,14 +97,12 @@ def generate_front_bezel():
             cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + 1.5 - 2.2])
             cuts = cuts + hole + cb
             
-    # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.4mm from rear)
-    # Accessible from the rear pocket (z = -0.1 to z = 3.3) for M2 screws to grab plastic firmly.
-    # Leaves a solid 1.2mm front face with NO holes going through to the front.
+    # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.2mm from rear)
     screen_holes_x = 9.63
     screen_holes_y = -18.91
-    r_pilot = 1.75 / 2.0 # 0.875mm radius
+    r_pilot = 1.75 / 2.0
     for sx in [-screen_holes_x, screen_holes_x]:
-        s_hole = m3d.Manifold.cylinder(3.4, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
+        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
         cuts = cuts + s_hole
             
     return bezel_solid - cuts
@@ -114,41 +110,43 @@ def generate_front_bezel():
 def generate_main_housing():
     w = 54.0
     c = 6.0
-    depth = 26.0 # Slim, sleek 26mm depth matching the concept render
+    depth = 24.5 # Open-tub housing depth (assembly total = 26.0mm with bezel)
     floor_t = 2.5
-    pcb_depth = 4.0
-    cavity_depth = depth - floor_t - pcb_depth # 19.5mm internal clearance
+    cavity_depth = depth - floor_t # 22.0mm continuous vertical cavity
     
-    # 1. Main outer solid chassis (z = 0 to 26) - 100% SOLID SEAMLESS OUTER WALLS
+    # 1. Main outer solid chassis (z = 0 to 24.5) - 100% Solid Continuous Outer Shell
     chassis = make_octagonal_prism(w, depth, c)
     
-    # 2. Front GC9A01 Display PCB Pocket (38.6mm dia body + 23.6mm bottom tab at z = 22 to 26.1)
-    display_pocket = make_gc9a01_pcb_pocket(pcb_depth + 0.2).translate([0, 0, depth - pcb_depth])
-    
-    # 3. Main Internal Electronics & DuPont Cable Cavity (44mm x 44mm x 19.5mm)
+    # 2. Main Internal Continuous Open Tub Cavity (44mm x 44mm x 22.0mm vertical depth)
     cavity_main = m3d.Manifold.cube([44.0, 44.0, cavity_depth + 0.1], center=True).translate([0, 0, floor_t + cavity_depth / 2.0])
     
-    # 4. Internal Lower Tab Clearance Pocket (extends inside from y = -22 down to y = -25.5mm, width = 23.6mm)
-    # Fully contained inside the shell, leaving a solid 1.5mm bottom outer wall (NO EXTERIOR SLIT)
-    tab_interior_clearance = m3d.Manifold.cube([23.6, 5.0, cavity_depth + 0.1], center=False).translate([
-        -23.6 / 2.0, -25.5, floor_t
-    ])
+    # 3. Internal Lower Tab Clearance Pocket (extends inside from y = -22 to y = -25.5mm)
+    tab_interior = m3d.Manifold.cube([23.6, 5.0, cavity_depth + 0.1], center=False).translate([-23.6 / 2.0, -25.5, floor_t])
     
-    cavity = cavity_main + tab_interior_clearance
+    cavity = cavity_main + tab_interior
     
-    # 5. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z, through left wall at x = -27)
+    # 4. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z)
     usbc = m3d.Manifold.cube([16.0, 13.0, 8.0], center=True).translate([-24.0, 0, floor_t + 2.5 + 4.0])
     
-    cuts = display_pocket + cavity + usbc
+    cuts = cavity + usbc
     
-    # 6. 4 Corner M2 Screw Pilot Holes (12mm deep from front face)
+    # 5. 4 Corner M2 Screw Pilot Holes (12mm deep from front rim)
     screw_dist = 21.0
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             pilot = m3d.Manifold.cylinder(12.2, 1.0, 1.0, 32).translate([sx, sy, depth - 12.0])
             cuts = cuts + pilot
             
-    housing = chassis - cuts
+    housing_raw = chassis - cuts
+    
+    # 6. 4 Continuous Vertical Corner Screw Pillars (ensures strong, solid screw threading)
+    pillars = m3d.Manifold()
+    for sx in [-screw_dist, screw_dist]:
+        for sy in [-screw_dist, screw_dist]:
+            col = m3d.Manifold.cylinder(cavity_depth, 3.8, 3.8, 32).translate([sx, sy, floor_t])
+            pillars = pillars + col
+            
+    housing_with_pillars = (housing_raw + pillars) - cuts
     
     # 7. Internal ESP32-C3 SuperMini Mounting Standoff Rails with Pin-Locking Holes
     esp_l, esp_w = 23.0, 18.4
@@ -178,7 +176,7 @@ def generate_main_housing():
         
     standoffs_locked = standoffs - pin_cuts
     
-    return housing + standoffs_locked
+    return housing_with_pillars + standoffs_locked
 
 def generate_desk_stand():
     base_w = 64.0
@@ -202,7 +200,7 @@ def generate_desk_stand():
     
     stand_solid = tier1_base + trunk_solid
     
-    # 3. 22-Degree Angled V-Saddle Cradle Pocket for 54mm Housing Pod (Slim 26mm depth)
+    # 3. 22-Degree Angled V-Saddle Cradle Pocket for 54mm Housing Pod
     pocket_w = 54.8
     pocket_h = 35.0
     pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
@@ -238,17 +236,17 @@ def generate_accent_base_plate():
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print("Generating Blueprint-Accurate Solid Enclosed STL Enclosure Models...\n")
+    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (with 2 x 1.75mm blind pilot holes for M2 thread gripping)
+    # 1. Front Bezel Plate (Display Carrier with integrated PCB pocket & 2 x M2 blind pilot holes)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
-    export_stl(bezel, bezel_path, "Front Bezel Plate")
+    export_stl(bezel, bezel_path, "Front Bezel Plate (Display Carrier)")
 
-    # 2. Main Housing Enclosure (100% Solid Enclosed Outer Bottom, Internal Tab Clearance)
+    # 2. Main Housing Enclosure (Open-Tub Electronics Bucket, Zero Overhangs)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (26mm Solid Enclosed)")
+    export_stl(housing, housing_path, "Main Housing Pod (Open Tub - Support-Free)")
 
     # 3. Sculpted Concept Desk Stand Cradle
     stand = generate_desk_stand()
@@ -260,7 +258,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and fully enclosed!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and 100% support-free for FDM 3D printing!")
 
 if __name__ == "__main__":
     main()

@@ -2,7 +2,7 @@
 """
 GC9A01 Cyberdeck Enclosure - Engineering Blueprint & Technical Drawing Generator
 Generates publication-quality 300 DPI dimensioned mechanical engineering drawing sheets
-for CAD modeling, CNC machining, and 3D printing verification.
+for 100% Support-Free FDM 3D Printable Architecture.
 """
 
 import os
@@ -73,8 +73,8 @@ def add_dim_line(ax, p1, p2, text, offset=6, text_offset=2, is_vertical=False, c
                 va='bottom', ha='center', family='monospace', fontweight='bold')
 
 def generate_sheet_1_front_bezel(output_path):
-    fig, ax = setup_blueprint_canvas(title="PART 1: FRONT BEZEL RING PLATE (GC9A01-BEZEL-01)")
-    draw_title_block(ax, "FRONT BEZEL PLATE", 1)
+    fig, ax = setup_blueprint_canvas(title="PART 1: FRONT BEZEL DISPLAY CARRIER (GC9A01-BEZEL-01)")
+    draw_title_block(ax, "FRONT BEZEL CARRIER", 1)
     
     cx, cy = 110, 150
     ax.text(cx, cy - 45, "VIEW A: FRONT EXTERIOR", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
@@ -112,7 +112,7 @@ def generate_sheet_1_front_bezel(output_path):
                 color='#f72585', fontsize=7.5, family='monospace', fontweight='bold')
 
     rx, ry = 240, 150
-    ax.text(rx, ry - 45, "VIEW B: REAR RETENTION POCKET", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
+    ax.text(rx, ry - 45, "VIEW B: REAR DISPLAY CARRIER POCKET", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     ax.add_patch(Polygon(np.array(oct_pts) - [cx, cy] + [rx, ry], fill=True, facecolor='#162032', edgecolor='#415a77', linewidth=1.2))
     ax.add_patch(Circle((rx, ry), 18.0, fill=False, edgecolor='#4cc9f0', linewidth=1.0, linestyle='--'))
     ax.add_patch(Circle((rx, ry), 19.3, fill=True, facecolor='#0f172a', edgecolor='#ffd166', linewidth=1.2))
@@ -126,7 +126,7 @@ def generate_sheet_1_front_bezel(output_path):
     add_dim_line(ax, (rx - 11.8, ry - 26.5), (rx + 11.8, ry - 26.5), "23.60 TAB", offset=-8)
     add_dim_line(ax, (rx - sh_x, ry + sh_y), (rx + sh_x, ry + sh_y), "19.26 PITCH", offset=6, color='#ffbe0b')
     
-    ax.annotate("2x SCREEN BOLTING HOLES\nØ1.75 BLIND x 3.40 DP\n(NO FRONT THRU-HOLE)", xy=(rx + sh_x, ry + sh_y), xytext=(rx + 25, ry + sh_y - 8),
+    ax.annotate("2x SCREEN BOLTING HOLES\nØ1.75 BLIND x 3.20 DP\n(NO FRONT THRU-HOLE)", xy=(rx + sh_x, ry + sh_y), xytext=(rx + 25, ry + sh_y - 8),
                 arrowprops=dict(arrowstyle='->', color='#ffbe0b', lw=1.0),
                 color='#ffbe0b', fontsize=7.5, family='monospace', fontweight='bold')
     
@@ -134,21 +134,21 @@ def generate_sheet_1_front_bezel(output_path):
     ax.text(sx + 5, sy - 45, "SECTION A-A", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     sec_poly = [
-        [sx, sy - 27], [sx + 4.5, sy - 27], [sx + 4.5, sy - 22],
-        [sx + 6.0, sy - 22], [sx + 6.0, sy + 22], [sx + 4.5, sy + 22],
-        [sx + 4.5, sy + 27], [sx, sy + 27],
-        [sx, sy + 19.3], [sx + 1.8, sy + 19.3], [sx + 1.8, sy + 18.0],
-        [sx + 3.4, sy + 18.0], [sx + 3.4, sy + 16.3], [sx + 6.0, sy + 15.3],
-        [sx + 6.0, sy - 15.3], [sx + 3.4, sy - 16.3], [sx + 3.4, sy - 18.0],
-        [sx + 1.8, sy - 18.0], [sx + 1.8, sy - 26.5], [sx, sy - 26.5]
+        [sx, sy - 27], [sx + 5.5, sy - 27], [sx + 5.5, sy - 22],
+        [sx + 7.0, sy - 22], [sx + 7.0, sy + 22], [sx + 5.5, sy + 22],
+        [sx + 5.5, sy + 27], [sx, sy + 27],
+        [sx, sy + 19.3], [sx + 3.2, sy + 19.3], [sx + 3.2, sy + 18.0],
+        [sx + 4.4, sy + 18.0], [sx + 4.4, sy + 16.3], [sx + 7.0, sy + 15.3],
+        [sx + 7.0, sy - 15.3], [sx + 4.4, sy - 16.3], [sx + 4.4, sy - 18.0],
+        [sx + 3.2, sy - 18.0], [sx + 3.2, sy - 26.5], [sx, sy - 26.5]
     ]
     ax.add_patch(Polygon(sec_poly, fill=True, facecolor='#1b2a4a', edgecolor='#00e5ff', linewidth=1.2, hatch='//'))
     
-    add_dim_line(ax, (sx, sy + 27), (sx + 4.5, sy + 27), "4.50", offset=8)
-    add_dim_line(ax, (sx, sy - 27), (sx + 6.0, sy - 27), "6.00 OAL", offset=-10)
-    add_dim_line(ax, (sx, sy + 19.3), (sx + 1.8, sy + 19.3), "1.80 DP", offset=3, color='#ffd166')
+    add_dim_line(ax, (sx, sy + 27), (sx + 5.5, sy + 27), "5.50", offset=8)
+    add_dim_line(ax, (sx, sy - 27), (sx + 7.0, sy - 27), "7.00 OAL", offset=-10)
+    add_dim_line(ax, (sx, sy + 19.3), (sx + 3.2, sy + 19.3), "3.20 DP", offset=3, color='#ffd166')
     
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. MATERIAL: MATTE BLACK PETG / PLA (0.16mm LAYER HEIGHT, 3 PERIMETERS).\n2. TOLERANCE: GENERAL +/- 0.15mm | PCB POCKET CLEARS BLUEPRINT OUTLINE (+0.6mm).\n3. 2x M2 SCREEN HOLES: 1.75mm BLIND PILOT ACCEPTS M2 SELF-TAPPING SCREWS DIRECTLY.\n4. PRINT ORIENTATION: FLAT FACE DOWN (Z=6.0 ON BUILD PLATE). ZERO SUPPORTS REQUIRED.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. MATERIAL: MATTE BLACK PETG / PLA (0.16mm LAYER HEIGHT, 3 PERIMETERS).\n2. 100% SUPPORT-FREE: PRINT FLAT ON FRONT FACE (Z=7.0 ON BED). ALL POCKETS STEP OUTWARD.\n3. 2x M2 SCREEN HOLES: 1.75mm BLIND PILOT ACCEPTS M2 SELF-TAPPING SCREWS DIRECTLY.\n4. SCREEN BOLTS RIGIDLY TO BEZEL BEFORE MATING WITH OPEN HOUSING TUB.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
@@ -156,11 +156,11 @@ def generate_sheet_1_front_bezel(output_path):
     print(f"[Sheet 1 Generated]: {output_path}")
 
 def generate_sheet_2_main_housing(output_path):
-    fig, ax = setup_blueprint_canvas(title="PART 2: MAIN HOUSING POD 26MM - SOLID ENCLOSED (GC9A01-BODY-26)")
-    draw_title_block(ax, "MAIN HOUSING POD", 2)
+    fig, ax = setup_blueprint_canvas(title="PART 2: OPEN-TUB MAIN HOUSING (100% SUPPORT-FREE)")
+    draw_title_block(ax, "MAIN HOUSING TUB", 2)
     
     cx, cy = 110, 160
-    ax.text(cx, cy - 45, "VIEW A: FRONT INTERIOR & CAVITY", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
+    ax.text(cx, cy - 45, "VIEW A: FRONT OPEN TUB INTERIOR", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     hw, c = 27.0, 6.0
     oct_pts = np.array([
@@ -171,19 +171,21 @@ def generate_sheet_2_main_housing(output_path):
     ]) + [cx, cy]
     ax.add_patch(Polygon(oct_pts, fill=True, facecolor='#162032', edgecolor='#00e5ff', linewidth=1.5))
     
-    # 44x44mm Internal Cavity
+    # 44x44mm Continuous Open Cavity
     ax.add_patch(Rectangle((cx - 22, cy - 22), 44, 44, fill=True, facecolor='#0b111e', edgecolor='#4cc9f0', linewidth=1.2))
     
-    # Internal Lower Tab Clearance Pocket (Y = -22 to -25.5mm, fully enclosed inside 1.5mm bottom wall)
+    # Internal Lower Tab Clearance Pocket (Y = -22 to -25.5mm)
     ax.add_patch(Rectangle((cx - 11.8, cy - 25.5), 23.6, 5.0, fill=True, facecolor='#0b111e', edgecolor='#ffd166', linewidth=1.0))
-    
-    # Front PCB Pocket Rim (dashed)
-    ax.add_patch(Circle((cx, cy), 19.3, fill=False, edgecolor='#ffd166', linewidth=1.0, linestyle='--'))
-    ax.add_patch(Rectangle((cx - 11.8, cy - 26.5), 23.6, 26.5, fill=False, edgecolor='#ffd166', linewidth=1.0, linestyle='--'))
     
     # Left USB-C Port Cutout
     ax.add_patch(Rectangle((cx - 27.5, cy - 6.5), 6.5, 13, fill=True, facecolor='#060a12', edgecolor='#38b000', linewidth=1.2))
     
+    # 4 Corner Screw Pillars (Ø7.6mm)
+    for sx in [-21.0, 21.0]:
+        for sy in [-21.0, 21.0]:
+            ax.add_patch(Circle((cx + sx, cy + sy), 3.8, fill=True, facecolor='#1e293b', edgecolor='#f72585', linewidth=1.0))
+            ax.add_patch(Circle((cx + sx, cy + sy), 1.0, fill=True, facecolor='#060a12', edgecolor='#f72585', linewidth=1.0))
+            
     # ESP32-C3 Standoffs
     ax.add_patch(Rectangle((cx - 21.5, cy + 7.62 - 1.7), 23, 3.4, fill=True, facecolor='#1e293b', edgecolor='#a2d2ff', linewidth=1.0))
     ax.add_patch(Rectangle((cx - 21.5, cy - 7.62 - 1.7), 23, 3.4, fill=True, facecolor='#1e293b', edgecolor='#a2d2ff', linewidth=1.0))
@@ -194,16 +196,12 @@ def generate_sheet_2_main_housing(output_path):
         ax.add_patch(Circle((px, cy + 7.62), 0.75, fill=True, facecolor='#060a12', edgecolor='#ffbe0b', linewidth=0.8))
         ax.add_patch(Circle((px, cy - 7.62), 0.75, fill=True, facecolor='#060a12', edgecolor='#ffbe0b', linewidth=0.8))
         
-    for sx in [-21.0, 21.0]:
-        for sy in [-21.0, 21.0]:
-            ax.add_patch(Circle((cx + sx, cy + sy), 1.0, fill=True, facecolor='#060a12', edgecolor='#f72585', linewidth=1.0))
-            
-    add_dim_line(ax, (cx - 22, cy + 22), (cx + 22, cy + 22), "44.00 CAVITY", offset=4, color='#4cc9f0')
+    add_dim_line(ax, (cx - 22, cy + 22), (cx + 22, cy + 22), "44.00 OPEN TUB", offset=4, color='#4cc9f0')
     add_dim_line(ax, (cx - 27, cy - 27), (cx + 27, cy - 27), "100% SOLID BOTTOM WALL (54.00)", offset=-8, color='#00e5ff')
     
-    ax.annotate("SOLID ENCLOSED BOTTOM WALL\n(NO EXTERIOR SLIT / HOLE)\n1.50mm MIN WALL THICKNESS", xy=(cx, cy - 27), xytext=(cx + 25, cy - 36),
-                arrowprops=dict(arrowstyle='->', color='#00e5ff', lw=1.0),
-                color='#00e5ff', fontsize=7.5, family='monospace', fontweight='bold')
+    ax.annotate("CONTINUOUS VERTICAL WALLS\n(ZERO MID-AIR OVERHANGS)\n100% SUPPORT-FREE FDM PRINT", xy=(cx + 15, cy + 22), xytext=(cx + 35, cy + 35),
+                arrowprops=dict(arrowstyle='->', color='#4cc9f0', lw=1.0),
+                color='#4cc9f0', fontsize=7.5, family='monospace', fontweight='bold')
                 
     ax.annotate("USB-C WINDOW\n13.00 x 8.00mm", xy=(cx - 27, cy), xytext=(cx - 48, cy + 18),
                 arrowprops=dict(arrowstyle='->', color='#38b000', lw=1.0),
@@ -213,24 +211,23 @@ def generate_sheet_2_main_housing(output_path):
     ax.text(sx + 15, sy - 45, "VIEW B: SECTION B-B (Z-DEPTH PROFILE)", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     sec_housing = [
-        [sx, sy - 27], [sx + 26, sy - 27], [sx + 26, sy - 22],
-        [sx + 22, sy - 22], [sx + 2.5, sy - 22],
+        [sx, sy - 27], [sx + 24.5, sy - 27], [sx + 24.5, sy - 22],
+        [sx + 2.5, sy - 22],
         [sx + 2.5, sy - 9.3], [sx + 5.0, sy - 9.3], [sx + 5.0, sy - 6.0], [sx + 2.5, sy - 6.0],
         [sx + 2.5, sy + 6.0], [sx + 5.0, sy + 6.0], [sx + 5.0, sy + 9.3], [sx + 2.5, sy + 9.3],
-        [sx + 2.5, sy + 22], [sx + 22, sy + 22], [sx + 26, sy + 22], [sx + 26, sy + 27], [sx, sy + 27]
+        [sx + 2.5, sy + 22], [sx + 24.5, sy + 22], [sx + 24.5, sy + 27], [sx, sy + 27]
     ]
     ax.add_patch(Polygon(sec_housing, fill=True, facecolor='#1b2a4a', edgecolor='#00e5ff', linewidth=1.2, hatch='//'))
     
-    add_dim_line(ax, (sx, sy + 27), (sx + 26, sy + 27), "26.00 TOTAL DEPTH", offset=10)
+    add_dim_line(ax, (sx, sy + 27), (sx + 24.5, sy + 27), "24.50 DEPTH", offset=10)
     add_dim_line(ax, (sx, sy - 22), (sx + 2.5, sy - 22), "2.50", offset=-6)
-    add_dim_line(ax, (sx + 2.5, sy - 22), (sx + 22, sy - 22), "19.50 USABLE CAVITY", offset=-6, color='#4cc9f0')
-    add_dim_line(ax, (sx + 22, sy - 22), (sx + 26, sy - 22), "4.00 PCB", offset=-6, color='#ffd166')
+    add_dim_line(ax, (sx + 2.5, sy - 22), (sx + 24.5, sy - 22), "22.00 VERTICAL CAVITY", offset=-6, color='#4cc9f0')
     
     ax.annotate("ESP32-C3 STANDOFFS (2.5mm H)\n16x Ø1.50 PIN REGISTRATION\nREAR THRUST STOP BLOCK", xy=(sx + 5, sy + 7.62), xytext=(sx + 35, sy + 15),
                 arrowprops=dict(arrowstyle='->', color='#a2d2ff', lw=1.0),
                 color='#a2d2ff', fontsize=7.5, family='monospace', fontweight='bold')
                 
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 26.0mm SLIM POD PROFILE PRESERVES ORIGINAL CONCEPT CYBERDECK PROPORTIONS.\n2. FULLY ENCLOSED SOLID BOTTOM WALL ENSURES CLEAN, SEAMLESS DESK POD AESTHETICS.\n3. 44x44x19.5mm USABLE CAVITY EASILY FITS DUPONT CABLES AND UPWARD PIN HEADERS.\n4. 4x CORNER PILOT HOLES (Ø2.0mm x 12mm DP) FOR M2 SCREWS OR HEAT-SET INSERTS.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 100% SUPPORT-FREE FDM ARCHITECTURE: PRINT REAR BACKPLATE FLAT ON BED (Z=0).\n2. VERTICAL STRAIGHT WALLS & CORNER PILLARS RUN 100% UNINTERRUPTED TO TOP RIM.\n3. ZERO MID-AIR CEILINGS OR BRIDGES: NO SUPPORTS REQUIRED ANYWHERE INSIDE HOUSING.\n4. 4x CORNER PILOT HOLES (Ø2.0mm x 12mm DP) FOR M2 SCREWS OR HEAT-SET INSERTS.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
@@ -297,17 +294,17 @@ def generate_sheet_4_full_assembly(output_path):
     ax.text(200, 245, "EXPLODED MECHANICAL STACKUP DIAGRAM", color='#00e5ff', fontsize=11, fontweight='bold', ha='center', family='monospace')
     
     x1, y1 = 70, 160
-    ax.add_patch(Rectangle((x1 - 15, y1 - 25), 6, 50, fill=True, facecolor='#1b2a4a', edgecolor='#00e5ff', linewidth=1.2))
-    ax.text(x1 - 12, y1 + 32, "1. FRONT BEZEL\nPLATE (4.5mm)", color='#00e5ff', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
+    ax.add_patch(Rectangle((x1 - 15, y1 - 25), 7, 50, fill=True, facecolor='#1b2a4a', edgecolor='#00e5ff', linewidth=1.2))
+    ax.text(x1 - 12, y1 + 32, "1. FRONT BEZEL\nCARRIER (5.5mm)", color='#00e5ff', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
     
     x2, y2 = 135, 160
     ax.add_patch(Rectangle((x2 - 3, y2 - 20), 3.1, 40, fill=True, facecolor='#ffd166', edgecolor='#ffbe0b', linewidth=1.2))
     ax.text(x2, y2 + 32, "2. GC9A01 1.28\"\nSCREEN MODULE", color='#ffd166', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
     
     x3, y3 = 215, 160
-    ax.add_patch(Rectangle((x3 - 15, y3 - 25), 26, 50, fill=True, facecolor='#162032', edgecolor='#4cc9f0', linewidth=1.2))
+    ax.add_patch(Rectangle((x3 - 15, y3 - 25), 24.5, 50, fill=True, facecolor='#162032', edgecolor='#4cc9f0', linewidth=1.2))
     ax.add_patch(Rectangle((x3 - 5, y3 - 8), 12, 16, fill=True, facecolor='#38b000', edgecolor='#55a630', linewidth=1.0))
-    ax.text(x3 - 2, y3 + 32, "3. MAIN HOUSING\nPOD (26mm)", color='#4cc9f0', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
+    ax.text(x3 - 2, y3 + 32, "3. MAIN HOUSING\nOPEN TUB (24.5mm)", color='#4cc9f0', fontsize=7.5, fontweight='bold', ha='center', family='monospace')
     ax.text(x3 + 1, y3 - 2, "ESP32-C3\nSUPERMINI", color='#ffffff', fontsize=6, fontweight='bold', ha='center', family='monospace')
     
     x4, y4 = 320, 125
@@ -327,9 +324,9 @@ def generate_sheet_4_full_assembly(output_path):
 +----+------------------------------------+-----+-------------------------------------------------------------+
 | ID | COMPONENT / PART NAME              | QTY | SPECIFICATION & PURPOSE                                     |
 +----+------------------------------------+-----+-------------------------------------------------------------+
-| 01 | Front Bezel Ring Plate             |  1  | 3D Print (Matte Black PETG) | Ø32.6mm Viewport & Trim Ring  |
+| 01 | Front Bezel Display Carrier Plate  |  1  | 3D Print (Matte Black PETG) | Ø32.6mm Viewport & PCB Pocket |
 | 02 | GC9A01 1.28" Round IPS Module      |  1  | 240x240 Circular Display with 7-Pin SPI Header Bottom Tab  |
-| 03 | Main Housing Pod (26mm Depth)      |  1  | 3D Print | Solid Enclosed Shell, Pin-Locks & USB-C Window   |
+| 03 | Main Housing Pod (Open Tub Bucket) |  1  | 3D Print | 100% Support-Free, Pin-Locks & USB-C Window      |
 | 04 | ESP32-C3 SuperMini MCU Board       |  1  | Pin Headers facing UP | Solder pins lock into standoffs     |
 | 05 | Sculpted Two-Tier Desk Stand       |  1  | 3D Print (Charcoal / Walnut) | 22° V-Saddle & Cable Channel |
 | 06 | Screen Fasteners (M2 x 4mm/6mm)    |  2  | Self-tapping screws into bezel rear blind 1.75mm pilot holes|
@@ -347,7 +344,7 @@ def generate_sheet_4_full_assembly(output_path):
 def main():
     enclosure_dir = os.path.dirname(os.path.abspath(__file__))
     
-    print("Generating Professional 300 DPI Engineering Blueprint Technical Drawings...\n")
+    print("Generating 100% Support-Free 300 DPI Engineering Blueprint Technical Drawings...\n")
     
     s1 = os.path.join(enclosure_dir, "technical_drawings_front_bezel.png")
     generate_sheet_1_front_bezel(s1)

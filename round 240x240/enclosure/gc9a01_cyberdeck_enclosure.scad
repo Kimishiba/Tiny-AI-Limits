@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// Verified directly against GC9A01 1.28" TFT Module Engineering Blueprint
+// 100% Support-Free FDM 3D Printable Architecture
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -9,10 +9,10 @@ $fn = 64; // High resolution curves for 3D printing
 // --- PARAMETERS ---
 part = 0; // 0 = All Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Sculpted Desk Stand, 4 = Accent Base
 
-// Outer Dimensions (Slim 26mm depth for concept-accurate proportions)
+// Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
-enclosure_depth  = 26.0; // Slim, sleek pod depth matching concept render (mm)
-bezel_thickness  = 4.5;  // Front bezel plate thickness (mm)
+housing_depth    = 24.5; // Open-tub housing depth (mm)
+bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 
 // Display Pocket Dimensions (from Engineering Blueprint)
@@ -21,13 +21,13 @@ display_glass_dia  = 36.0; // Glass / Backlight step (35.6mm blueprint + 0.4mm c
 display_pcb_dia    = 38.6; // Circular PCB body (38.0mm blueprint + 0.6mm clearance)
 display_tab_w      = 23.6; // Bottom connector tab width (22.92mm blueprint + 0.68mm clearance)
 display_tab_h      = 26.5; // Tab height from center (45.5mm total height)
-display_pcb_depth  = 4.0;  // Housing front pocket depth (mm)
+display_pcb_depth  = 3.2;  // Bezel rear pocket depth (mm)
 
 // Direct Screen Bolting Blind Pilot Holes (1.75mm dia for M2 plastic thread grip)
 screen_bolt_x      = 9.63;  // Half of 19.26mm hole-to-hole pitch (x = +/-9.63mm)
 screen_bolt_y      = -18.91; // Y distance from screen center (mm)
 screen_bolt_dia    = 1.75;  // 1.75mm blind pilot holes (does NOT punch through front face)
-screen_bolt_depth  = 3.4;   // Blind depth from rear pocket (leaving 1.2mm solid front face)
+screen_bolt_depth  = 3.2;   // Blind depth from rear pocket (leaving solid front face)
 
 // Bezel Corner Screws (M2 Socket Cap or Self-Tapping)
 screw_bolt_circle  = 42.0; // 42mm center-to-center square (x=+/-21, y=+/-21)
@@ -87,7 +87,7 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (with 2 Blind 1.75mm M2 Screen Pilot Holes)
+// 1. FRONT BEZEL RING PLATE (Display Carrier - 100% Support-Free Print Face Down)
 module front_bezel() {
     difference() {
         union() {
@@ -106,9 +106,9 @@ module front_bezel() {
         translate([0, 0, -0.1])
             cylinder(d = display_glass_dia, h = 1.7);
             
-        // 3. PCB Retention Lip (Upper circle + bottom tab)
+        // 3. PCB Retention Lip (Upper circle + bottom tab, depth 3.2mm into bezel)
         translate([0, 0, -0.1])
-            gc9a01_blueprint_pocket(1.9);
+            gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
         // 4. 4 Corner M2 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -120,7 +120,7 @@ module front_bezel() {
             }
         }
         
-        // 5. 2 Blind 1.75mm M2 Thread-Gripping Pilot Holes (from back z = -0.1 to z = 3.3)
+        // 5. 2 Blind 1.75mm M2 Thread-Gripping Pilot Holes (from back z = -0.1 to z = 3.2)
         for (sx = [-screen_bolt_x, screen_bolt_x]) {
             translate([sx, screen_bolt_y, -0.1])
                 cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
@@ -128,37 +128,41 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (Slim 26mm Depth, 100% Solid Enclosed Exterior Bottom Wall)
+// 2. MAIN HOUSING POD (Open Tub, Zero Overhangs, Continuous Vertical Walls)
 module main_housing() {
-    cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 19.5mm internal clearance
+    cavity_depth = housing_depth - floor_t; // 22.0mm continuous vertical cavity
     esp_center_x = -10.0;
     
     difference() {
         union() {
-            // Outer Solid Chassis - Completely solid on all 4 exterior sides (no bottom slit)
-            octagonal_prism(enclosure_width, enclosure_depth, chamfer_size);
+            // Outer Solid Chassis
+            octagonal_prism(enclosure_width, housing_depth, chamfer_size);
+            
+            // 4 Corner Screw Pillars
+            for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
+                for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
+                    translate([sx, sy, floor_t])
+                        cylinder(d = 7.6, h = cavity_depth);
+                }
+            }
         }
         
-        // 1. Front GC9A01 Display PCB Pocket (Exact Blueprint Outline)
-        translate([0, 0, enclosure_depth - display_pcb_depth])
-            gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
-            
-        // 2. Main DuPont & Electronics Cavity (44x44x19.5mm)
+        // 1. Continuous Open Tub Cavity (44x44mm from floor to top rim)
         translate([-cavity_w/2, -cavity_h/2, floor_t])
             cube([cavity_w, cavity_h, cavity_depth + 0.1]);
             
-        // 3. Internal Lower Tab Pocket (Clearance inside from Y=-22 to Y=-25.5, leaving 1.5mm solid outer wall)
+        // 2. Internal Lower Tab Clearance Pocket (Y = -22 to -25.5mm)
         translate([-display_tab_w/2, -25.5, floor_t])
             cube([display_tab_w, 5.0, cavity_depth + 0.1]);
             
-        // 4. Left-Side USB-C Port Cutout
+        // 3. Left-Side USB-C Port Cutout
         translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
             cube([12.0, 13.0, 8.0]);
             
-        // 5. 4 Corner M2 Screw Pilot Holes (12mm deep)
+        // 4. 4 Corner M2 Screw Pilot Holes (12mm deep)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                translate([sx, sy, enclosure_depth - 12.0])
+                translate([sx, sy, housing_depth - 12.0])
                     cylinder(d = screw_pilot_dia, h = 12.1);
             }
         }
@@ -239,7 +243,7 @@ if (part == 1) {
     desk_stand();
 } else {
     // Assembly Preview Mode matching render
-    translate([0, 0, 26.0])
+    translate([0, 0, 24.5])
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
     translate([0, -16.0, -26.0])
