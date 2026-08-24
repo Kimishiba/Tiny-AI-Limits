@@ -3,8 +3,8 @@
 GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
-100% Support-Free FDM 3D Printable Architecture (Solution A):
-- Front Bezel: Precision display carrier with sculpted 45° chamfered trim ring matching concept render
+100% Support-Free FDM 3D Printable Architecture:
+- Front Bezel: Precision display carrier with sculpted 45° chamfered trim ring AND 45° outer perimeter chamfers matching concept render
 - Main Housing: Open-tub electronics bucket with 4 massive solid corner pillars and 4 open M2 pilot holes (dia = 2.0mm x 14mm deep at +/-21mm)
 - 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
@@ -28,6 +28,67 @@ def make_octagonal_prism(w, h, c):
     ]
     poly = m3d.CrossSection([pts_2d])
     return m3d.Manifold.extrude(poly, h)
+
+def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2):
+    """
+    Creates an octagonal base plate with a 45-degree outer edge chamfer on the top perimeter
+    matching the cyberdeck concept render.
+    """
+    hw = w / 2.0
+    pts_main = [
+        [-hw + c, -hw], [hw - c, -hw],
+        [hw, -hw + c],  [hw, hw - c],
+        [hw - c, hw],   [-hw + c, hw],
+        [-hw, hw - c],  [-hw, -hw + c]
+    ]
+    
+    w_top = w - 2 * chamfer_outer
+    c_top = c - chamfer_outer * 0.414
+    hw_top = w_top / 2.0
+    pts_top = [
+        [-hw_top + c_top, -hw_top], [hw_top - c_top, -hw_top],
+        [hw_top, -hw_top + c_top],  [hw_top, hw_top - c_top],
+        [hw_top - c_top, hw_top],   [-hw_top + c_top, hw_top],
+        [-hw_top, hw_top - c_top],  [-hw_top, -hw_top + c_top]
+    ]
+    
+    verts = []
+    faces = []
+    
+    # Layer 0: z = 0
+    for x, y in pts_main:
+        verts.append([x, y, 0.0])
+    # Layer 1: z = h - chamfer_outer
+    for x, y in pts_main:
+        verts.append([x, y, h - chamfer_outer])
+    # Layer 2: z = h
+    for x, y in pts_top:
+        verts.append([x, y, h])
+        
+    verts = np.array(verts, dtype=np.float32)
+    
+    # Bottom cap (z=0)
+    for i in range(1, 7):
+        faces.append([0, i + 1, i])
+        
+    # Lower vertical walls
+    for i in range(8):
+        i_next = (i + 1) % 8
+        faces.append([i, i_next, i_next + 8])
+        faces.append([i, i_next + 8, i + 8])
+        
+    # Upper 45-degree chamfer walls
+    for i in range(8):
+        i_next = (i + 1) % 8
+        faces.append([i + 8, i_next + 8, i_next + 16])
+        faces.append([i + 8, i_next + 16, i + 16])
+        
+    # Top cap (z=h)
+    for i in range(1, 7):
+        faces.append([16, 16 + i, 16 + i + 1])
+        
+    faces = np.array(faces, dtype=np.int32)
+    return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
 
 def make_rounded_rect_prism(w, d, h, r, fn=32):
     """Creates a rounded rectangular base plate with width w, depth d, height h, corner radius r."""
@@ -72,8 +133,8 @@ def generate_front_bezel():
     t = 5.5 # Enhanced display carrier thickness
     ring_h = 1.5
     
-    # 1. Base octagonal plate (z = 0 to 5.5)
-    base = make_octagonal_prism(w, t, c)
+    # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
+    base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=1.2)
     
     # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render:
     # Tapers from dia 44.0mm (r = 22.0mm) at z = 5.5 to dia 41.0mm (r = 20.5mm) at z = 7.0mm
@@ -237,10 +298,10 @@ def main():
 
     print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (Display Carrier with Chamfered Trim Ring)
+    # 1. Front Bezel Plate (Chamfered Outer Edges & Chamfered Trim Ring)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
-    export_stl(bezel, bezel_path, "Front Bezel Plate (Chamfered Trim Ring)")
+    export_stl(bezel, bezel_path, "Front Bezel Plate (Faceted Outer Edges & Chamfered Ring)")
 
     # 2. Main Housing Enclosure (Open Tub with verified Corner Screw Pillars and Holes)
     housing = generate_main_housing()
@@ -257,7 +318,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified with chamfered bezel ring!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified with faceted outer chamfers!")
 
 if __name__ == "__main__":
     main()

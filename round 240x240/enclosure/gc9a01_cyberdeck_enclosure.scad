@@ -14,6 +14,7 @@ enclosure_width  = 54.0; // Outer width & height (mm)
 housing_depth    = 24.5; // Open-tub housing depth (mm)
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
+outer_chamfer    = 1.2;  // Front perimeter 45-degree outer edge chamfer (mm)
 
 // Display Pocket Dimensions (from Engineering Blueprint)
 display_active_dia = 32.6; // Active LCD A.A window (32.40mm blueprint + 0.2mm clearance)
@@ -66,6 +67,36 @@ module octagonal_prism(w, h, c) {
     }
 }
 
+// Chamfered Octagonal Base with Front Perimeter Chamfer
+module chamfered_octagonal_base(w, h, c, ch) {
+    hw1 = w / 2;
+    hw2 = (w - 2 * ch) / 2;
+    c2 = c - ch * 0.414;
+    
+    hull() {
+        // Lower vertical section
+        linear_extrude(height = h - ch) {
+            polygon([
+                [-hw1 + c, -hw1], [hw1 - c, -hw1],
+                [hw1, -hw1 + c],  [hw1, hw1 - c],
+                [hw1 - c, hw1],   [-hw1 + c, hw1],
+                [-hw1, hw1 - c],  [-hw1, -hw1 + c]
+            ]);
+        }
+        // Upper chamfered section
+        translate([0, 0, h - 0.01]) {
+            linear_extrude(height = 0.01) {
+                polygon([
+                    [-hw2 + c2, -hw2], [hw2 - c2, -hw2],
+                    [hw2, -hw2 + c2],  [hw2, hw2 - c2],
+                    [hw2 - c2, hw2],   [-hw2 + c2, hw2],
+                    [-hw2, hw2 - c2],  [-hw2, -hw2 + c2]
+                ]);
+            }
+        }
+    }
+}
+
 // Rounded Rectangle Prism
 module rounded_rect_prism(w, d, h, r) {
     linear_extrude(height = h) {
@@ -87,12 +118,12 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Chamfered Bezel Trim Ring matching Concept Render)
+// 1. FRONT BEZEL RING PLATE (Chamfered Outer Edges & Chamfered Bezel Trim Ring)
 module front_bezel() {
     difference() {
         union() {
-            // Main chamfered bezel plate
-            octagonal_prism(enclosure_width, bezel_thickness, chamfer_size);
+            // Main chamfered bezel plate with 45-deg outer edge chamfers
+            chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer);
             // Raised decorative cyberdeck bezel trim ring with 45-deg outer chamfer (dia 44mm to dia 41mm)
             translate([0, 0, bezel_thickness])
                 cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
