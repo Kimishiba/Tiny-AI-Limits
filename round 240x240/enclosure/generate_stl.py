@@ -6,6 +6,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
 Replicates the Cyberdeck Unit 01 Desk Console concept render:
 - Sculpted two-tier tapered pedestal stand with 22° V-saddle cradle and rear cable channel
 - 36mm deep octagonal housing pod with 44x44x29.5mm DuPont cable & upward pin header clearance
+- Correctly oriented ESP32-C3 rails aligned with the left-flank USB-C port opening
 - Front bezel plate with raised circular ring and 4 M2 counterbored screw pockets
 """
 
@@ -32,7 +33,6 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
     hw = w / 2.0 - r
     hd = d / 2.0 - r
     pts = []
-    # 4 corner arcs
     corners = [(hw, hd), (-hw, hd), (-hw, -hd), (hw, -hd)]
     start_angles = [0, math.pi/2, math.pi, 3*math.pi/2]
     for (cx, cy), sa in zip(corners, start_angles):
@@ -77,9 +77,7 @@ def generate_front_bezel():
     screw_dist = 21.0
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
-            # M2.5 clearance through-hole (d = 2.6mm)
             hole = m3d.Manifold.cylinder(t + 4.0, 1.3, 1.3, 32).translate([sx, sy, -1.0])
-            # M2 Socket cap counterbore pocket (d = 4.8mm, depth = 2.2mm from top)
             cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + 1.5 - 2.2])
             cuts = cuts + hole + cb
             
@@ -102,7 +100,7 @@ def generate_main_housing():
     # 3. Main Internal Electronics & DuPont Cable Cavity (44mm x 44mm x 29.5mm)
     cavity = m3d.Manifold.cube([44.0, 44.0, cavity_depth + 0.1], center=True).translate([0, 0, floor_t + cavity_depth / 2.0])
     
-    # 4. Left-Side USB-C Port Cutout (13.0mm wide x 8.0mm tall)
+    # 4. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z, through left wall at x = -27)
     usbc = m3d.Manifold.cube([16.0, 13.0, 8.0], center=True).translate([-24.0, 0, floor_t + 2.5 + 4.0])
     
     cuts = display_pocket + cavity + usbc
@@ -117,23 +115,34 @@ def generate_main_housing():
     housing = chassis - cuts
     
     # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails on rear floor
-    esp_w, esp_l = 18.4, 23.0
+    # Correct orientation: USB-C port faces left (-X direction) towards the USB-C opening.
+    # Long axis (L = 23.0mm) runs along X: from x = -21.5 to x = +1.5mm (center x = -10.0mm).
+    # Short axis (W = 18.4mm) runs along Y: from y = -9.2 to y = +9.2mm (center y = 0.0mm).
+    # Guide rails run along the top and bottom edges (Y = +/-9.2mm) in the X direction!
+    esp_l, esp_w = 23.0, 18.4
     rail_h = 2.5
+    esp_center_x = -10.0
     
-    rail_l = m3d.Manifold.cube([2.0, esp_l, rail_h + 2.5], center=True).translate([-esp_w/2.0 + 1.0, 0, floor_t + (rail_h + 2.5)/2.0])
-    rail_r = m3d.Manifold.cube([2.0, esp_l, rail_h + 2.5], center=True).translate([esp_w/2.0 - 1.0, 0, floor_t + (rail_h + 2.5)/2.0])
-    pad_b  = m3d.Manifold.cube([esp_w, 3.0, rail_h], center=True).translate([0, -esp_l/2.0 + 1.5, floor_t + rail_h/2.0])
-    pad_t  = m3d.Manifold.cube([esp_w, 3.0, rail_h], center=True).translate([0, esp_l/2.0 - 1.5, floor_t + rail_h/2.0])
+    # Top guide rail (+Y edge, running along X)
+    rail_top = m3d.Manifold.cube([esp_l, 2.0, rail_h + 2.5], center=True).translate([
+        esp_center_x, esp_w / 2.0 - 1.0, floor_t + (rail_h + 2.5) / 2.0
+    ])
+    # Bottom guide rail (-Y edge, running along X)
+    rail_bot = m3d.Manifold.cube([esp_l, 2.0, rail_h + 2.5], center=True).translate([
+        esp_center_x, -esp_w / 2.0 + 1.0, floor_t + (rail_h + 2.5) / 2.0
+    ])
+    # Rear support pad (at +X end, running along Y)
+    pad_rear = m3d.Manifold.cube([3.0, esp_w, rail_h], center=True).translate([
+        esp_center_x + esp_l / 2.0 - 1.5, 0, floor_t + rail_h / 2.0
+    ])
+    # Front support pad (at -X end near USB port, running along Y)
+    pad_front = m3d.Manifold.cube([3.0, esp_w, rail_h], center=True).translate([
+        esp_center_x - esp_l / 2.0 + 1.5, 0, floor_t + rail_h / 2.0
+    ])
     
-    return housing + rail_l + rail_r + pad_b + pad_t
+    return housing + rail_top + rail_bot + pad_rear + pad_front
 
 def generate_desk_stand():
-    """
-    Generates the sculpted two-tier pedestal desk stand matching the concept render:
-    - Tier 1: Rounded accent base plate (68mm x 64mm x 6mm, r=6mm)
-    - Tier 2: Tapered matte dark pyramidal trunk (height 28mm) rising to the 22° angled V-saddle cradle
-    - Rear USB-C cable relief slot & 4 bottom rubber foot recesses
-    """
     base_w = 64.0
     base_d = 68.0
     base_h = 6.0
@@ -144,7 +153,6 @@ def generate_desk_stand():
     tier1_base = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
     # 2. Tier 2: Tapered Pyramidal Trunk (z = base_h to base_h + trunk_h)
-    # Bottom cross-section: 60x64mm, Top cross-section: 56x58mm with chamfers
     pts_bot = [
         [-27.0, -29.0], [27.0, -29.0],
         [29.0, -27.0],  [29.0, 27.0],
@@ -157,13 +165,9 @@ def generate_desk_stand():
     stand_solid = tier1_base + trunk_solid
     
     # 3. 22-Degree Angled V-Saddle Cradle Pocket for 54mm Housing Pod
-    # Pod outer width = 54.0mm, chamfer = 6.0mm. Sits at 22-degree tilt.
     pocket_w = 54.8
-    pocket_depth = 26.0
     pocket_h = 40.0
-    
     pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
-    # Tilt and position so it cuts the top angled cradle resting surface
     pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 10.0])
     
     # 4. Rear USB-C Cable Relief Channel (16mm wide x 14mm tall)
@@ -179,22 +183,18 @@ def generate_desk_stand():
     return stand_solid - pocket_cut - cable_slot - feet_cuts
 
 def generate_accent_base_plate():
-    """Generates the optional standalone lower accent/wood base plate for dual-material printing."""
     base_w = 64.0
     base_d = 68.0
     base_h = 6.0
     base = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    # 4 bottom feet
     feet_cuts = m3d.Manifold()
     for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
         for fy in [-base_d/2.0 + 10.0, base_d/2.0 - 10.0]:
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    # Cable slot
     cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, base_h + 1.0], center=True).translate([0, 0, base_h / 2.0])
-    
     return base - feet_cuts - cable_slot
 
 def main():
@@ -207,7 +207,7 @@ def main():
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (36mm Deep, DuPont Cavity & Standoffs)
+    # 2. Main Housing Enclosure (Correctly Oriented ESP32-C3 Rails towards USB-C Port)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod")

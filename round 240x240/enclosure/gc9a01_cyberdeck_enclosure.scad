@@ -31,8 +31,8 @@ screw_pilot_dia    = 2.0;  // M2 pilot / heat-set insert hole (mm)
 cavity_w           = 44.0; // Generous internal width for DuPont wire loops (mm)
 cavity_h           = 44.0; // Internal height (mm)
 floor_t            = 2.5;  // Rear wall thickness (mm)
-esp_w              = 18.4; // ESP32-C3 SuperMini PCB width + tolerance (mm)
-esp_l              = 23.0; // ESP32-C3 PCB length (mm)
+esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
+esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
 esp_standoff_h     = 2.5;  // Height above floor for bottom solder joint clearance (mm)
 
 // Stand Parameters
@@ -100,9 +100,10 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (36mm Deep, DuPont Cable Loop Channels & ESP32 Seat)
+// 2. MAIN HOUSING POD (36mm Deep, Correctly Oriented ESP32-C3 Rails towards Left USB-C)
 module main_housing() {
     cavity_depth = enclosure_depth - floor_t - display_pcb_depth; // 29.5mm internal clearance
+    esp_center_x = -10.0;
     
     difference() {
         union() {
@@ -118,7 +119,7 @@ module main_housing() {
         translate([-cavity_w/2, -cavity_h/2, floor_t])
             cube([cavity_w, cavity_h, cavity_depth + 0.1]);
             
-        // 3. Left-Side USB-C Port Cutout
+        // 3. Left-Side USB-C Port Cutout (along Y, through left wall at x = -27)
         translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
             cube([12.0, 13.0, 8.0]);
             
@@ -131,22 +132,23 @@ module main_housing() {
         }
     }
     
-    // Internal ESP32-C3 SuperMini Mounting Standoff Rails
-    translate([-esp_w/2, -esp_l/2, floor_t]) {
-        difference() {
-            cube([2.0, esp_l, esp_standoff_h + 3.0]);
-            translate([-0.1, 4.0, esp_standoff_h])
-                cube([2.2, 15.0, 4.0]);
-        }
-        translate([esp_w - 2.0, 0, 0])
-        difference() {
-            cube([2.0, esp_l, esp_standoff_h + 3.0]);
-            translate([-0.1, 4.0, esp_standoff_h])
-                cube([2.2, 15.0, 4.0]);
-        }
-        cube([esp_w, 3.0, esp_standoff_h]);
-        translate([0, esp_l - 3.0, 0])
-            cube([esp_w, 3.0, esp_standoff_h]);
+    // Internal ESP32-C3 SuperMini Mounting Standoff Rails (Aligned with USB-C Port along X)
+    translate([esp_center_x, 0, floor_t]) {
+        // Top guide rail (+Y edge, running along X)
+        translate([-esp_l/2, esp_w/2 - 2.0, 0])
+            cube([esp_l, 2.0, esp_standoff_h + 2.5]);
+            
+        // Bottom guide rail (-Y edge, running along X)
+        translate([-esp_l/2, -esp_w/2, 0])
+            cube([esp_l, 2.0, esp_standoff_h + 2.5]);
+            
+        // Rear support pad (+X end)
+        translate([esp_l/2 - 3.0, -esp_w/2, 0])
+            cube([3.0, esp_w, esp_standoff_h]);
+            
+        // Front support pad (-X end near USB port)
+        translate([-esp_l/2, -esp_w/2, 0])
+            cube([3.0, esp_w, esp_standoff_h]);
     }
 }
 
