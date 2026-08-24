@@ -44,7 +44,7 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 
 * **Tier 1 Base Plate:** $64.00\text{mm} \text{ wide} \times 68.00\text{mm} \text{ deep} \times 5.00\text{mm} \text{ height}$ with $R = 6.00\text{mm}$ rounded corners and $4 \times$ upward alignment pins ($\varnothing 5.00\text{mm} \times 3.50\text{mm}$).
 * **Tier 2 Pyramidal Trunk:** $24.00\text{mm}$ height ($62.0\times 66.0\text{mm}$ base tapering to $54.0\times 58.0\text{mm}$ top) for a $29.00\text{mm}$ total stand height.
-* **Cradle Sliding Slot:** $54.80\text{mm} \text{ wide} \times 31.20\text{mm} \text{ depth} \times 11.50\text{mm} \text{ seating pocket}$ at an ergonomic **$18.0^\circ$ backward tilt**, accommodating the full $30.00\text{mm}$ assembled pod (housing + bezel) with $1.20\text{mm}$ smooth slide clearance.
+* **Cradle Sliding Slot:** $54.80\text{mm} \text{ wide} \times 31.20\text{mm} \text{ depth} \times 12.00\text{mm} \text{ seating pocket}$ at an ergonomic **$22.0^\circ$ backward tilt**, accommodating the full $30.00\text{mm}$ assembled pod (housing + bezel) with $1.20\text{mm}$ smooth slide clearance.
 * **Anti-Slip Rubber Foot Recesses:** $4 \times \varnothing 8.20\text{mm} \times 1.50\text{mm}$ deep on underside ($X = \pm 22.00\text{mm}, Y = \pm 24.00\text{mm}$).
 
 ---

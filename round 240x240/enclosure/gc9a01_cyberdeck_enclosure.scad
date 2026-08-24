@@ -52,7 +52,7 @@ stand_base_w       = 64.0; // Tier 1 base width (mm)
 stand_base_d       = 68.0; // Tier 1 base depth (mm)
 stand_base_h       = 5.0;  // Tier 1 base height (mm)
 stand_trunk_h      = 24.0; // Tier 2 cradle trunk height (mm) (total 29.0mm stand height)
-stand_tilt_deg     = 18.0; // Backward tilt angle from vertical (degrees)
+stand_tilt_deg     = 22.0; // Backward tilt angle from vertical (degrees)
 pin_dist_x         = 20.0; // Alignment pillar X distance from center (mm)
 pin_dist_y         = 21.0; // Alignment pillar Y distance from center (mm)
 pin_dia            = 5.0;  // Alignment pillar diameter (mm)
@@ -289,7 +289,7 @@ module stand_tier2_trunk() {
         }
         
         // Deep Negative Cradle Slot for Full 30.0mm Assembled Pod (31.2mm depth with slide clearance)
-        translate([0, -4.0, 43.56])
+        translate([0, -4.0, 42.40])
             rotate([90.0 - stand_tilt_deg, 0, 180.0])
             octagonal_prism(enclosure_width + 0.8, 31.2, 6.0);
     }
@@ -305,8 +305,8 @@ if (part == 1) {
 } else if (part == 4) {
     stand_tier2_trunk();
 } else {
-    // Complete Multi-Part Assembly Preview (18° Exact Concept Render Stance)
-    translate([0, -4.0, 43.56])
+    // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance)
+    translate([0, -4.0, 42.40])
         rotate([90.0 - stand_tilt_deg, 0, 180.0]) {
             translate([0, 0, 24.5]) color("#22252B") front_bezel();
             color("#181A1F") main_housing();
