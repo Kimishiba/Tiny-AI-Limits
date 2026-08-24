@@ -601,52 +601,38 @@ def get_data():
                     if not turn_lines:
                         continue
 
-                    # Scan current turn for tools asking for approval / input
+                    # The agent is ONLY waiting for input if the final step of the turn is requesting input/feedback
+                    last_step_entry = {}
+                    try:
+                        last_step_entry = json.loads(turn_lines[-1])
+                    except Exception:
+                        pass
+
                     found_pending = False
                     turn_pending_prompt = "INPUT REQ"
 
-                    for idx_in_turn, l in enumerate(turn_lines):
-                        try:
-                            entry = json.loads(l)
-                            for tc in entry.get("tool_calls", []) or []:
-                                name = tc.get("name")
-                                args = tc.get("args", {}) or {}
-                                if name in ("ask_question", "ask_permission"):
-                                    # A question/permission is only pending if it has not yet received a result
-                                    if idx_in_turn == len(turn_lines) - 1:
-                                        found_pending = True
-                                        turn_pending_prompt = "ANSWER Q" if name == "ask_question" else "GRANT PERM"
-                                        break
-
-                                meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                                if isinstance(meta_raw, str):
-                                    try: meta = json.loads(meta_raw)
-                                    except Exception: meta = {}
-                                elif isinstance(meta_raw, dict):
-                                    meta = meta_raw
-                                else:
-                                    meta = {}
-
-                                target_file = str(args.get("TargetFile", "")).lower() if isinstance(args, dict) else ""
-                                if meta.get("RequestFeedback") is True or "implementation_plan" in target_file:
-                                    if meta.get("RequestFeedback") is not False:
-                                        found_pending = True
-                                        turn_pending_prompt = "APPROVE PLAN"
-                                        break
-                            if found_pending:
+                    if last_step_entry.get("type") == "PLANNER_RESPONSE":
+                        for tc in last_step_entry.get("tool_calls", []) or []:
+                            name = tc.get("name")
+                            args = tc.get("args", {}) or {}
+                            if name in ("ask_question", "ask_permission"):
+                                found_pending = True
+                                turn_pending_prompt = "ANSWER Q" if name == "ask_question" else "GRANT PERM"
                                 break
-                        except Exception:
-                            pass
 
-                    # Also check if implementation_plan.md in conversation dir was modified in current turn
-                    conv_dir = os.path.dirname(os.path.dirname(fp))
-                    plan_path = os.path.join(conv_dir, "implementation_plan.md")
-                    if not found_pending and os.path.exists(plan_path):
-                        plan_mtime = os.path.getmtime(plan_path)
-                        # If plan was created/updated within last 30m and after or around the last turn began
-                        if (now_ts - plan_mtime < 1800) and (last_user_idx == -1 or plan_mtime >= mtime - 180):
-                            found_pending = True
-                            turn_pending_prompt = "APPROVE PLAN"
+                            meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                            if isinstance(meta_raw, str):
+                                try: meta = json.loads(meta_raw)
+                                except Exception: meta = {}
+                            elif isinstance(meta_raw, dict):
+                                meta = meta_raw
+                            else:
+                                meta = {}
+
+                            if meta.get("RequestFeedback") is True:
+                                found_pending = True
+                                turn_pending_prompt = "APPROVE PLAN"
+                                break
 
                     if found_pending:
                         waiting_for_input = True
@@ -658,6 +644,7 @@ def get_data():
                         completion_text = "WORK COMPLETE"
         except Exception as e:
             print(f"Agent check error: {e}")
+
 
     now = datetime.now()
     agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
