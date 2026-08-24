@@ -15,11 +15,10 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 45° outer bottom perimeter chamfer matching the bezel
   * 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
   * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
-- Minimalist L-Shaped Tilted Desk Stand Bracket:
-  * Sleek bent L-bracket with 18° backward tilt angle
-  * 26.0mm cradle shelf with front retention lip
-  * Central cable pass-through slot (16mm wide) and 4 underside rubber feet recesses
-  * 100% support-free FDM printing (prints flat on its side)
+- Two-Tier Desktop Pedestal Stand with Alignment Pillars:
+  * Tier 1 (Base Plate): Features 4 upward-protruding alignment pillars (dia = 5.0mm x 4.0mm H) with lead-in chamfers
+  * Tier 2 (Cradle Trunk): Features 4 mating socket holes (dia = 5.4mm x 4.6mm DP) that slide onto Tier 1 with positive mechanical registration
+  * 20° ergonomic V-saddle cradle and 16mm USB-C rear cable relief channel
 """
 
 import math
@@ -98,6 +97,20 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
     faces = np.array(faces, dtype=np.int32)
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
 
+def make_rounded_rect_prism(w, d, h, r, fn=32):
+    """Creates a rounded rectangular base plate with width w, depth d, height h, corner radius r."""
+    hw = w / 2.0 - r
+    hd = d / 2.0 - r
+    pts = []
+    corners = [(hw, hd), (-hw, hd), (-hw, -hd), (hw, -hd)]
+    start_angles = [0, math.pi/2, math.pi, 3*math.pi/2]
+    for (cx, cy), sa in zip(corners, start_angles):
+        for i in range(fn // 4 + 1):
+            angle = sa + (math.pi / 2.0) * (i / (fn // 4))
+            pts.append([cx + r * math.cos(angle), cy + r * math.sin(angle)])
+    poly = m3d.CrossSection([pts])
+    return m3d.Manifold.extrude(poly, h)
+
 def make_gc9a01_pcb_pocket(depth_pocket=3.2):
     """
     Creates exact composite shape for GC9A01 PCB:
@@ -154,8 +167,6 @@ def generate_front_bezel():
     cuts = window_funnel + glass_recess + pcb_recess
     
     # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbore Pockets (+/-21mm)
-    # M3 Through-Hole: dia = 3.4mm (r = 1.7mm)
-    # M3 Counterbore Pocket: dia = 6.2mm (r = 3.1mm), depth = 3.2mm (fits 3.0mm tall M3 socket cap heads completely recessed)
     screw_dist = 21.0
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
@@ -163,7 +174,7 @@ def generate_front_bezel():
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.2mm from rear) for GC9A01 Screen PCB
+    # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.2mm from rear) for Screen PCB
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -243,75 +254,145 @@ def generate_main_housing():
     
     return housing_body + standoffs_locked
 
-def generate_desk_stand():
+def generate_stand_tier1_base():
     """
-    Minimalist L-Shaped Tilted Desk Stand Bracket:
-    - 18° backward tilt angle for optimal desktop viewing
-    - 26.0mm wide cradle shelf with 4.0mm front retention lip
-    - 16.0mm central cable pass-through slot
-    - 4 bottom rubber feet recesses
-    - 100% support-free FDM 3D printing (prints flat on its side)
+    Tier 1 Base Plate (Walnut Wood / Accent Material):
+    - 64.0mm x 68.0mm x 6.0mm with 6.0mm rounded corners
+    - 4 upward-protruding alignment pillars (dia = 5.0mm x 4.0mm H) with lead-in chamfers
+    - 4 underside rubber feet recesses (dia = 8.2mm x 1.4mm deep)
+    - 16mm central cable relief slot
     """
-    stand_w = 54.0
-    shelf_depth = 26.0
-    lip_h = 4.0
-    lip_t = 3.5
-    thickness = 4.0
-    upright_len = 48.0
-    base_back = -38.0
-    tilt_deg = 18.0
+    base_w = 64.0
+    base_d = 68.0
+    base_h = 6.0
+    tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    theta = math.radians(90.0 - tilt_deg)
-    cos_t = math.cos(theta)
-    sin_t = math.sin(theta)
-    y_front = shelf_depth + lip_t
-    
-    pts = [
-        [base_back, 0.0],
-        [y_front, 0.0],
-        [y_front, thickness + lip_h],
-        [shelf_depth, thickness + lip_h],
-        [shelf_depth, thickness],
-        [0.0, thickness],
-        [-upright_len * cos_t, thickness + upright_len * sin_t],
-        [-upright_len * cos_t - thickness * sin_t, thickness + upright_len * sin_t - thickness * cos_t],
-        [-thickness * sin_t, thickness - thickness * cos_t],
-        [base_back, thickness]
-    ]
-    poly = m3d.CrossSection([pts])
-    bracket = m3d.Manifold.extrude(poly, stand_w).rotate([0, -90, 0]).translate([stand_w / 2.0, 0, 0])
-    
-    cable_slot = m3d.Manifold.cube([16.0, 30.0, 24.0], center=True).rotate([-tilt_deg, 0, 0]).translate([0, -10.0, 22.0])
-    
+    # 4 Protruding Alignment Pillars on Top Face (Z = 6.0 to 10.0mm)
+    pin_dist_x = 20.0
+    pin_dist_y = 22.0
+    pin_h = 4.0
+    pillars = m3d.Manifold()
+    for px in [-pin_dist_x, pin_dist_x]:
+        for py in [-pin_dist_y, pin_dist_y]:
+            pin = m3d.Manifold.cylinder(pin_h, 2.5, 2.0, 32).translate([px, py, base_h])
+            pillars = pillars + pin
+            
     feet_cuts = m3d.Manifold()
-    for fx in [-stand_w/2.0 + 10.0, stand_w/2.0 - 10.0]:
-        for fy in [base_back + 8.0, shelf_depth - 4.0]:
+    for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
+        for fy in [-base_d/2.0 + 10.0, base_d/2.0 - 10.0]:
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    return bracket - cable_slot - feet_cuts
+    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, base_h + 1.0], center=True).translate([0, 0, base_h / 2.0])
+    
+    return (tier1_solid + pillars) - feet_cuts - cable_slot
+
+def generate_stand_tier2_trunk():
+    """
+    Tier 2 Cradle Trunk (Matte Black / Charcoal):
+    - Tapered pedestal trunk body (24.0mm height)
+    - 4 mating socket holes on bottom face (dia = 5.4mm x 4.6mm deep) that slide onto Tier 1 pillars
+    - 20° ergonomic V-saddle cradle pocket supporting the 54mm pod
+    - 16mm USB-C rear cable relief channel
+    """
+    base_h = 6.0
+    trunk_h = 24.0
+    tilt_angle = 20.0
+    pin_dist_x = 20.0
+    pin_dist_y = 22.0
+    
+    pts_bot = [
+        [-27.0, -29.0], [27.0, -29.0],
+        [29.0, -27.0],  [29.0, 27.0],
+        [27.0, 29.0],   [-27.0, 29.0],
+        [-29.0, 27.0],  [-29.0, -27.0]
+    ]
+    poly_bot = m3d.CrossSection([pts_bot])
+    trunk_solid = m3d.Manifold.extrude(poly_bot, trunk_h).translate([0, 0, base_h])
+    
+    # 4 Mating Socket Holes on bottom face of Tier 2 (slides over Tier 1 pins)
+    sockets = m3d.Manifold()
+    for px in [-pin_dist_x, pin_dist_x]:
+        for py in [-pin_dist_y, pin_dist_y]:
+            sock = m3d.Manifold.cylinder(4.6, 2.7, 2.7, 32).translate([px, py, base_h - 0.1])
+            sockets = sockets + sock
+            
+    pocket_w = 54.8
+    pocket_h = 35.0
+    pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
+    pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 8.0])
+    
+    cable_slot = m3d.Manifold.cube([16.0, 78.0, 16.0], center=True).translate([0, 0, base_h + 6.0])
+    
+    return trunk_solid - sockets - pocket_cut - cable_slot
+
+def generate_monolithic_desk_stand():
+    """Single-piece unified monolithic stand combining Tier 1 and Tier 2."""
+    base_w = 64.0
+    base_d = 68.0
+    base_h = 6.0
+    trunk_h = 24.0
+    tilt_angle = 20.0
+    
+    tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
+    
+    pts_bot = [
+        [-27.0, -29.0], [27.0, -29.0],
+        [29.0, -27.0],  [29.0, 27.0],
+        [27.0, 29.0],   [-27.0, 29.0],
+        [-29.0, 27.0],  [-29.0, -27.0]
+    ]
+    poly_bot = m3d.CrossSection([pts_bot])
+    trunk_solid = m3d.Manifold.extrude(poly_bot, trunk_h).translate([0, 0, base_h])
+    
+    stand_solid = tier1_solid + trunk_solid
+    
+    pocket_w = 54.8
+    pocket_h = 35.0
+    pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
+    pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 8.0])
+    
+    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, 16.0], center=True).translate([0, 0, base_h + 6.0])
+    
+    feet_cuts = m3d.Manifold()
+    for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
+        for fy in [-base_d/2.0 + 10.0, base_d/2.0 - 10.0]:
+            foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
+            feet_cuts = feet_cuts + foot
+            
+    return stand_solid - pocket_cut - cable_slot - feet_cuts
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models with M3 Screws...\n")
+    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models with Two-Tier Stand...\n")
     
-    # 1. Front Bezel Plate (with M3 counterbores)
+    # 1. Front Bezel Plate (M3 Screws)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate (M3 Screws)")
 
-    # 2. Main Housing Enclosure (with M3 corner pilot holes)
+    # 2. Main Housing Enclosure (M3 Screws, Chamfered Bottom, Oval USB-C)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod (M3 Screws)")
 
-    # 3. Minimalist L-Shaped Tilted Desk Stand Bracket
-    stand = generate_desk_stand()
-    stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
-    export_stl(stand, stand_path, "L-Shaped Desk Stand Bracket")
+    # 3. Two-Tier Stand: Tier 1 Base Plate (with 4 Protruding Alignment Pillars)
+    tier1 = generate_stand_tier1_base()
+    tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
+    export_stl(tier1, tier1_path, "Stand Tier 1 Base Plate (with 4 Alignment Pillars)")
 
-    print("\n[ALL MODELS COMPLETE] All 3 STL files are 100% watertight, manifold, and verified with M3 screws!")
+    # 4. Two-Tier Stand: Tier 2 Cradle Trunk (with 4 Mating Slide Sockets)
+    tier2 = generate_stand_tier2_trunk()
+    tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
+    export_stl(tier2, tier2_path, "Stand Tier 2 Cradle Trunk (with 4 Slide Sockets)")
+
+    # 5. Monolithic One-Piece Desk Stand (Optional Unified Print)
+    stand_mono = generate_monolithic_desk_stand()
+    stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
+    export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
+
+    print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified!")
 
 if __name__ == "__main__":
     main()

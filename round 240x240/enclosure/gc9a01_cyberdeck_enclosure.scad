@@ -1,13 +1,13 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture with M3 Corner Screws
+// 100% Support-Free FDM 3D Printable Architecture with M3 Screws & Two-Tier Stand
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = 0; // 0 = All Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = L-Shaped Desk Stand Bracket
+part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Stand Tier 1 Base, 4 = Stand Tier 2 Trunk, 5 = Monolithic Stand
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
@@ -46,14 +46,16 @@ esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
 esp_standoff_h     = 2.5;  // Height above floor for bottom solder joint clearance (mm)
 
-// L-Shaped Stand Parameters
-stand_w            = 54.0; // Stand bracket width (mm)
-stand_t            = 4.0;  // Stand plate thickness (mm)
-stand_tilt_deg     = 18.0; // Backward tilt angle from vertical (degrees)
-stand_shelf_depth  = 26.0; // Shelf depth matching enclosure pod (mm)
-stand_lip_h        = 4.0;  // Front retaining lip height (mm)
-stand_upright_h    = 48.0; // Tilted upright spine height (mm)
-stand_base_back    = -38.0;// Rear foot extension length (mm)
+// Stand Parameters (Two-Tier Concept from 3D Render)
+stand_base_w       = 64.0; // Tier 1 base width (mm)
+stand_base_d       = 68.0; // Tier 1 base depth (mm)
+stand_base_h       = 6.0;  // Tier 1 base height (mm)
+stand_trunk_h      = 24.0; // Tier 2 cradle trunk height (mm)
+stand_tilt_deg     = 20.0; // Backward tilt angle from vertical (degrees)
+pin_dist_x         = 20.0; // Alignment pillar X distance from center (mm)
+pin_dist_y         = 22.0; // Alignment pillar Y distance from center (mm)
+pin_dia            = 5.0;  // Alignment pillar diameter (mm)
+pin_h              = 4.0;  // Alignment pillar height (mm)
 
 // --- MODULES ---
 
@@ -121,6 +123,18 @@ module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
     }
 }
 
+// Rounded Rectangle Prism
+module rounded_rect_prism(w, d, h, r) {
+    linear_extrude(height = h) {
+        hull() {
+            translate([w/2 - r, d/2 - r]) circle(r = r);
+            translate([-w/2 + r, d/2 - r]) circle(r = r);
+            translate([-w/2 + r, -d/2 + r]) circle(r = r);
+            translate([w/2 - r, -d/2 + r]) circle(r = r);
+        }
+    }
+}
+
 // Composite GC9A01 Blueprint PCB Pocket
 module gc9a01_blueprint_pocket(h) {
     union() {
@@ -149,26 +163,24 @@ module front_bezel() {
     
     difference() {
         union() {
-            // Main chamfered bezel plate with 45-deg outer edge chamfers
             chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
-            // Raised decorative cyberdeck bezel trim ring with 45-deg outer chamfer (dia 44mm to dia 41mm)
             translate([0, 0, bezel_thickness])
                 cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
         }
         
-        // 1. Wide Sloping Conical Anti-Shadow Aperture (Flaring from dia 32.8mm at glass to 38.4mm at front)
+        // 1. Wide Sloping Conical Anti-Shadow Aperture
         translate([0, 0, -1])
             cylinder(d1 = display_active_dia - 2.0, d2 = display_funnel_top + 1.0, h = oal_t + 2.0);
             
-        // 2. Glass Retention Lip (36.0mm dia x 1.6mm deep)
+        // 2. Glass Retention Lip
         translate([0, 0, -0.1])
             cylinder(d = display_glass_dia, h = 1.7);
             
-        // 3. PCB Retention Lip (Upper circle + bottom tab, depth 3.2mm into bezel)
+        // 3. PCB Retention Lip
         translate([0, 0, -0.1])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
-        // 4. 4 Corner M3 Screw Holes with Recessed Counterbores (dia = 3.4mm, cb = 6.2mm x 3.2mm)
+        // 4. 4 Corner M3 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, -1])
@@ -178,7 +190,7 @@ module front_bezel() {
             }
         }
         
-        // 5. 2 Blind 1.75mm M2 Thread-Gripping Pilot Holes (from back z = -0.1 to z = 3.2)
+        // 5. 2 Blind 1.75mm M2 Screen Pilot Holes
         for (sx = [-screen_bolt_x, screen_bolt_x]) {
             translate([sx, screen_bolt_y, -0.1])
                 cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
@@ -188,23 +200,22 @@ module front_bezel() {
 
 // 2. MAIN HOUSING POD (M3 Corner Pilot Holes, Open Tub, Chamfered Bottom, Oval USB-C)
 module main_housing() {
-    cavity_depth = housing_depth - floor_t; // 22.0mm continuous vertical cavity
+    cavity_depth = housing_depth - floor_t;
     esp_center_x = -10.0;
     
     difference() {
         union() {
-            // Outer Solid Chassis with 45-deg bottom perimeter chamfer
             chamfered_octagonal_base(enclosure_width, housing_depth, chamfer_size, outer_chamfer, chamfer_top=false);
         }
         
-        // 1. Chamfered Open Tub Cavity (width = 46mm, corner chamfer = 11.5mm leaving solid corner pillars)
+        // 1. Chamfered Open Tub Cavity
         translate([0, 0, floor_t])
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
         // 2. Precision Chamfered Oval/Stadium USB-C Port Cutout
         usbc_stadium_cutter();
             
-        // 3. 4 Corner M3 Screw Pilot Holes (dia = 2.8mm, depth = 15.0mm at +/-21mm)
+        // 3. 4 Corner M3 Screw Pilot Holes
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, housing_depth - 15.0])
@@ -217,21 +228,15 @@ module main_housing() {
     difference() {
         union() {
             translate([esp_center_x, 0, floor_t]) {
-                // Top standoff rail along Y = +7.62mm (pin row)
                 translate([-esp_l/2, 7.62 - 1.7, 0])
                     cube([esp_l, 3.4, esp_standoff_h]);
-                    
-                // Bottom standoff rail along Y = -7.62mm (pin row)
                 translate([-esp_l/2, -7.62 - 1.7, 0])
                     cube([esp_l, 3.4, esp_standoff_h]);
-                    
-                // Rear thrust stop block (+X end)
                 translate([esp_l/2, -esp_w/2, 0])
                     cube([2.5, esp_w, esp_standoff_h + 3.0]);
             }
         }
         
-        // 16 Pin Locking Holes (2 rows of 8 holes at 2.54mm pitch)
         for (k = [0:7]) {
             px = -18.3 + k * 2.54;
             translate([px, 7.62, floor_t + esp_standoff_h - 2.0])
@@ -242,44 +247,63 @@ module main_housing() {
     }
 }
 
-// 3. MINIMALIST L-SHAPED TILTED DESK STAND BRACKET
-module desk_stand() {
-    theta = 90 - stand_tilt_deg;
-    cos_t = cos(theta);
-    sin_t = sin(theta);
-    lip_t = 3.5;
-    y_front = stand_shelf_depth + lip_t;
-    
+// 3. STAND TIER 1 BASE PLATE (with 4 Protruding Alignment Pillars)
+module stand_tier1_base() {
     difference() {
-        rotate([0, -90, 0])
-        translate([0, 0, -stand_w/2])
-        linear_extrude(height = stand_w) {
-            polygon([
-                [stand_base_back, 0.0],
-                [y_front, 0.0],
-                [y_front, stand_t + stand_lip_h],
-                [stand_shelf_depth, stand_t + stand_lip_h],
-                [stand_shelf_depth, stand_t],
-                [0.0, stand_t],
-                [-stand_upright_h * cos_t, stand_t + stand_upright_h * sin_t],
-                [-stand_upright_h * cos_t - stand_t * sin_t, stand_t + stand_upright_h * sin_t - stand_t * cos_t],
-                [-stand_t * sin_t, stand_t - stand_t * cos_t],
-                [stand_base_back, stand_t]
-            ]);
+        union() {
+            rounded_rect_prism(stand_base_w, stand_base_d, stand_base_h, 6.0);
+            
+            // 4 Upward Protruding Alignment Pillars with Chamfered Tops
+            for (px = [-pin_dist_x, pin_dist_x]) {
+                for (py = [-pin_dist_y, pin_dist_y]) {
+                    translate([px, py, stand_base_h])
+                        cylinder(d1 = pin_dia, d2 = pin_dia - 1.0, h = pin_h);
+                }
+            }
         }
         
-        // Central Cable Pass-Through Window (16mm wide)
-        translate([0, -10.0, 22.0])
-            rotate([-stand_tilt_deg, 0, 0])
-            cube([16.0, 30.0, 24.0], center=true);
+        // Cable Relief Slot
+        translate([-8.0, -stand_base_d/2 - 1, -0.1])
+            cube([16.0, stand_base_d + 2, stand_base_h + 1.0]);
             
-        // 4 Underside Rubber Feet Recesses (8.2mm dia, 1.4mm deep)
-        for (fx = [-stand_w/2 + 10, stand_w/2 - 10]) {
-            for (fy = [stand_base_back + 8, stand_shelf_depth - 4]) {
+        // 4 Underside Rubber Feet Recesses
+        for (fx = [-stand_base_w/2 + 10, stand_base_w/2 - 10]) {
+            for (fy = [-stand_base_d/2 + 10, stand_base_d/2 - 10]) {
                 translate([fx, fy, -0.1])
                     cylinder(d = 8.2, h = 1.5);
             }
         }
+    }
+}
+
+// 4. STAND TIER 2 CRADLE TRUNK (with 4 Mating Slide Sockets)
+module stand_tier2_trunk() {
+    difference() {
+        translate([0, 0, stand_base_h])
+            linear_extrude(height = stand_trunk_h, scale = [0.92, 0.90])
+            polygon([
+                [-27.0, -29.0], [27.0, -29.0],
+                [29.0, -27.0],  [29.0, 27.0],
+                [27.0, 29.0],   [-27.0, 29.0],
+                [-29.0, 27.0],  [-29.0, -27.0]
+            ]);
+            
+        // 4 Mating Sockets on Bottom Face
+        for (px = [-pin_dist_x, pin_dist_x]) {
+            for (py = [-pin_dist_y, pin_dist_y]) {
+                translate([px, py, stand_base_h - 0.1])
+                    cylinder(d = pin_dia + 0.4, h = pin_h + 0.6);
+            }
+        }
+        
+        // 20-Degree Angled V-Saddle Cradle Pocket
+        translate([0, 6.0, stand_base_h + 8.0])
+            rotate([stand_tilt_deg, 0, 0])
+            octagonal_prism(enclosure_width + 0.8, 35.0, 6.2);
+            
+        // Rear Cable Relief Slot
+        translate([-8.0, -stand_base_d/2 - 1, stand_base_h - 0.1])
+            cube([16.0, stand_base_d + 2, 16.0]);
     }
 }
 
@@ -289,12 +313,16 @@ if (part == 1) {
 } else if (part == 2) {
     main_housing();
 } else if (part == 3) {
-    desk_stand();
+    stand_tier1_base();
+} else if (part == 4) {
+    stand_tier2_trunk();
 } else {
-    // Assembly Preview Mode
+    // Complete Multi-Part Assembly Preview
     translate([0, 0, 24.5])
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
-    translate([0, 0, -4.0])
-        color("#2E3440") desk_stand();
+    translate([0, -10.0, -24.0]) {
+        color("#5c4033") stand_tier1_base(); // Walnut wood tier 1
+        color("#2E3440") stand_tier2_trunk(); // Charcoal trunk tier 2
+    }
 }
