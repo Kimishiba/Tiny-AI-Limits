@@ -8,10 +8,13 @@
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <WebServer.h>
+#include <DNSServer.h>
 #include <ArduinoJson.h>
 #include <esp_wifi.h>
 #include <Preferences.h>
 #include <ImprovWiFiLibrary.h>
+
+DNSServer dnsServer;
 
 // ==========================================
 // PIN CONFIGURATION (ESP32-C3 SuperMini)
@@ -37,8 +40,8 @@
 
 Adafruit_SSD1306 oledDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-// GC9A01 SPI Hardware Driver
-Arduino_DataBus *gcBus = new Arduino_ESP32SPI(GC9A01_DC_PIN, GC9A01_CS_PIN, GC9A01_SCK_PIN, GC9A01_MOSI_PIN, GFX_NOT_DEFINED);
+// GC9A01 SPI Hardware Driver (Using reliable Arduino_HWSPI)
+Arduino_DataBus *gcBus = new Arduino_HWSPI(GC9A01_DC_PIN, GC9A01_CS_PIN, GC9A01_SCK_PIN, GC9A01_MOSI_PIN, GFX_NOT_DEFINED);
 Arduino_GFX *gcGfx = new Arduino_GC9A01(gcBus, GC9A01_RST_PIN, 0 /* rotation */, true /* IPS */);
 
 // ==========================================
@@ -354,110 +357,226 @@ int prevDigits[4] = {-1, -1, -1, -1};
 float flipProgress[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
 // Vector 7-segment / condensed numeral drawing
-void drawTallDigit(int x, int y, int w, int h, int digit, uint16_t color) {
-    gcGfx->setTextSize(3);
-    gcGfx->setTextColor(color);
-    gcGfx->setCursor(x + (w - 18) / 2, y + (h - 24) / 2);
-    gcGfx->print(digit);
+// High-Resolution Tall Condensed Vector Numerals (26px wide, 52px tall, 5px bold strokes)
+void drawVectorDigit(int x, int y, int digit, uint16_t color) {
+    int t = 5;
+    int w = 26;
+    int h = 52;
+    int midY = y + h / 2 - t / 2;
+    int botY = y + h - t;
+    int rightX = x + w - t;
+
+    switch (digit) {
+        case 0:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
+            break;
+        case 1:
+            gcGfx->fillRoundRect(x + (w - t) / 2, y, t, h, 2, color);
+            gcGfx->fillRoundRect(x + (w - t) / 2 - 6, y, 6, t, 1, color);
+            gcGfx->fillRoundRect(x + 2, botY, w - 4, t, 1, color);
+            break;
+        case 2:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, midY, w, t, 2, color);
+            gcGfx->fillRoundRect(x, midY, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            break;
+        case 3:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
+            gcGfx->fillRoundRect(x + 6, midY, w - 6, t, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            break;
+        case 4:
+            gcGfx->fillRoundRect(x, y, t, h / 2 + 2, 2, color);
+            gcGfx->fillRoundRect(x, midY, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
+            break;
+        case 5:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, midY, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, midY, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            break;
+        case 6:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h, 2, color);
+            gcGfx->fillRoundRect(x, midY, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, midY, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            break;
+        case 7:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
+            break;
+        case 8:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            gcGfx->fillRoundRect(x, midY, w, t, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
+            break;
+        case 9:
+            gcGfx->fillRoundRect(x, y, w, t, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, midY, w, t, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
+            gcGfx->fillRoundRect(x, botY, w, t, 2, color);
+            break;
+        default:
+            break;
+    }
 }
 
 void drawGC9A01FlipCard(int posX, int posY, int cardW, int cardH, int digit, bool isTopHalf) {
     int midY = posY + cardH / 2;
     int halfH = cardH / 2;
 
-    // Card background
-    gcGfx->fillRoundRect(posX, posY, cardW, halfH, 4, GC_COLOR_CARD_TOP);
-    gcGfx->fillRoundRect(posX, midY, cardW, halfH, 4, GC_COLOR_CARD_BOT);
-    gcGfx->drawRoundRect(posX, posY, cardW, cardH, 4, GC_COLOR_CARD_BORDER);
+    uint16_t colTop = gcGfx->color565(26, 30, 40);     // #1A1E28 Dark Slate
+    uint16_t colBot = gcGfx->color565(12, 14, 20);     // #0C0E14 Deep Obsidian
+    uint16_t colBorder = gcGfx->color565(42, 48, 64);  // #2A3040 Card Edge
+    uint16_t colSeam = gcGfx->color565(48, 54, 72);    // #303648 Hinge Line
+    uint16_t colLug = gcGfx->color565(20, 23, 32);     // #141720 Hinge Bracket
+    uint16_t colPin = gcGfx->color565(160, 170, 190);  // #A0AABE Steel Pin
 
-    // Mechanical split crease
-    gcGfx->drawFastHLine(posX, midY, cardW, GC_COLOR_BLACK);
-    gcGfx->drawFastHLine(posX, midY + 1, cardW, 0x31E7);
+    // Split-face card body with dark charcoal & obsidian shading
+    gcGfx->fillRoundRect(posX, posY, cardW, halfH, 4, colTop);
+    gcGfx->fillRoundRect(posX, midY, cardW, halfH, 4, colBot);
+    gcGfx->drawRoundRect(posX, posY, cardW, cardH, 4, colBorder);
 
-    // Retaining Hinge Lugs (Left, Center Seams, Right)
-    auto drawHinge = [](int hx, int my) {
-        gcGfx->fillRoundRect(hx - 2, my - 6, 5, 12, 2, 0x10A2);
-        gcGfx->drawRoundRect(hx - 2, my - 6, 5, 12, 2, 0x39E7);
-        gcGfx->fillRect(hx - 1, my - 2, 3, 4, 0x8CD1); // Steel pin
-    };
-    drawHinge(posX, midY);
-    drawHinge(posX + cardW, midY);
+    // Mechanical split crease line
+    gcGfx->drawFastHLine(posX + 2, midY, cardW - 4, GC_COLOR_BLACK);
+    gcGfx->drawFastHLine(posX + 2, midY + 1, cardW - 4, colSeam);
 
-    // Draw tall numeral
-    drawTallDigit(posX, posY, cardW, cardH, digit, GC_COLOR_WHITE);
+    // Flank retention hinge brackets
+    gcGfx->fillRect(posX - 2, midY - 5, 4, 10, colLug);
+    gcGfx->drawRect(posX - 2, midY - 5, 4, 10, colBorder);
+    gcGfx->drawFastHLine(posX - 1, midY, 2, colPin);
+
+    gcGfx->fillRect(posX + cardW - 2, midY - 5, 4, 10, colLug);
+    gcGfx->drawRect(posX + cardW - 2, midY - 5, 4, 10, colBorder);
+    gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
+
+    // Tall vector numeral
+    int numX = posX + (cardW - 26) / 2;
+    int numY = posY + (cardH - 52) / 2;
+    drawVectorDigit(numX, numY, digit, GC_COLOR_WHITE);
+
+    // Slit line across numeral
+    gcGfx->drawFastHLine(posX + 2, midY, cardW - 4, GC_COLOR_BLACK);
 }
 
 void drawGC9A01RoundFlipUI() {
     int cx = 120, cy = 120, rScreen = 114;
 
-    // 1. Agent Alert Spinning Hazard Ring or Static Bezel
+    uint16_t colCyan = gcGfx->color565(0, 229, 255);       // #00E5FF Claude Cyan
+    uint16_t colCyanDim = gcGfx->color565(0, 36, 44);      // Dim background arc
+    uint16_t colOrange = gcGfx->color565(255, 122, 0);     // #FF7A00 Antigravity Orange
+    uint16_t colOrangeDim = gcGfx->color565(44, 20, 0);    // Dim background arc
+    uint16_t colBezel = gcGfx->color565(31, 35, 48);       // #1F2330 Bezel Ring
+    uint16_t colRain = gcGfx->color565(56, 189, 248);      // #38BDF8 Sky Blue
+    uint16_t colGray = gcGfx->color565(148, 163, 184);     // #94A3B8 Slate Gray
+
+    // 1. Static Bezel or Spinning Alert Ring
+    static bool bezelDrawn = false;
     if (agentData.waiting_for_input) {
+        bezelDrawn = false;
         float spinAngle = (float)(millis() % 3350) / 3350.0f * 6.28318f;
         gcGfx->drawCircle(cx, cy, rScreen + 2, GC_COLOR_DARK_AMBER);
         gcGfx->drawCircle(cx, cy, rScreen + 3, GC_COLOR_AMBER);
 
-        // Broken arc segments
         for (int i = 0; i < 6; i++) {
             float a = spinAngle + i * 1.047f;
             int px = cx + (int)(cos(a) * (rScreen + 3));
             int py = cy + (int)(sin(a) * (rScreen + 3));
             gcGfx->fillCircle(px, py, 2, GC_COLOR_YELLOW);
         }
-    } else {
-        gcGfx->drawCircle(cx, cy, rScreen + 2, 0x18E3);
+    } else if (!bezelDrawn) {
+        bezelDrawn = true;
+        gcGfx->drawCircle(cx, cy, rScreen + 2, colBezel);
+        gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
     }
 
-    // 2. Top Crown: Weather Forecast
-    gcGfx->setTextSize(1);
-    gcGfx->setTextColor(weatherData.hours_until_rain <= 3 && weatherData.hours_until_rain >= 0 ? GC_COLOR_ICE_BLUE : GC_COLOR_SLATE_GRAY);
-    gcGfx->setCursor(cx - 36, cy - 93);
-    if (weatherData.hours_until_rain == 0) {
-        gcGfx->print("RAIN NOW");
-    } else if (weatherData.hours_until_rain > 0) {
-        gcGfx->printf("RAIN IN %dh", weatherData.hours_until_rain);
-    } else {
-        gcGfx->print("NO RAIN");
+    // 2. Top Crown: Weather / Rain Indicator (Redraw on change)
+    static int lastHoursUntilRain = -999;
+    if (weatherData.hours_until_rain != lastHoursUntilRain) {
+        lastHoursUntilRain = weatherData.hours_until_rain;
+        gcGfx->fillRect(cx - 50, cy - 98, 100, 14, GC_COLOR_BLACK);
+        gcGfx->setTextSize(1);
+        gcGfx->setCursor(cx - 32, cy - 93);
+        if (weatherData.hours_until_rain == -1) {
+            gcGfx->setTextColor(colGray);
+            gcGfx->print("NO RAIN");
+        } else if (weatherData.hours_until_rain == 0) {
+            gcGfx->setTextColor(colRain);
+            gcGfx->print("RAIN NOW");
+        } else {
+            gcGfx->setTextColor((weatherData.hours_until_rain <= 3) ? colRain : GC_COLOR_WHITE);
+            gcGfx->printf("RAIN IN %dh", weatherData.hours_until_rain);
+        }
     }
 
-    // 3. Flanking Radial Gauges (Left: Claude / Right: Antigravity)
+    // 3. Solid Continuous Dual Radial Arcs (Redraw on percentage change)
     int claudePct = 100;
     int antiPct = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
+    static int lastClaudePct = -1;
+    static int lastAntiPct = -1;
 
-    // Left Arc (Claude Cyan) - outer main arc + inner thin arc
-    for (int deg = 126; deg <= 234; deg += 3) {
-        float rad = deg * 0.0174533f;
-        int x1 = cx + (int)(cos(rad) * 105);
-        int y1 = cy + (int)(sin(rad) * 105);
-        int x2 = cx + (int)(cos(rad) * 96);
-        int y2 = cy + (int)(sin(rad) * 96);
+    if (claudePct != lastClaudePct || antiPct != lastAntiPct) {
+        lastClaudePct = claudePct;
+        lastAntiPct = antiPct;
 
-        uint16_t color = (deg <= 126 + (claudePct * 108 / 100)) ? GC_COLOR_CYAN : 0x0110;
-        gcGfx->drawPixel(x1, y1, color);
-        gcGfx->drawPixel(x2, y2, color);
+        // Left Arc: Claude Cyan (126 deg at bottom to 234 deg at top, step 1 deg)
+        for (int deg = 126; deg <= 234; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cos(rad);
+            float sinR = sin(rad);
+
+            bool active = (deg <= 126 + (claudePct * 108 / 100));
+            uint16_t mainCol = active ? colCyan : colCyanDim;
+            uint16_t thinCol = active ? colCyan : colCyanDim;
+
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
+            }
+            for (int r = 94; r <= 95; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
+            }
+        }
+
+        // Right Arc: Antigravity Orange (54 deg at bottom to -54 deg at top, step 1 deg)
+        for (int deg = 54; deg >= -54; deg--) {
+            float rad = deg * 0.0174533f;
+            float cosR = cos(rad);
+            float sinR = sin(rad);
+
+            bool active = (deg >= 54 - (antiPct * 108 / 100));
+            uint16_t mainCol = active ? colOrange : colOrangeDim;
+            uint16_t thinCol = active ? colOrange : colOrangeDim;
+
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
+            }
+            for (int r = 94; r <= 95; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
+            }
+        }
+
+        // Gauge Labels
+        gcGfx->setTextSize(1);
+        gcGfx->setTextColor(colCyan);
+        gcGfx->setCursor(cx - 96, cy - 4);
+        gcGfx->print("CLD");
+
+        gcGfx->setTextColor(colOrange);
+        gcGfx->setCursor(cx + 74, cy - 4);
+        gcGfx->print("AGY");
     }
-
-    // Right Arc (Antigravity Orange) - outer main arc + inner thin arc
-    for (int deg = 54; deg >= -54; deg -= 3) {
-        float rad = deg * 0.0174533f;
-        int x1 = cx + (int)(cos(rad) * 105);
-        int y1 = cy + (int)(sin(rad) * 105);
-        int x2 = cx + (int)(cos(rad) * 96);
-        int y2 = cy + (int)(sin(rad) * 96);
-
-        uint16_t color = (deg >= 54 - (antiPct * 108 / 100)) ? GC_COLOR_ORANGE : 0x2080;
-        gcGfx->drawPixel(x1, y1, color);
-        gcGfx->drawPixel(x2, y2, color);
-    }
-
-    // Gauge Labels
-    gcGfx->setTextSize(1);
-    gcGfx->setTextColor(GC_COLOR_CYAN);
-    gcGfx->setCursor(cx - 96, cy - 4);
-    gcGfx->print("CLD");
-
-    gcGfx->setTextColor(GC_COLOR_ORANGE);
-    gcGfx->setCursor(cx + 74, cy - 4);
-    gcGfx->print("AGY");
 
     // 4. Center 2x2 Split-Flap Clock Matrix (48x72px cards, 6px gap)
     int cardW = 48, cardH = 72, gap = 6;
@@ -471,31 +590,60 @@ void drawGC9A01RoundFlipUI() {
     int dM1 = timeData.minutes / 10;
     int dM2 = timeData.minutes % 10;
 
-    drawGC9A01FlipCard(x1, yTop, cardW, cardH, dH1, true);
-    drawGC9A01FlipCard(x2, yTop, cardW, cardH, dH2, true);
-    drawGC9A01FlipCard(x1, yBot, cardW, cardH, dM1, false);
-    drawGC9A01FlipCard(x2, yBot, cardW, cardH, dM2, false);
+    static int lastRenderedDigits[4] = {-1, -1, -1, -1};
+    if (dH1 != lastRenderedDigits[0]) {
+        lastRenderedDigits[0] = dH1;
+        drawGC9A01FlipCard(x1, yTop, cardW, cardH, dH1, true);
+    }
+    if (dH2 != lastRenderedDigits[1]) {
+        lastRenderedDigits[1] = dH2;
+        drawGC9A01FlipCard(x2, yTop, cardW, cardH, dH2, true);
+    }
+    if (dM1 != lastRenderedDigits[2]) {
+        lastRenderedDigits[2] = dM1;
+        drawGC9A01FlipCard(x1, yBot, cardW, cardH, dM1, false);
+    }
+    if (dM2 != lastRenderedDigits[3]) {
+        lastRenderedDigits[3] = dM2;
+        drawGC9A01FlipCard(x2, yBot, cardW, cardH, dM2, false);
+    }
 
-    // 5. Stacked Bottom Sub-HUD
+    // 5. Stacked Bottom Sub-HUD (Redraw on change)
+    static float lastTemp = -999.0f;
+    static String lastDate = "";
+    static bool lastWaiting = false;
+
     if (agentData.waiting_for_input) {
         bool alertBlink = (millis() / 500) % 2 == 0;
-        gcGfx->setTextSize(1);
-        gcGfx->setTextColor(alertBlink ? GC_COLOR_AMBER : 0x4200);
-        gcGfx->setCursor(cx - 38, cy + 80);
-        gcGfx->print("AGENT ALERT");
+        static bool lastBlink = false;
+        if (alertBlink != lastBlink || !lastWaiting) {
+            lastBlink = alertBlink;
+            lastWaiting = true;
+            gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
+            gcGfx->setTextSize(1);
+            gcGfx->setTextColor(alertBlink ? GC_COLOR_AMBER : 0x4200);
+            gcGfx->setCursor(cx - 38, cy + 80);
+            gcGfx->print("AGENT ALERT");
 
-        gcGfx->setTextColor(GC_COLOR_WHITE);
-        gcGfx->setCursor(cx - 42, cy + 94);
-        gcGfx->print(agentData.prompt_text);
+            gcGfx->setTextColor(GC_COLOR_WHITE);
+            gcGfx->setCursor(cx - 42, cy + 94);
+            gcGfx->print(agentData.prompt_text);
+        }
     } else {
-        gcGfx->setTextSize(1);
-        gcGfx->setTextColor(GC_COLOR_SLATE_GRAY);
-        gcGfx->setCursor(cx - 32, cy + 80);
-        gcGfx->print(timeData.date_str);
+        if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate) {
+            lastWaiting = false;
+            lastTemp = weatherData.temp;
+            lastDate = timeData.date_str;
+            gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
+            gcGfx->setTextSize(1);
+            gcGfx->setTextColor(colGray);
+            gcGfx->setCursor(cx - 32, cy + 80);
+            gcGfx->print(timeData.date_str);
 
-        gcGfx->setTextColor(GC_COLOR_WHITE);
-        gcGfx->setCursor(cx - 24, cy + 94);
-        gcGfx->printf("%.1f C", weatherData.temp);
+            gcGfx->setTextColor(GC_COLOR_WHITE);
+            gcGfx->setCursor(cx - 24, cy + 94);
+            gcGfx->printf("%.1f C", weatherData.temp);
+        }
     }
 }
 
@@ -535,15 +683,28 @@ void initActiveDisplay() {
         }
     } else {
         // GC9A01 Round Screen Init
-        pinMode(GC9A01_BLK_PIN, OUTPUT);
-        digitalWrite(GC9A01_BLK_PIN, HIGH); // Backlight on
-        if (gcGfx->begin()) {
+        pinMode(GC9A01_RST_PIN, OUTPUT);
+        digitalWrite(GC9A01_RST_PIN, HIGH);
+        delay(10);
+        digitalWrite(GC9A01_RST_PIN, LOW);
+        delay(20);
+        digitalWrite(GC9A01_RST_PIN, HIGH);
+        delay(100);
+
+        if (gcGfx->begin(40000000)) {
             gc9a01Initialized = true;
+            gcGfx->fillScreen(GC_COLOR_CARD_TOP);
+            delay(100);
             gcGfx->fillScreen(GC_COLOR_BLACK);
             Serial.println("[Display] GC9A01 Round IPS initialized successfully");
+        } else {
+            Serial.println("[Display] Failed to initialize GC9A01 display!");
         }
     }
 }
+
+bool connectToWifi(const char* ssid, const char* password);
+void onWifiConnected();
 
 // ==========================================
 // HTTP SERVER (Companion App Screen Provisioning)
@@ -690,34 +851,50 @@ void fetchBackendData() {
 }
 
 // ==========================================
-// IMPROV WIFI CALLBACKS
+// WIFI CONNECTION (from working commit 74e9073)
 // ==========================================
 bool connectToWifi(const char* ssid, const char* password) {
-    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
     delay(100);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+    WiFi.setSleep(false);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    delay(50);
 
-    unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start < wifiConnectTimeoutMs) {
+    wifi_country_t country = {"01", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
+    esp_wifi_set_country(&country);
+
+    WiFi.disconnect(true, true);
+    delay(50);
+
+    Serial.printf("\n[WiFi] Connecting to '%s'...\n", ssid);
+    WiFi.begin(ssid, password);
+    wifi_config_t wifiConfig = {};
+    esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
+    wifiConfig.sta.pmf_cfg.capable = false;
+    wifiConfig.sta.pmf_cfg.required = false;
+    esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
+    WiFi.disconnect(false);
+    delay(50);
+    esp_wifi_connect();
+
+    unsigned long connectStart = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
         delay(250);
         improvSerial.handleSerial();
     }
-    return WiFi.status() == WL_CONNECTED;
-}
 
-void onImprovWiFiConnectedCb(const char* ssid) {
-    wifiPrefs.begin("wifi", false);
-    wifiPrefs.putString("ssid", ssid);
-    wifiPrefs.putString("password", WiFi.psk());
-    wifiPrefs.end();
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
+        onWifiConnected();
+        return true;
+    }
 
-    wifiConnected = true;
-    provisioningMode = false;
-}
-
-void onImprovWiFiErrorCb(ImprovTypes::Error err) {
-    Serial.printf("[Improv] WiFi Error code: %d\n", err);
+    Serial.printf("[WiFi] Connection to '%s' failed.\n", ssid);
+    WiFi.disconnect(true, false); // abort the pending connect attempt so the STA
+                                   // returns to idle and scanNetworks() works again
+    delay(50);
+    return false;
 }
 
 void onWifiConnected() {
@@ -725,12 +902,93 @@ void onWifiConnected() {
     provisioningMode = false;
     Serial.printf("[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
 
-    if (!MDNS.begin("tinyscreen-device")) {
+    if (!MDNS.begin("tinyscreen")) {
         Serial.println("[mDNS] Error starting responder");
     }
 
     setupWebServer();
     resolveBackendUrl();
+    lastMdnsResolve = millis();
+    fetchBackendData();
+}
+
+void onImprovWiFiConnectedCb(const char* ssid, const char* password) {
+    wifiPrefs.begin("wifi", false);
+    wifiPrefs.putString("ssid", ssid);
+    wifiPrefs.putString("password", password);
+    wifiPrefs.end();
+
+    onWifiConnected();
+}
+
+void onImprovWiFiErrorCb(ImprovTypes::Error err) {
+    Serial.printf("[Improv] WiFi Error code: %d\n", err);
+}
+
+static String serialBuffer = "";
+
+void handleSerialCommunication() {
+    while (Serial.available()) {
+        int peekByte = Serial.peek();
+        if (peekByte == 'I' && serialBuffer.length() == 0) {
+            improvSerial.handleSerial();
+            return;
+        }
+
+        char c = (char)Serial.read();
+        if (c == '\r') continue;
+        if (c == '\n') {
+            String line = serialBuffer;
+            serialBuffer = "";
+            line.trim();
+            if (line.length() == 0) continue;
+
+            if (line == "SCAN") {
+                WiFi.mode(WIFI_STA);
+                int16_t n = WiFi.scanNetworks();
+                Serial.print("SCAN_RESULT:[");
+                if (n > 0) {
+                    for (int i = 0; i < n; ++i) {
+                        if (i > 0) Serial.print(",");
+                        Serial.printf("{\"ssid\":\"%s\",\"rssi\":%d,\"secure\":%s}",
+                            WiFi.SSID(i).c_str(), WiFi.RSSI(i), (WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? "false" : "true");
+                    }
+                }
+                Serial.println("]");
+                WiFi.scanDelete();
+            } else if (line.startsWith("WIFI:")) {
+                String creds = line.substring(5);
+                int sep = creds.indexOf('\t');
+                if (sep == -1) sep = creds.indexOf(',');
+                if (sep != -1) {
+                    String ssid = creds.substring(0, sep);
+                    String pass = creds.substring(sep + 1);
+                    ssid.trim();
+                    pass.trim();
+                    Serial.printf("[WiFi] Connecting to '%s'...\n", ssid.c_str());
+                    if (connectToWifi(ssid.c_str(), pass.c_str())) {
+                        wifiPrefs.begin("wifi", false);
+                        wifiPrefs.putString("ssid", ssid);
+                        wifiPrefs.putString("password", pass);
+                        wifiPrefs.end();
+                        Serial.printf("CONNECTED:%s\n", WiFi.localIP().toString().c_str());
+                    } else {
+                        Serial.println("ERROR:CONNECTION_FAILED");
+                    }
+                }
+            } else if (line == "STATUS") {
+                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\"}\n",
+                    wifiConnected ? "true" : "false",
+                    wifiConnected ? WiFi.localIP().toString().c_str() : "",
+                    (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled");
+            }
+        } else {
+            serialBuffer += c;
+            if (serialBuffer.length() > 256) {
+                serialBuffer = "";
+            }
+        }
+    }
 }
 
 // ==========================================
@@ -738,6 +996,7 @@ void onWifiConnected() {
 // ==========================================
 void setup() {
     Serial.begin(115200);
+    delay(200);
 
     // 1. Load Stored Screen Preferences
     screenPrefs.begin("screen", false);
@@ -754,7 +1013,17 @@ void setup() {
     // 3. Initialize Active Display
     initActiveDisplay();
 
-    // 4. Improv Wi-Fi Provisioning Setup
+    // 4. Wi-Fi Configuration for ESP32-C3 SuperMini (STA mode, power-tuned, 13-channel worldwide)
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    wifi_country_t country = {"01", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
+    esp_wifi_set_country(&country);
+    delay(50);
+    WiFi.disconnect(true, true);
+    delay(50);
+
+    // 5. Improv Wi-Fi Provisioning Setup
     improvSerial.setDeviceInfo(
         ImprovTypes::ChipFamily::CF_ESP32_C3,
         "TinyScreenFirmware", "2.0.0", "Tiny AI Screen", ""
@@ -763,7 +1032,7 @@ void setup() {
     improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
     improvSerial.setCustomConnectWiFi(connectToWifi);
 
-    // 5. Connect Wi-Fi
+    // 6. Connect Stored Wi-Fi
     wifiPrefs.begin("wifi", false);
     String storedSsid = wifiPrefs.getString("ssid", "");
     String storedPassword = wifiPrefs.getString("password", "");
@@ -778,6 +1047,7 @@ void setup() {
     } else {
         wifiConnected = false;
         provisioningMode = true;
+        Serial.println("[WiFi] Ready for setup over USB Serial or Improv Wi-Fi.");
     }
 
     lastScreenSwitch = millis();
@@ -792,8 +1062,8 @@ const unsigned long frameIntervalMs = 33; // ~30 FPS
 void loop() {
     unsigned long now = millis();
 
-    // 1. Improv Wi-Fi Serial Listener & Web Server
-    improvSerial.handleSerial();
+    // 1. Unified Serial Listener (Direct & Improv) & Web Server
+    handleSerialCommunication();
     if (wifiConnected) {
         server.handleClient();
     }
@@ -803,21 +1073,13 @@ void loop() {
         lastFrameTime = now;
 
         if (activeScreenType == SCREEN_GC9A01_ROUND) {
-            // GC9A01 Round IPS Loop
-            if (provisioningMode) {
+            // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
+            static bool initialCleared = false;
+            if (!initialCleared) {
+                initialCleared = true;
                 gcGfx->fillScreen(GC_COLOR_BLACK);
-                gcGfx->setTextSize(2);
-                gcGfx->setTextColor(GC_COLOR_CYAN);
-                gcGfx->setCursor(60, 90);
-                gcGfx->print("SETUP MODE");
-                gcGfx->setTextSize(1);
-                gcGfx->setTextColor(GC_COLOR_WHITE);
-                gcGfx->setCursor(45, 125);
-                gcGfx->print("Open Companion App");
-            } else {
-                gcGfx->fillScreen(GC_COLOR_BLACK);
-                drawGC9A01RoundFlipUI();
             }
+            drawGC9A01RoundFlipUI();
         } else {
             // SSD1306 OLED Loop
             updateFacePhysics(now);

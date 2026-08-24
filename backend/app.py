@@ -634,7 +634,19 @@ def get_local_ip():
     finally:
         s.close()
 
-def register_mdns_service():
+def find_available_port(preferred_port=5000):
+    for p in [preferred_port, 5001, 5050, 8080]:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('0.0.0.0', p))
+                return p
+        except OSError:
+            continue
+    return preferred_port
+
+PORT = find_available_port(5000)
+
+def register_mdns_service(port=PORT):
     global _zeroconf_instance
     try:
         local_ip = get_local_ip()
@@ -642,17 +654,17 @@ def register_mdns_service():
             "_tinyscreen._tcp.local.",
             "Tiny AI Screen Companion._tinyscreen._tcp.local.",
             addresses=[socket.inet_aton(local_ip)],
-            port=5000,
+            port=port,
         )
         _zeroconf_instance = Zeroconf()
         _zeroconf_instance.register_service(info)
-        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:5000")
+        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:{port}")
     except Exception as e:
         print(f"[mDNS] Failed to register service: {e}")
 
 def start_flask():
-    register_mdns_service()
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    register_mdns_service(port=PORT)
+    app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
 
 def create_gui_window():
     import tkinter as tk
@@ -738,7 +750,7 @@ def create_gui_window():
     emu_frame.pack(fill="x", padx=20, pady=5)
 
     def open_emulator():
-        webbrowser.open("http://localhost:5000/emulator")
+        webbrowser.open(f"http://localhost:{PORT}/emulator")
 
     emu_btn = tk.Button(emu_frame, text="🖥️ Launch Display Emulator", command=open_emulator, bg="#f9e2af", fg="#11111b", activebackground="#f5e0dc", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
     emu_btn.pack(fill="x", padx=10, pady=8)
@@ -748,7 +760,7 @@ def create_gui_window():
     setup_frame.pack(fill="x", padx=20, pady=5)
 
     def open_setup():
-        webbrowser.open("http://localhost:5000/setup")
+        webbrowser.open(f"http://localhost:{PORT}/setup")
 
     setup_btn = tk.Button(setup_frame, text="🔌 Set Up New Device (WiFi)", command=open_setup, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
     setup_btn.pack(fill="x", padx=10, pady=8)
@@ -782,7 +794,7 @@ def create_gui_window():
         ag_hint.pack(anchor="w", padx=10, pady=(0, 6))
 
     # Status Footer
-    status_lbl = tk.Label(root, text="Server running at http://0.0.0.0:5000 | Emulator at /emulator", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
+    status_lbl = tk.Label(root, text=f"Server running at http://0.0.0.0:{PORT} | Emulator at /emulator", font=("Helvetica", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
     status_lbl.pack(side="bottom", pady=5)
 
     return root
@@ -803,11 +815,11 @@ class TinyScreenMacStatusBarApp(object):
 
             @rumps.clicked("🖥️ Open Display Emulator")
             def open_emulator(self, _):
-                webbrowser.open("http://localhost:5000/emulator")
+                webbrowser.open(f"http://localhost:{PORT}/emulator")
 
             @rumps.clicked("🔌 Set Up New Device (WiFi)")
             def open_setup(self, _):
-                webbrowser.open("http://localhost:5000/setup")
+                webbrowser.open(f"http://localhost:{PORT}/setup")
 
             @rumps.clicked("🔀 Switch Antigravity Account...")
             def switch_antigravity_account(self, _):
@@ -871,7 +883,7 @@ class TinyScreenMacStatusBarApp(object):
 
             @rumps.clicked("🌐 View Live API (/data)")
             def open_api(self, _):
-                webbrowser.open("http://localhost:5000/data")
+                webbrowser.open(f"http://localhost:{PORT}/data")
 
             @rumps.clicked("Quit")
             def quit_app(self, _):
@@ -886,7 +898,7 @@ if __name__ == '__main__':
     t.start()
 
     if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
-        print("[INFO] Running in server-only mode at http://localhost:5000")
+        print(f"[INFO] Running in server-only mode at http://localhost:{PORT}")
         while True:
             time.sleep(1)
     else:
