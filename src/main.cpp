@@ -359,11 +359,11 @@ int prevDigits[4] = {-1, -1, -1, -1};
 float flipProgress[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
 // Vector 7-segment / condensed numeral drawing
-// High-Resolution Tall Condensed Vector Numerals (26px wide, 52px tall, 5px bold strokes)
+// High-Resolution Heavy Bold Vector Numerals (28px wide, 54px tall, 8px ultra-bold strokes)
 void drawVectorDigit(int x, int y, int digit, uint16_t color) {
-    int t = 5;
-    int w = 26;
-    int h = 52;
+    int t = 8;
+    int w = 28;
+    int h = 54;
     int midY = y + h / 2 - t / 2;
     int botY = y + h - t;
     int rightX = x + w - t;
@@ -377,20 +377,20 @@ void drawVectorDigit(int x, int y, int digit, uint16_t color) {
             break;
         case 1:
             gcGfx->fillRoundRect(x + (w - t) / 2, y, t, h, 2, color);
-            gcGfx->fillRoundRect(x + (w - t) / 2 - 6, y, 6, t, 1, color);
+            gcGfx->fillRoundRect(x + (w - t) / 2 - 7, y, 7, t, 1, color);
             gcGfx->fillRoundRect(x + 2, botY, w - 4, t, 1, color);
             break;
         case 2:
             gcGfx->fillRoundRect(x, y, w, t, 2, color);
-            gcGfx->fillRoundRect(rightX, y, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(rightX, y, t, h / 2 + 2, 2, color);
             gcGfx->fillRoundRect(x, midY, w, t, 2, color);
-            gcGfx->fillRoundRect(x, midY, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, midY, t, h / 2 + 2, 2, color);
             gcGfx->fillRoundRect(x, botY, w, t, 2, color);
             break;
         case 3:
             gcGfx->fillRoundRect(x, y, w, t, 2, color);
             gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
-            gcGfx->fillRoundRect(x + 6, midY, w - 6, t, 2, color);
+            gcGfx->fillRoundRect(x + 4, midY, w - 4, t, 2, color);
             gcGfx->fillRoundRect(x, botY, w, t, 2, color);
             break;
         case 4:
@@ -400,16 +400,16 @@ void drawVectorDigit(int x, int y, int digit, uint16_t color) {
             break;
         case 5:
             gcGfx->fillRoundRect(x, y, w, t, 2, color);
-            gcGfx->fillRoundRect(x, y, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h / 2 + 2, 2, color);
             gcGfx->fillRoundRect(x, midY, w, t, 2, color);
-            gcGfx->fillRoundRect(rightX, midY, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(rightX, midY, t, h / 2 + 2, 2, color);
             gcGfx->fillRoundRect(x, botY, w, t, 2, color);
             break;
         case 6:
             gcGfx->fillRoundRect(x, y, w, t, 2, color);
             gcGfx->fillRoundRect(x, y, t, h, 2, color);
             gcGfx->fillRoundRect(x, midY, w, t, 2, color);
-            gcGfx->fillRoundRect(rightX, midY, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(rightX, midY, t, h / 2 + 2, 2, color);
             gcGfx->fillRoundRect(x, botY, w, t, 2, color);
             break;
         case 7:
@@ -425,7 +425,7 @@ void drawVectorDigit(int x, int y, int digit, uint16_t color) {
             break;
         case 9:
             gcGfx->fillRoundRect(x, y, w, t, 2, color);
-            gcGfx->fillRoundRect(x, y, t, h / 2, 2, color);
+            gcGfx->fillRoundRect(x, y, t, h / 2 + 2, 2, color);
             gcGfx->fillRoundRect(x, midY, w, t, 2, color);
             gcGfx->fillRoundRect(rightX, y, t, h, 2, color);
             gcGfx->fillRoundRect(x, botY, w, t, 2, color);
@@ -436,17 +436,28 @@ void drawVectorDigit(int x, int y, int digit, uint16_t color) {
 }
 
 void drawVectorDigitHalf(int x, int y, int digit, uint16_t color, bool topHalfOnly, float yScale = 1.0f) {
-    int t = 5;
-    int w = 26;
-    int h = (int)(52 * yScale);
+    int t = 8;
+    int w = 28;
+    int h = (int)(54 * yScale);
     if (h < 2) return;
     int midY = y + h / 2 - t / 2;
     int botY = y + h - t;
     int rightX = x + w - t;
 
     auto drawBar = [&](int bx, int by, int bw, int bh, int r) {
-        if (topHalfOnly && by >= y + h / 2) return;
-        if (!topHalfOnly && by + bh <= y + h / 2) return;
+        int clipY = y + h / 2;
+        int endY = by + bh;
+        if (topHalfOnly) {
+            if (by >= clipY) return;
+            if (endY > clipY) bh = clipY - by;
+        } else {
+            if (endY <= clipY) return;
+            if (by < clipY) {
+                bh = endY - clipY;
+                by = clipY;
+            }
+        }
+        if (bw <= 0 || bh <= 0) return;
         gcGfx->fillRoundRect(bx, by, bw, bh, r, color);
     };
 
@@ -459,20 +470,20 @@ void drawVectorDigitHalf(int x, int y, int digit, uint16_t color, bool topHalfOn
             break;
         case 1:
             drawBar(x + (w - t) / 2, y, t, h, 2);
-            drawBar(x + (w - t) / 2 - 6, y, 6, t, 1);
+            drawBar(x + (w - t) / 2 - 7, y, 7, t, 1);
             drawBar(x + 2, botY, w - 4, t, 1);
             break;
         case 2:
             drawBar(x, y, w, t, 2);
-            drawBar(rightX, y, t, h / 2, 2);
+            drawBar(rightX, y, t, h / 2 + 2, 2);
             drawBar(x, midY, w, t, 2);
-            drawBar(x, midY, t, h / 2, 2);
+            drawBar(x, midY, t, h / 2 + 2, 2);
             drawBar(x, botY, w, t, 2);
             break;
         case 3:
             drawBar(x, y, w, t, 2);
             drawBar(rightX, y, t, h, 2);
-            drawBar(x + 6, midY, w - 6, t, 2);
+            drawBar(x + 4, midY, w - 4, t, 2);
             drawBar(x, botY, w, t, 2);
             break;
         case 4:
@@ -482,16 +493,16 @@ void drawVectorDigitHalf(int x, int y, int digit, uint16_t color, bool topHalfOn
             break;
         case 5:
             drawBar(x, y, w, t, 2);
-            drawBar(x, y, t, h / 2, 2);
+            drawBar(x, y, t, h / 2 + 2, 2);
             drawBar(x, midY, w, t, 2);
-            drawBar(rightX, midY, t, h / 2, 2);
+            drawBar(rightX, midY, t, h / 2 + 2, 2);
             drawBar(x, botY, w, t, 2);
             break;
         case 6:
             drawBar(x, y, w, t, 2);
             drawBar(x, y, t, h, 2);
             drawBar(x, midY, w, t, 2);
-            drawBar(rightX, midY, t, h / 2, 2);
+            drawBar(rightX, midY, t, h / 2 + 2, 2);
             drawBar(x, botY, w, t, 2);
             break;
         case 7:
@@ -507,7 +518,7 @@ void drawVectorDigitHalf(int x, int y, int digit, uint16_t color, bool topHalfOn
             break;
         case 9:
             drawBar(x, y, w, t, 2);
-            drawBar(x, y, t, h / 2, 2);
+            drawBar(x, y, t, h / 2 + 2, 2);
             drawBar(x, midY, w, t, 2);
             drawBar(rightX, y, t, h, 2);
             drawBar(x, botY, w, t, 2);
@@ -538,8 +549,8 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
     uint16_t colLug = gcGfx->color565(18, 21, 31);     // #12151F Lug Bracket
     uint16_t colPin = gcGfx->color565(138, 150, 171);  // #8A96AB Steel Pin
 
-    int numX = posX + (cardW - 26) / 2;
-    int numY = posY + (cardH - 52) / 2;
+    int numX = posX + (cardW - 28) / 2;
+    int numY = posY + (cardH - 54) / 2;
 
     if (progress >= 1.0f || oldDigit == newDigit) {
         // Static resting card
