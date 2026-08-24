@@ -89,7 +89,9 @@ struct WeatherInfo {
 
 struct AgentStatus {
     bool waiting_for_input = false;
+    bool work_completed = false;
     String prompt_text = "APPROVE PLAN";
+    String completion_text = "WORK COMPLETE";
 };
 
 struct TimeInfo {
@@ -320,10 +322,16 @@ void renderAgentAlertScreen() {
     oledDisplay.drawRect(0, 0, 128, 64, blink ? SSD1306_WHITE : SSD1306_BLACK);
     oledDisplay.setTextSize(1);
     oledDisplay.setTextColor(SSD1306_WHITE);
-    oledDisplay.setCursor(18, 14);
-    oledDisplay.print("! AGENT ALERT !");
-    oledDisplay.setCursor(10, 36);
-    oledDisplay.print(agentData.prompt_text);
+    oledDisplay.setCursor(14, 14);
+    if (agentData.waiting_for_input) {
+        oledDisplay.print("! AGENT ALERT !");
+        oledDisplay.setCursor(10, 36);
+        oledDisplay.print(agentData.prompt_text);
+    } else {
+        oledDisplay.print("* TASK COMPLETE *");
+        oledDisplay.setCursor(10, 36);
+        oledDisplay.print(agentData.completion_text);
+    }
 }
 
 void renderProvisioningScreen() {
@@ -647,8 +655,9 @@ void drawGC9A01RoundFlipUI() {
     static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
+    uint16_t colEmerald = gcGfx->color565(0, 255, 136);     // #00FF88 Neon Emerald
 
-    if (agentData.waiting_for_input) {
+    if (agentData.waiting_for_input || agentData.work_completed) {
         bezelDrawn = false;
         bool flashOn = (millis() / 500) % 2 == 0;
 
@@ -657,7 +666,8 @@ void drawGC9A01RoundFlipUI() {
             lastWaitingState = true;
 
             if (flashOn) {
-                // ON Phase (flashOn == true): Draw 6 static arc dashes (radii 115..118 in Kinetic Amber #FFB800)
+                uint16_t ringColor = agentData.waiting_for_input ? colHazardAmber : colEmerald;
+                // ON Phase: Draw 6 static arc dashes (radii 115..118)
                 for (int i = 0; i < 6; i++) {
                     float dashStart = i * 60.0f;
                     float dashEnd = dashStart + 25.0f;
@@ -668,12 +678,12 @@ void drawGC9A01RoundFlipUI() {
                         float sinR = sinf(rad);
 
                         for (int r = 115; r <= 118; r++) {
-                            gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colHazardAmber);
+                            gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), ringColor);
                         }
                     }
                 }
             } else {
-                // OFF Phase (flashOn == false): High-density 0.2-degree polar wipe (0.41px arc step) across radii 112..120
+                // OFF Phase: High-density 0.2-degree polar wipe (0.41px arc step) across radii 112..120
                 for (int r = 112; r <= 120; r++) {
                     gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
                 }
@@ -861,6 +871,17 @@ void drawGC9A01RoundFlipUI() {
             gcPrintCentered("AGENT ALERT", cx, cy + 80, alertBlink ? GC_COLOR_AMBER : 0x4200);
             gcPrintCentered(agentData.prompt_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
+    } else if (agentData.work_completed) {
+        bool compBlink = (millis() / 500) % 2 == 0;
+        static bool lastCompBlink = false;
+        if (compBlink != lastCompBlink || !lastWaiting) {
+            lastCompBlink = compBlink;
+            lastWaiting = true;
+            gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
+            gcGfx->setTextSize(1);
+            gcPrintCentered("TASK COMPLETE", cx, cy + 80, compBlink ? colEmerald : gcGfx->color565(5, 150, 105));
+            gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
+        }
     } else {
         if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate) {
             lastWaiting = false;
@@ -945,13 +966,20 @@ void drawGC9A01RoundFaceUI() {
         lastPupilY = face.currentPupilY;
     }
 
-    // 4. Bottom Sub-HUD (Date & Weather / Agent Alert)
+    // 4. Bottom Sub-HUD (Date & Weather / Agent Alert / Work Complete)
+    uint16_t colEmerald = gcGfx->color565(0, 255, 136);
     if (agentData.waiting_for_input) {
         bool alertBlink = (millis() / 500) % 2 == 0;
         gcGfx->fillRect(cx - 60, cy + 74, 120, 32, GC_COLOR_BLACK);
         gcGfx->setTextSize(1);
         gcPrintCentered("AGENT ALERT", cx, cy + 80, alertBlink ? colAmber : gcGfx->color565(153, 110, 0));
         gcPrintCentered(agentData.prompt_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
+    } else if (agentData.work_completed) {
+        bool compBlink = (millis() / 500) % 2 == 0;
+        gcGfx->fillRect(cx - 60, cy + 74, 120, 32, GC_COLOR_BLACK);
+        gcGfx->setTextSize(1);
+        gcPrintCentered("TASK COMPLETE", cx, cy + 80, compBlink ? colEmerald : gcGfx->color565(5, 150, 105));
+        gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
     } else {
         gcGfx->fillRect(cx - 60, cy + 74, 120, 32, GC_COLOR_BLACK);
         gcGfx->setTextSize(1);
@@ -1145,7 +1173,9 @@ void fetchBackendData() {
             }
             if (doc.containsKey("agent")) {
                 agentData.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
+                agentData.work_completed = doc["agent"]["work_completed"] | (doc["agent"]["completion_flash"] | false);
                 agentData.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
+                agentData.completion_text = doc["agent"]["completion_text"] | "WORK COMPLETE";
             }
             if (doc.containsKey("time")) {
                 timeData.hours = constrain((int)(doc["time"]["hours"] | 12), 0, 23);
@@ -1467,7 +1497,7 @@ void loop() {
     }
 
     // 6. OLED Screen Mode Cycler
-    if (agentData.waiting_for_input) {
+    if (agentData.waiting_for_input || agentData.work_completed) {
         currentOLEDMode = SCREEN_AGENT_ALERT;
     } else if (activeScreenType == SCREEN_OLED_128X64) {
         if (now - lastScreenSwitch >= screenSwitchInterval) {
