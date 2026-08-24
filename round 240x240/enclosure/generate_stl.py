@@ -5,14 +5,14 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
 
 100% Support-Free FDM 3D Printable Architecture:
 - Front Bezel: Precision display carrier with:
-  * Accentuated 1.8mm x 45° outer perimeter edge chamfers
-  * Accentuated 45° conical chamfer on raised circular trim ring (dia 44.0mm -> dia 40.5mm)
+  * Sleek 1.2mm x 45° outer perimeter edge chamfers
+  * 45° conical chamfer on raised circular trim ring (dia 44.0mm -> dia 41.0mm)
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-19.50mm, +/-19.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Main Housing: Open-tub electronics bucket with:
   * Lowered USB-C port centerline at Z = 6.80mm (lowered standoff rails to 1.4mm)
-  * Accentuated 45° outer lead-in chamfer funnel on USB-C port entry (15.0mm x 9.0mm outer flare)
-  * Accentuated 1.8mm x 45° outer bottom perimeter chamfer
+  * Bold, ACCENTUATED 45° outer lead-in chamfer funnel on USB-C port entry (15.0mm x 9.0mm outer flare)
+  * Sleek 1.2mm x 45° outer bottom perimeter chamfer
   * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) at (+/-19.50mm, +/-19.50mm)
   * 100% solid enclosed outer bottom wall
   * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
@@ -40,9 +40,9 @@ def make_octagonal_prism(w, h, c):
     poly = m3d.CrossSection([pts_2d])
     return m3d.Manifold.extrude(poly, h)
 
-def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.8, chamfer_top=True):
+def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
     """
-    Creates an octagonal base plate with an accentuated 45-degree outer edge chamfer on the top or bottom perimeter.
+    Creates an octagonal base plate with a 45-degree outer edge chamfer on the top or bottom perimeter.
     """
     hw = w / 2.0
     pts_main = [
@@ -142,14 +142,14 @@ def generate_front_bezel():
     ring_h = 1.5
     oal_t = t + ring_h # 7.0mm
     screw_dist = 19.50 # Balanced M3 bolt centers (39.0mm bolt circle)
-    chamfer_outer = 1.8 # Accentuated 1.8mm x 45° outer perimeter chamfer
+    chamfer_outer = 1.2 # Clean 1.2mm x 45° outer perimeter chamfer
     
-    # 1. Base octagonal plate with accentuated 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
+    # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
     
-    # 2. Raised circular decorative trim ring with accentuated 45-deg outer chamfer matching concept render:
-    # Tapers from dia 44.0mm (r = 22.0mm) at z = 5.5 to dia 40.5mm (r = 20.25mm) at z = 7.0mm
-    ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.25, 64).translate([0, 0, t])
+    # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render:
+    # Tapers from dia 44.0mm (r = 22.0mm) at z = 5.5 to dia 41.0mm (r = 20.5mm) at z = 7.0mm
+    ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.5, 64).translate([0, 0, t])
     bezel_solid = base + ring_chamfered
     
     # 3. Wide Sloping Inner Conical Bezel Funnel (Shadow-Free & Off-Axis Visibility):
@@ -193,9 +193,9 @@ def generate_main_housing():
     floor_t = 2.5
     cavity_depth = depth - floor_t # 22.0mm continuous vertical cavity
     screw_dist = 19.50 # Matches bezel M3 screw positions
-    chamfer_outer = 1.8 # Accentuated 1.8mm x 45° bottom chamfer
+    chamfer_outer = 1.2 # Clean 1.2mm x 45° bottom chamfer
     
-    # 1. Main outer solid chassis with accentuated 45-degree outer bottom perimeter chamfer (z = 0 to 24.5)
+    # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 24.5)
     chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False)
     
     # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 13.0mm)
@@ -211,13 +211,13 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Lowered Precision Oval USB-C Port with Accentuated Lead-In Chamfer (Z = 6.80mm):
+    # 3. Lowered Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 6.80mm):
     usbc_z = 6.80
     c1 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
     c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
     usbc_tunnel = m3d.Manifold.hull(c1 + c2)
     
-    # Accentuated Outer 45-degree Chamfer Flare (widening to 15.0mm x 9.0mm on outer wall):
+    # Accentuated Outer 45-degree Chamfer Flare on USB-C Port (widening to 15.0mm x 9.0mm on outer wall):
     cone1 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
     cone2 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
@@ -367,17 +367,17 @@ def generate_monolithic_desk_stand():
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models (Accentuated Chamfers)...\n")
+    print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (Accentuated Chamfers, Balanced M3 Screws)
+    # 1. Front Bezel Plate
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
-    export_stl(bezel, bezel_path, "Front Bezel Plate (Accentuated Chamfers)")
+    export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (Lowered USB-C, Accentuated Chamfers)
+    # 2. Main Housing Enclosure (Accentuated USB Chamfer)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Lowered USB-C & Accentuated Chamfers)")
+    export_stl(housing, housing_path, "Main Housing Pod (Accentuated USB-C Chamfer)")
 
     # 3. Two-Tier Stand: Tier 1 Base Plate (with 4 Alignment Pillars)
     tier1 = generate_stand_tier1_base()

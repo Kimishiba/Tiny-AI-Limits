@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture (Accentuated Chamfers & Lowered USB-C)
+// 100% Support-Free FDM 3D Printable Architecture (Accentuated USB-C Chamfer Only)
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -14,7 +14,7 @@ enclosure_width  = 54.0; // Outer width & height (mm)
 housing_depth    = 24.5; // Open-tub housing depth (mm)
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
-outer_chamfer    = 1.8;  // Accentuated perimeter 45-degree outer edge chamfer (mm)
+outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)
 
 // Display Pocket Dimensions (from Engineering Blueprint)
 display_active_dia = 32.8; // Active LCD A.A clearing diameter at glass plane (mm)
@@ -73,7 +73,7 @@ module octagonal_prism(w, h, c) {
     }
 }
 
-// Chamfered Octagonal Base with Accentuated Perimeter Chamfer
+// Chamfered Octagonal Base with Perimeter Chamfer
 module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
     hw1 = w / 2;
     hw2 = (w - 2 * ch) / 2;
@@ -151,23 +151,22 @@ module usbc_stadium_cutter() {
         translate([-32.0, -3.0, usbc_center_z]) rotate([0, 90, 0]) cylinder(r = 2.75, h = 16.0);
         translate([-32.0, 3.0, usbc_center_z])  rotate([0, 90, 0]) cylinder(r = 2.75, h = 16.0);
     }
-    // Accentuated 45-degree outer lead-in chamfer flare
+    // Accentuated 45-degree outer lead-in chamfer flare (widening to 15mm x 9mm)
     hull() {
         translate([-29.0, -3.0, usbc_center_z]) rotate([0, 90, 0]) cylinder(r1 = 4.5, r2 = 2.75, h = 3.5);
         translate([-29.0, 3.0, usbc_center_z])  rotate([0, 90, 0]) cylinder(r1 = 4.5, r2 = 2.75, h = 3.5);
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Accentuated Chamfers, Balanced M3 Screws)
+// 1. FRONT BEZEL RING PLATE (Balanced M3 Screws, 1.2mm Chamfers)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
     difference() {
         union() {
             chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
-            // Accentuated 45-deg chamfered decorative ring (dia 44.0mm to dia 40.5mm)
             translate([0, 0, bezel_thickness])
-                cylinder(d1 = 44.0, d2 = 40.5, h = 1.5);
+                cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
         }
         
         // 1. Wide Sloping Conical Anti-Shadow Aperture
@@ -200,7 +199,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (Lowered USB-C, Accentuated Chamfers, M3 Screws)
+// 2. MAIN HOUSING POD (Lowered USB-C with Accentuated Chamfer, 1.2mm Bottom Chamfer)
 module main_housing() {
     cavity_depth = housing_depth - floor_t;
     esp_center_x = -10.0;
