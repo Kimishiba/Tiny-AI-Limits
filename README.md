@@ -1,149 +1,204 @@
-# ESP32 AI Companion & Tiny Screen (QBIT-Style Robot)
+# ⚡ Tiny AI Limits & Desktop Companion (ESP32-C3)
 
 ![Framework](https://img.shields.io/badge/Framework-Arduino_ESP32--C3-007acc?style=flat-square)
 ![Hardware](https://img.shields.io/badge/Hardware-ESP32--C3_SuperMini-e67e22?style=flat-square)
-![Display](https://img.shields.io/badge/Display-0.96%22_OLED_SSD1306_128x64-brightgreen?style=flat-square)
+![Displays](https://img.shields.io/badge/Displays-GC9A01_Round_%7C_SSD1306_OLED-brightgreen?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
-An open-source, Wi-Fi enabled desktop companion robot powered by the ultra-compact **ESP32-C3 SuperMini** microcontroller and a **0.96" 128x64 I2C OLED Display (SSD1306)**.
+An open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-compact **ESP32-C3 SuperMini** microcontroller.
 
-It combines an expressive, retro animated robot face with real-time hardware gauges for your AI coding token quotas (Claude Code & Antigravity CLI), agent plan approval notifications, and local weather forecasts.
+It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas for **Claude Code** and **Google Antigravity CLI**, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
+
+---
+
+## 🛠️ Two Hardware Device Options You Can Build
+
+You can build **Tiny AI Limits** in either of two distinct physical form factors depending on your preferred display technology and aesthetic:
+
+---
+
+### Option 1: GC9A01 1.28" Circular IPS Cyberdeck Edition
 
 <p align="center">
-  <img src="./img/oled_companion_demo.gif" alt="ESP32 OLED Companion Animation Preview" width="512">
+  <img src="./round 240x240/assets/gc9a01_3d_enclosure_render.jpg" alt="GC9A01 Circular Cyberdeck 3D Render" width="460">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./round 240x240/assets/gc9a01_enclosure_rear_view.jpg" alt="GC9A01 Cyberdeck Rear View 3D Render" width="460">
 </p>
 
----
+An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 IPS Color Display (GC9A01 SPI)** resting at an ergonomic $18^\circ$ backward tilt on a two-tier modular pedestal.
 
-## ✨ Key Features
-
-- **👀 Expressive Animated Face & Blinking Engine:**
-  - 30 FPS non-blocking animation engine with natural eyelid physics and saccadic eye movements (looking center, left, right, and up).
-  - Randomized blinking intervals with realistic double-blinks.
-  - **Mood Reactions:**
-    - *Normal Idle:* Friendly, calm blinking and glancing.
-    - *Heavy Usage Today:* Droopy/sleepy eyes with animated falling sweat droplets once your real Claude token usage for the day crosses a calibrated threshold.
-    - *Agent Attention Alert:* Flashes shocked wide eyes and a retro warning banner when an AI coding agent is waiting for user approval.
-- **📊 Real-Time AI Quota Monitoring:** Monitors Claude Code token consumption, plus your *real* Antigravity quota — read directly from Antigravity's own local API, not a guess. If you're signed into multiple Antigravity accounts at once, pick which one to track from the companion app.
-- **🌦️ Local Weather & Digital Clock:** Displays temperature, rain forecasts, and live synchronized time.
-- **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Face (8s) $\rightarrow$ Split HUD (8s) $\rightarrow$ Detailed Quotas (8s) $\rightarrow$ Clock & Weather (8s).
-- **🔌 USB Setup, No Recompiling:** Configure WiFi over USB from a browser page served by the companion app — enter your network name/password once, no editing files or reflashing.
-- **📡 Automatic Zero-Config mDNS Backend Discovery:** The ESP32 finds the companion app on your network automatically by browsing for its advertised service (`_tinyscreen._tcp`)—no hardcoded hostnames or IP addresses, works for any user on any network.
-- **📶 Robust Wi-Fi Connectivity:** Tuned RF TX power to prevent voltage brownouts on USB power, with PMF auto-negotiation compatibility for mixed WPA2/WPA3 enterprise routers.
-- **🖥️ Web Simulator & Prototype:** Interactive browser visualizer (`/faces` or `/emulator`) to test all 10+ robot emotions and companion states.
-- **🖨️ 3D-Printable Enclosure:** Parametric OpenSCAD and STL files included in `enclosure/` for desktop casing.
+#### ✨ Features:
+* **2×2 Split-Flap Flip Clock:** Mechanical split-card matrix animating hour and minute transitions.
+* **Dual Circular Radial Telemetry Arcs:** Continuous $0\% \to 100\%$ gauges tracking Claude Code (Electric Cyan, left arc) and Antigravity CLI (Safety Orange, right arc).
+* **Curved Inside Telemetry Labels:** Dynamic curved text (`CLD 68%`, `AGY 42%`) positioned inside the active gauge sweeps.
+* **Top Crown Rain Forecast:** Live countdown and rain status (`Rain in 3h`, `Rain Now`, `Clear`).
+* **Stacked Bottom Sub-HUD:** Day & Date, live temperature with weather condition icons, and real-time **Agent Attention Alert** banner overrides.
+* **Enclosure Architecture:** Support-free 3D-printable pod with $4\times$ counterbored brass M3 socket head cap screws, raised decorative ring, and a two-tier pedestal stand (Dark Walnut wood base plate with 4 alignment pillars + matte dark truncated trapezoidal cradle trunk).
 
 ---
 
-## 🛠️ Hardware & Pinout
+### Option 2: SSD1306 Monochrome OLED Robot Companion Edition
 
-### Required Components
-- **Microcontroller:** [ESP32-C3 SuperMini Development Board](https://nl.aliexpress.com/item/1005006121404100.html) (RISC-V 160MHz, Wi-Fi & BLE, USB-C)
-- **Display Module:** 0.96" or 1.3" I2C Monochrome OLED Display (128x64, SSD1306 / SH1106)
-- **Wiring:** 4x Female-to-Female or Male-to-Male Dupont jumper wires
+<p align="center">
+  <img src="./img/ssd1306_real_robot_render.jpg" alt="SSD1306 OLED Companion 3D Render" width="460">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./img/oled_companion_demo.gif" alt="ESP32 OLED Companion Animation Preview" width="460">
+</p>
 
-### Standard Wiring Table (Hardware I2C)
+A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Monochrome I2C OLED Display (128×64, SSD1306 / SH1106)**.
 
-| OLED Pin (0.96" SSD1306) | ESP32-C3 SuperMini Pin | Description |
+#### ✨ Features:
+* **👀 Expressive Animated Eyes & Eyelid Physics:** 30 FPS non-blocking animation engine with natural saccadic eye movement and randomized double-blinking.
+* **🎭 Context-Aware Mood Reactions:**
+  * *Normal Idle:* Calm, curious glances around your workspace.
+  * *Heavy Usage Today:* Droopy, tired eyes with animated falling sweat droplets as your daily Claude token consumption reaches high thresholds.
+  * *Agent Attention Alert:* Wide-eyed shock animation and retro warning banners when an AI coding agent is waiting for user approval.
+* **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Robot Face $\to$ Split HUD $\to$ Quota Telemetry Bars $\to$ Clock & Weather.
+* **Enclosure Options:** 
+  * *Cyberdeck Pod:* Matching chamfered pod with rectangular bezel aperture, brass M3 hardware, and two-tier pedestal stand.
+  * *Desk Console / Macropad:* Angled desk console incorporating 3 mechanical Cherry MX keyboard switches and an EC11 rotary encoder knob for quick system control and macro triggering.
+
+---
+
+## 📊 Feature Comparison
+
+| Feature | GC9A01 Round Edition | SSD1306 OLED Edition |
 | :--- | :--- | :--- |
-| **GND** | **GND** (Pin 2, Left Header) | Ground |
-| **VCC** | **3V3** (Pin 3, Left Header) | 3.3V Power |
-| **SCL / SCK** | **GPIO 9** (Pin 13, Right Header) | I2C Clock (400 kHz) |
-| **SDA** | **GPIO 8** (Pin 14, Right Header) | I2C Data |
+| **Display Type** | 1.28" Round Color IPS (240×240) | 0.96" / 1.3" Monochrome OLED (128×64) |
+| **Interface** | High-Speed SPI | Hardware I2C (400 kHz) |
+| **Primary Theme** | Cyberdeck Split-Flap Clock & Dual Radial HUD | Expressive Animated Robot Companion |
+| **Claude & Antigravity Gauges** | Dual Continuous $180^\circ$ Radial Arcs | Horizontal Telemetry Progress Bars |
+| **Agent Approval Warning** | High-Contrast Yellow/Orange Sub-HUD Alert | Shocked Wide-Eye Animation & Flashing Banner |
+| **Weather & Rain Forecast** | Top Crown Indicator + Temperature Sub-HUD | Dedicated Cycling Weather Screen |
+| **Desk Stand** | Modular Two-Tier Pedestal (Walnut + Cradle) | Two-Tier Pedestal OR Angled Macropad Case |
 
-*(For alternative 4-in-a-row pinouts or breadboard layouts, see [WIRING.md](WIRING.md)).*
+---
+
+## 🔌 Hardware & Wiring Schematics
+
+### 1. ESP32-C3 SuperMini Pinout (Shared Microcontroller)
+The ultra-compact ESP32-C3 SuperMini board powers both versions via USB-C (3.3V logic).
+
+---
+
+### 2. GC9A01 Circular Display Wiring (Hardware SPI)
+
+| GC9A01 Display Pin | ESP32-C3 SuperMini Pin | Description |
+| :--- | :--- | :--- |
+| **VCC** | **3V3** | 3.3V Power Rail |
+| **GND** | **GND** | Ground |
+| **SCL / SCLK** | **GPIO 4** | SPI Clock |
+| **SDA / MOSI** | **GPIO 6** | SPI MOSI (Data) |
+| **DC** | **GPIO 7** | Data / Command Control |
+| **CS** | **GPIO 10** | Chip Select |
+| **RST / RES** | **GPIO 8** | Hardware Reset |
+| **BLK** | **GPIO 5** (or 3V3) | Backlight PWM / Enable |
+
+---
+
+### 3. SSD1306 OLED Display Wiring (Hardware I2C)
+
+| SSD1306 OLED Pin | ESP32-C3 SuperMini Pin | Description |
+| :--- | :--- | :--- |
+| **VCC** | **3V3** (or 5V) | 3.3V Power Rail |
+| **GND** | **GND** | Ground |
+| **SCL / SCK** | **GPIO 9** | Hardware I2C Clock (400 kHz) |
+| **SDA** | **GPIO 8** | Hardware I2C Data |
+
+*(For optional Macropad switches and rotary encoder pinout, see [`enclosure/ASSEMBLY_AND_WIRING.md`](enclosure/ASSEMBLY_AND_WIRING.md) and [`WIRING.md`](WIRING.md)).*
+
+---
+
+## 🖨️ 3D Printing & Enclosure Assembly
+
+All enclosure CAD models are **100% support-free FDM 3D printable** and available in both parametric OpenSCAD sources and verified watertight STLs:
+
+### Models Included:
+* **Round GC9A01 Enclosure (`round 240x240/enclosure/`):**
+  * `gc9a01_front_bezel.stl` — Front bezel display carrier with anti-shadow conical bevel and M3 counterbores.
+  * `gc9a01_main_housing.stl` — Enclosure bucket with lowered USB-C port and M3 corner pilot holes.
+  * `gc9a01_stand_tier1_base.stl` — Tier 1 base plate with 4 alignment pillars and rubber feet recesses (ideal for wood PLA or dark walnut).
+  * `gc9a01_stand_tier2_trunk.stl` — Tier 2 sculpted monolithic pedestal trunk with 4 slide sockets and $18^\circ$ V-saddle cradle notch.
+  * `gc9a01_desk_stand.stl` — Unified single-piece monolithic desk stand.
+* **OLED Console / Macropad (`enclosure/`):**
+  * `top_case.stl` & `bottom_base.stl` — Angled desktop console for 1.3" OLED, 3 Cherry MX switches, and EC11 rotary knob.
 
 ---
 
 ## 🚀 Getting Started
 
-Nothing is hardcoded per-user at compile time anymore — the same firmware
-works for anyone. WiFi is provisioned at runtime over USB, and the board
-finds the companion app on the network automatically.
-
-> **Prefer not to build from source?** Tagged versions publish two separate
-> [GitHub Releases](../../releases) — `firmware-vX.Y.Z` (the `firmware.bin`
-> to flash) and `app-vX.Y.Z` (companion app executables for Windows/macOS/Linux,
-> no Python install needed). Grab those and skip straight to step 3 below.
-
 ### 1. Build & Flash Firmware
-Using **PlatformIO** (only needed once per board — skip this if you received
-an already-flashed device or downloaded a `firmware-vX.Y.Z` release):
+Using **PlatformIO**:
 
 ```bash
 # Build firmware
-python3 -m platformio run
+python -m platformio run
 
 # Upload to ESP32 over USB-C
-python3 -m platformio run --target upload
+python -m platformio run --target upload
 ```
 
-### 2. Run the PC Companion Backend
-The companion service monitors your local AI agent transcripts and weather
-data, reads your real Antigravity quota, hosts the REST endpoint the board
-polls, and advertises itself on the network so the board can find it.
-
-If you downloaded an `app-vX.Y.Z` release, just run that executable directly.
-Otherwise, from source:
+### 2. Launch the PC Companion Backend
+The companion service monitors your local AI agent transcripts, queries live Antigravity token limits, fetches local weather data, and advertises itself via zero-config mDNS:
 
 ```bash
 # Install dependencies
 pip install -r backend/requirements.txt
 
 # Launch backend (or double-click TinyScreen.command on macOS)
-python3 backend/app.py
+python backend/app.py
 ```
 
-### 3. Set Up WiFi
-With the board plugged into this computer via USB-C, open
-**[http://localhost:5000/setup](http://localhost:5000/setup)** in
-**Google Chrome or Microsoft Edge** (required — Web Serial isn't supported
-in Safari or Firefox), or click **"🔌 Set Up New Device (WiFi)"** in the
-companion app. Click "Connect & Set Up WiFi," pick the board's serial port
-("USB JTAG/serial debug unit"), and enter your network name and password.
-
-The board saves the credentials, connects, and finds this companion app on
-its own — no further configuration needed. If the board is ever moved to a
-different network, or the router password changes, it automatically falls
-back into setup mode so you can reprovision the same way.
+### 3. USB WiFi Provisioning (No Recompiling)
+With the device plugged in via USB-C, open **[`http://localhost:5000/setup`](http://localhost:5000/setup)** in Google Chrome or Microsoft Edge (Web Serial API). Click **"Connect & Set Up WiFi"**, select the board's serial port, and enter your Wi-Fi credentials. The device saves them to flash and automatically locates the companion server.
 
 ---
 
-## 🎨 Interactive Browser Prototype
+## 🎨 Interactive Browser Prototype & Visualizer
 
-You can test and preview all face animations and companion states without flashing hardware:
+Preview and interact with all screens, animations, and telemetry states in real time:
 
-1. Start the backend: `python3 backend/app.py`
-2. Open in your browser:
-   * **Robot Face Visualizer:** `http://localhost:5000/faces`
-   * **Full Display Emulator:** `http://localhost:5000/emulator`
+* **Robot Face Visualizer:** `http://localhost:5000/faces`
+* **Full Display Emulator (Round & Rectangular):** `http://localhost:5000/emulator`
 
 ---
 
-## 📂 Project Structure
+## 📂 Repository Structure
 
 ```
 ├── backend/                  # Python Flask companion service & token trackers
-│   └── app.py
-├── enclosure/                # 3D printable case models & assembly guide
+│   ├── app.py
+│   └── claude_statusline.py
+├── round 240x240/            # GC9A01 1.28" Round IPS Edition
+│   ├── enclosure/            # Parametric OpenSCAD & watertight STLs
+│   │   ├── generate_stl.py
+│   │   ├── gc9a01_cyberdeck_enclosure.scad
+│   │   ├── gc9a01_front_bezel.stl
+│   │   ├── gc9a01_main_housing.stl
+│   │   ├── gc9a01_stand_tier1_base.stl
+│   │   ├── gc9a01_stand_tier2_trunk.stl
+│   │   └── gc9a01_desk_stand.stl
+│   └── assets/               # 3D concept renders & mascot frames
+├── enclosure/                # SSD1306 Desk Console & Macropad Enclosure
+│   ├── desk_console_oled13_esp32c3.scad
 │   ├── top_case.stl
-│   ├── bottom_base.stl
-│   └── desk_console_oled13_esp32c3.scad
+│   └── bottom_base.stl
 ├── emulator/                 # Interactive browser visualizers & emulators
+│   ├── index.html            # Canvas emulator for Round & Rectangular HUDs
 │   ├── qbit_faces_prototype.html
-│   ├── setup.html            # USB WiFi provisioning page (served at /setup)
-│   ├── vendor/               # Self-bundled JS deps, no runtime CDN calls
-│   └── index.html
-├── tools/                    # Asset generators (GIF animator, format converters)
-│   └── generate_preview_gif.py
-├── src/                      # ESP32-C3 Arduino firmware
+│   └── setup.html            # WebSerial USB Wi-Fi provisioning
+├── img/                      # 3D product renders & animation demos
+│   ├── ssd1306_real_robot_render.jpg
+│   ├── oled_companion_demo.gif
+│   └── ili9341_cyberdeck_render.jpg
+├── src/                      # ESP32-C3 Arduino C++ firmware
 │   └── main.cpp
-├── platformio.ini            # PlatformIO board & library configuration
-├── WIRING.md                 # Detailed pinout & wiring schematics
+├── platformio.ini            # PlatformIO build configuration
+├── WIRING.md                 # Detailed pinout & wiring documentation
 └── README.md
 ```
 
 ---
 
 ## 📄 License
-MIT License. Feel free to use, modify, and build your own desktop companion!
+MIT License. Feel free to build, customize, and share your own desktop AI companion!
