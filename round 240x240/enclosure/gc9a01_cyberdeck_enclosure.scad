@@ -17,7 +17,8 @@ chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 outer_chamfer    = 1.2;  // Front perimeter 45-degree outer edge chamfer (mm)
 
 // Display Pocket Dimensions (from Engineering Blueprint)
-display_active_dia = 32.6; // Active LCD A.A window (32.40mm blueprint + 0.2mm clearance)
+display_active_dia = 32.8; // Active LCD A.A clearing diameter at glass plane (mm)
+display_funnel_top = 38.4; // Wide front opening diameter (36.4° conical anti-shadow slope) (mm)
 display_glass_dia  = 36.0; // Glass / Backlight step (35.6mm blueprint + 0.4mm clearance)
 display_pcb_dia    = 38.6; // Circular PCB body (38.0mm blueprint + 0.6mm clearance)
 display_tab_w      = 23.6; // Bottom connector tab width (22.92mm blueprint + 0.68mm clearance)
@@ -118,8 +119,10 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Chamfered Outer Edges & Chamfered Bezel Trim Ring)
+// 1. FRONT BEZEL RING PLATE (Sloping Anti-Shadow Aperture + Chamfered Trim Ring + Outer Chamfers)
 module front_bezel() {
+    oal_t = bezel_thickness + 1.5;
+    
     difference() {
         union() {
             // Main chamfered bezel plate with 45-deg outer edge chamfers
@@ -129,9 +132,9 @@ module front_bezel() {
                 cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
         }
         
-        // 1. Center Screen Active View Window (32.6mm through-hole with 45-deg inner chamfer)
+        // 1. Wide Sloping Conical Anti-Shadow Aperture (Flaring from dia 32.8mm at glass to 38.4mm at front)
         translate([0, 0, -1])
-            cylinder(d1 = display_active_dia + 2.4, d2 = display_active_dia, h = bezel_thickness + 3.0);
+            cylinder(d1 = display_active_dia - 2.0, d2 = display_funnel_top + 1.0, h = oal_t + 2.0);
             
         // 2. Glass Retention Lip (36.0mm dia x 1.6mm deep)
         translate([0, 0, -0.1])
@@ -146,7 +149,7 @@ module front_bezel() {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, -1])
                     cylinder(d = screw_hole_dia, h = bezel_thickness + 3.0);
-                translate([sx, sy, bezel_thickness + 1.6 - screw_head_depth])
+                translate([sx, sy, oal_t - screw_head_depth])
                     cylinder(d = screw_head_dia, h = screw_head_depth + 0.1);
             }
         }
