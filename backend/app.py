@@ -335,6 +335,40 @@ def _find_antigravity_language_servers():
     """Find running Antigravity language_server processes, their CSRF token
     (a plain command-line arg), and their loopback listening ports."""
     servers = []
+
+    if sys.platform.startswith("win"):
+        try:
+            ps_cmd = 'Get-CimInstance Win32_Process | Where-Object Name -like "*language_server*" | Select-Object ProcessId, CommandLine | ConvertTo-Json'
+            output = subprocess.check_output(["powershell", "-NoProfile", "-Command", ps_cmd], text=True)
+            if not output.strip():
+                return servers
+            data = json.loads(output)
+            procs = [data] if isinstance(data, dict) else data
+
+            netstat_out = subprocess.check_output(["netstat", "-ano", "-p", "tcp"], text=True, stderr=subprocess.DEVNULL)
+            for p in procs:
+                cmd = p.get("CommandLine") or ""
+                pid = p.get("ProcessId")
+                if not pid or not cmd:
+                    continue
+                token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9-]+)", cmd)
+                if not token_match:
+                    continue
+                csrf_token = token_match.group(1)
+
+                ports = []
+                for line in netstat_out.splitlines():
+                    if "LISTENING" in line and str(pid) == line.strip().split()[-1]:
+                        m = re.search(r"(?:127\.0\.0\.1|0\.0\.0\.0|\[::\]|\[::1\]):(\d+)", line)
+                        if m:
+                            ports.append(int(m.group(1)))
+                ports = sorted(set(ports))
+                if ports:
+                    servers.append({"pid": str(pid), "csrf_token": csrf_token, "ports": ports})
+        except Exception:
+            pass
+        return servers
+
     try:
         ps_output = subprocess.check_output(["ps", "aux"], text=True)
     except Exception:
