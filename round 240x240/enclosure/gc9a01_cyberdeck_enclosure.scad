@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = 0; // 0 = All Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Sculpted Desk Stand, 4 = Accent Base
+part = 0; // 0 = All Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = L-Shaped Desk Stand Bracket
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
@@ -46,12 +46,14 @@ esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
 esp_standoff_h     = 2.5;  // Height above floor for bottom solder joint clearance (mm)
 
-// Stand Parameters
-stand_base_w       = 64.0; // Stand base width (mm)
-stand_base_d       = 68.0; // Stand base depth (mm)
-stand_base_h       = 6.0;  // Tier 1 base plate height (mm)
-stand_trunk_h      = 28.0; // Tier 2 pyramidal trunk height (mm)
-tilt_angle         = 22.0; // Ergonomic viewing angle (degrees)
+// L-Shaped Stand Parameters
+stand_w            = 54.0; // Stand bracket width (mm)
+stand_t            = 4.0;  // Stand plate thickness (mm)
+stand_tilt_deg     = 18.0; // Backward tilt angle from vertical (degrees)
+stand_shelf_depth  = 26.0; // Shelf depth matching enclosure pod (mm)
+stand_lip_h        = 4.0;  // Front retaining lip height (mm)
+stand_upright_h    = 48.0; // Tilted upright spine height (mm)
+stand_base_back    = -38.0;// Rear foot extension length (mm)
 
 // --- MODULES ---
 
@@ -115,18 +117,6 @@ module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
                     ]);
                 }
             }
-        }
-    }
-}
-
-// Rounded Rectangle Prism
-module rounded_rect_prism(w, d, h, r) {
-    linear_extrude(height = h) {
-        hull() {
-            translate([w/2 - r, d/2 - r]) circle(r = r);
-            translate([-w/2 + r, d/2 - r]) circle(r = r);
-            translate([-w/2 + r, -d/2 + r]) circle(r = r);
-            translate([w/2 - r, -d/2 + r]) circle(r = r);
         }
     }
 }
@@ -252,36 +242,41 @@ module main_housing() {
     }
 }
 
-// 3. SCULPTED CONCEPT DESK STAND CRADLE (Two-Tier Pedestal with 22° V-Saddle & Cable Channel)
+// 3. MINIMALIST L-SHAPED TILTED DESK STAND BRACKET
 module desk_stand() {
+    theta = 90 - stand_tilt_deg;
+    cos_t = cos(theta);
+    sin_t = sin(theta);
+    lip_t = 3.5;
+    y_front = stand_shelf_depth + lip_t;
+    
     difference() {
-        union() {
-            // Tier 1: Rounded Base Plate (Wood/Accent Tier)
-            rounded_rect_prism(stand_base_w, stand_base_d, stand_base_h, 6.0);
-            
-            // Tier 2: Tapered Pyramidal Trunk
-            translate([0, 0, stand_base_h])
-                linear_extrude(height = stand_trunk_h, scale = [0.92, 0.90])
-                polygon([
-                    [-27.0, -29.0], [27.0, -29.0],
-                    [29.0, -27.0],  [29.0, 27.0],
-                    [27.0, 29.0],   [-27.0, 29.0],
-                    [-29.0, 27.0],  [-29.0, -27.0]
-                ]);
+        // 2D Side Profile Extruded Across Width
+        rotate([0, -90, 0])
+        translate([0, 0, -stand_w/2])
+        linear_extrude(height = stand_w) {
+            polygon([
+                [stand_base_back, 0.0],
+                [y_front, 0.0],
+                [y_front, stand_t + stand_lip_h],
+                [stand_shelf_depth, stand_t + stand_lip_h],
+                [stand_shelf_depth, stand_t],
+                [0.0, stand_t],
+                [-stand_upright_h * cos_t, stand_t + stand_upright_h * sin_t],
+                [-stand_upright_h * cos_t - stand_t * sin_t, stand_t + stand_upright_h * sin_t - stand_t * cos_t],
+                [-stand_t * sin_t, stand_t - stand_t * cos_t],
+                [stand_base_back, stand_t]
+            ]);
         }
         
-        // 1. 22-Degree Angled V-Saddle Cradle Pocket
-        translate([0, 6.0, stand_base_h + 10.0])
-            rotate([tilt_angle, 0, 0])
-            octagonal_prism(enclosure_width + 0.8, 35.0, 6.2);
+        // 1. Central Cable Pass-Through Window (16mm wide)
+        translate([0, -10.0, 22.0])
+            rotate([-stand_tilt_deg, 0, 0])
+            cube([16.0, 30.0, 24.0], center=true);
             
-        // 2. Rear USB-C Cable Relief Channel (16mm wide)
-        translate([-8.0, -stand_base_d/2 - 1, -0.1])
-            cube([16.0, stand_base_d + 2, 14.0]);
-            
-        // 3. 4 Bottom Rubber Foot Recesses (8.2mm dia, 1.4mm deep)
-        for (fx = [-stand_base_w/2 + 10, stand_base_w/2 - 10]) {
-            for (fy = [-stand_base_d/2 + 10, stand_base_d/2 - 10]) {
+        // 2. 4 Underside Rubber Feet Recesses (8.2mm dia, 1.4mm deep)
+        for (fx = [-stand_w/2 + 10, stand_w/2 - 10]) {
+            for (fy = [stand_base_back + 8, stand_shelf_depth - 4]) {
                 translate([fx, fy, -0.1])
                     cylinder(d = 8.2, h = 1.5);
             }
@@ -297,10 +292,10 @@ if (part == 1) {
 } else if (part == 3) {
     desk_stand();
 } else {
-    // Assembly Preview Mode matching render
+    // Assembly Preview Mode
     translate([0, 0, 24.5])
         color("#22252B") front_bezel();
     color("#181A1F") main_housing();
-    translate([0, -16.0, -26.0])
+    translate([0, 0, -4.0])
         color("#2E3440") desk_stand();
 }

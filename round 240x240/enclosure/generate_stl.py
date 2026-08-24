@@ -14,7 +14,11 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4 massive solid corner pillars and 4 open M2 pilot holes (dia = 2.0mm x 14mm deep at +/-21mm)
   * 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
   * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
-- Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
+- Minimalist L-Shaped Tilted Desk Stand Bracket:
+  * Sleek bent L-bracket with 18° backward tilt angle
+  * 26.0mm cradle shelf with front retention lip
+  * Central cable pass-through slot (16mm wide) and 4 underside rubber feet recesses
+  * 100% support-free FDM printing (prints flat on its side)
 """
 
 import math
@@ -61,7 +65,6 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
     faces = []
     
     if chamfer_top:
-        # Chamfer on top face (z = h)
         for x, y in pts_main:
             verts.append([x, y, 0.0])
         for x, y in pts_main:
@@ -69,7 +72,6 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
         for x, y in pts_ch:
             verts.append([x, y, h])
     else:
-        # Chamfer on bottom face (z = 0)
         for x, y in pts_ch:
             verts.append([x, y, 0.0])
         for x, y in pts_main:
@@ -79,42 +81,21 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
             
     verts = np.array(verts, dtype=np.float32)
     
-    # Bottom cap
     for i in range(1, 7):
         faces.append([0, i + 1, i])
-        
-    # Layer 0 to 1 walls
     for i in range(8):
         i_next = (i + 1) % 8
         faces.append([i, i_next, i_next + 8])
         faces.append([i, i_next + 8, i + 8])
-        
-    # Layer 1 to 2 walls
     for i in range(8):
         i_next = (i + 1) % 8
         faces.append([i + 8, i_next + 8, i_next + 16])
         faces.append([i + 8, i_next + 16, i + 16])
-        
-    # Top cap
     for i in range(1, 7):
         faces.append([16, 16 + i, 16 + i + 1])
         
     faces = np.array(faces, dtype=np.int32)
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
-
-def make_rounded_rect_prism(w, d, h, r, fn=32):
-    """Creates a rounded rectangular base plate with width w, depth d, height h, corner radius r."""
-    hw = w / 2.0 - r
-    hd = d / 2.0 - r
-    pts = []
-    corners = [(hw, hd), (-hw, hd), (-hw, -hd), (hw, -hd)]
-    start_angles = [0, math.pi/2, math.pi, 3*math.pi/2]
-    for (cx, cy), sa in zip(corners, start_angles):
-        for i in range(fn // 4 + 1):
-            angle = sa + (math.pi / 2.0) * (i / (fn // 4))
-            pts.append([cx + r * math.cos(angle), cy + r * math.sin(angle)])
-    poly = m3d.CrossSection([pts])
-    return m3d.Manifold.extrude(poly, h)
 
 def make_gc9a01_pcb_pocket(depth_pocket=3.2):
     """
@@ -155,8 +136,6 @@ def generate_front_bezel():
     bezel_solid = base + ring_chamfered
     
     # 3. Wide Sloping Inner Conical Bezel Funnel (Shadow-Free & Off-Axis Visibility):
-    # Flares outward from dia 32.8mm (r = 16.4mm) at glass plane (z = 3.2mm)
-    # to dia 38.4mm (r = 19.2mm) at front face (z = 7.0mm) -> 36.4° conical slope!
     r_glass = 16.4
     r_front = 19.2
     funnel_h = oal_t + 2.0
@@ -203,7 +182,6 @@ def generate_main_housing():
     chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=1.2, chamfer_top=False)
     
     # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 11.5mm)
-    # Leaves 10mm of solid structural plastic around (X = +/-21, Y = +/-21) for massive corner screw pillars!
     cw = 46.0
     cc = 11.5
     hcw = cw / 2.0
@@ -217,17 +195,13 @@ def generate_main_housing():
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
     # 3. Precision Chamfered Oval/Stadium USB-C Port:
-    # Standard USB-C stadium profile: 11.5mm wide (along Y) x 6.0mm tall (along Z) with r = 3.0mm semicircular ends.
-    # Centerline: Z = 8.0mm, Y = 0.0mm.
     c1 = m3d.Manifold.cylinder(16.0, 3.0, 3.0, 32).rotate([0, 90, 0]).translate([-32.0, -2.75, 8.0])
     c2 = m3d.Manifold.cylinder(16.0, 3.0, 3.0, 32).rotate([0, 90, 0]).translate([-32.0, 2.75, 8.0])
     usbc_tunnel = m3d.Manifold.hull(c1 + c2)
     
-    # 45-degree Outer Lead-In Chamfer Flare on USB-C Port Entry:
     cone1 = m3d.Manifold.cylinder(3.0, 4.25, 3.0, 32).rotate([0, 90, 0]).translate([-28.5, -2.75, 8.0])
     cone2 = m3d.Manifold.cylinder(3.0, 4.25, 3.0, 32).rotate([0, 90, 0]).translate([-28.5, 2.75, 8.0])
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
-    
     usbc_port = usbc_tunnel + usbc_flare
     
     # 4. 4 Corner M2 Screw Pilot Holes (dia = 2.0mm, depth = 14.0mm from top rim) at (+/-21, +/-21)
@@ -246,18 +220,13 @@ def generate_main_housing():
     rail_z_top = floor_t + rail_h
     esp_center_x = -10.0
     
-    # Top and Bottom Standoff Rails centered along pin header lines at Y = +/-7.62mm (0.6" row spacing)
     rail_top = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
     rail_bot = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
-    
-    # Rear mechanical thrust stop block (+X end) to absorb USB-C insertion forces
     rear_stop = m3d.Manifold.cube([2.5, 18.4, rail_h + 3.0], center=True).translate([
         esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.0) / 2.0
     ])
-    
     standoffs = rail_top + rail_bot + rear_stop
     
-    # 16 Pin-Locking Registration Holes (2 rows of 8 holes at 2.54mm pitch, dia=1.5mm, depth=2.0mm)
     pin_cuts = m3d.Manifold()
     x0 = -18.3
     for k in range(8):
@@ -271,59 +240,55 @@ def generate_main_housing():
     return housing_body + standoffs_locked
 
 def generate_desk_stand():
-    base_w = 64.0
-    base_d = 68.0
-    base_h = 6.0
-    trunk_h = 28.0
-    tilt_angle = 22.0 # degrees
+    """
+    Minimalist L-Shaped Tilted Desk Stand Bracket:
+    - 18° backward tilt angle for optimal desktop viewing
+    - 26.0mm wide cradle shelf with 4.0mm front retention lip
+    - 16.0mm central cable pass-through slot
+    - 4 bottom rubber feet recesses
+    - 100% support-free FDM 3D printing (prints flat on its side)
+    """
+    stand_w = 54.0
+    shelf_depth = 26.0 # exact depth of enclosure pod
+    lip_h = 4.0
+    lip_t = 3.5
+    thickness = 4.0
+    upright_len = 48.0
+    base_back = -38.0
+    tilt_deg = 18.0
     
-    # 1. Tier 1: Rounded Base Plate (z = 0 to 6)
-    tier1_base = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
+    theta = math.radians(90.0 - tilt_deg)
+    cos_t = math.cos(theta)
+    sin_t = math.sin(theta)
+    y_lip_front = shelf_depth + lip_t
     
-    # 2. Tier 2: Tapered Pyramidal Trunk (z = base_h to base_h + trunk_h)
-    pts_bot = [
-        [-27.0, -29.0], [27.0, -29.0],
-        [29.0, -27.0],  [29.0, 27.0],
-        [27.0, 29.0],   [-27.0, 29.0],
-        [-29.0, 27.0],  [-29.0, -27.0]
+    # 2D side cross-section of L-bracket
+    pts = [
+        [base_back, 0.0],
+        [y_lip_front, 0.0],
+        [y_lip_front, thickness + lip_h],
+        [shelf_depth, thickness + lip_h],
+        [shelf_depth, thickness],
+        [0.0, thickness],
+        [-upright_len * cos_t, thickness + upright_len * sin_t],
+        [-upright_len * cos_t - thickness * sin_t, thickness + upright_len * sin_t - thickness * cos_t],
+        [-thickness * sin_t, thickness - thickness * cos_t],
+        [base_back, thickness]
     ]
-    poly_bot = m3d.CrossSection([pts_bot])
-    trunk_solid = m3d.Manifold.extrude(poly_bot, trunk_h).translate([0, 0, base_h])
+    poly = m3d.CrossSection([pts])
+    bracket = m3d.Manifold.extrude(poly, stand_w).rotate([0, -90, 0]).translate([stand_w / 2.0, 0, 0])
     
-    stand_solid = tier1_base + trunk_solid
+    # Central cable pass-through slot: 16mm wide through the upright backplate
+    cable_slot = m3d.Manifold.cube([16.0, 30.0, 24.0], center=True).rotate([-tilt_deg, 0, 0]).translate([0, -10.0, 22.0])
     
-    # 3. 22-Degree Angled V-Saddle Cradle Pocket for 54mm Housing Pod
-    pocket_w = 54.8
-    pocket_h = 35.0
-    pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
-    pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 10.0])
-    
-    # 4. Rear USB-C Cable Relief Channel (16mm wide x 14mm tall)
-    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, 14.0], center=True).translate([0, 0, 7.0])
-    
-    # 5. 4 Underside Anti-Slip Rubber Foot Recesses (d = 8.2mm, depth = 1.4mm)
+    # 4 Rubber Feet Recesses on bottom face (Z = 0)
     feet_cuts = m3d.Manifold()
-    for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
-        for fy in [-base_d/2.0 + 10.0, base_d/2.0 - 10.0]:
+    for fx in [-stand_w/2.0 + 10.0, stand_w/2.0 - 10.0]:
+        for fy in [base_back + 8.0, shelf_depth - 4.0]:
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    return stand_solid - pocket_cut - cable_slot - feet_cuts
-
-def generate_accent_base_plate():
-    base_w = 64.0
-    base_d = 68.0
-    base_h = 6.0
-    base = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
-    
-    feet_cuts = m3d.Manifold()
-    for fx in [-base_w/2.0 + 10.0, base_w/2.0 - 10.0]:
-        for fy in [-base_d/2.0 + 10.0, base_d/2.0 - 10.0]:
-            foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
-            feet_cuts = feet_cuts + foot
-            
-    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, base_h + 1.0], center=True).translate([0, 0, base_h / 2.0])
-    return base - feet_cuts - cable_slot
+    return bracket - cable_slot - feet_cuts
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
@@ -335,22 +300,17 @@ def main():
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (Chamfered Bottom + Chamfered Oval USB-C Port)
+    # 2. Main Housing Enclosure (Chamfered Bottom & Oval USB-C)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Chamfered Bottom & Oval USB-C)")
+    export_stl(housing, housing_path, "Main Housing Pod")
 
-    # 3. Sculpted Concept Desk Stand Cradle
+    # 3. Minimalist L-Shaped Tilted Desk Stand Bracket
     stand = generate_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
-    export_stl(stand, stand_path, "Sculpted Desk Stand Cradle")
+    export_stl(stand, stand_path, "L-Shaped Desk Stand Bracket")
 
-    # 4. Optional Standalone Accent / Wood Base Plate
-    accent_base = generate_accent_base_plate()
-    accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
-    export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
-
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified!")
+    print("\n[ALL MODELS COMPLETE] All 3 STL files are 100% watertight, manifold, and verified!")
 
 if __name__ == "__main__":
     main()
