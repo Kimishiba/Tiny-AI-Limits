@@ -622,6 +622,19 @@ void drawGC9A01RoundFlipUI() {
     static bool lastFlashState = false;
     static bool lastWaitingState = false;
 
+    // Component redraw state cache
+    static int lastHoursUntilRain = -999;
+    static int lastLedState = -1;
+    static int lastClaudePct = -1;
+    static int lastAntiPct = -1;
+    static float lastTemp = -999.0f;
+    static String lastDate = "";
+    static bool lastWaiting = false;
+
+    static int oldDigits[4] = {-1, -1, -1, -1};
+    static int prevTarget[4] = {-1, -1, -1, -1};
+    static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
 
     if (agentData.waiting_for_input) {
@@ -633,8 +646,7 @@ void drawGC9A01RoundFlipUI() {
             lastWaitingState = true;
 
             if (flashOn) {
-                // ON Phase (flashOn == true): Draw 6 static arc dashes
-                // (each dash 25 deg long, 35 deg gap, fixed angles 0, 60, 120, 180, 240, 300, radii 115..118 in Kinetic Amber #FFB800)
+                // ON Phase (flashOn == true): Draw 6 static arc dashes (radii 115..118 in Kinetic Amber #FFB800)
                 for (int i = 0; i < 6; i++) {
                     float dashStart = i * 60.0f;
                     float dashEnd = dashStart + 25.0f;
@@ -650,15 +662,15 @@ void drawGC9A01RoundFlipUI() {
                     }
                 }
             } else {
-                // OFF Phase (flashOn == false): Wipe radii 114..119 across all 360 degrees to GC_COLOR_BLACK
-                for (int r = 114; r <= 119; r++) {
+                // OFF Phase (flashOn == false): High-density 0.2-degree polar wipe (0.41px arc step) across radii 112..120
+                for (int r = 112; r <= 120; r++) {
                     gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
                 }
-                for (float deg = 0.0f; deg < 360.0f; deg += 0.5f) {
+                for (float deg = 0.0f; deg < 360.0f; deg += 0.2f) {
                     float rad = deg * 0.0174532925f;
                     float cosR = cosf(rad);
                     float sinR = sinf(rad);
-                    for (int r = 114; r <= 119; r++) {
+                    for (int r = 112; r <= 120; r++) {
                         gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_BLACK);
                     }
                 }
@@ -674,23 +686,21 @@ void drawGC9A01RoundFlipUI() {
             bezelDrawn = true;
             lastFlashState = false;
 
-            // Final Alert Dismissal Cleanup:
-            // 1. Integer circle wipe across radii 113..120
-            for (int r = 113; r <= 120; r++) {
-                gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
+            // Full-Screen Hardware Wipe on Alert Exit: Erases 100% of framebuffer pixels to BLACK
+            gcGfx->fillScreen(GC_COLOR_BLACK);
+
+            // Reset cache state variables to force 100% fresh re-render of all display components
+            lastHoursUntilRain = -999;
+            lastLedState = -1;
+            lastClaudePct = -1;
+            lastAntiPct = -1;
+            lastTemp = -999.0f;
+            lastDate = "";
+            for (int i = 0; i < 4; i++) {
+                oldDigits[i] = -1;
             }
 
-            // 2. 100% Guaranteed 360-degree polar wipe across radii 113..120 to GC_COLOR_BLACK
-            for (float deg = 0.0f; deg < 360.0f; deg += 0.5f) {
-                float rad = deg * 0.0174532925f;
-                float cosR = cosf(rad);
-                float sinR = sinf(rad);
-                for (int r = 113; r <= 120; r++) {
-                    gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_BLACK);
-                }
-            }
-
-            // 3. Re-render clean static 2px gunmetal bezel ring (r = 116, 117)
+            // Re-render static 2px gunmetal bezel ring (r = 116, 117)
             gcGfx->drawCircle(cx, cy, 116, colBezel);
             gcGfx->drawCircle(cx, cy, 117, colBezel);
         }
@@ -698,9 +708,6 @@ void drawGC9A01RoundFlipUI() {
 
     // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
     int curLedState = backendConnected ? 1 : 0;
-
-    static int lastHoursUntilRain = -999;
-    static int lastLedState = -1;
 
     if (weatherData.hours_until_rain != lastHoursUntilRain || curLedState != lastLedState) {
         lastHoursUntilRain = weatherData.hours_until_rain;
@@ -734,8 +741,6 @@ void drawGC9A01RoundFlipUI() {
     // 3. Solid Continuous Dual Radial Arcs & Micro-HUD Badges (Redraw on change)
     int claudePct = 100;
     int antiPct = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
-    static int lastClaudePct = -1;
-    static int lastAntiPct = -1;
 
     if (claudePct != lastClaudePct || antiPct != lastAntiPct) {
         lastClaudePct = claudePct;
@@ -808,9 +813,6 @@ void drawGC9A01RoundFlipUI() {
     int dM2 = timeData.minutes % 10;
 
     int targetDigits[4] = {dH1, dH2, dM1, dM2};
-    static int oldDigits[4] = {-1, -1, -1, -1};
-    static int prevTarget[4] = {-1, -1, -1, -1};
-    static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
     for (int i = 0; i < 4; i++) {
         if (prevTarget[i] != -1 && prevTarget[i] != targetDigits[i]) {
@@ -834,10 +836,6 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 5. Stacked Bottom Sub-HUD (Redraw on change)
-    static float lastTemp = -999.0f;
-    static String lastDate = "";
-    static bool lastWaiting = false;
-
     if (agentData.waiting_for_input) {
         bool alertBlink = (millis() / 500) % 2 == 0;
         static bool lastBlink = false;
