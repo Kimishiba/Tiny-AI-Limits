@@ -1,12 +1,12 @@
 # 🖨️ GC9A01 1.28″ Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 
-3D printable enclosure files, slicer settings, hardware BOM, and assembly instructions for the **Tiny AI Limits Round Cyberdeck Desk Pod**.
+3D printable enclosure files, slicer settings, hardware BOM, and assembly instructions for the **Tiny AI Limits Round Cyberdeck Desk Console** (reengineered directly from the concept 3D renders [`gc9a01_3d_enclosure_render.jpg`](../assets/gc9a01_3d_enclosure_render.jpg) and [`gc9a01_enclosure_rear_view.jpg`](../assets/gc9a01_enclosure_rear_view.jpg)).
 
 > [!IMPORTANT]
-> **Redesigned for Full DuPont Cable Clearance & Upward Pin Headers:**
-> * Pod depth increased to **$36.0\text{mm}$** with a **$44\text{mm} \times 44\text{mm}$** internal electronics cavity ($29.5\text{mm}$ usable depth).
+> **Full DuPont Cable Clearance & Upward Pin Headers:**
+> * Pod depth: **$36.0\text{mm}$** with a **$44\text{mm} \times 44\text{mm}$** internal electronics cavity ($29.5\text{mm}$ usable depth).
 > * Provides generous strain-relief clearance for standard $14\text{mm}$ DuPont female connector housings and upward-pointing ESP32-C3 pin headers without pinching or wire fatigue.
-> * Modular, independent $20^\circ$ ergonomic weighted desk cradle stand.
+> * **Sculpted Two-Tier Pedestal Stand:** $22^\circ$ ergonomic V-saddle cradle with tapered body, rear cable channel, and optional standalone accent base plate.
 
 ---
 
@@ -14,13 +14,14 @@
 
 All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/):
 
-| File | Description | Outer Dims ($W \times H \times D$) | Print Time (est.) |
+| File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
 | **[`gc9a01_front_bezel.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_front_bezel.stl)** | Front bezel plate with $\varnothing 32.8\text{mm}$ active window & 4 M2 counterbored screw pockets | $54 \times 54 \times 4.5\text{mm}$ | ~25 mins |
-| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Main housing body ($36\text{mm}$ depth) with $44\times 44\text{mm}$ DuPont cavity, ESP32 mounting rails, and USB-C cutout | $54 \times 54 \times 36.0\text{mm}$ | ~55 mins |
-| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | $20^\circ$ ergonomic modular desk cradle with $16\text{mm}$ rear cable channel & rubber foot recesses | $62 \times 68 \times 32.0\text{mm}$ | ~45 mins |
-| **[`gc9a01_cyberdeck_enclosure.scad`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_cyberdeck_enclosure.scad)** | Fully parametric OpenSCAD source file for custom modifications | — | — |
-| **[`generate_stl.py`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/generate_stl.py)** | Standalone Python mesh generator script used to build all binary STL files | — | — |
+| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Deepened main housing ($36\text{mm}$ depth) with $44\times 44\text{mm}$ DuPont cavity, ESP32 mounting rails, and USB-C cutout | $54 \times 54 \times 36.0\text{mm}$ | ~55 mins |
+| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & $16\text{mm}$ rear cable channel | $64 \times 68 \times 34.0\text{mm}$ | ~45 mins |
+| **[`gc9a01_stand_accent_base.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_accent_base.stl)** | Optional standalone Tier-1 bottom plate for wood PLA or dual-material printing | $64 \times 68 \times 6.0\text{mm}$ | ~20 mins |
+| **[`gc9a01_cyberdeck_enclosure.scad`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_cyberdeck_enclosure.scad)** | Fully parametric OpenSCAD source file | — | — |
+| **[`generate_stl.py`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/generate_stl.py)** | Standalone Boolean CSG mesh generator script generating 100% watertight binary STLs | — | — |
 
 ---
 
@@ -40,7 +41,7 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 
 ## ⚙️ Slicer Print Settings (Cura / PrusaSlicer / Bambu Studio / OrcaSlicer)
 
-* **Material:** Matte Charcoal Black PLA, PETG, or ABS/ASA.
+* **Material:** Matte Charcoal Black PLA / PETG for the body, Wood PLA or Walnut Brown for the base.
 * **Layer Height:** `0.16mm` or `0.20mm`.
 * **Perimeters / Walls:** `3` walls (for solid screw hole threading).
 * **Top/Bottom Solid Layers:** `4` top, `4` bottom.
@@ -48,7 +49,7 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 * **Supports:** **NO SUPPORTS NEEDED** when oriented properly:
   * **Front Bezel:** Print face-down on build plate (flat side down).
   * **Main Housing:** Print with rear face on build plate (open front cavity facing up).
-  * **Desk Stand:** Print flat on base bottom (angled cradle facing up).
+  * **Desk Stand:** Print flat on base bottom (angled V-saddle cradle facing up).
 
 ---
 
@@ -66,4 +67,4 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 3. **Route Wire Bundle:** Loop the 7 DuPont wires gracefully around the $44\text{mm} \times 44\text{mm}$ circular perimeter cavity.
 4. **Seat the Display:** Place the GC9A01 display PCB into the front circular pocket of the main housing.
 5. **Fasten Bezel:** Place the front bezel plate over the display glass and secure with 4 $\times$ M2 screws through the corner holes into the main housing.
-6. **Slot into Stand:** Slide the assembled pod into the modular $20^\circ$ desk cradle stand and route the USB-C cable through the rear channel.
+6. **Slot into Stand:** Slide the assembled pod into the sculpted $22^\circ$ V-saddle desk cradle and route the USB-C cable through the rear channel.
