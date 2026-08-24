@@ -72,6 +72,15 @@ A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Mon
 
 ---
 
+## 🛒 Bill of Materials (BOM) & Purchasing Guide
+
+For a complete parts list, exact component specifications, and direct purchasing links (**Amazon**, **AliExpress**, **Waveshare**, **Adafruit**), see the dedicated BOM documentation:
+
+* 📦 [**`BOM/README.md`**](bom/README.md) — Quick-Start Shopping Kits & Assembly Cost Summary.
+* 📋 [**`BOM/BOM.md`**](bom/BOM.md) — Comprehensive Bill of Materials with verified purchasing links.
+
+---
+
 ## 🔌 Hardware & Wiring Schematics
 
 ### 1. ESP32-C3 SuperMini Pinout (Shared Microcontroller)
