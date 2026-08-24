@@ -4,10 +4,10 @@ GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
 Reengineered with:
-- Bottom DuPont Wire Drop Trench (20mm x 10mm) directly under the GC9A01 7-pin header (Y = -24.74mm)
-- Direct pass-through clearance into the desk stand's 16mm cable channel
+- 2 x M2 through-holes (X = +/-9.63mm, Y = -18.91mm) on the front bezel to securely bolt the GC9A01 tab
+- Bottom DuPont Wire Drop Trench (20mm x 12mm) directly under the GC9A01 7-pin header (Y = -24.74mm)
+- Direct pass-through clearance into the desk stand's 20mm cable channel
 - Slim 26.0mm pod depth for sleek concept-accurate cyberdeck proportions
-- 2 x M2 screen-retaining threaded pilot holes (X = +/-9.63mm, Y = -18.91mm) on front bezel
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
 - Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
 """
@@ -98,11 +98,12 @@ def generate_front_bezel():
             cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + 1.5 - 2.2])
             cuts = cuts + hole + cb
             
-    # 7. 2 Direct Screen Bolting Pilot Holes for GC9A01 PCB Tab (X = +/-9.63mm, Y = -18.91mm)
+    # 7. 2 Direct Screen-Bolting Through-Holes for GC9A01 PCB Tab (X = +/-9.63mm, Y = -18.91mm)
+    # Cut completely through from Z = -1.0 to Z = 7.0 (dia = 2.0mm) so the 2mm holes are 100% visible and accessible
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     for sx in [-screen_holes_x, screen_holes_x]:
-        s_hole = m3d.Manifold.cylinder(3.2, 0.9, 0.9, 32).translate([sx, screen_holes_y, 1.8])
+        s_hole = m3d.Manifold.cylinder(t + 4.0, 1.0, 1.0, 32).translate([sx, screen_holes_y, -1.0])
         cuts = cuts + s_hole
             
     return bezel_solid - cuts
@@ -124,8 +125,7 @@ def generate_main_housing():
     # 3. Main Internal Electronics & DuPont Cable Cavity (44mm x 44mm x 19.5mm)
     cavity = m3d.Manifold.cube([44.0, 44.0, cavity_depth + 0.1], center=True).translate([0, 0, floor_t + cavity_depth / 2.0])
     
-    # 4. Bottom DuPont Wire Drop Trench (20.0mm wide x 10.0mm along Y, cut directly under 7-pin header at Y = -24.74mm)
-    # Provides 100% unrestricted downward wire clearance through the bottom wall into the stand channel
+    # 4. Bottom DuPont Wire Drop Trench (20.0mm wide x 12.0mm along Y, cut directly under 7-pin header at Y = -24.74mm)
     bottom_wire_trench = m3d.Manifold.cube([20.0, 12.0, depth + 1.0], center=True).translate([0, -23.5, depth / 2.0])
     
     # 5. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z, through left wall at x = -27)
@@ -232,7 +232,7 @@ def main():
 
     print("Generating Blueprint-Accurate & DuPont-Relieved STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate
+    # 1. Front Bezel Plate (with 2 x 2.0mm through-holes for screen bolting)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
