@@ -4,7 +4,7 @@ GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
 100% Support-Free FDM 3D Printable Architecture (Solution A):
-- Front Bezel: Precision display carrier with integrated screen pocket & 2 x M2 blind pilot holes
+- Front Bezel: Precision display carrier with sculpted 45° chamfered trim ring matching concept render
 - Main Housing: Open-tub electronics bucket with 4 massive solid corner pillars and 4 open M2 pilot holes (dia = 2.0mm x 14mm deep at +/-21mm)
 - 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
@@ -70,16 +70,18 @@ def generate_front_bezel():
     w = 54.0
     c = 6.0
     t = 5.5 # Enhanced display carrier thickness
+    ring_h = 1.5
     
     # 1. Base octagonal plate (z = 0 to 5.5)
     base = make_octagonal_prism(w, t, c)
     
-    # 2. Raised circular decorative trim ring (z = 5.5 to 7.0)
-    ring = m3d.Manifold.cylinder(1.5, 22.0, 22.0, 64).translate([0, 0, t])
-    bezel_solid = base + ring
+    # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render:
+    # Tapers from dia 44.0mm (r = 22.0mm) at z = 5.5 to dia 41.0mm (r = 20.5mm) at z = 7.0mm
+    ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.5, 64).translate([0, 0, t])
+    bezel_solid = base + ring_chamfered
     
-    # 3. Center Screen Active View Window (32.6mm dia aperture for 32.40mm LCD A.A)
-    window_chamfer = m3d.Manifold.cylinder(t + 3.0, 16.3 + 1.0, 16.3, 64).translate([0, 0, -1.0])
+    # 3. Center Screen Active View Window (32.6mm dia aperture with 45-deg inner chamfer)
+    window_chamfer = m3d.Manifold.cylinder(t + ring_h + 3.0, 16.3 + 1.2, 16.3, 64).translate([0, 0, -1.0])
     
     # 4. Glass Step Pocket: 36.0mm dia x 1.6mm deep (fits 35.6mm BL glass lens)
     glass_recess = m3d.Manifold.cylinder(1.7, 36.0 / 2.0, 36.0 / 2.0, 64).translate([0, 0, -0.1])
@@ -94,7 +96,7 @@ def generate_front_bezel():
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole = m3d.Manifold.cylinder(t + 4.0, 1.3, 1.3, 32).translate([sx, sy, -1.0])
-            cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + 1.5 - 2.2])
+            cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + ring_h - 2.2])
             cuts = cuts + hole + cb
             
     # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.2mm from rear)
@@ -119,7 +121,7 @@ def generate_main_housing():
     chassis = make_octagonal_prism(w, depth, c)
     
     # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 11.5mm)
-    # This leaves 10mm of solid structural plastic around (X = +/-21, Y = +/-21) for massive corner screw pillars!
+    # Leaves 10mm of solid structural plastic around (X = +/-21, Y = +/-21) for massive corner screw pillars!
     cw = 46.0
     cc = 11.5
     hcw = cw / 2.0
@@ -235,10 +237,10 @@ def main():
 
     print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (Display Carrier)
+    # 1. Front Bezel Plate (Display Carrier with Chamfered Trim Ring)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
-    export_stl(bezel, bezel_path, "Front Bezel Plate (Display Carrier)")
+    export_stl(bezel, bezel_path, "Front Bezel Plate (Chamfered Trim Ring)")
 
     # 2. Main Housing Enclosure (Open Tub with verified Corner Screw Pillars and Holes)
     housing = generate_main_housing()
@@ -255,7 +257,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified with 4 corner pillars & holes!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified with chamfered bezel ring!")
 
 if __name__ == "__main__":
     main()

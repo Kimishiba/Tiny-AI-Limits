@@ -87,20 +87,20 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Display Carrier - 100% Support-Free Print Face Down)
+// 1. FRONT BEZEL RING PLATE (Chamfered Bezel Trim Ring matching Concept Render)
 module front_bezel() {
     difference() {
         union() {
             // Main chamfered bezel plate
             octagonal_prism(enclosure_width, bezel_thickness, chamfer_size);
-            // Raised decorative cyberdeck bezel trim ring
+            // Raised decorative cyberdeck bezel trim ring with 45-deg outer chamfer (dia 44mm to dia 41mm)
             translate([0, 0, bezel_thickness])
-                cylinder(d = 44.0, h = 1.5);
+                cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
         }
         
         // 1. Center Screen Active View Window (32.6mm through-hole with 45-deg inner chamfer)
         translate([0, 0, -1])
-            cylinder(d1 = display_active_dia + 2.0, d2 = display_active_dia, h = bezel_thickness + 3.0);
+            cylinder(d1 = display_active_dia + 2.4, d2 = display_active_dia, h = bezel_thickness + 3.0);
             
         // 2. Glass Retention Lip (36.0mm dia x 1.6mm deep)
         translate([0, 0, -0.1])

@@ -2,7 +2,7 @@
 """
 GC9A01 Cyberdeck Enclosure - Engineering Blueprint & Technical Drawing Generator
 Generates publication-quality 300 DPI dimensioned mechanical engineering drawing sheets
-for 100% Support-Free FDM 3D Printable Architecture.
+for 100% Support-Free FDM 3D Printable Architecture with Chamfered Bezel Trim Ring.
 """
 
 import os
@@ -73,11 +73,11 @@ def add_dim_line(ax, p1, p2, text, offset=6, text_offset=2, is_vertical=False, c
                 va='bottom', ha='center', family='monospace', fontweight='bold')
 
 def generate_sheet_1_front_bezel(output_path):
-    fig, ax = setup_blueprint_canvas(title="PART 1: FRONT BEZEL DISPLAY CARRIER (GC9A01-BEZEL-01)")
+    fig, ax = setup_blueprint_canvas(title="PART 1: FRONT BEZEL DISPLAY CARRIER (CHAMFERED TRIM RING)")
     draw_title_block(ax, "FRONT BEZEL CARRIER", 1)
     
     cx, cy = 110, 150
-    ax.text(cx, cy - 45, "VIEW A: FRONT EXTERIOR", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
+    ax.text(cx, cy - 45, "VIEW A: FRONT EXTERIOR (CHAMFERED RING)", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
     hw, c = 27.0, 6.0
     oct_pts = np.array([
@@ -87,7 +87,12 @@ def generate_sheet_1_front_bezel(output_path):
         [-hw, hw - c],  [-hw, -hw + c]
     ]) + [cx, cy]
     ax.add_patch(Polygon(oct_pts, fill=True, facecolor='#162032', edgecolor='#00e5ff', linewidth=1.5))
-    ax.add_patch(Circle((cx, cy), 22.0, fill=False, edgecolor='#4cc9f0', linewidth=1.2, linestyle='-'))
+    
+    # 45° Chamfered raised decorative bezel ring (Outer dia 44mm base, 41mm top)
+    ax.add_patch(Circle((cx, cy), 22.0, fill=False, edgecolor='#4cc9f0', linewidth=0.8, linestyle=':'))
+    ax.add_patch(Circle((cx, cy), 20.5, fill=False, edgecolor='#4cc9f0', linewidth=1.2, linestyle='-'))
+    
+    # Active Screen Aperture
     ax.add_patch(Circle((cx, cy), 16.3, fill=True, facecolor='#060a12', edgecolor='#00e5ff', linewidth=1.5))
     ax.add_patch(Circle((cx, cy), 15.3, fill=False, edgecolor='#5c677d', linewidth=0.8, linestyle=':'))
     
@@ -103,11 +108,11 @@ def generate_sheet_1_front_bezel(output_path):
     add_dim_line(ax, (cx + 27, cy - 27), (cx + 27, cy + 27), "54.00", offset=10, is_vertical=True)
     add_dim_line(ax, (cx - 21, cy + 21), (cx + 21, cy + 21), "42.00 B.C.", offset=4)
     
-    ax.annotate("ACTIVE VIEWPORT\nØ32.60 THRU (45° BEVEL)", xy=(cx + 11.5, cy + 11.5), xytext=(cx + 35, cy + 35),
-                arrowprops=dict(arrowstyle='->', color='#00e5ff', lw=1.0),
-                color='#00e5ff', fontsize=7.5, family='monospace', fontweight='bold')
+    ax.annotate("45° CHAMFERED TRIM RING\nØ44.00 BASE -> Ø41.00 TOP\n(MATCHES CONCEPT RENDER)", xy=(cx + 20.5, cy), xytext=(cx + 35, cy + 12),
+                arrowprops=dict(arrowstyle='->', color='#4cc9f0', lw=1.0),
+                color='#4cc9f0', fontsize=7.5, family='monospace', fontweight='bold')
     
-    ax.annotate("4x M2 COUNTERBORE\nØ4.80 x 2.20 DP\nØ2.60 THRU", xy=(cx + 21, cy + 21), xytext=(cx + 35, cy + 18),
+    ax.annotate("4x M2 COUNTERBORE\nØ4.80 x 2.20 DP\nØ2.60 THRU", xy=(cx + 21, cy + 21), xytext=(cx + 35, cy + 30),
                 arrowprops=dict(arrowstyle='->', color='#f72585', lw=1.0),
                 color='#f72585', fontsize=7.5, family='monospace', fontweight='bold')
 
@@ -135,7 +140,7 @@ def generate_sheet_1_front_bezel(output_path):
     
     sec_poly = [
         [sx, sy - 27], [sx + 5.5, sy - 27], [sx + 5.5, sy - 22],
-        [sx + 7.0, sy - 22], [sx + 7.0, sy + 22], [sx + 5.5, sy + 22],
+        [sx + 7.0, sy - 20.5], [sx + 7.0, sy + 20.5], [sx + 5.5, sy + 22],
         [sx + 5.5, sy + 27], [sx, sy + 27],
         [sx, sy + 19.3], [sx + 3.2, sy + 19.3], [sx + 3.2, sy + 18.0],
         [sx + 4.4, sy + 18.0], [sx + 4.4, sy + 16.3], [sx + 7.0, sy + 15.3],
@@ -148,7 +153,7 @@ def generate_sheet_1_front_bezel(output_path):
     add_dim_line(ax, (sx, sy - 27), (sx + 7.0, sy - 27), "7.00 OAL", offset=-10)
     add_dim_line(ax, (sx, sy + 19.3), (sx + 3.2, sy + 19.3), "3.20 DP", offset=3, color='#ffd166')
     
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. MATERIAL: MATTE BLACK PETG / PLA (0.16mm LAYER HEIGHT, 3 PERIMETERS).\n2. 100% SUPPORT-FREE: PRINT FLAT ON FRONT FACE (Z=7.0 ON BED). ALL POCKETS STEP OUTWARD.\n3. 2x M2 SCREEN HOLES: 1.75mm BLIND PILOT ACCEPTS M2 SELF-TAPPING SCREWS DIRECTLY.\n4. SCREEN BOLTS RIGIDLY TO BEZEL BEFORE MATING WITH OPEN HOUSING TUB.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. MATERIAL: MATTE BLACK PETG / PLA (0.16mm LAYER HEIGHT, 3 PERIMETERS).\n2. 45° SCULPTED TRIM RING MATCHES ORIGINAL 3D CYBERDECK CONCEPT RENDER.\n3. 100% SUPPORT-FREE: PRINT FLAT ON FRONT FACE (Z=7.0 ON BED). ALL POCKETS STEP OUTWARD.\n4. 2x M2 SCREEN HOLES: 1.75mm BLIND PILOT ACCEPTS M2 SELF-TAPPING SCREWS DIRECTLY.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
@@ -327,7 +332,7 @@ def generate_sheet_4_full_assembly(output_path):
 +----+------------------------------------+-----+-------------------------------------------------------------+
 | ID | COMPONENT / PART NAME              | QTY | SPECIFICATION & PURPOSE                                     |
 +----+------------------------------------+-----+-------------------------------------------------------------+
-| 01 | Front Bezel Display Carrier Plate  |  1  | 3D Print (Matte Black PETG) | Ø32.6mm Viewport & PCB Pocket |
+| 01 | Front Bezel Display Carrier Plate  |  1  | 3D Print (Matte Black PETG) | 45° Chamfered Trim Ring       |
 | 02 | GC9A01 1.28" Round IPS Module      |  1  | 240x240 Circular Display with 7-Pin SPI Header Bottom Tab  |
 | 03 | Main Housing Pod (Open Tub Bucket) |  1  | 3D Print | 4 Solid Corner Pillars & 4x M2 Pilot Holes       |
 | 04 | ESP32-C3 SuperMini MCU Board       |  1  | Pin Headers facing UP | Solder pins lock into standoffs     |
