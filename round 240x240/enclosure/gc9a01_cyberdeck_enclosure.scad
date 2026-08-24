@@ -14,7 +14,7 @@ enclosure_width  = 54.0; // Outer width & height (mm)
 housing_depth    = 24.5; // Open-tub housing depth (mm)
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
-outer_chamfer    = 1.2;  // Front perimeter 45-degree outer edge chamfer (mm)
+outer_chamfer    = 1.2;  // Perimeter 45-degree outer edge chamfer (mm)
 
 // Display Pocket Dimensions (from Engineering Blueprint)
 display_active_dia = 32.8; // Active LCD A.A clearing diameter at glass plane (mm)
@@ -68,24 +68,35 @@ module octagonal_prism(w, h, c) {
     }
 }
 
-// Chamfered Octagonal Base with Front Perimeter Chamfer
-module chamfered_octagonal_base(w, h, c, ch) {
+// Chamfered Octagonal Base with Perimeter Chamfer (Top or Bottom)
+module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
     hw1 = w / 2;
     hw2 = (w - 2 * ch) / 2;
     c2 = c - ch * 0.414;
     
-    hull() {
-        // Lower vertical section
-        linear_extrude(height = h - ch) {
-            polygon([
-                [-hw1 + c, -hw1], [hw1 - c, -hw1],
-                [hw1, -hw1 + c],  [hw1, hw1 - c],
-                [hw1 - c, hw1],   [-hw1 + c, hw1],
-                [-hw1, hw1 - c],  [-hw1, -hw1 + c]
-            ]);
+    if (chamfer_top) {
+        hull() {
+            linear_extrude(height = h - ch) {
+                polygon([
+                    [-hw1 + c, -hw1], [hw1 - c, -hw1],
+                    [hw1, -hw1 + c],  [hw1, hw1 - c],
+                    [hw1 - c, hw1],   [-hw1 + c, hw1],
+                    [-hw1, hw1 - c],  [-hw1, -hw1 + c]
+                ]);
+            }
+            translate([0, 0, h - 0.01]) {
+                linear_extrude(height = 0.01) {
+                    polygon([
+                        [-hw2 + c2, -hw2], [hw2 - c2, -hw2],
+                        [hw2, -hw2 + c2],  [hw2, hw2 - c2],
+                        [hw2 - c2, hw2],   [-hw2 + c2, hw2],
+                        [-hw2, hw2 - c2],  [-hw2, -hw2 + c2]
+                    ]);
+                }
+            }
         }
-        // Upper chamfered section
-        translate([0, 0, h - 0.01]) {
+    } else {
+        hull() {
             linear_extrude(height = 0.01) {
                 polygon([
                     [-hw2 + c2, -hw2], [hw2 - c2, -hw2],
@@ -93,6 +104,16 @@ module chamfered_octagonal_base(w, h, c, ch) {
                     [hw2 - c2, hw2],   [-hw2 + c2, hw2],
                     [-hw2, hw2 - c2],  [-hw2, -hw2 + c2]
                 ]);
+            }
+            translate([0, 0, ch]) {
+                linear_extrude(height = h - ch) {
+                    polygon([
+                        [-hw1 + c, -hw1], [hw1 - c, -hw1],
+                        [hw1, -hw1 + c],  [hw1, hw1 - c],
+                        [hw1 - c, hw1],   [-hw1 + c, hw1],
+                        [-hw1, hw1 - c],  [-hw1, -hw1 + c]
+                    ]);
+                }
             }
         }
     }
@@ -119,6 +140,19 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
+// Chamfered Oval/Stadium USB-C Cutter
+module usbc_stadium_cutter() {
+    hull() {
+        translate([-32.0, -2.75, 8.0]) rotate([0, 90, 0]) cylinder(r = 3.0, h = 16.0);
+        translate([-32.0, 2.75, 8.0])  rotate([0, 90, 0]) cylinder(r = 3.0, h = 16.0);
+    }
+    // 45-degree outer lead-in chamfer flare
+    hull() {
+        translate([-28.5, -2.75, 8.0]) rotate([0, 90, 0]) cylinder(r1 = 4.25, r2 = 3.0, h = 3.0);
+        translate([-28.5, 2.75, 8.0])  rotate([0, 90, 0]) cylinder(r1 = 4.25, r2 = 3.0, h = 3.0);
+    }
+}
+
 // 1. FRONT BEZEL RING PLATE (Sloping Anti-Shadow Aperture + Chamfered Trim Ring + Outer Chamfers)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
@@ -126,7 +160,7 @@ module front_bezel() {
     difference() {
         union() {
             // Main chamfered bezel plate with 45-deg outer edge chamfers
-            chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer);
+            chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
             // Raised decorative cyberdeck bezel trim ring with 45-deg outer chamfer (dia 44mm to dia 41mm)
             translate([0, 0, bezel_thickness])
                 cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
@@ -162,24 +196,23 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (Open Tub, Massive Corner Pillars, 4 Open M2 Screw Holes)
+// 2. MAIN HOUSING POD (Open Tub, Chamfered Bottom, Chamfered Oval USB-C Port)
 module main_housing() {
     cavity_depth = housing_depth - floor_t; // 22.0mm continuous vertical cavity
     esp_center_x = -10.0;
     
     difference() {
         union() {
-            // Outer Solid Chassis
-            octagonal_prism(enclosure_width, housing_depth, chamfer_size);
+            // Outer Solid Chassis with 45-deg bottom perimeter chamfer
+            chamfered_octagonal_base(enclosure_width, housing_depth, chamfer_size, outer_chamfer, chamfer_top=false);
         }
         
         // 1. Chamfered Open Tub Cavity (width = 46mm, corner chamfer = 11.5mm leaving solid corner pillars)
         translate([0, 0, floor_t])
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
-        // 2. Left-Side USB-C Port Cutout
-        translate([-enclosure_width/2 - 1, -6.5, floor_t + esp_standoff_h])
-            cube([12.0, 13.0, 8.0]);
+        // 2. Precision Chamfered Oval/Stadium USB-C Port Cutout
+        usbc_stadium_cutter();
             
         // 3. 4 Corner M2 Screw Pilot Holes (14mm deep at +/-21mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {

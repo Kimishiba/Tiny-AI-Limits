@@ -8,9 +8,12 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows and maximize off-axis viewing
   * Sculpted 45° chamfered trim ring (dia 44.0mm -> dia 41.0mm)
   * Faceted 45° outer perimeter edge chamfers matching concept render
-- Main Housing: Open-tub electronics bucket with 4 massive solid corner pillars and 4 open M2 pilot holes (dia = 2.0mm x 14mm deep at +/-21mm)
-- 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
-- ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
+- Main Housing: Open-tub electronics bucket with:
+  * Precision chamfered oval/stadium USB-C port (11.5mm x 6.0mm with 45° lead-in chamfer)
+  * 45° outer bottom perimeter chamfer matching the bezel
+  * 4 massive solid corner pillars and 4 open M2 pilot holes (dia = 2.0mm x 14mm deep at +/-21mm)
+  * 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
+  * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
 - Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
 """
 
@@ -32,10 +35,9 @@ def make_octagonal_prism(w, h, c):
     poly = m3d.CrossSection([pts_2d])
     return m3d.Manifold.extrude(poly, h)
 
-def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2):
+def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
     """
-    Creates an octagonal base plate with a 45-degree outer edge chamfer on the top perimeter
-    matching the cyberdeck concept render.
+    Creates an octagonal base plate with a 45-degree outer edge chamfer on the top or bottom perimeter.
     """
     hw = w / 2.0
     pts_main = [
@@ -45,48 +47,55 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2):
         [-hw, hw - c],  [-hw, -hw + c]
     ]
     
-    w_top = w - 2 * chamfer_outer
-    c_top = c - chamfer_outer * 0.414
-    hw_top = w_top / 2.0
-    pts_top = [
-        [-hw_top + c_top, -hw_top], [hw_top - c_top, -hw_top],
-        [hw_top, -hw_top + c_top],  [hw_top, hw_top - c_top],
-        [hw_top - c_top, hw_top],   [-hw_top + c_top, hw_top],
-        [-hw_top, hw_top - c_top],  [-hw_top, -hw_top + c_top]
+    w_ch = w - 2 * chamfer_outer
+    c_ch = c - chamfer_outer * 0.414
+    hw_ch = w_ch / 2.0
+    pts_ch = [
+        [-hw_ch + c_ch, -hw_ch], [hw_ch - c_ch, -hw_ch],
+        [hw_ch, -hw_ch + c_ch],  [hw_ch, hw_ch - c_ch],
+        [hw_ch - c_ch, hw_ch],   [-hw_ch + c_ch, hw_ch],
+        [-hw_ch, hw_ch - c_ch],  [-hw_ch, -hw_ch + c_ch]
     ]
     
     verts = []
     faces = []
     
-    # Layer 0: z = 0
-    for x, y in pts_main:
-        verts.append([x, y, 0.0])
-    # Layer 1: z = h - chamfer_outer
-    for x, y in pts_main:
-        verts.append([x, y, h - chamfer_outer])
-    # Layer 2: z = h
-    for x, y in pts_top:
-        verts.append([x, y, h])
-        
+    if chamfer_top:
+        # Chamfer on top face (z = h)
+        for x, y in pts_main:
+            verts.append([x, y, 0.0])
+        for x, y in pts_main:
+            verts.append([x, y, h - chamfer_outer])
+        for x, y in pts_ch:
+            verts.append([x, y, h])
+    else:
+        # Chamfer on bottom face (z = 0)
+        for x, y in pts_ch:
+            verts.append([x, y, 0.0])
+        for x, y in pts_main:
+            verts.append([x, y, chamfer_outer])
+        for x, y in pts_main:
+            verts.append([x, y, h])
+            
     verts = np.array(verts, dtype=np.float32)
     
-    # Bottom cap (z=0)
+    # Bottom cap
     for i in range(1, 7):
         faces.append([0, i + 1, i])
         
-    # Lower vertical walls
+    # Layer 0 to 1 walls
     for i in range(8):
         i_next = (i + 1) % 8
         faces.append([i, i_next, i_next + 8])
         faces.append([i, i_next + 8, i + 8])
         
-    # Upper 45-degree chamfer walls
+    # Layer 1 to 2 walls
     for i in range(8):
         i_next = (i + 1) % 8
         faces.append([i + 8, i_next + 8, i_next + 16])
         faces.append([i + 8, i_next + 16, i + 16])
         
-    # Top cap (z=h)
+    # Top cap
     for i in range(1, 7):
         faces.append([16, 16 + i, 16 + i + 1])
         
@@ -138,7 +147,7 @@ def generate_front_bezel():
     oal_t = t + ring_h # 7.0mm
     
     # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
-    base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=1.2)
+    base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=1.2, chamfer_top=True)
     
     # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render:
     # Tapers from dia 44.0mm (r = 22.0mm) at z = 5.5 to dia 41.0mm (r = 20.5mm) at z = 7.0mm
@@ -190,8 +199,8 @@ def generate_main_housing():
     cavity_depth = depth - floor_t # 22.0mm continuous vertical cavity
     screw_dist = 21.0
     
-    # 1. Main outer solid chassis (z = 0 to 24.5)
-    chassis = make_octagonal_prism(w, depth, c)
+    # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 24.5)
+    chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=1.2, chamfer_top=False)
     
     # 2. Main Internal Chamfered Cavity (width = 46.0mm, corner chamfer = 11.5mm)
     # Leaves 10mm of solid structural plastic around (X = +/-21, Y = +/-21) for massive corner screw pillars!
@@ -207,8 +216,19 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z)
-    usbc = m3d.Manifold.cube([16.0, 13.0, 8.0], center=True).translate([-24.0, 0, floor_t + 2.5 + 4.0])
+    # 3. Precision Chamfered Oval/Stadium USB-C Port:
+    # Standard USB-C stadium profile: 11.5mm wide (along Y) x 6.0mm tall (along Z) with r = 3.0mm semicircular ends.
+    # Centerline: Z = 8.0mm, Y = 0.0mm.
+    c1 = m3d.Manifold.cylinder(16.0, 3.0, 3.0, 32).rotate([0, 90, 0]).translate([-32.0, -2.75, 8.0])
+    c2 = m3d.Manifold.cylinder(16.0, 3.0, 3.0, 32).rotate([0, 90, 0]).translate([-32.0, 2.75, 8.0])
+    usbc_tunnel = m3d.Manifold.hull(c1 + c2)
+    
+    # 45-degree Outer Lead-In Chamfer Flare on USB-C Port Entry:
+    cone1 = m3d.Manifold.cylinder(3.0, 4.25, 3.0, 32).rotate([0, 90, 0]).translate([-28.5, -2.75, 8.0])
+    cone2 = m3d.Manifold.cylinder(3.0, 4.25, 3.0, 32).rotate([0, 90, 0]).translate([-28.5, 2.75, 8.0])
+    usbc_flare = m3d.Manifold.hull(cone1 + cone2)
+    
+    usbc_port = usbc_tunnel + usbc_flare
     
     # 4. 4 Corner M2 Screw Pilot Holes (dia = 2.0mm, depth = 14.0mm from top rim) at (+/-21, +/-21)
     screw_pilot_cuts = m3d.Manifold()
@@ -217,7 +237,7 @@ def generate_main_housing():
             pilot = m3d.Manifold.cylinder(14.2, 1.0, 1.0, 32).translate([sx, sy, depth - 14.0])
             screw_pilot_cuts = screw_pilot_cuts + pilot
             
-    cuts = cavity_obj + usbc + screw_pilot_cuts
+    cuts = cavity_obj + usbc_port + screw_pilot_cuts
     housing_body = chassis - cuts
     
     # 5. Internal ESP32-C3 SuperMini Mounting Standoff Rails with Pin-Locking Holes
@@ -310,15 +330,15 @@ def main():
 
     print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (Faceted Outer Edges, Chamfered Ring, & Sloping Inner Anti-Shadow Bezel)
+    # 1. Front Bezel Plate
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
-    export_stl(bezel, bezel_path, "Front Bezel Plate (Sloping Anti-Shadow Aperture)")
+    export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (Open Tub with verified Corner Screw Pillars and Holes)
+    # 2. Main Housing Enclosure (Chamfered Bottom + Chamfered Oval USB-C Port)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Open Tub with Solid Pillars & Holes)")
+    export_stl(housing, housing_path, "Main Housing Pod (Chamfered Bottom & Oval USB-C)")
 
     # 3. Sculpted Concept Desk Stand Cradle
     stand = generate_desk_stand()
@@ -330,7 +350,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified with anti-shadow inner slope!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified!")
 
 if __name__ == "__main__":
     main()
