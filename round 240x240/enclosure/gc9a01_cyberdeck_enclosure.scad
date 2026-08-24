@@ -51,7 +51,7 @@ usbc_center_z      = 6.8;  // Lowered USB-C port centerline (mm)
 stand_base_w       = 64.0; // Tier 1 base width (mm)
 stand_base_d       = 68.0; // Tier 1 base depth (mm)
 stand_base_h       = 5.0;  // Tier 1 base height (mm)
-stand_trunk_h      = 16.0; // Tier 2 compact cradle trunk height (mm)
+stand_trunk_h      = 24.0; // Tier 2 cradle trunk height (mm) (total 29.0mm stand height)
 stand_tilt_deg     = 18.0; // Backward tilt angle from vertical (degrees)
 pin_dist_x         = 20.0; // Alignment pillar X distance from center (mm)
 pin_dist_y         = 21.0; // Alignment pillar Y distance from center (mm)
@@ -270,14 +270,14 @@ module stand_tier1_base() {
     }
 }
 
-// 4. STAND TIER 2 MONOLITHIC PEDESTAL TRUNK (Exact Concept Render Geometry)
+// 4. STAND TIER 2 MONOLITHIC PEDESTAL TRUNK (Deep V-Saddle Cradle)
 module stand_tier2_trunk() {
     difference() {
         hull() {
             translate([0, 0, stand_base_h])
-                rounded_rect_prism(60.0, 64.0, 0.01, 5.0);
+                rounded_rect_prism(62.0, 66.0, 0.01, 5.0);
             translate([0, 0, stand_base_h + stand_trunk_h - 0.01])
-                rounded_rect_prism(52.0, 56.0, 0.01, 3.5);
+                rounded_rect_prism(54.0, 58.0, 0.01, 3.5);
         }
         
         // 4 Mating Slide Sockets on Bottom Face
@@ -288,10 +288,10 @@ module stand_tier2_trunk() {
             }
         }
         
-        // Exact Negative Mold V-Saddle Notch for 54mm Pod
-        translate([0, -12.0, 43.67])
+        // Deep Negative Cradle Slot for Full 30.0mm Assembled Pod (31.2mm depth with slide clearance)
+        translate([0, -4.0, 43.56])
             rotate([90.0 - stand_tilt_deg, 0, 180.0])
-            octagonal_prism(enclosure_width + 0.6, 26.8, 6.0);
+            octagonal_prism(enclosure_width + 0.8, 31.2, 6.0);
     }
 }
 
@@ -306,7 +306,7 @@ if (part == 1) {
     stand_tier2_trunk();
 } else {
     // Complete Multi-Part Assembly Preview (18° Exact Concept Render Stance)
-    translate([0, -12.0, 43.67])
+    translate([0, -4.0, 43.56])
         rotate([90.0 - stand_tilt_deg, 0, 180.0]) {
             translate([0, 0, 24.5]) color("#22252B") front_bezel();
             color("#181A1F") main_housing();

@@ -291,14 +291,14 @@ def generate_stand_tier1_base():
 
 def generate_stand_tier2_trunk():
     """
-    Tier 2 Cradle Trunk (Monolithic Truncated Trapezoidal Pedestal with V-Saddle):
-    - Base: 60.0mm x 64.0mm -> Top: 52.0mm x 56.0mm (16.0mm height, total stand height = 21.0mm)
+    Tier 2 Cradle Trunk (Monolithic Truncated Trapezoidal Pedestal with Deep V-Saddle):
+    - Base: 62.0mm x 66.0mm -> Top: 54.0mm x 58.0mm (24.0mm height, total stand height = 29.0mm)
     - Solid sloping front chin and continuous draft angles matching 3D concept render
-    - Shallow V-saddle cradle notch holding the pod at 18.0° backward tilt
+    - Deep V-saddle cradle slot (54.8mm W x 31.2mm D x 11.5mm seating depth) holding the full 30.0mm pod at 18.0° backward tilt
     - 4 underside mating socket holes (dia = 5.4mm x 4.1mm deep)
     """
     base_h = 5.0
-    trunk_h = 16.0
+    trunk_h = 24.0
     tilt_deg = 18.0
     rot_angles = [90.0 - tilt_deg, 0.0, 180.0]
     pin_dist_x = 20.0
@@ -306,9 +306,9 @@ def generate_stand_tier2_trunk():
     pin_dia = 5.0
     pin_h = 3.5
     
-    # 1. Monolithic Pedestal Body with 4-sided draft angle (60x64 base -> 52x56 top)
-    pts_bot = make_rounded_rect_2d(60.0, 64.0, 5.0, fn=32)
-    pts_top = make_rounded_rect_2d(52.0, 56.0, 3.5, fn=32)
+    # 1. Monolithic Pedestal Body with 4-sided draft angle (62x66 base -> 54x58 top)
+    pts_bot = make_rounded_rect_2d(62.0, 66.0, 5.0, fn=32)
+    pts_top = make_rounded_rect_2d(54.0, 58.0, 3.5, fn=32)
     n = len(pts_bot)
     
     verts = []
@@ -338,8 +338,9 @@ def generate_stand_tier2_trunk():
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    # 3. Exact Pod V-Saddle Negative Mold (with 0.3mm fit clearance):
-    w_c = 54.6
+    # 3. Exact Pod V-Saddle Negative Mold (accommodates full 30.0mm assembled pod with clearance):
+    w_c = 54.8
+    slot_depth = 31.2
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [
@@ -349,12 +350,15 @@ def generate_stand_tier2_trunk():
         [-hw_c, hw_c - c_c],  [-hw_c, -hw_c + c_c]
     ]
     poly_c = m3d.CrossSection([pts_c])
-    pod_cutter_dummy = m3d.Manifold.extrude(poly_c, 26.8)
+    pod_cutter_dummy = m3d.Manifold.extrude(poly_c, slot_depth)
     
-    # Position cradle pocket on top of pedestal (seated 3.0mm into top face):
+    # Position cradle pocket on pedestal (seated 11.5mm into trunk):
     pod_rot = pod_cutter_dummy.rotate(rot_angles)
     z_min_pod = pod_rot.to_mesh().vert_properties[:, 2].min()
-    trans = [0.0, -12.0, 18.0 - z_min_pod]
+    seat_depth = 11.5
+    y_offset = -4.0
+    tz = float(base_h + trunk_h - seat_depth - z_min_pod)
+    trans = [0.0, y_offset, tz]
     pod_cutter = pod_rot.translate(trans)
     
     return pedestal_solid - sockets - pod_cutter
@@ -364,14 +368,14 @@ def generate_monolithic_desk_stand():
     base_w = 64.0
     base_d = 68.0
     base_h = 5.0
-    trunk_h = 16.0
+    trunk_h = 24.0
     tilt_deg = 18.0
     rot_angles = [90.0 - tilt_deg, 0.0, 180.0]
     
     tier1_solid = make_rounded_rect_prism(base_w, base_d, base_h, 6.0)
     
-    pts_bot = make_rounded_rect_2d(60.0, 64.0, 5.0, fn=32)
-    pts_top = make_rounded_rect_2d(52.0, 56.0, 3.5, fn=32)
+    pts_bot = make_rounded_rect_2d(62.0, 66.0, 5.0, fn=32)
+    pts_top = make_rounded_rect_2d(54.0, 58.0, 3.5, fn=32)
     n = len(pts_bot)
     
     verts = []
@@ -394,7 +398,8 @@ def generate_monolithic_desk_stand():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    w_c = 54.6
+    w_c = 54.8
+    slot_depth = 31.2
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [
@@ -404,11 +409,14 @@ def generate_monolithic_desk_stand():
         [-hw_c, hw_c - c_c],  [-hw_c, -hw_c + c_c]
     ]
     poly_c = m3d.CrossSection([pts_c])
-    pod_cutter_dummy = m3d.Manifold.extrude(poly_c, 26.8)
+    pod_cutter_dummy = m3d.Manifold.extrude(poly_c, slot_depth)
     
     pod_rot = pod_cutter_dummy.rotate(rot_angles)
     z_min_pod = pod_rot.to_mesh().vert_properties[:, 2].min()
-    trans = [0.0, -12.0, 18.0 - z_min_pod]
+    seat_depth = 11.5
+    y_offset = -4.0
+    tz = float(base_h + trunk_h - seat_depth - z_min_pod)
+    trans = [0.0, y_offset, tz]
     pod_cutter = pod_rot.translate(trans)
     
     feet_cuts = m3d.Manifold()

@@ -253,9 +253,11 @@ def generate_sheet_3_desk_stand(output_path):
                                fill=True, facecolor='#162032', edgecolor='#00e5ff', linewidth=1.5)
     ax.add_patch(base_box)
     
-    ax.add_patch(Rectangle((cx - 27, cy - 27), 54, 54, fill=True, facecolor='#1f2d42', edgecolor='#4cc9f0', linewidth=1.0))
-    ax.add_patch(Rectangle((cx - 27.4, cy - 14), 54.8, 35, fill=True, facecolor='#0b111e', edgecolor='#ffd166', linewidth=1.5))
-    ax.add_patch(Rectangle((cx - 8, cy - 34), 16, 68, fill=True, facecolor='#060a12', edgecolor='#ff006e', linewidth=1.2, hatch='//'))
+    # Stand trunk top profile (54x58)
+    ax.add_patch(FancyBboxPatch((cx - 27, cy - 29), 54, 58, boxstyle="round,pad=0,rounding_size=3.5",
+                                fill=True, facecolor='#1f2d42', edgecolor='#4cc9f0', linewidth=1.0))
+    # Deep V-saddle cradle slot (54.8mm wide x 31.2mm depth)
+    ax.add_patch(Rectangle((cx - 27.4, cy - 15.6), 54.8, 31.2, fill=True, facecolor='#0b111e', edgecolor='#ffd166', linewidth=1.5))
     
     for fx in [-22, 22]:
         for fy in [-24, 24]:
@@ -263,32 +265,33 @@ def generate_sheet_3_desk_stand(output_path):
             
     add_dim_line(ax, (cx - 32, cy + 34), (cx + 32, cy + 34), "64.00 BASE WIDTH", offset=8)
     add_dim_line(ax, (cx + 32, cy - 34), (cx + 32, cy + 34), "68.00 BASE DEPTH", offset=8, is_vertical=True)
-    add_dim_line(ax, (cx - 8, cy - 34), (cx + 8, cy - 34), "16.00 CABLE SLOT", offset=-8, color='#ff006e')
+    add_dim_line(ax, (cx - 27.4, cy - 15.6), (cx + 27.4, cy - 15.6), "54.80 SLOT W", offset=-8, color='#ffd166')
+    add_dim_line(ax, (cx + 27.4, cy - 15.6), (cx + 27.4, cy + 15.6), "31.20 SLOT D", offset=4, is_vertical=True, color='#ffd166')
 
     sx, sy = 275, 160
-    ax.text(sx, sy - 45, "VIEW B: SIDE ELEVATION & 22° CRADLE", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
+    ax.text(sx, sy - 45, "VIEW B: SIDE ELEVATION & 18° CRADLE", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     
-    ax.add_patch(Rectangle((sx - 34, sy - 15), 68, 6, fill=True, facecolor='#162032', edgecolor='#00e5ff', linewidth=1.2))
+    ax.add_patch(Rectangle((sx - 34, sy - 15), 68, 5, fill=True, facecolor='#162032', edgecolor='#00e5ff', linewidth=1.2))
     
     stand_side_pts = [
-        [sx - 29, sy - 9], [sx + 29, sy - 9],
-        [sx + 25, sy + 19],
-        [sx + 6, sy + 19],
-        [sx - 18, sy + 3],
-        [sx - 24, sy + 12],
-        [sx - 27, sy - 9]
+        [sx - 31, sy - 10], [sx + 31, sy - 10],
+        [sx + 27, sy + 14],
+        [sx + 7, sy + 14],
+        [sx - 15, sy + 2],
+        [sx - 22, sy + 9],
+        [sx - 27, sy - 10]
     ]
     ax.add_patch(Polygon(stand_side_pts, fill=True, facecolor='#1f2d42', edgecolor='#4cc9f0', linewidth=1.5))
-    ax.add_patch(Rectangle((sx - 34, sy - 15), 68, 14, fill=False, edgecolor='#ff006e', linewidth=1.0, linestyle=':'))
     
-    ax.annotate("22.0° ERGONOMIC TILT", xy=(sx - 6, sy + 11), xytext=(sx + 10, sy + 28),
+    ax.annotate("18.0° ERGONOMIC TILT\n54.8 x 31.2mm SLIDING CRADLE\n11.5mm SEATING POCKET", xy=(sx - 6, sy + 6), xytext=(sx + 8, sy + 25),
                 arrowprops=dict(arrowstyle='->', color='#ffd166', lw=1.2),
-                color='#ffd166', fontsize=8, family='monospace', fontweight='bold')
+                color='#ffd166', fontsize=7.5, family='monospace', fontweight='bold')
                 
-    add_dim_line(ax, (sx + 34, sy - 15), (sx + 34, sy + 19), "34.00 TOTAL H", offset=10, is_vertical=True)
-    add_dim_line(ax, (sx - 34, sy - 15), (sx - 34, sy - 9), "6.00 TIER 1", offset=-8, is_vertical=True)
+    add_dim_line(ax, (sx + 34, sy - 15), (sx + 34, sy + 14), "29.00 TOTAL H", offset=10, is_vertical=True)
+    add_dim_line(ax, (sx - 34, sy - 15), (sx - 34, sy - 10), "5.00 TIER 1", offset=-8, is_vertical=True)
+    add_dim_line(ax, (sx - 34, sy - 10), (sx - 34, sy + 14), "24.00 TRUNK H", offset=-8, is_vertical=True, color='#4cc9f0')
     
-    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 22° V-SADDLE CRADLE OFFERS OPTIMAL DESKTOP VIEWING ANGLE WITH ZERO WOBBLE.\n2. TIER 1 BASE CAN BE PRINTED IN DUAL MATERIAL / WOOD PLA AS A SEPARATE ACCENT PLATE.\n3. 16mm PASS-THROUGH REAR CHANNEL ALLOWS CLEAN USB-C CABLE EXIT.\n4. 4x UNDERSIDE RECESSES (Ø8.2mm x 1.4mm DP) FIT STANDARD ADHESIVE SILICONE FEET.",
+    ax.text(20, 45, "MANUFACTURING NOTES:\n1. 18° V-SADDLE CRADLE OFFERS OPTIMAL DESKTOP VIEWING ANGLE WITH ZERO WOBBLE.\n2. 54.8 x 31.2mm CRADLE SLOT ACCOMMODATES FULL ASSEMBLED 30.0mm POD (BEZEL + BODY) WITH 1.2mm CLEARANCE.\n3. TIER 1 BASE (5mm) CAN BE PRINTED IN DUAL MATERIAL / WOOD PLA AS A SEPARATE ACCENT PLATE.\n4. 4x UNDERSIDE RECESSES (Ø8.2mm x 1.5mm DP) FIT STANDARD ADHESIVE SILICONE FEET.",
             color='#8ecae6', fontsize=7.5, family='monospace', va='top')
             
     fig.savefig(output_path, bbox_inches='tight', dpi=300)
