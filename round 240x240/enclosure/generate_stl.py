@@ -4,7 +4,8 @@ GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
 Reengineered with:
-- 2 x M2 through-holes (X = +/-9.63mm, Y = -18.91mm) on the front bezel to securely bolt the GC9A01 tab
+- 2 x M2 blind thread-gripping pilot holes (dia = 1.75mm, depth = 3.4mm from rear) on the front bezel (X = +/-9.63mm, Y = -18.91mm)
+- Solid, unbroken front aesthetic face on the front bezel (holes do NOT go through to the front)
 - Bottom DuPont Wire Drop Trench (20mm x 12mm) directly under the GC9A01 7-pin header (Y = -24.74mm)
 - Direct pass-through clearance into the desk stand's 20mm cable channel
 - Slim 26.0mm pod depth for sleek concept-accurate cyberdeck proportions
@@ -98,12 +99,14 @@ def generate_front_bezel():
             cb = m3d.Manifold.cylinder(3.0, 2.4, 2.4, 32).translate([sx, sy, t + 1.5 - 2.2])
             cuts = cuts + hole + cb
             
-    # 7. 2 Direct Screen-Bolting Through-Holes for GC9A01 PCB Tab (X = +/-9.63mm, Y = -18.91mm)
-    # Cut completely through from Z = -1.0 to Z = 7.0 (dia = 2.0mm) so the 2mm holes are 100% visible and accessible
+    # 7. 2 Blind M2 Thread-Gripping Pilot Holes (dia = 1.75mm, depth = 3.4mm from rear)
+    # Accessible from the rear pocket (z = -0.1 to z = 3.3) for M2 screws to grab plastic firmly.
+    # Leaves a solid 1.2mm front face with NO holes going through to the front.
     screen_holes_x = 9.63
     screen_holes_y = -18.91
+    r_pilot = 1.75 / 2.0 # 0.875mm radius
     for sx in [-screen_holes_x, screen_holes_x]:
-        s_hole = m3d.Manifold.cylinder(t + 4.0, 1.0, 1.0, 32).translate([sx, screen_holes_y, -1.0])
+        s_hole = m3d.Manifold.cylinder(3.4, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
         cuts = cuts + s_hole
             
     return bezel_solid - cuts
@@ -232,7 +235,7 @@ def main():
 
     print("Generating Blueprint-Accurate & DuPont-Relieved STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (with 2 x 2.0mm through-holes for screen bolting)
+    # 1. Front Bezel Plate (with 2 x 1.75mm blind pilot holes for M2 thread gripping)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
@@ -252,7 +255,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and fully relieved for DuPont connectors!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified!")
 
 if __name__ == "__main__":
     main()
