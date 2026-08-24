@@ -3,11 +3,11 @@
 3D printable enclosure files, slicer settings, hardware BOM, and assembly instructions for the **Tiny AI Limits Round Cyberdeck Desk Console** (reengineered directly from the concept 3D renders [`gc9a01_3d_enclosure_render.jpg`](../assets/gc9a01_3d_enclosure_render.jpg) and [`gc9a01_enclosure_rear_view.jpg`](../assets/gc9a01_enclosure_rear_view.jpg)).
 
 > [!IMPORTANT]
-> **Slim Concept Proportions ($26.0\text{mm}$) + Exact Blueprint Spec:**
-> * Pod depth: **$26.0\text{mm}$** with a **$44\text{mm} \times 44\text{mm} \times 19.5\text{mm}$ usable interior** providing sleek desktop proportions while fitting DuPont jumper connectors and upward-facing ESP32-C3 headers without collision.
+> **Bottom DuPont Wire Drop Trench + Slim 26mm Depth:**
+> * **Bottom Wire Drop Trench ($20\text{mm} \times 12\text{mm}$):** Positioned directly beneath the GC9A01 7-pin header ($Y = -24.74\text{mm}$), allowing DuPont connectors to plug in and drop directly into the desk stand's $20\text{mm}$ cable channel with zero vertical pinch.
 > * **Direct Screen Bolting:** 2 $\times$ M2 threaded pilot holes on the front bezel matching the GC9A01 bottom tab mounting holes ($19.26\text{mm}$ pitch).
 > * **Self-Locking Pin Standoffs:** 16 pin-registration blind holes ($2.54\text{mm}$ pitch) + rear thrust stop to lock the ESP32-C3 against insertion force.
-> * **Sculpted Two-Tier Pedestal Stand:** $22^\circ$ ergonomic V-saddle cradle with tapered body, rear cable channel, and optional standalone accent base plate.
+> * **Sculpted Two-Tier Pedestal Stand:** $22^\circ$ ergonomic V-saddle cradle with tapered body, $20\text{mm}$ rear cable channel, and optional standalone accent base plate.
 
 ---
 
@@ -18,8 +18,8 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 | File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
 | **[`gc9a01_front_bezel.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_front_bezel.stl)** | Front bezel plate with $\varnothing 32.6\text{mm}$ active window, 2 M2 screen bolting holes, and 4 M2 counterbored corner pockets | $54 \times 54 \times 4.5\text{mm}$ | ~25 mins |
-| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Slim $26\text{mm}$ main housing with $44\times 44\text{mm}$ DuPont cavity, pin-locking standoffs, and USB-C cutout | $54 \times 54 \times 26.0\text{mm}$ | ~45 mins |
-| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & $16\text{mm}$ rear cable channel | $64 \times 68 \times 34.0\text{mm}$ | ~45 mins |
+| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Slim $26\text{mm}$ main housing with bottom DuPont wire trench, pin-locking standoffs, and USB-C cutout | $54 \times 54 \times 26.0\text{mm}$ | ~45 mins |
+| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & $20\text{mm}$ cable channel | $64 \times 68 \times 34.0\text{mm}$ | ~45 mins |
 | **[`gc9a01_stand_accent_base.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_accent_base.stl)** | Optional standalone Tier-1 bottom plate for wood PLA or dual-material printing | $64 \times 68 \times 6.0\text{mm}$ | ~20 mins |
 | **[`gc9a01_cyberdeck_enclosure.scad`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_cyberdeck_enclosure.scad)** | Fully parametric OpenSCAD source file | — | — |
 | **[`generate_stl.py`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/generate_stl.py)** | Standalone Boolean CSG mesh generator script generating 100% watertight binary STLs | — | — |

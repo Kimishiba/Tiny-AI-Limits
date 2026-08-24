@@ -3,10 +3,11 @@
 GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
-Reengineered with slim, concept-accurate proportions (26mm depth) & exact blueprint specs:
-- Slim 26.0mm pod depth (19.5mm internal clearance) for sleek cyberdeck aesthetic matching render
+Reengineered with:
+- Bottom DuPont Wire Drop Trench (20mm x 10mm) directly under the GC9A01 7-pin header (Y = -24.74mm)
+- Direct pass-through clearance into the desk stand's 16mm cable channel
+- Slim 26.0mm pod depth for sleek concept-accurate cyberdeck proportions
 - 2 x M2 screen-retaining threaded pilot holes (X = +/-9.63mm, Y = -18.91mm) on front bezel
-- Exact blueprint PCB outline: 38.0mm circular body with 22.92mm bottom connector tab
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
 - Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
 """
@@ -51,7 +52,7 @@ def make_gc9a01_pcb_pocket(depth_pocket=4.0):
     """
     top_circle = m3d.Manifold.cylinder(depth_pocket, 38.6 / 2.0, 38.6 / 2.0, 64)
     tab_w = 23.6
-    tab_h = 26.8
+    tab_h = 27.0
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
     return top_circle + tab_box
 
@@ -123,12 +124,16 @@ def generate_main_housing():
     # 3. Main Internal Electronics & DuPont Cable Cavity (44mm x 44mm x 19.5mm)
     cavity = m3d.Manifold.cube([44.0, 44.0, cavity_depth + 0.1], center=True).translate([0, 0, floor_t + cavity_depth / 2.0])
     
-    # 4. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z, through left wall at x = -27)
+    # 4. Bottom DuPont Wire Drop Trench (20.0mm wide x 10.0mm along Y, cut directly under 7-pin header at Y = -24.74mm)
+    # Provides 100% unrestricted downward wire clearance through the bottom wall into the stand channel
+    bottom_wire_trench = m3d.Manifold.cube([20.0, 12.0, depth + 1.0], center=True).translate([0, -23.5, depth / 2.0])
+    
+    # 5. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z, through left wall at x = -27)
     usbc = m3d.Manifold.cube([16.0, 13.0, 8.0], center=True).translate([-24.0, 0, floor_t + 2.5 + 4.0])
     
-    cuts = display_pocket + cavity + usbc
+    cuts = display_pocket + cavity + bottom_wire_trench + usbc
     
-    # 5. 4 Corner M2 Screw Pilot Holes (12mm deep from front face)
+    # 6. 4 Corner M2 Screw Pilot Holes (12mm deep from front face)
     screw_dist = 21.0
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
@@ -137,7 +142,7 @@ def generate_main_housing():
             
     housing = chassis - cuts
     
-    # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails with Pin-Locking Holes
+    # 7. Internal ESP32-C3 SuperMini Mounting Standoff Rails with Pin-Locking Holes
     esp_l, esp_w = 23.0, 18.4
     rail_h = 2.5
     rail_z_top = floor_t + rail_h
@@ -195,8 +200,8 @@ def generate_desk_stand():
     pocket_box = make_octagonal_prism(pocket_w, pocket_h, 6.2)
     pocket_cut = pocket_box.rotate([tilt_angle, 0, 0]).translate([0, 6.0, base_h + 10.0])
     
-    # 4. Rear USB-C Cable Relief Channel (16mm wide x 14mm tall)
-    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, 14.0], center=True).translate([0, 0, 7.0])
+    # 4. Rear USB-C & DuPont Cable Relief Channel (20mm wide x 14mm tall, perfectly aligning with housing bottom wire trench)
+    cable_slot = m3d.Manifold.cube([20.0, base_d + 10.0, 14.0], center=True).translate([0, 0, 7.0])
     
     # 5. 4 Underside Anti-Slip Rubber Foot Recesses (d = 8.2mm, depth = 1.4mm)
     feet_cuts = m3d.Manifold()
@@ -219,20 +224,20 @@ def generate_accent_base_plate():
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-    cable_slot = m3d.Manifold.cube([16.0, base_d + 10.0, base_h + 1.0], center=True).translate([0, 0, base_h / 2.0])
+    cable_slot = m3d.Manifold.cube([20.0, base_d + 10.0, base_h + 1.0], center=True).translate([0, 0, base_h / 2.0])
     return base - feet_cuts - cable_slot
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print("Generating Slim Concept-Accurate 3D Printable STL Enclosure Models...\n")
+    print("Generating Blueprint-Accurate & DuPont-Relieved STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (with 2 M2 direct screen bolting holes)
+    # 1. Front Bezel Plate
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (Slim 26mm depth, Blueprint PCB Pocket & Pin Locking)
+    # 2. Main Housing Enclosure (with Bottom DuPont Wire Drop Trench & Pin Locking)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod (26mm)")
@@ -247,7 +252,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and slimmed to 26mm depth!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and fully relieved for DuPont connectors!")
 
 if __name__ == "__main__":
     main()
