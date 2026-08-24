@@ -818,10 +818,13 @@ void drawGC9A01RoundFlipUI() {
     int yTop = cy - cardH - gap / 2;
     int yBot = cy + gap / 2;
 
-    int dH1 = timeData.hours / 10;
-    int dH2 = timeData.hours % 10;
-    int dM1 = timeData.minutes / 10;
-    int dM2 = timeData.minutes % 10;
+    int safeHours = constrain(timeData.hours, 0, 23);
+    int safeMinutes = constrain(timeData.minutes, 0, 59);
+
+    int dH1 = safeHours / 10;
+    int dH2 = safeHours % 10;
+    int dM1 = safeMinutes / 10;
+    int dM2 = safeMinutes % 10;
 
     int targetDigits[4] = {dH1, dH2, dM1, dM2};
 
@@ -1059,9 +1062,9 @@ void fetchBackendData() {
                 agentData.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
             }
             if (doc.containsKey("time")) {
-                timeData.hours = doc["time"]["hours"] | 12;
-                timeData.minutes = doc["time"]["minutes"] | 0;
-                timeData.seconds = doc["time"]["seconds"] | 0;
+                timeData.hours = constrain((int)(doc["time"]["hours"] | 12), 0, 23);
+                timeData.minutes = constrain((int)(doc["time"]["minutes"] | 0), 0, 59);
+                timeData.seconds = constrain((int)(doc["time"]["seconds"] | 0), 0, 59);
                 timeData.time_str = doc["time"]["time_string"] | "12:00:00";
                 if (doc["time"].containsKey("date_string")) {
                     timeData.date_str = doc["time"]["date_string"].as<String>();
