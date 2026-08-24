@@ -126,6 +126,7 @@ enum OLEDMode {
 
 OLEDMode currentOLEDMode = SCREEN_FACE;
 bool wifiConnected = false;
+bool backendConnected = false;
 String backendUrl = "";
 
 Preferences wifiPrefs;
@@ -637,9 +638,7 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
-    bool isConnected = wifiConnected && (backendUrl.length() > 0);
-    bool isSearching = wifiConnected && (backendUrl.length() == 0);
-    int curLedState = isConnected ? 2 : (isSearching ? 1 : 0);
+    int curLedState = backendConnected ? 1 : 0;
 
     static int lastHoursUntilRain = -999;
     static int lastLedState = -1;
@@ -652,9 +651,8 @@ void drawGC9A01RoundFlipUI() {
         gcGfx->fillRect(cx - 50, cy - 110, 100, 28, GC_COLOR_BLACK);
 
         // LED Indicator Dot (Centered at cx=120, y=cy-105=15)
-        uint16_t colLed = (curLedState == 2) ? gcGfx->color565(34, 197, 94) :  // #22C55E Emerald Connected
-                          (curLedState == 1) ? gcGfx->color565(245, 158, 11) : // #F59E0B Amber Searching
-                                               gcGfx->color565(239, 68, 68);    // #EF4444 Red Offline
+        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :  // #22C55E Emerald Connected
+                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Red Disconnected
 
         // LED Housing Bezel
         gcGfx->drawCircle(cx, cy - 105, 3, colBezel);
@@ -963,6 +961,7 @@ void fetchBackendData() {
 
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
+        backendConnected = true;
         String payload = http.getString();
         StaticJsonDocument<1536> doc;
         DeserializationError error = deserializeJson(doc, payload);
@@ -1013,6 +1012,9 @@ void fetchBackendData() {
                 }
             }
         }
+    } else {
+        backendConnected = false;
+        backendUrl = "";
     }
     http.end();
 }
