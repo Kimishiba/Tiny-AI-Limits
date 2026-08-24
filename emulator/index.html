@@ -1618,7 +1618,41 @@
       // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
       drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
 
-      // 4. Top Crown: Hours Until Rain Indicator (Replacing LED dot)
+      // 4. Top Crown: Backend Connection Status LED & Rain Indicator
+      const ledY = cy - 105;
+      const wifiLedEl = document.getElementById("wifiLed");
+      const backendStatusEl = document.getElementById("backendStatus");
+      const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
+      const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
+
+      let dotCol = "#ef4444"; // Offline Red
+      let glowCol = "rgba(239, 68, 68, 0.4)";
+      if (isBackendConn) {
+        dotCol = "#22c55e"; // Emerald Connected
+        glowCol = "rgba(34, 197, 94, 0.6)";
+      } else if (isWifiConn) {
+        dotCol = "#f59e0b"; // Amber Searching
+        glowCol = "rgba(245, 158, 11, 0.5)";
+      }
+
+      // LED Housing & Glow
+      c.save();
+      c.fillStyle = "#12151f";
+      c.beginPath();
+      c.arc(cx, ledY, 3.5, 0, Math.PI * 2);
+      c.fill();
+      c.strokeStyle = "#2b3042";
+      c.lineWidth = 1;
+      c.stroke();
+
+      c.fillStyle = dotCol;
+      c.shadowColor = glowCol;
+      c.shadowBlur = 6;
+      c.beginPath();
+      c.arc(cx, ledY, 2.2, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+
       c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
       c.textAlign = "center";
       c.textBaseline = "middle";

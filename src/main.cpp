@@ -126,6 +126,7 @@ enum OLEDMode {
 
 OLEDMode currentOLEDMode = SCREEN_FACE;
 bool wifiConnected = false;
+String backendUrl = "";
 
 Preferences wifiPrefs;
 ImprovWiFi improvSerial(&Serial);
@@ -635,11 +636,32 @@ void drawGC9A01RoundFlipUI() {
         gcGfx->drawCircle(cx, cy, rScreen + 3, colBezel);
     }
 
-    // 2. Top Crown: Weather / Rain Indicator (Redraw on change)
+    // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
+    bool isConnected = wifiConnected && (backendUrl.length() > 0);
+    bool isSearching = wifiConnected && (backendUrl.length() == 0);
+    int curLedState = isConnected ? 2 : (isSearching ? 1 : 0);
+
     static int lastHoursUntilRain = -999;
-    if (weatherData.hours_until_rain != lastHoursUntilRain) {
+    static int lastLedState = -1;
+
+    if (weatherData.hours_until_rain != lastHoursUntilRain || curLedState != lastLedState) {
         lastHoursUntilRain = weatherData.hours_until_rain;
-        gcGfx->fillRect(cx - 50, cy - 98, 100, 14, GC_COLOR_BLACK);
+        lastLedState = curLedState;
+
+        // Clear Top Crown Area
+        gcGfx->fillRect(cx - 50, cy - 110, 100, 28, GC_COLOR_BLACK);
+
+        // LED Indicator Dot (Centered at cx=120, y=cy-105=15)
+        uint16_t colLed = (curLedState == 2) ? gcGfx->color565(34, 197, 94) :  // #22C55E Emerald Connected
+                          (curLedState == 1) ? gcGfx->color565(245, 158, 11) : // #F59E0B Amber Searching
+                                               gcGfx->color565(239, 68, 68);    // #EF4444 Red Offline
+
+        // LED Housing Bezel
+        gcGfx->drawCircle(cx, cy - 105, 3, colBezel);
+        // LED Core Dot
+        gcGfx->fillCircle(cx, cy - 105, 2, colLed);
+
+        // Weather text (Centered at cx=120, y=cy-93=27)
         gcGfx->setTextSize(1);
         if (weatherData.hours_until_rain == -1) {
             gcPrintCentered("NO RAIN", cx, cy - 93, colGray);
@@ -903,7 +925,6 @@ void setupWebServer() {
 // ==========================================
 // DATA FETCHING & MDNS
 // ==========================================
-String backendUrl = "";
 unsigned long lastMdnsResolve = 0;
 const unsigned long mdnsResolveCooldownMs = 10000;
 
