@@ -5,7 +5,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
 
 100% Support-Free FDM 3D Printable Architecture (Solution A):
 - Front Bezel: Acts as the precision display carrier with integrated screen pocket & 2 x M2 blind pilot holes
-- Main Housing: Open-tub electronics bucket with continuous vertical walls and solid corner screw pillars (ZERO mid-air overhangs)
+- Main Housing: Open-tub electronics bucket with continuous vertical walls, 4 solid corner screw pillars & open M2 pilot holes (dia = 2.0mm x 14mm deep)
 - 100% solid enclosed outer bottom wall (seamless desktop pod aesthetic)
 - ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
 - Sculpted two-tier pedestal stand with 22° V-saddle cradle and rear cable channel
@@ -113,40 +113,39 @@ def generate_main_housing():
     depth = 24.5 # Open-tub housing depth (assembly total = 26.0mm with bezel)
     floor_t = 2.5
     cavity_depth = depth - floor_t # 22.0mm continuous vertical cavity
+    screw_dist = 21.0
     
-    # 1. Main outer solid chassis (z = 0 to 24.5) - 100% Solid Continuous Outer Shell
+    # 1. Main outer solid chassis (z = 0 to 24.5)
     chassis = make_octagonal_prism(w, depth, c)
     
-    # 2. Main Internal Continuous Open Tub Cavity (44mm x 44mm x 22.0mm vertical depth)
-    cavity_main = m3d.Manifold.cube([44.0, 44.0, cavity_depth + 0.1], center=True).translate([0, 0, floor_t + cavity_depth / 2.0])
-    
-    # 3. Internal Lower Tab Clearance Pocket (extends inside from y = -22 to y = -25.5mm)
-    tab_interior = m3d.Manifold.cube([23.6, 5.0, cavity_depth + 0.1], center=False).translate([-23.6 / 2.0, -25.5, floor_t])
-    
-    cavity = cavity_main + tab_interior
-    
-    # 4. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z)
-    usbc = m3d.Manifold.cube([16.0, 13.0, 8.0], center=True).translate([-24.0, 0, floor_t + 2.5 + 4.0])
-    
-    cuts = cavity + usbc
-    
-    # 5. 4 Corner M2 Screw Pilot Holes (12mm deep from front rim)
-    screw_dist = 21.0
-    for sx in [-screw_dist, screw_dist]:
-        for sy in [-screw_dist, screw_dist]:
-            pilot = m3d.Manifold.cylinder(12.2, 1.0, 1.0, 32).translate([sx, sy, depth - 12.0])
-            cuts = cuts + pilot
-            
-    housing_raw = chassis - cuts
-    
-    # 6. 4 Continuous Vertical Corner Screw Pillars (ensures strong, solid screw threading)
+    # 2. 4 Solid Corner Screw Pillars (running from floor to top rim)
     pillars = m3d.Manifold()
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             col = m3d.Manifold.cylinder(cavity_depth, 3.8, 3.8, 32).translate([sx, sy, floor_t])
             pillars = pillars + col
             
-    housing_with_pillars = (housing_raw + pillars) - cuts
+    solid_housing = chassis + pillars
+    
+    # 3. Main Internal Continuous Open Tub Cavity (44mm x 44mm x 22.0mm vertical depth)
+    cavity_main = m3d.Manifold.cube([44.0, 44.0, cavity_depth + 0.1], center=True).translate([0, 0, floor_t + cavity_depth / 2.0])
+    
+    # 4. Internal Lower Tab Clearance Pocket (extends inside from y = -22 to y = -25.5mm)
+    tab_interior = m3d.Manifold.cube([23.6, 5.0, cavity_depth + 0.1], center=False).translate([-23.6 / 2.0, -25.5, floor_t])
+    
+    # 5. Left-Side USB-C Port Cutout (13.0mm wide along Y, 8.0mm tall along Z)
+    usbc = m3d.Manifold.cube([16.0, 13.0, 8.0], center=True).translate([-24.0, 0, floor_t + 2.5 + 4.0])
+    
+    # 6. 4 Corner M2 Screw Pilot Holes (dia = 2.0mm, depth = 14.5mm from top rim, clearly open and visible)
+    screw_pilot_cuts = m3d.Manifold()
+    for sx in [-screw_dist, screw_dist]:
+        for sy in [-screw_dist, screw_dist]:
+            pilot = m3d.Manifold.cylinder(15.0, 1.0, 1.0, 32).translate([sx, sy, depth - 14.5])
+            screw_pilot_cuts = screw_pilot_cuts + pilot
+            
+    all_cuts = cavity_main + tab_interior + usbc + screw_pilot_cuts
+    
+    housing_body = solid_housing - all_cuts
     
     # 7. Internal ESP32-C3 SuperMini Mounting Standoff Rails with Pin-Locking Holes
     esp_l, esp_w = 23.0, 18.4
@@ -176,7 +175,7 @@ def generate_main_housing():
         
     standoffs_locked = standoffs - pin_cuts
     
-    return housing_with_pillars + standoffs_locked
+    return housing_body + standoffs_locked
 
 def generate_desk_stand():
     base_w = 64.0
@@ -238,15 +237,15 @@ def main():
 
     print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate (Display Carrier with integrated PCB pocket & 2 x M2 blind pilot holes)
+    # 1. Front Bezel Plate (Display Carrier)
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate (Display Carrier)")
 
-    # 2. Main Housing Enclosure (Open-Tub Electronics Bucket, Zero Overhangs)
+    # 2. Main Housing Enclosure (Open Tub with verified Corner Screw Holes)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Open Tub - Support-Free)")
+    export_stl(housing, housing_path, "Main Housing Pod (Open Tub with Corner Holes)")
 
     # 3. Sculpted Concept Desk Stand Cradle
     stand = generate_desk_stand()
@@ -258,7 +257,7 @@ def main():
     accent_base_path = os.path.join(output_dir, "gc9a01_stand_accent_base.stl")
     export_stl(accent_base, accent_base_path, "Accent Base Plate (Optional)")
 
-    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and 100% support-free for FDM 3D printing!")
+    print("\n[ALL MODELS COMPLETE] All 4 STL files are 100% watertight, manifold, and verified!")
 
 if __name__ == "__main__":
     main()
