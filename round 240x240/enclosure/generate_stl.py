@@ -134,31 +134,51 @@ def make_gc9a01_pcb_pocket(depth_pocket=3.3):
     
     return top_circle + tab_box + top_box
 
-def make_internal_snap_detent(angle_deg, pcb_dia=39.0):
+def make_blind_snap_spring_arm(angle_deg, pcb_dia=39.0):
     """
-    Generates a prominent internal retention detent tooth with 45-deg entry lead-in ramp:
-    - Located at pocket entry (Z = 0 to 1.3mm)
-    - Extends 0.75mm radially inwards from pocket wall (R = 19.5mm -> 18.75mm)
-    - 4.5mm wide along circumference
-    - Flat retaining undercut shoulder at Z = 1.3mm locking PCB inside pocket (Z = 1.3mm to 3.3mm)
+    Generates an integrated cantilever spring arm with retention tooth and 45-deg lead-in ramp:
+    - Arm thickness: 1.4mm (between pocket wall R=19.5mm and flex trench R=20.9mm)
+    - Cantilever height: 3.5mm (anchored at Z=3.5mm, free to flex at Z=0)
+    - Protruding retention tooth (0.75mm inward) with 45-degree entry ramp
     """
     r_wall = pcb_dia / 2.0
-    w_tooth = 4.5
-    depth_protrusion = 0.85
-    h_total = 1.4
+    w_arm = 6.0
     
-    # Base tooth block extending inwards from wall
-    tooth_base = m3d.Manifold.cube([w_tooth, depth_protrusion + 0.5, h_total], center=False).translate([
-        -w_tooth / 2.0, r_wall - depth_protrusion, 0.0
+    # Arm body extending from Z=0 to Z=3.5mm
+    arm_body = m3d.Manifold.cube([w_arm, 1.4, 3.5], center=False).translate([
+        -w_arm / 2.0, r_wall, 0.0
     ])
     
-    # 45-degree entry lead-in ramp cutter (slopes smoothly from Z=0 to Z=1.0)
-    ramp_cutter = m3d.Manifold.cube([w_tooth + 1.0, depth_protrusion + 1.0, depth_protrusion + 1.0], center=False).rotate([
-        -45, 0, 0
-    ]).translate([-(w_tooth + 1.0) / 2.0, r_wall - depth_protrusion - 0.2, 0.0])
+    # Retention tooth on the inner face (Z=0 to Z=1.3mm)
+    tooth_box = m3d.Manifold.cube([w_arm, 0.8, 1.3], center=False).translate([
+        -w_arm / 2.0, r_wall - 0.8, 0.0
+    ])
     
-    tooth = tooth_base - ramp_cutter
-    return tooth.rotate([0, 0, angle_deg])
+    # 45-degree lead-in entry ramp cutter on the tooth
+    ramp_cutter = m3d.Manifold.cube([w_arm + 1.0, 1.2, 1.2], center=False).rotate([
+        -45, 0, 0
+    ]).translate([-(w_arm + 1.0) / 2.0, r_wall - 0.85, 0.0])
+    
+    tooth = tooth_box - ramp_cutter
+    spring_assembly = arm_body + tooth
+    return spring_assembly.rotate([0, 0, angle_deg])
+
+def make_blind_flex_trench(angle_deg, pcb_dia=39.0):
+    """
+    Generates a BLIND flex relief trench behind the cantilever arm:
+    - Depth: Z = -0.1mm to Z = 3.5mm (strictly BLIND, leaving >2.0mm solid plastic on front face)
+    - Radial gap: 1.3mm (allows 0.8mm outward deflection when PCB is inserted)
+    - Arc width: 8.0mm
+    """
+    r_trench = pcb_dia / 2.0 + 1.4
+    trench_w = 8.0
+    trench_thick = 1.3
+    trench_depth = 3.6  # Z = -0.1 to 3.5mm
+    
+    c1 = m3d.Manifold.cylinder(trench_depth, 0.65, 0.65, 16).translate([-3.3, 0, 0])
+    c2 = m3d.Manifold.cylinder(trench_depth, 0.65, 0.65, 16).translate([3.3, 0, 0])
+    slot = m3d.Manifold.hull(c1 + c2).translate([0, r_trench + trench_thick / 2.0, -0.1])
+    return slot.rotate([0, 0, angle_deg])
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -200,19 +220,25 @@ def generate_front_bezel():
     # 4. Glass Step Pocket (+0.1mm extra clearance -> dia 36.4mm)
     glass_recess = m3d.Manifold.cylinder(1.8, 36.4 / 2.0, 36.4 / 2.0, 64).translate([0, 0, -0.1])
     
-    # 5. Rear Retention Lip for PCB + Top Relief Notch (100% blind pocket, zero through cuts)
+    # 5. Rear Retention Lip for PCB + Top Relief Notch
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
     
-    cuts = window_funnel + glass_recess + pcb_recess
+    # 6. BLIND Flex Relief Trenches (Depth = 3.5mm max, leaves solid front face!)
+    blind_trenches = (make_blind_flex_trench(40, pcb_dia) + 
+                      make_blind_flex_trench(-40, pcb_dia) + 
+                      make_blind_flex_trench(130, pcb_dia) + 
+                      make_blind_flex_trench(-130, pcb_dia))
+                      
+    cuts = window_funnel + glass_recess + pcb_recess + blind_trenches
     
-    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
+    # 7. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 7. 2 Blind M2 Pilot Holes
+    # 8. 2 Blind M2 Pilot Holes
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -222,13 +248,14 @@ def generate_front_bezel():
             
     bezel_hollowed = bezel_solid - cuts
     
-    # 8. Add 4x Internal Retention Detents INSIDE the pocket (added after cuts so they are physically present)
-    detents = (make_internal_snap_detent(40, pcb_dia) + 
-               make_internal_snap_detent(-40, pcb_dia) + 
-               make_internal_snap_detent(130, pcb_dia) + 
-               make_internal_snap_detent(-130, pcb_dia))
-               
-    return bezel_hollowed + detents
+    # 9. Add 4x Cantilever Spring Arms with Retention Teeth (Anchored at Z=3.5mm inside pocket)
+    spring_arms = (make_blind_snap_spring_arm(40, pcb_dia) + 
+                   make_blind_snap_spring_arm(-40, pcb_dia) + 
+                   make_blind_snap_spring_arm(130, pcb_dia) + 
+                   make_blind_snap_spring_arm(-130, pcb_dia))
+                   
+    return bezel_hollowed + spring_arms
+
 
 
 

@@ -154,17 +154,29 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Internal Blind Snap Detent Tooth (Molded inside pocket wall with 45-deg entry ramp)
-module internal_snap_detent(angle) {
+// Blind Cantilever Spring Arm with Retention Tooth
+module snap_spring_arm(angle) {
     rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, 0]) {
+        // Slender 1.4mm spring beam from Z=0 to Z=3.5mm
+        translate([-3.0, 0, 0])
+            cube([6.0, 1.4, 3.5]);
+        // Retention tooth with 45-deg entry ramp
         difference() {
-            // Inward tooth block
-            translate([-2.25, -0.85, 0])
-                cube([4.5, 1.0, 1.4]);
-            // 45-deg entry lead-in ramp
-            translate([-2.5, -1.0, 0])
+            translate([-3.0, -0.8, 0])
+                cube([6.0, 0.8, 1.3]);
+            translate([-3.5, -0.85, 0])
                 rotate([-45, 0, 0])
-                    cube([5.0, 1.5, 1.5]);
+                    cube([7.0, 1.2, 1.2]);
+        }
+    }
+}
+
+// Blind Flex Relief Trench (Strictly stops at Z=3.5mm, leaving >2.0mm solid front face!)
+module blind_flex_trench(angle) {
+    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 + 1.4 + 0.65, -0.1]) {
+        hull() {
+            translate([-3.3, 0, 0]) cylinder(d = 1.3, h = 3.6);
+            translate([3.3, 0, 0])  cylinder(d = 1.3, h = 3.6);
         }
     }
 }
@@ -181,7 +193,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (100% Solid Front Face, Visible Internal Retention Detents)
+// 1. FRONT BEZEL RING PLATE (100% Solid Front Face, Blind Flexible Spring Snap Arms)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -201,11 +213,17 @@ module front_bezel() {
             translate([0, 0, -0.1])
                 cylinder(d = display_glass_dia, h = 1.8);
                 
-            // 3. PCB Retention Pocket with Top & Bottom Relief (100% Blind Pocket, Zero Through Cuts)
+            // 3. PCB Retention Pocket with Top & Bottom Relief
             translate([0, 0, -0.1])
                 gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
                 
-            // 4. 4 Corner M3 Screw Holes with Recessed Counterbores
+            // 4. Blind Flex Relief Trenches (Depth = 3.5mm, leaves solid front face!)
+            blind_flex_trench(40);
+            blind_flex_trench(-40);
+            blind_flex_trench(130);
+            blind_flex_trench(-130);
+                
+            // 5. 4 Corner M3 Screw Holes with Recessed Counterbores
             for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                     translate([sx, sy, -1])
@@ -215,20 +233,21 @@ module front_bezel() {
                 }
             }
             
-            // 5. 2 Blind 1.75mm M2 Screen Pilot Holes
+            // 6. 2 Blind 1.75mm M2 Screen Pilot Holes
             for (sx = [-screen_bolt_x, screen_bolt_x]) {
                 translate([sx, screen_bolt_y, -0.1])
                     cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
             }
         }
         
-        // Internal Blind Retention Detents (Added AFTER pocket cut so they protrude inside pocket)
-        internal_snap_detent(40);
-        internal_snap_detent(-40);
-        internal_snap_detent(130);
-        internal_snap_detent(-130);
+        // 7. Cantilever Spring Arms (Anchored at Z=3.5mm inside pocket, flex outwards into blind trench)
+        snap_spring_arm(40);
+        snap_spring_arm(-40);
+        snap_spring_arm(130);
+        snap_spring_arm(-130);
     }
 }
+
 
 
 // 2. MAIN HOUSING POD (Lowered USB-C with Accentuated Chamfer, 1.2mm Bottom Chamfer)
