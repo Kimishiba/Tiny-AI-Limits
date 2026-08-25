@@ -136,27 +136,25 @@ def make_gc9a01_pcb_pocket(depth_pocket=3.3):
 
 def make_reverse_catch_detent(angle_deg, pcb_dia=39.0):
     """
-    Generates a reverse catch detent at pocket entrance (Z = 0.0 to 1.1mm):
-    - 45-deg lead-in entry ramp from Z=0 to Z=0.7mm for smooth insertion
-    - Flat forward-locking shelf at Z=1.1mm locking PCB forward against front stop
-    - Inward protrusion: 0.35mm
-    - Width: 3.0mm
+    Generates ONE clean single forward-holding catch tab (no split ridges):
+    - Width: 3.5mm
+    - Smooth entry ramp: 0.0mm protrusion at Z=0 -> 0.35mm protrusion at Z=0.7mm
+    - Flat horizontal forward-locking shelf at Z=1.1mm (locking PCB forward against front stop)
     """
     r_wall = pcb_dia / 2.0
-    w_tooth = 3.0
-    protrusion = 0.35
-    h_shelf = 1.1
+    w = 3.5
+    p = 0.35
     
-    tooth_base = m3d.Manifold.cube([w_tooth, protrusion + 0.2, h_shelf], center=False).translate([
-        -w_tooth / 2.0, r_wall - protrusion, 0.0
-    ])
+    # Smooth ramp from Z=0 to Z=0.7mm and flat shelf from Z=0.7 to 1.1mm
+    bot_edge = m3d.Manifold.cube([w, 0.04, 0.04], center=False).translate([-w / 2.0, r_wall - 0.02, 0.0])
+    shelf_box = m3d.Manifold.cube([w, p + 0.5, 0.4], center=False).translate([-w / 2.0, r_wall - p, 0.7])
+    wall_fill = m3d.Manifold.cube([w, 0.5, 1.1], center=False).translate([-w / 2.0, r_wall, 0.0])
     
-    ramp_cutter = m3d.Manifold.cube([w_tooth + 1.0, protrusion + 0.5, protrusion + 0.5], center=False).rotate([
-        45, 0, 0
-    ]).translate([-(w_tooth + 1.0) / 2.0, r_wall - protrusion - 0.1, 0.0])
-    
-    tooth = tooth_base - ramp_cutter
+    tooth = m3d.Manifold.hull(bot_edge + shelf_box) + wall_fill
     return tooth.rotate([0, 0, angle_deg])
+
+
+
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()

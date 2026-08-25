@@ -154,21 +154,20 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Reverse Retention Catch Detent (Positive forward-locking shelf at rear pocket entrance)
+// Single Clean Forward-Holding Retention Catch Tab (Smooth ramp to Z=0.7, flat shelf at Z=1.1)
 module reverse_catch_detent(angle) {
     rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, 0]) {
-        // Discrete 0.35mm inward catch tooth with 45-deg entry ramp
-        difference() {
-            // Inward tooth block from Z=0 to Z=1.1mm
-            translate([-1.5, -0.40, 0])
-                cube([3.0, 0.45, 1.1]);
-            // 45-deg entry ramp from Z=0 to Z=0.7mm
-            translate([-2.0, -0.45, 0])
-                rotate([45, 0, 0])
-                    cube([4.0, 0.8, 0.8]);
+        rotate([0, 90, 0]) linear_extrude(height = 3.5, center = true) {
+            polygon([
+                [0.0, 0.5],
+                [0.7, -0.35],
+                [1.1, -0.35],
+                [1.1, 0.5]
+            ]);
         }
     }
 }
+
 
 // Lowered Precision Oval USB-C Cutter with Accentuated Lead-In Chamfer
 module usbc_stadium_cutter() {
