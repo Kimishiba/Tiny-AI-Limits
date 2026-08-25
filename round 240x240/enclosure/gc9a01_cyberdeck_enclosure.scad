@@ -182,7 +182,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Reverse Catch Detents, Clean Straight Pocket)
+// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Single Flat Pocket with Forward-Holding Catch Tabs)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -197,15 +197,11 @@ module front_bezel() {
         translate([0, 0, -1])
             cylinder(d1 = display_active_dia - 2.0, d2 = display_funnel_top + 1.0, h = oal_t + 2.0);
             
-        // 2. Glass Retention Lip
-        translate([0, 0, -0.1])
-            cylinder(d = display_glass_dia, h = 1.8);
-            
-        // 3. PCB Retention Pocket with Top & Bottom Relief (+0.1mm Clearance, Straight Cylinder)
+        // 2. PCB Retention Pocket with Top & Bottom Relief (+0.1mm Clearance, Single Clean Pocket)
         translate([0, 0, -0.1])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
-        // 4. 4 Corner M3 Screw Holes with Recessed Counterbores
+        // 3. 4 Corner M3 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, -1])
@@ -215,19 +211,20 @@ module front_bezel() {
             }
         }
         
-        // 5. 2 Blind 1.75mm M2 Screen Pilot Holes
+        // 4. 2 Blind 1.75mm M2 Screen Pilot Holes
         for (sx = [-screen_bolt_x, screen_bolt_x]) {
             translate([sx, screen_bolt_y, -0.1])
                 cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
         }
     }
     
-    // 4 Reverse Catch Detents at rear entrance locking the PCB forward against the front stop
+    // Retention Catch Tabs at rear entrance holding screen forward against the front
     reverse_catch_detent(45);
     reverse_catch_detent(-45);
     reverse_catch_detent(135);
     reverse_catch_detent(-135);
 }
+
 
 
 

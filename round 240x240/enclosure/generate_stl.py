@@ -195,22 +195,20 @@ def generate_front_bezel():
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
     
-    # 4. Glass Step Pocket (+0.1mm extra clearance -> dia 36.4mm)
-    glass_recess = m3d.Manifold.cylinder(1.8, 36.4 / 2.0, 36.4 / 2.0, 64).translate([0, 0, -0.1])
-    
-    # 5. Rear Retention Lip for PCB + Top Relief Notch (Straight cylindrical pocket)
+    # 4. Rear Retention Pocket for PCB + Top Relief Notch (Single clean uniform flat pocket)
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
     
-    cuts = window_funnel + glass_recess + pcb_recess
+    cuts = window_funnel + pcb_recess
     
-    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
+    # 5. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 7. 2 Blind M2 Pilot Holes
+    # 6. 2 Blind M2 Pilot Holes
+
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
