@@ -133,6 +133,12 @@ All enclosure CAD models are **100% support-free FDM 3D printable** and availabl
 
 ---
 
+## 📖 Frequently Asked Questions (FAQ)
+
+Have questions about the project, components, or setup? Check out the [FAQ](FAQ.md) for quick answers!
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Build & Flash Firmware
