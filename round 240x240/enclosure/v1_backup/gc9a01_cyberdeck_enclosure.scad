@@ -9,12 +9,12 @@ $fn = 64; // High resolution curves for 3D printing
 part = 0; // 0 = All Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Desk Stand
 
 enclosure_width  = 48.0; // Outer width & height (mm)
-enclosure_depth  = 24.0; // Main pod depth (mm) - Expanded to 24mm for pin/wire clearance
+enclosure_depth  = 22.0; // Main pod depth (mm)
 bezel_thickness  = 4.5;  // Front bezel plate thickness (mm)
 chamfer_size     = 4.5;  // Corner 45-degree chamfers (mm)
 
 display_active_dia = 32.6; // 1.28" visible active area window
-display_pcb_dia    = 37.0; // GC9A01 PCB outer diameter + tolerance (37.0mm)
+display_pcb_dia    = 36.8; // GC9A01 PCB outer diameter + tolerance (36.8mm)
 display_recess_lip = 1.5;  // Front bezel retention step depth
 
 screw_bolt_circle  = 36.0; // 36mm center-to-center square (x=+/-18, y=+/-18)
@@ -40,7 +40,7 @@ module octagonal_prism(w, h, c) {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Truly Hollow with Display Window, Screw Counterbores & Pin Relief)
+// 1. FRONT BEZEL RING PLATE (Truly Hollow with Display Window & Screw Counterbores)
 module front_bezel() {
     difference() {
         union() {
@@ -59,11 +59,7 @@ module front_bezel() {
         translate([0, 0, -0.1])
             cylinder(d = display_pcb_dia, h = display_recess_lip + 0.1);
             
-        // 3. Top Display Pin Header Wire Relief Notch (24mm x 8mm cutout)
-        translate([-12.0, 9.0, -0.1])
-            cube([24.0, 10.0, display_recess_lip + 0.2]);
-
-        // 4. 4 Corner M2 Screw Holes with Recessed Counterbores
+        // 3. 4 Corner M2 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 // Through hole
@@ -77,7 +73,7 @@ module front_bezel() {
     }
 }
 
-// 2. MAIN HOUSING POD (With Display Pin Notch, ESP32 Standoff Ledges & Pin Relief Trenches)
+// 2. MAIN HOUSING POD (Truly Hollow with PCB Pocket, Electronics Cavity & USB-C Cutout)
 module main_housing() {
     cavity_w = 34.0;
     cavity_h = 34.0;
@@ -85,47 +81,27 @@ module main_housing() {
     pcb_depth = 4.0;
     
     difference() {
-        union() {
-            // Outer Solid Chassis
-            octagonal_prism(enclosure_width, enclosure_depth, chamfer_size);
-        }
+        // Outer Solid Chassis
+        octagonal_prism(enclosure_width, enclosure_depth, chamfer_size);
         
         // 1. Front Display PCB Pocket (Recessed 4mm from front face)
         translate([0, 0, enclosure_depth - pcb_depth])
             cylinder(d = display_pcb_dia, h = pcb_depth + 0.1);
-
-        // 2. Top Display Pin Header Wire Pass-Through Slot (Connects front display to rear cavity)
-        translate([-12.0, 9.0, enclosure_depth - pcb_depth - 3.0])
-            cube([24.0, 10.0, pcb_depth + 3.1]);
             
-        // 3. Internal Main Electronics Cavity (Houses ESP32-C3 SuperMini & Wiring)
+        // 2. Internal Main Electronics Cavity (Houses ESP32-C3 SuperMini & Wiring)
         translate([-cavity_w/2, -cavity_h/2, floor_t])
             cube([cavity_w, cavity_h, enclosure_depth - floor_t - pcb_depth + 0.1]);
             
-        // 4. ESP32-C3 Bottom Pin Solder Tail Relief Trenches (2x longitudinal channels along floor)
-        translate([-10.0, -14.0, floor_t - 1.5])
-            cube([5.0, 28.0, 1.6]);
-        translate([5.0, -14.0, floor_t - 1.5])
-            cube([5.0, 28.0, 1.6]);
-
-        // 5. Left-Side USB-C Port Cutout (Direct access to ESP32-C3 port)
+        // 3. Left-Side USB-C Port Cutout (Direct access to ESP32-C3 port)
         translate([-enclosure_width/2 - 1, -6.0, floor_t + 3.0])
             cube([12.0, 12.0, 7.0]);
             
-        // 6. 4 Corner M2 Screw Pilot Holes (10mm deep into corner posts)
+        // 4. 4 Corner M2 Screw Pilot Holes (10mm deep into corner posts)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, enclosure_depth - 10.0])
                     cylinder(d = screw_pilot_dia, h = 10.1);
             }
-        }
-    }
-
-    // Add ESP32-C3 Board Corner Support Standoff Ledges (Raises ESP32 PCB 2mm above cavity floor)
-    for (cx = [-11.0, 8.0]) {
-        for (cy = [-11.0, 8.0]) {
-            translate([cx, cy, floor_t])
-                cube([3.0, 3.0, 2.0]);
         }
     }
 }

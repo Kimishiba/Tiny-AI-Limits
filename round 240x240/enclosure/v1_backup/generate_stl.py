@@ -158,7 +158,7 @@ def generate_main_housing():
     mesh = STLMesh()
     width = 48.0
     chamfer = 4.0
-    depth = 24.0  # Main pod depth (mm) - Expanded to 24mm for pin/wire clearance
+    depth = 22.0
     wall = 3.0
     r_pcb_pocket = 18.5 # 37mm diameter circular pocket for GC9A01 PCB
 

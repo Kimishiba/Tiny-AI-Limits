@@ -1,0 +1,269 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" style="background-color: #0f172a; font-family: Inter, -apple-system, sans-serif;">
+
+    <defs>
+        <!-- Arrowhead Marker (Cyan) -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#38bdf8" />
+        </marker>
+        <!-- Arrowhead Marker (Yellow) -->
+        <marker id="arrow-yellow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#fbbf24" />
+        </marker>
+        <!-- Arrowhead Marker (Green) -->
+        <marker id="arrow-green" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#22c55e" />
+        </marker>
+        <!-- Hatch Pattern for Cross Section -->
+        <pattern id="hatch" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="10" stroke="#475569" stroke-width="1.2" />
+        </pattern>
+        <!-- Grid Background Pattern -->
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="1" />
+        </pattern>
+    </defs>
+    
+<rect width="1200" height="900" fill="url(#grid)" />
+<rect x="20" y="20" width="1160" height="860" fill="none" stroke="#38bdf8" stroke-width="2" opacity="0.6" />
+<rect x="25" y="25" width="1150" height="850" fill="none" stroke="#38bdf8" stroke-width="1" opacity="0.3" />
+
+    <g transform="translate(40, 40)">
+        <text x="0" y="25" fill="#f8fafc" font-size="22" font-weight="700" letter-spacing="1">GC9A01 1.28" ROUND DISPLAY &amp; ESP32-C3 MAIN ENCLOSURE</text>
+        <text x="0" y="48" fill="#94a3b8" font-size="14" font-weight="500">2D TECHNICAL DRAWING BLUEPRINT — SOLDERED PIN &amp; WIRE HARNESS CLEARANCES</text>
+        <text x="1100" y="25" text-anchor="end" fill="#38bdf8" font-size="14" font-weight="600">SCALE: 2:1 | UNITS: mm | TOLERANCE: ±0.15mm</text>
+        <line x1="0" y1="60" x2="1120" y2="60" stroke="#334155" stroke-width="1.5" />
+    </g>
+    
+
+    <!-- VIEW 1 CONTAINER -->
+    <g id="view1">
+        <text x="260" y="140" text-anchor="middle" fill="#38bdf8" font-size="15" font-weight="700">VIEW 1: FRONT BEZEL ELEVATION (WITH PIN NOTCH)</text>
+        
+        <!-- Centerlines -->
+        <line x1="130" y1="300" x2="390" y2="300" stroke="#0284c7" stroke-width="1" stroke-dasharray="8,4,2,4" />
+        <line x1="260" y1="170" x2="260" y2="430" stroke="#0284c7" stroke-width="1" stroke-dasharray="8,4,2,4" />
+
+        <!-- Outer Octagonal Profile (48mm x 48mm, 4.5mm chamfers) -->
+        <polygon points="
+            185.9,208.8 334.1,208.8
+            351.2,225.9 351.2,374.1
+            334.1,391.2 185.9,391.2
+            168.8,374.1 168.8,225.9
+        " fill="#1e293b" fill-opacity="0.5" stroke="#f8fafc" stroke-width="2.5" />
+
+        <!-- Raised Bezel Accent Ring (40mm Dia) -->
+        <circle cx="260" cy="300" r="76.0" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3" />
+
+        <!-- Display Active View Aperture (32.6mm Dia) -->
+        <circle cx="260" cy="300" r="61.94" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+        
+        <!-- GC9A01 Screen PCB Underneath (37.0mm Dia, dashed) -->
+        <circle cx="260" cy="300" r="70.3" fill="none" stroke="#64748b" stroke-width="1.2" stroke-dasharray="4,4" />
+
+        <!-- TOP DISPLAY PIN HEADER WIRE PASS-THROUGH NOTCH (24mm x 8mm) -->
+        <rect x="214.4" y="227.8" width="91.19999999999999" height="30.4" fill="#0f172a" fill-opacity="0.8" stroke="#22c55e" stroke-width="1.8" stroke-dasharray="4,2" rx="2" />
+        <text x="260" y="250.6" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="700">7-PIN SPI HEADER NOTCH</text>
+
+        <!-- 4 Corner M2 Screw Holes & Counterbores -->
+    
+
+                <circle cx="191.60000000000002" cy="231.60000000000002" r="9.12" fill="none" stroke="#fbbf24" stroke-width="1.5" />
+                <circle cx="191.60000000000002" cy="231.60000000000002" r="4.9399999999999995" fill="none" stroke="#38bdf8" stroke-width="1.2" />
+                <line x1="183.60000000000002" y1="231.60000000000002" x2="199.60000000000002" y2="231.60000000000002" stroke="#0284c7" stroke-width="0.8" />
+                <line x1="191.60000000000002" y1="223.60000000000002" x2="191.60000000000002" y2="239.60000000000002" stroke="#0284c7" stroke-width="0.8" />
+            
+
+                <circle cx="191.60000000000002" cy="368.4" r="9.12" fill="none" stroke="#fbbf24" stroke-width="1.5" />
+                <circle cx="191.60000000000002" cy="368.4" r="4.9399999999999995" fill="none" stroke="#38bdf8" stroke-width="1.2" />
+                <line x1="183.60000000000002" y1="368.4" x2="199.60000000000002" y2="368.4" stroke="#0284c7" stroke-width="0.8" />
+                <line x1="191.60000000000002" y1="360.4" x2="191.60000000000002" y2="376.4" stroke="#0284c7" stroke-width="0.8" />
+            
+
+                <circle cx="328.4" cy="231.60000000000002" r="9.12" fill="none" stroke="#fbbf24" stroke-width="1.5" />
+                <circle cx="328.4" cy="231.60000000000002" r="4.9399999999999995" fill="none" stroke="#38bdf8" stroke-width="1.2" />
+                <line x1="320.4" y1="231.60000000000002" x2="336.4" y2="231.60000000000002" stroke="#0284c7" stroke-width="0.8" />
+                <line x1="328.4" y1="223.60000000000002" x2="328.4" y2="239.60000000000002" stroke="#0284c7" stroke-width="0.8" />
+            
+
+                <circle cx="328.4" cy="368.4" r="9.12" fill="none" stroke="#fbbf24" stroke-width="1.5" />
+                <circle cx="328.4" cy="368.4" r="4.9399999999999995" fill="none" stroke="#38bdf8" stroke-width="1.2" />
+                <line x1="320.4" y1="368.4" x2="336.4" y2="368.4" stroke="#0284c7" stroke-width="0.8" />
+                <line x1="328.4" y1="360.4" x2="328.4" y2="376.4" stroke="#0284c7" stroke-width="0.8" />
+            
+
+        <!-- Dim 1: Outer Width 48.0mm -->
+        <line x1="168.8" y1="411.2" x2="168.8" y2="436.2" stroke="#38bdf8" stroke-width="0.8" />
+        <line x1="351.2" y1="411.2" x2="351.2" y2="436.2" stroke="#38bdf8" stroke-width="0.8" />
+        <line x1="168.8" y1="426.2" x2="351.2" y2="426.2" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+        <rect x="225" y="415.2" width="70" height="20" fill="#0f172a" rx="4" />
+        <text x="260" y="429.2" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">48.0 mm</text>
+
+        <!-- Callout: Top Pin Relief Notch 24x8mm -->
+        <line x1="298.0" y1="243.0" x2="340" y2="200" stroke="#22c55e" stroke-width="1.2" marker-start="url(#arrow-green)" />
+        <line x1="340" y1="200" x2="440" y2="200" stroke="#22c55e" stroke-width="1.2" />
+        <text x="345" y="194" fill="#22c55e" font-size="12" font-weight="700">24x8mm PIN HEADER NOTCH</text>
+    </g>
+    
+
+    <!-- VIEW 2 CONTAINER: SECTION A-A -->
+    <g id="view2">
+        <text x="800" y="140" text-anchor="middle" fill="#38bdf8" font-size="15" font-weight="700">VIEW 2: SECTION A-A (WITH PIN CLEARANCES &amp; STANDOFFS)</text>
+
+        <!-- Centerline -->
+        <line x1="650" y1="300" x2="950" y2="300" stroke="#0284c7" stroke-width="1" stroke-dasharray="8,4,2,4" />
+
+        <!-- Housing Outer Profile in Section (Depth = 24.0mm [-12 to +12]) -->
+        <!-- Front Bezel: x = cx2 - 12*sc to cx2 - 7.5*sc (4.5mm) -->
+        <!-- Main Housing: x = cx2 - 7.5*sc to cx2 + 12*sc (19.5mm) -->
+
+        <!-- Top Wall Section -->
+        <path d="
+            M 754.4 208.8
+            L 845.6 208.8
+            L 845.6 235.4
+            L 836.1 235.4
+            L 836.1 229.7
+            L 771.5 229.7
+            L 771.5 238.06
+            L 754.4 238.06
+            Z
+        " fill="url(#hatch)" stroke="#f8fafc" stroke-width="2" />
+
+        <!-- Bottom Wall Section -->
+        <path d="
+            M 754.4 391.2
+            L 845.6 391.2
+            L 845.6 364.6
+            L 836.1 364.6
+            L 836.1 370.3
+            L 771.5 370.3
+            L 771.5 361.94
+            L 754.4 361.94
+            Z
+        " fill="url(#hatch)" stroke="#f8fafc" stroke-width="2" />
+
+        <!-- Back Floor Wall (2.5mm thick with pin trenches) -->
+        <rect x="836.1" y="235.4" width="9.5" height="129.2" fill="url(#hatch)" stroke="#f8fafc" stroke-width="1.5" />
+
+        <!-- ESP32 Solder Pin Relief Trenches (1.5mm deep into floor) -->
+        <rect x="830.4" y="257.25" width="5.699999999999999" height="11.399999999999999" fill="#0f172a" stroke="#22c55e" stroke-width="1.2" />
+        <rect x="830.4" y="331.35" width="5.699999999999999" height="11.399999999999999" fill="#0f172a" stroke="#22c55e" stroke-width="1.2" />
+
+        <!-- Front Bezel Joint Line (at z = 4.5mm from front => x = cx2 - 7.5*sc) -->
+        <line x1="771.5" y1="208.8" x2="771.5" y2="391.2" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="4,2" />
+
+        <!-- INTERNAL COMPONENTS SCHEMATIC IN SECTION -->
+        
+        <!-- 1. GC9A01 Screen Module & Soldered Pin Header -->
+        <rect x="756.3" y="229.7" width="15.2" height="140.6" fill="#0284c7" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1.5" rx="2" />
+        <rect x="756.3" y="238.06" width="5.699999999999999" height="123.88" fill="#38bdf8" fill-opacity="0.7" stroke="#7dd3fc" stroke-width="1" />
+        
+        <!-- Rear Soldered Pin Header on Display (Sticks out into top notch) -->
+        <rect x="771.5" y="231.60000000000002" width="22.799999999999997" height="19.0" fill="#22c55e" fill-opacity="0.6" stroke="#22c55e" stroke-width="1.5" rx="1" />
+        <text x="782.9" y="241.1" text-anchor="middle" fill="#22c55e" font-size="9" font-weight="700">PINS</text>
+
+        <!-- 2. ESP32-C3 SuperMini Board on 2mm Corner Standoff Ledges -->
+        <!-- Standoff Ledges under board (at x = cx2 + 7.5*sc) -->
+        <rect x="828.5" y="254.4" width="7.6" height="9.5" fill="#38bdf8" stroke="#f8fafc" stroke-width="1" />
+        <rect x="828.5" y="336.1" width="7.6" height="9.5" fill="#38bdf8" stroke-width="1" />
+
+        <!-- ESP32 Board PCB -->
+        <rect x="796.2" y="257.25" width="32.3" height="85.5" fill="#166534" fill-opacity="0.4" stroke="#22c55e" stroke-width="1.5" rx="2" />
+        <!-- Bottom Soldered Pin Tails (extending 2mm under board into relief trenches) -->
+        <line x1="828.5" y1="263.9" x2="834.96" y2="263.9" stroke="#22c55e" stroke-width="2" />
+        <line x1="828.5" y1="336.1" x2="834.96" y2="336.1" stroke="#22c55e" stroke-width="2" />
+
+        <!-- USB-C Receptacle -->
+        <rect x="784.8" y="282.9" width="19.0" height="34.199999999999996" fill="#94a3b8" stroke="#f8fafc" stroke-width="1" />
+        <text x="811.4" y="304" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="700" transform="rotate(-90 811.4 304)">ESP32-C3 SUPERMINI</text>
+
+        <!-- DIMENSIONS FOR SECTION VIEW -->
+        <!-- Total Depth = 24.0mm -->
+        <line x1="754.4" y1="406.2" x2="754.4" y2="436.2" stroke="#38bdf8" stroke-width="0.8" />
+        <line x1="845.6" y1="406.2" x2="845.6" y2="436.2" stroke="#38bdf8" stroke-width="0.8" />
+        <line x1="754.4" y1="426.2" x2="845.6" y2="426.2" stroke="#38bdf8" stroke-width="1.2" marker-start="url(#arrow)" marker-end="url(#arrow)" />
+        <rect x="765" y="415.2" width="70" height="20" fill="#0f172a" rx="4" />
+        <text x="800" y="429.2" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">24.0 mm DEPTH</text>
+
+        <!-- Callout: ESP32 Bottom Pin Relief Trench -->
+        <line x1="832.3" y1="262.0" x2="860" y2="240" stroke="#22c55e" stroke-width="1.2" marker-start="url(#arrow-green)" />
+        <line x1="860" y1="240" x2="950" y2="240" stroke="#22c55e" stroke-width="1.2" />
+        <text x="865" y="234" fill="#22c55e" font-size="12" font-weight="700">PIN TRENCH + 2mm STANDOFF GAP</text>
+    </g>
+    
+
+    <!-- VIEW 3 CONTAINER: LEFT SIDE ELEVATION -->
+    <g id="view3">
+        <text x="260" y="520" text-anchor="middle" fill="#38bdf8" font-size="15" font-weight="700">VIEW 3: LEFT SIDE ELEVATION (USB-C CUTOUT)</text>
+
+        <line x1="130" y1="670" x2="390" y2="670" stroke="#0284c7" stroke-width="1" stroke-dasharray="8,4,2,4" />
+
+        <!-- Side Outer Chassis Box Profile (Width = 24mm depth [-12 to +12], Height = 48mm [-24 to +24]) -->
+        <rect x="214.4" y="578.8" width="91.19999999999999" height="182.39999999999998" fill="#1e293b" fill-opacity="0.6" stroke="#f8fafc" stroke-width="2" rx="3" />
+
+        <!-- Bezel Seam Line (at Front 4.5mm => x = cx3 - 7.5*sc) -->
+        <line x1="231.5" y1="578.8" x2="231.5" y2="761.2" stroke="#e2e8f0" stroke-width="1.5" />
+
+        <!-- USB-C Port Window Cutout -->
+        <rect x="256.2" y="647.2" width="26.599999999999998" height="45.599999999999994" fill="#0f172a" stroke="#fbbf24" stroke-width="2" rx="3" />
+        <path d="M 259.24 656.7 L 279.76 656.7 A 2.5 2.5 0 0 1 279.76 683.3 L 259.24 683.3 A 2.5 2.5 0 0 1 259.24 656.7 Z" fill="#334155" stroke="#fbbf24" stroke-width="1" />
+        <text x="269.5" y="673" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="700">USB-C</text>
+    </g>
+    
+
+    <!-- VIEW 4 CONTAINER: REAR ELEVATION -->
+    <g id="view4">
+        <text x="800" y="520" text-anchor="middle" fill="#38bdf8" font-size="15" font-weight="700">VIEW 4: REAR HOUSING ELEVATION &amp; PIN TRENCHES</text>
+
+        <line x1="670" y1="670" x2="930" y2="670" stroke="#0284c7" stroke-width="1" stroke-dasharray="8,4,2,4" />
+        <line x1="800" y1="540" x2="800" y2="800" stroke="#0284c7" stroke-width="1" stroke-dasharray="8,4,2,4" />
+
+        <!-- Outer Octagonal Profile (48mm x 48mm) -->
+        <polygon points="
+            725.9,578.8 874.1,578.8
+            891.2,595.9 891.2,744.1
+            874.1,761.2 725.9,761.2
+            708.8,744.1 708.8,595.9
+        " fill="#1e293b" fill-opacity="0.6" stroke="#f8fafc" stroke-width="2.5" />
+
+        <!-- Dual Longitudinal Bottom Pin Relief Trenches (5.0mm x 28.0mm) -->
+        <rect x="762.0" y="616.8" width="19.0" height="106.39999999999999" fill="#0f172a" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2" rx="2" />
+        <rect x="819.0" y="616.8" width="19.0" height="106.39999999999999" fill="#0f172a" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2" rx="2" />
+        <text x="800" y="666" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="700">BOTTOM PIN TRENCHES</text>
+
+        <!-- 4 Corner Screw Blind Pilot Holes -->
+    
+
+                <circle cx="731.6" cy="601.6" r="3.8" fill="#0f172a" stroke="#fbbf24" stroke-width="1.5" />
+                <line x1="725.6" y1="601.6" x2="737.6" y2="601.6" stroke="#fbbf24" stroke-width="0.8" />
+                <line x1="731.6" y1="595.6" x2="731.6" y2="607.6" stroke="#fbbf24" stroke-width="0.8" />
+            
+
+                <circle cx="731.6" cy="738.4" r="3.8" fill="#0f172a" stroke="#fbbf24" stroke-width="1.5" />
+                <line x1="725.6" y1="738.4" x2="737.6" y2="738.4" stroke="#fbbf24" stroke-width="0.8" />
+                <line x1="731.6" y1="732.4" x2="731.6" y2="744.4" stroke="#fbbf24" stroke-width="0.8" />
+            
+
+                <circle cx="868.4" cy="601.6" r="3.8" fill="#0f172a" stroke="#fbbf24" stroke-width="1.5" />
+                <line x1="862.4" y1="601.6" x2="874.4" y2="601.6" stroke="#fbbf24" stroke-width="0.8" />
+                <line x1="868.4" y1="595.6" x2="868.4" y2="607.6" stroke="#fbbf24" stroke-width="0.8" />
+            
+
+                <circle cx="868.4" cy="738.4" r="3.8" fill="#0f172a" stroke="#fbbf24" stroke-width="1.5" />
+                <line x1="862.4" y1="738.4" x2="874.4" y2="738.4" stroke="#fbbf24" stroke-width="0.8" />
+                <line x1="868.4" y1="732.4" x2="868.4" y2="744.4" stroke="#fbbf24" stroke-width="0.8" />
+            
+</g>
+
+    <g transform="translate(40, 800)">
+        <rect x="0" y="0" width="1120" height="65" fill="#1e293b" stroke="#334155" stroke-width="1.5" rx="6" />
+        <text x="20" y="24" fill="#22c55e" font-size="13" font-weight="700">UPDATED PIN HEADER &amp; SOLDER TAIL FIT SPECIFICATIONS:</text>
+        <text x="20" y="48" fill="#cbd5e1" font-size="12" font-weight="500">
+            • Display Pin Notch: 24.0 x 8.0mm top pass-through &nbsp;&nbsp;|&nbsp;&nbsp; 
+            • ESP32 Solder Relief: 2x 5.0mm trenches + 2.0mm corner standoff ledges &nbsp;&nbsp;|&nbsp;&nbsp; 
+            • Expanded Housing Depth: 24.0mm total
+        </text>
+        <text x="1100" y="38" text-anchor="end" fill="#fbbf24" font-size="13" font-weight="700">DESIGN READY FOR SOLDERED HEADER PINS &amp; HARNESS</text>
+    </g>
+    
+</svg>
