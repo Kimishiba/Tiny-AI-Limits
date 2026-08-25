@@ -300,15 +300,8 @@ def generate_main_housing():
         
     standoffs_locked = standoffs - pin_cuts
     
-    # 7. 4 Forward Compression Clamps (Compresses rear bare fiberglass rim of GC9A01 PCB forward into bezel)
-    clamp_tabs = m3d.Manifold()
-    r_clamp = 17.8
-    h_clamp = 1.3
-    for ang in [45, -45, 135, -135]:
-        tab = m3d.Manifold.cylinder(h_clamp, 1.8, 1.2, 16).translate([0, r_clamp, depth]).rotate([0, 0, ang])
-        clamp_tabs = clamp_tabs + tab
-        
-    return housing_body + standoffs_locked + clamp_tabs
+    return housing_body + standoffs_locked
+
 
 
 def generate_stand_tier1_base():
