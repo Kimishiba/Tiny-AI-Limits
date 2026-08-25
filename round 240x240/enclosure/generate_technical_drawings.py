@@ -119,24 +119,25 @@ def generate_sheet_1_front_bezel(output_path):
     rx, ry = 240, 150
     ax.text(rx, ry - 45, "VIEW B: REAR DISPLAY CARRIER POCKET", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
     ax.add_patch(Polygon(np.array(oct_pts) - [cx, cy] + [rx, ry], fill=True, facecolor='#162032', edgecolor='#415a77', linewidth=1.2))
-    ax.add_patch(Circle((rx, ry), 18.0, fill=False, edgecolor='#4cc9f0', linewidth=1.0, linestyle='--'))
-    ax.add_patch(Circle((rx, ry), 19.3, fill=True, facecolor='#0f172a', edgecolor='#ffd166', linewidth=1.2))
-    ax.add_patch(Rectangle((rx - 11.8, ry - 26.5), 23.6, 26.5, fill=True, facecolor='#0f172a', edgecolor='#ffd166', linewidth=1.2))
+    ax.add_patch(Circle((rx, ry), 18.1, fill=False, edgecolor='#4cc9f0', linewidth=1.0, linestyle='--'))
+    ax.add_patch(Circle((rx, ry), 19.4, fill=True, facecolor='#0f172a', edgecolor='#ffd166', linewidth=1.2))
+    ax.add_patch(Rectangle((rx - 11.9, ry - 26.6), 23.8, 26.6, fill=True, facecolor='#0f172a', edgecolor='#ffd166', linewidth=1.2))
     ax.add_patch(Circle((rx, ry), 16.3, fill=True, facecolor='#060a12', edgecolor='#00e5ff', linewidth=1.0))
     
     sh_x, sh_y = 9.63, -18.91
     ax.add_patch(Circle((rx - sh_x, ry + sh_y), 1.75/2, fill=True, facecolor='#ff006e', edgecolor='#ffbe0b', linewidth=1.2))
     ax.add_patch(Circle((rx + sh_x, ry + sh_y), 1.75/2, fill=True, facecolor='#ff006e', edgecolor='#ffbe0b', linewidth=1.2))
     
-    add_dim_line(ax, (rx - 11.8, ry - 26.5), (rx + 11.8, ry - 26.5), "23.60 TAB", offset=-8)
+    add_dim_line(ax, (rx - 11.9, ry - 26.6), (rx + 11.9, ry - 26.6), "23.80 TAB", offset=-8)
     add_dim_line(ax, (rx - sh_x, ry + sh_y), (rx + sh_x, ry + sh_y), "19.26 PITCH", offset=6, color='#ffbe0b')
     
-    ax.annotate("2x SCREEN BOLTING HOLES\nØ1.75 BLIND x 3.20 DP\n(NO FRONT THRU-HOLE)", xy=(rx + sh_x, ry + sh_y), xytext=(rx + 25, ry + sh_y - 8),
+    ax.annotate("2x SCREEN BOLTING HOLES\nØ1.75 BLIND x 3.30 DP\n(NO FRONT THRU-HOLE)", xy=(rx + sh_x, ry + sh_y), xytext=(rx + 25, ry + sh_y - 8),
                 arrowprops=dict(arrowstyle='->', color='#ffbe0b', lw=1.0),
                 color='#ffbe0b', fontsize=7.5, family='monospace', fontweight='bold')
     
     sx, sy = 355, 150
     ax.text(sx + 5, sy - 45, "SECTION A-A", color='#00e5ff', fontsize=10, fontweight='bold', ha='center', family='monospace')
+
     
     sec_poly = [
         [sx, sy - 27], [sx + 5.5, sy - 27], [sx + 5.5, sy - 22],

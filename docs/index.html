@@ -239,6 +239,57 @@
       background: var(--accent-orange-light);
     }
 
+    .hero-cta.github {
+      background: #181c24;
+      color: #ffffff;
+      border-color: var(--border-dark);
+    }
+
+    .hero-cta.github:hover {
+      background: #242938;
+      color: #ffffff;
+    }
+
+    .github-banner-box {
+      background: #181b22;
+      color: #ffffff;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1.25rem;
+    }
+
+    .github-banner-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.6rem, 3.5vw, 2.3rem);
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+    }
+
+    .github-banner-title span {
+      color: var(--accent-orange);
+    }
+
+    .github-banner-desc {
+      color: #94a3b8;
+      max-width: 680px;
+      font-size: 1.05rem;
+    }
+
+    .github-btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+
     .badge-pill-row {
       display: flex;
       flex-wrap: wrap;
@@ -870,9 +921,9 @@
           <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
           WebSerial
         </a>
-        <a href="https://github.com/Kimishiba/Tiny-AI-Limits" target="_blank" rel="noopener" class="nav-btn primary">
-          <span class="material-symbols-outlined" style="font-size: 1.1rem;">star</span>
-          GitHub
+        <a href="https://github.com/Kimishiba/Tiny-AI-Limits" target="_blank" rel="noopener" class="nav-btn primary" style="gap: 0.5rem; background: #121316; color: #ffffff;">
+          <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" style="vertical-align: text-bottom;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          GitHub ★
         </a>
       </nav>
     </div>
@@ -895,11 +946,15 @@
       <div class="hero-cta-group">
         <a href="#simulator" class="hero-cta">
           <span class="material-symbols-outlined">play_circle</span>
-          Launch Live Simulator
+          Launch Simulator
+        </a>
+        <a href="https://github.com/Kimishiba/Tiny-AI-Limits" target="_blank" rel="noopener" class="hero-cta github">
+          <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          Star on GitHub
         </a>
         <a href="#showcase" class="hero-cta secondary">
           <span class="material-symbols-outlined">architecture</span>
-          View 3D Enclosures
+          3D Enclosures
         </a>
       </div>
 
@@ -1119,17 +1174,34 @@
           <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">cable</span>
           Wiring & Pinout Reference
         </h2>
-        <div class="section-subtitle">ESP32-C3 SuperMini Pin Configuration</div>
+        <div class="section-subtitle">Visual Vector Diagrams & Pin Configuration</div>
       </div>
 
+      <!-- Diagram Selector Tabs -->
+      <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+        <button class="tab-btn active" id="tabWiringRound" onclick="switchWiringDiagram('round')" style="padding: 0.65rem 1.2rem; font-size: 0.9rem;">
+          🔘 GC9A01 1.28" Round SPI Diagram
+        </button>
+        <button class="tab-btn" id="tabWiringOled" onclick="switchWiringDiagram('oled')" style="padding: 0.65rem 1.2rem; font-size: 0.9rem;">
+          📺 SSD1306 0.96"/1.3" OLED I2C Diagram
+        </button>
+      </div>
+
+      <!-- SVG Diagram Container -->
+      <div class="neo-box" style="padding: 1rem; background: #0f1218; margin-bottom: 1.75rem; overflow: hidden;">
+        <img id="wiringSvgImg" src="./assets/img/wiring_gc9a01_round.svg" alt="ESP32-C3 Wiring Diagram" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+      </div>
+
+      <!-- Pinout Table Reference -->
       <div class="wiring-table-wrap">
-        <table class="neo-table">
+        <table class="neo-table" id="wiringTable">
           <thead>
             <tr>
               <th>Function</th>
               <th>Display Pin (GC9A01 / SSD1306)</th>
               <th>ESP32-C3 SuperMini Pin</th>
               <th>Physical Header Location</th>
+              <th>Wire Color Cue</th>
               <th>Description</th>
             </tr>
           </thead>
@@ -1139,6 +1211,7 @@
               <td><code>VCC</code></td>
               <td><code>3V3</code></td>
               <td>Left Header (Pin 3)</td>
+              <td><span style="color: #ef4444; font-weight: 800;">● Red</span></td>
               <td>3.3V Power Supply</td>
             </tr>
             <tr>
@@ -1146,6 +1219,7 @@
               <td><code>GND</code></td>
               <td><code>GND</code></td>
               <td>Left Header (Pin 2)</td>
+              <td><span style="color: #64748b; font-weight: 800;">● Black</span></td>
               <td>Common Ground</td>
             </tr>
             <tr>
@@ -1153,6 +1227,7 @@
               <td><code>SCL / SCK</code></td>
               <td><code>GPIO 9</code></td>
               <td>Right Header (Pin 13)</td>
+              <td><span style="color: #eab308; font-weight: 800;">● Yellow</span></td>
               <td>Hardware I2C Clock</td>
             </tr>
             <tr>
@@ -1160,6 +1235,7 @@
               <td><code>SDA</code></td>
               <td><code>GPIO 8</code></td>
               <td>Right Header (Pin 14)</td>
+              <td><span style="color: #06b6d4; font-weight: 800;">● Cyan</span></td>
               <td>Hardware I2C Data</td>
             </tr>
             <tr>
@@ -1167,6 +1243,7 @@
               <td><code>SCL / SCK</code></td>
               <td><code>GPIO 4</code></td>
               <td>Left Header (Pin 8)</td>
+              <td><span style="color: #eab308; font-weight: 800;">● Yellow</span></td>
               <td>Hardware SPI Clock</td>
             </tr>
             <tr>
@@ -1174,6 +1251,7 @@
               <td><code>SDA / MOSI</code></td>
               <td><code>GPIO 6</code></td>
               <td>Right Header (Pin 16)</td>
+              <td><span style="color: #06b6d4; font-weight: 800;">● Cyan</span></td>
               <td>Hardware SPI MOSI</td>
             </tr>
             <tr>
@@ -1181,6 +1259,7 @@
               <td><code>CS</code></td>
               <td><code>GPIO 5</code></td>
               <td>Left Header (Pin 9)</td>
+              <td><span style="color: #a855f7; font-weight: 800;">● Purple</span></td>
               <td>GC9A01 Chip Select</td>
             </tr>
             <tr>
@@ -1188,6 +1267,7 @@
               <td><code>DC</code></td>
               <td><code>GPIO 7</code></td>
               <td>Right Header (Pin 15)</td>
+              <td><span style="color: #10b981; font-weight: 800;">● Green</span></td>
               <td>GC9A01 Data / Command</td>
             </tr>
             <tr>
@@ -1195,14 +1275,56 @@
               <td><code>RST / RES</code></td>
               <td><code>GPIO 1</code></td>
               <td>Left Header (Pin 5)</td>
+              <td><span style="color: #f97316; font-weight: 800;">● Orange</span></td>
               <td>Hardware Reset</td>
+            </tr>
+            <tr>
+              <td><strong>Backlight Control</strong></td>
+              <td><code>BLK</code></td>
+              <td><code>GPIO 0</code></td>
+              <td>Left Header (Pin 4)</td>
+              <td><span style="color: #ec4899; font-weight: 800;">● Pink</span></td>
+              <td>PWM Backlight Dimming / On-Off</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
+
+    <!-- Section 5: GitHub & Open Source Hub -->
+    <section id="github">
+      <div class="github-banner-box">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <svg height="32" width="32" viewBox="0 0 16 16" fill="var(--accent-orange)"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 800; color: var(--accent-orange); text-transform: uppercase;">Open Source Hardware & Firmware</span>
+        </div>
+        <h2 class="github-banner-title">
+          Explore the Full Source & <span>Join the Project</span>
+        </h2>
+        <p class="github-banner-desc">
+          Tiny AI Limits is 100% open source under the MIT License. Download the 3D-printable STL enclosures, inspect the PlatformIO ESP32-C3 firmware, or submit your own custom widgets and face animations via Pull Request.
+        </p>
+
+        <div class="github-btn-row">
+          <a href="https://github.com/Kimishiba/Tiny-AI-Limits" target="_blank" rel="noopener" class="hero-cta github" style="padding: 0.9rem 1.75rem; font-size: 1.05rem;">
+            <svg height="22" width="22" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+            ⭐ Star on GitHub
+          </a>
+          <a href="https://github.com/Kimishiba/Tiny-AI-Limits/fork" target="_blank" rel="noopener" class="hero-cta secondary" style="padding: 0.9rem 1.5rem; font-size: 1.05rem;">
+            <span class="material-symbols-outlined">call_split</span>
+            Fork & Contribute
+          </a>
+          <a href="https://github.com/Kimishiba/Tiny-AI-Limits/issues" target="_blank" rel="noopener" class="hero-cta secondary" style="padding: 0.9rem 1.5rem; font-size: 1.05rem;">
+            <span class="material-symbols-outlined">bug_report</span>
+            Report Issue
+          </a>
+        </div>
+      </div>
+    </section>
+
   </main>
+
 
   <!-- Footer -->
   <footer class="neo-footer">
@@ -1266,6 +1388,22 @@
         title.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span> SSD1306 128×64 OLED (Monochrome)';
       }
     }
+
+    function switchWiringDiagram(type) {
+      const img = document.getElementById("wiringSvgImg");
+      const tabRound = document.getElementById("tabWiringRound");
+      const tabOled = document.getElementById("tabWiringOled");
+      if (type === "round") {
+        img.src = "./assets/img/wiring_gc9a01_round.svg";
+        tabRound.classList.add("active");
+        tabOled.classList.remove("active");
+      } else {
+        img.src = "./assets/img/wiring_ssd1306_oled.svg";
+        tabOled.classList.add("active");
+        tabRound.classList.remove("active");
+      }
+    }
+
 
     document.getElementById("screenGlass").addEventListener("click", () => {
       setScreenMode(screenMode === "round" ? "oled" : "round");

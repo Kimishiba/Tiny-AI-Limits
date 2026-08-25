@@ -76,6 +76,15 @@ A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Mon
 
 ---
 
+## 🛒 Bill of Materials (BOM) & Purchasing Guide
+
+For a complete parts list, exact component specifications, and direct purchasing links (**Amazon**, **AliExpress**, **Waveshare**, **Adafruit**), see the dedicated BOM documentation:
+
+* 📦 [**`BOM/README.md`**](bom/README.md) — Quick-Start Shopping Kits & Assembly Cost Summary.
+* 📋 [**`BOM/BOM.md`**](bom/BOM.md) — Comprehensive Bill of Materials with verified purchasing links.
+
+---
+
 ## 🔌 Hardware & Wiring Schematics
 
 ### 1. ESP32-C3 SuperMini Pinout (Shared Microcontroller)
@@ -121,6 +130,12 @@ All enclosure CAD models are **100% support-free FDM 3D printable** and availabl
 * `gc9a01_stand_tier1_base.stl` — Tier 1 base plate with 4 alignment pillars and rubber feet recesses (ideal for wood PLA or dark walnut).
 * `gc9a01_stand_tier2_trunk.stl` — Tier 2 sculpted monolithic pedestal trunk with 4 slide sockets and $18^\circ$ V-saddle cradle notch.
 * `gc9a01_desk_stand.stl` — Unified single-piece monolithic desk stand.
+
+---
+
+## 📖 Frequently Asked Questions (FAQ)
+
+Have questions about the project, components, or setup? Check out the [FAQ](FAQ.md) for quick answers!
 
 ---
 
