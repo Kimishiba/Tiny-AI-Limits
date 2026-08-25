@@ -10,17 +10,17 @@
       <stop offset="100%" stop-color="#0f172a"/>
     </linearGradient>
 
-    <linearGradient id="ribGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#0284c7"/>
+    <linearGradient id="catchGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
 
     <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
       <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.6"/>
     </filter>
 
-    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#38bdf8" flood-opacity="0.7"/>
+    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#10b981" flood-opacity="0.7"/>
     </filter>
   </defs>
 
@@ -28,17 +28,17 @@
 
   <!-- Title Badge -->
   <g transform="translate(36, 26)">
-    <rect x="0" y="0" width="160" height="24" rx="5" fill="#0284c7"/>
-    <text x="80" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">OPTION 2 + OPTION 3</text>
+    <rect x="0" y="0" width="130" height="24" rx="5" fill="#10b981"/>
+    <text x="65" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">SOLUTION 2</text>
     
-    <text x="175" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">TAPERED FRICTION RIBS & HOUSING CLAMP RETENTION</text>
-    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">100% Solid Bezel • Smooth tapered ribs for drop-in snug fit • Housing rim locks PCB permanently</text>
+    <text x="145" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">REVERSE CATCH DETENTS (FORWARD-LOCKING SHELVES)</text>
+    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">Positive locking shelves at rear entrance hold PCB firmly FORWARD against front glass stop</text>
   </g>
 
-  <!-- LEFT: REAR VIEW OF FRONT BEZEL WITH TAPERED RIBS -->
+  <!-- LEFT: REAR VIEW -->
   <g transform="translate(40, 95)">
     <rect x="0" y="0" width="440" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: REAR OF SOLID FRONT BEZEL (CLEAN POCKET)</text>
+    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: REAR OF FRONT BEZEL (STRAIGHT POCKET)</text>
 
     <g transform="translate(220, 260)">
       <!-- Outer Solid Chamfered Plate -->
@@ -50,7 +50,7 @@
       <circle cx="-95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
       <circle cx="95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
 
-      <!-- Circular Screen Pocket Recess (Dia 39.0mm + 0.1mm clearance) -->
+      <!-- Circular Screen Pocket Recess (Dia 39.0mm Straight) -->
       <circle cx="0" cy="-6" r="95" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
       
       <!-- Top Relief Notch (18.0 x 23.0mm) -->
@@ -65,31 +65,31 @@
       <!-- Center Optical Viewing Aperture -->
       <circle cx="0" cy="-6" r="77" fill="#1e293b" stroke="#00e5ff" stroke-width="1.5"/>
       <text x="0" y="-3" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">FRONT APERTURE</text>
-      <text x="0" y="11" fill="#475569" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">Ø33.0mm (SOLID 5.5mm PLATE)</text>
+      <text x="0" y="11" fill="#475569" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">Ø33.0mm (SOLID FACE)</text>
 
-      <!-- 4x SMOOTH TAPERED FRICTION RIBS -->
-      <!-- Rib 1: Upper-Right (45 deg) -->
+      <!-- 4x REVERSE CATCH DETENTS AT REAR ENTRANCE -->
+      <!-- Detent 1: Upper-Right (45 deg) -->
       <g transform="translate(68, -74) rotate(-45)">
-        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800">RIB 1</text>
+        <polygon points="-5,0 5,0 3,-5 -3,-5" fill="url(#catchGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowGreen)"/>
+        <text x="12" y="4" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800">CATCH 1</text>
       </g>
 
-      <!-- Rib 2: Upper-Left (-45 deg) -->
+      <!-- Detent 2: Upper-Left (-45 deg) -->
       <g transform="translate(-68, -74) rotate(45)">
-        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="-12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="end">RIB 2</text>
+        <polygon points="-5,0 5,0 3,-5 -3,-5" fill="url(#catchGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowGreen)"/>
+        <text x="-12" y="4" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="end">CATCH 2</text>
       </g>
 
-      <!-- Rib 3: Lower-Right (135 deg) -->
+      <!-- Detent 3: Lower-Right (135 deg) -->
       <g transform="translate(72, 60) rotate(-135)">
-        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800">RIB 3</text>
+        <polygon points="-5,0 5,0 3,-5 -3,-5" fill="url(#catchGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowGreen)"/>
+        <text x="12" y="4" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800">CATCH 3</text>
       </g>
 
-      <!-- Rib 4: Lower-Left (-135 deg) -->
+      <!-- Detent 4: Lower-Left (-135 deg) -->
       <g transform="translate(-72, 60) rotate(135)">
-        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="-12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="end">RIB 4</text>
+        <polygon points="-5,0 5,0 3,-5 -3,-5" fill="url(#catchGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowGreen)"/>
+        <text x="-12" y="4" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="end">CATCH 4</text>
       </g>
 
       <g transform="translate(0, 150)">
@@ -98,21 +98,21 @@
     </g>
   </g>
 
-  <!-- RIGHT: FULL ASSEMBLY CLAMPING CROSS-SECTION -->
+  <!-- RIGHT: DETAILED CROSS SECTION -->
   <g transform="translate(500, 95)">
     <rect x="0" y="0" width="420" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: DUAL-RETENTION CROSS SECTION</text>
+    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: FORWARD-LOCKING CATCH MECHANICS</text>
 
     <g transform="translate(50, 70)">
       <!-- FRONT BEZEL BODY -->
       <path d="M 0 160 L 0 0 L 100 0 L 100 60 L 160 60 L 160 160 Z" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
       <text x="45" y="90" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle" transform="rotate(-90 45 90)">FRONT BEZEL</text>
 
-      <!-- Glass Front Lip -->
+      <!-- Glass Front Lip (Z=3.3mm) -->
       <rect x="100" y="60" width="35" height="15" fill="#334155" stroke="#64748b" stroke-width="1"/>
       <text x="117" y="50" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">FRONT STOP</text>
 
-      <!-- Screen Glass + PCB -->
+      <!-- Screen Glass + PCB seated 100% FLUSH -->
       <g transform="translate(135, 75)">
         <rect x="0" y="0" width="130" height="30" rx="2" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
         <text x="65" y="20" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">1.28" LCD GLASS</text>
@@ -121,41 +121,39 @@
         <text x="65" y="45" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">SCREEN PCB (1.6mm)</text>
       </g>
 
-      <!-- Tapered Friction Rib (Option 3) -->
-      <polygon points="100,127 108,127 100,75" fill="#38bdf8" stroke="#0284c7" stroke-width="1" filter="url(#glowCyan)"/>
-      <text x="60" y="105" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800">TAPERED RIB</text>
+      <!-- Reverse Catch Detent (Z=1.1mm) with Flat Forward Locking Shelf -->
+      <g transform="translate(115, 127)">
+        <polygon points="0,0 12,0 0,16" fill="url(#catchGrad)" stroke="#ffffff" stroke-width="1.2" filter="url(#glowGreen)"/>
+        <line x1="0" y1="0" x2="14" y2="0" stroke="#34d399" stroke-width="2"/>
+        <text x="20" y="5" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">FORWARD LOCK SHELF</text>
+      </g>
 
-      <!-- MAIN HOUSING POD CLAMPING RIM (Option 2) -->
-      <path d="M 0 160 L 0 320 L 80 320 L 80 200 L 150 200 L 150 160 Z" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
-      <text x="45" y="240" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle" transform="rotate(-90 45 240)">MAIN HOUSING POD</text>
-      
-      <!-- Compression Clamping Zone (Green Highlight) -->
-      <rect x="125" y="152" width="25" height="12" fill="#10b981" opacity="0.7"/>
-      <text x="210" y="162" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900">⚡ FORWARD CLAMP FORCE</text>
-
-      <!-- Corner M3 Screw Line -->
-      <line x1="20" y1="20" x2="20" y2="300" stroke="#facc15" stroke-width="2" stroke-dasharray="4,4"/>
-      <text x="25" y="315" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800">M3 CORNER BOLT</text>
+      <!-- Push Direction -->
+      <g transform="translate(180, 180)">
+        <line x1="0" y1="40" x2="0" y2="0" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+        <polygon points="0,-8 -5,5 5,5" fill="#00e5ff"/>
+        <text x="12" y="22" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900">PUSH FORWARD</text>
+      </g>
 
       <!-- Feature Callouts -->
-      <g transform="translate(160, 200)">
-        <rect x="0" y="0" width="165" height="40" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
-        <text x="8" y="16" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">1. Option 3 (Friction Ribs):</text>
-        <text x="8" y="30" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Snug drop-in during assembly</text>
+      <g transform="translate(160, 240)">
+        <rect x="0" y="0" width="165" height="42" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+        <text x="8" y="16" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">1. Straight Pocket:</text>
+        <text x="8" y="32" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Zero backward wedge forces</text>
 
-        <rect x="0" y="46" width="165" height="40" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
-        <text x="8" y="62" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">2. Option 2 (Housing Clamp):</text>
-        <text x="8" y="76" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Permanent rock-solid compression</text>
+        <rect x="0" y="48" width="165" height="42" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <text x="8" y="64" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">2. Reverse Catch Shelf:</text>
+        <text x="8" y="80" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Traps PCB from behind</text>
 
-        <rect x="0" y="92" width="165" height="40" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-        <text x="8" y="108" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">3. 100% Solid Geometry:</text>
-        <text x="8" y="122" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Flawless, robust 3D print</text>
+        <rect x="0" y="96" width="165" height="42" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <text x="8" y="112" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">3. 100% Flush Seating:</text>
+        <text x="8" y="128" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Glass hits front stop solidly</text>
       </g>
     </g>
 
     <g transform="translate(20, 440)">
       <rect x="0" y="0" width="380" height="38" rx="6" fill="#182030" stroke="#334155" stroke-width="1"/>
-      <text x="190" y="24" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Clean drop-in snug fit + permanent housing compression</text>
+      <text x="190" y="24" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Reverse shelves hold PCB forward against front stop</text>
     </g>
   </g>
 </svg>

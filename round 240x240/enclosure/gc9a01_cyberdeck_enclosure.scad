@@ -154,15 +154,18 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Smooth Tapered Friction Rib for Snug Zero-Rattle Screen Seating
-module tapered_friction_rib(angle) {
+// Reverse Retention Catch Detent (Positive forward-locking shelf at rear pocket entrance)
+module reverse_catch_detent(angle) {
     rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, 0]) {
-        // Tapered wedge: 0.0mm protrusion at Z=0 to 0.25mm protrusion at Z=3.3mm
-        hull() {
-            translate([-1.0, 0, 0])
-                cube([2.0, 0.05, 0.05]);
-            translate([-1.0, -0.25, display_pcb_depth - 0.1])
-                cube([2.0, 0.30, 0.1]);
+        // Discrete 0.35mm inward catch tooth with 45-deg entry ramp
+        difference() {
+            // Inward tooth block from Z=0 to Z=1.1mm
+            translate([-1.5, -0.40, 0])
+                cube([3.0, 0.45, 1.1]);
+            // 45-deg entry ramp from Z=0 to Z=0.7mm
+            translate([-2.0, -0.45, 0])
+                rotate([45, 0, 0])
+                    cube([4.0, 0.8, 0.8]);
         }
     }
 }
@@ -179,7 +182,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Tapered Friction Ribs, Clean Pocket)
+// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Reverse Catch Detents, Clean Straight Pocket)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -198,7 +201,7 @@ module front_bezel() {
         translate([0, 0, -0.1])
             cylinder(d = display_glass_dia, h = 1.8);
             
-        // 3. PCB Retention Pocket with Top & Bottom Relief (+0.1mm Clearance)
+        // 3. PCB Retention Pocket with Top & Bottom Relief (+0.1mm Clearance, Straight Cylinder)
         translate([0, 0, -0.1])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
             
@@ -219,12 +222,13 @@ module front_bezel() {
         }
     }
     
-    // Tapered friction ribs inside pocket for snug drop-in seating
-    tapered_friction_rib(45);
-    tapered_friction_rib(-45);
-    tapered_friction_rib(135);
-    tapered_friction_rib(-135);
+    // 4 Reverse Catch Detents at rear entrance locking the PCB forward against the front stop
+    reverse_catch_detent(45);
+    reverse_catch_detent(-45);
+    reverse_catch_detent(135);
+    reverse_catch_detent(-135);
 }
+
 
 
 

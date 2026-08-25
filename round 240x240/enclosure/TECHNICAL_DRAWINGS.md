@@ -14,11 +14,11 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 * **Plate Thickness:** $5.50\text{mm}$ carrier body $+ 1.50\text{mm}$ raised decorative trim ring ($\varnothing 44.00\text{mm}$) = $7.00\text{mm}$ Overall Length (OAL).
 * **Active Screen Viewport:** $\varnothing 33.00\text{mm}$ through-hole with $36.4^\circ$ inner bevel ring (aperture dia $\varnothing 38.60\text{mm}$).
 * **Glass Lens Retention Step:** $\varnothing 36.40\text{mm} \times 1.80\text{mm}$ deep (from rear, $+0.80\text{mm}$ clearance).
-* **Full PCB Retention Pocket:** $\varnothing 39.00\text{mm}$ circular top $+ 24.00\text{mm}$ wide bottom tab down to $Y = -26.60\text{mm}$ ($3.30\text{mm}$ deep into bezel from rear, $+1.00\text{mm}$ tolerance).
+* **Full PCB Retention Pocket:** $\varnothing 39.00\text{mm}$ circular top $+ 24.00\text{mm}$ wide bottom tab down to $Y = -26.60\text{mm}$ ($3.30\text{mm}$ deep into bezel from rear, $+1.00\text{mm}$ tolerance, straight cylinder).
 * **Top Relief Notch:** $18.00\text{mm} \text{ wide} \times 23.00\text{mm} \text{ height}$ extended clearance for top solder/ribbon overhang.
-* **Tapered Friction Ribs:** $4 \times$ smooth $0.25\text{mm}$ draft ribs on pocket wall for snug, zero-rattle drop-in seating.
-* **Forward Clamping Retention:** Main housing pod rim locks the screen PCB firmly forward against the front bezel when corner M3 screws are fastened.
+* **Reverse Catch Detents:** $4 \times$ discrete $0.35\text{mm}$ forward-locking shelves at rear pocket entrance ($Z = 1.1\text{mm}$) locking the PCB forward against the front stop.
 * **Screen Bolting Pilot Holes:** $2 \times \varnothing 1.75\text{mm}$ blind pilot holes at $X = \pm 9.63\text{mm}, Y = -18.91\text{mm}$ ($19.26\text{mm}$ pitch), depth $3.30\text{mm}$ from rear (leaves solid front face).
+
 
 
 
