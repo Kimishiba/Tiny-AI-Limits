@@ -283,7 +283,14 @@ module main_housing() {
                 cylinder(d = 1.5, h = 2.1);
         }
     }
+    
+    // 4 Forward Compression Clamps (Compresses rear rim of GC9A01 PCB forward into bezel pocket)
+    for (ang = [45, -45, 135, -135]) {
+        rotate([0, 0, ang]) translate([0, 17.8, housing_depth])
+            cylinder(r1 = 1.8, r2 = 1.2, h = 1.3);
+    }
 }
+
 
 // 3. STAND TIER 1 BASE PLATE (with 4 Protruding Alignment Pillars)
 module stand_tier1_base() {
