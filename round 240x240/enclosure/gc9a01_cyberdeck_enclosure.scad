@@ -154,31 +154,12 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Cantilever Snap-Fit Retention Clip (Parametric)
-module snap_clip(angle) {
-    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 - 0.5, 0]) {
-        // Snap Arm
-        difference() {
-            translate([-3.0, 0, 0])
-                cube([6.0, 2.2, 5.0]);
-            // 45-degree lead-in ramp
-            translate([-3.1, 0.6, 3.3])
-                rotate([45, 0, 0])
-                    cube([6.2, 3.0, 3.0]);
-        }
-        // Locking Undercut Ledge
-        translate([-3.0, -0.6, 3.3])
-            cube([6.0, 0.8, 1.7]);
-    }
-}
-
-// Flex Relief Slot for Snap-Fit Clip
-module snap_relief_slot(angle) {
-    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 + 1.8, -0.1]) {
-        hull() {
-            translate([-4.5, 0, 0]) cylinder(d = 1.6, h = 5.6);
-            translate([4.5, 0, 0])  cylinder(d = 1.6, h = 5.6);
-        }
+// Internal Blind Snap Detent Bead (Molded directly into inside wall of pocket at Z = 3.3mm)
+module internal_snap_detent(angle) {
+    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 - 0.25, display_pcb_depth]) {
+        // Smooth rounded detent bead with gradual lead-in ramp
+        rotate([90, 0, 0])
+            cylinder(r = 0.5, h = 1.0, center = true);
     }
 }
 
@@ -194,7 +175,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Balanced M3 Screws, 1.2mm Chamfers, Snap-Fit Locks)
+// 1. FRONT BEZEL RING PLATE (100% Solid Front Face, Internal Blind Snap Detents)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -204,11 +185,11 @@ module front_bezel() {
             translate([0, 0, bezel_thickness])
                 cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
             
-            // Integrated Snap Clips (+/-40 deg upper flanks, +/-130 deg lower flanks)
-            snap_clip(40);
-            snap_clip(-40);
-            snap_clip(130);
-            snap_clip(-130);
+            // Internal Blind Retention Detents (100% inside pocket, zero front cuts)
+            internal_snap_detent(40);
+            internal_snap_detent(-40);
+            internal_snap_detent(130);
+            internal_snap_detent(-130);
         }
         
         // 1. Wide Sloping Conical Anti-Shadow Aperture
@@ -219,15 +200,9 @@ module front_bezel() {
         translate([0, 0, -0.1])
             cylinder(d = display_glass_dia, h = 1.8);
             
-        // 3. PCB Retention Pocket with Top & Bottom Relief
+        // 3. PCB Retention Pocket with Top & Bottom Relief (100% Blind Pocket, Zero Through Cuts)
         translate([0, 0, -0.1])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
-
-        // Snap Clip Flex Relief Cutouts
-        snap_relief_slot(40);
-        snap_relief_slot(-40);
-        snap_relief_slot(130);
-        snap_relief_slot(-130);
             
         // 4. 4 Corner M3 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -248,6 +223,7 @@ module front_bezel() {
 }
 
 // 2. MAIN HOUSING POD (Lowered USB-C with Accentuated Chamfer, 1.2mm Bottom Chamfer)
+
 module main_housing() {
     cavity_depth = housing_depth - floor_t;
     esp_center_x = -10.0;
