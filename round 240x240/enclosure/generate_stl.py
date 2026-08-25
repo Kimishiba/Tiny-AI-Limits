@@ -134,51 +134,65 @@ def make_gc9a01_pcb_pocket(depth_pocket=3.3):
     
     return top_circle + tab_box + top_box
 
-def make_blind_snap_spring_arm(angle_deg, pcb_dia=39.0):
+def make_isolated_snap_spring_arm(angle_deg, pcb_dia=39.0):
     """
-    Generates an integrated cantilever spring arm with retention tooth and 45-deg lead-in ramp:
-    - Arm thickness: 1.4mm (between pocket wall R=19.5mm and flex trench R=20.9mm)
-    - Cantilever height: 3.5mm (anchored at Z=3.5mm, free to flex at Z=0)
-    - Protruding retention tooth (0.75mm inward) with 45-degree entry ramp
+    Generates a fully isolated compliant cantilever spring arm with retention tooth:
+    - Anchored at bottom root (Z=0)
+    - Free tip at top (Z=3.1mm) with 0.5mm top clearance gap separating it from the front plate
+    - Thickness: 1.4mm
+    - Width: 5.0mm
+    - Retention tooth on the inner face (Z=1.6mm to 3.0mm) with 45-degree entry ramp
     """
     r_wall = pcb_dia / 2.0
-    w_arm = 6.0
+    w_arm = 5.0
+    h_arm = 3.1  # Arm stops at 3.1mm, leaving 0.4mm top clearance gap before 3.5mm pocket depth
     
-    # Arm body extending from Z=0 to Z=3.5mm
-    arm_body = m3d.Manifold.cube([w_arm, 1.4, 3.5], center=False).translate([
+    # Slender spring arm body
+    arm_body = m3d.Manifold.cube([w_arm, 1.4, h_arm], center=False).translate([
         -w_arm / 2.0, r_wall, 0.0
     ])
     
-    # Retention tooth on the inner face (Z=0 to Z=1.3mm)
-    tooth_box = m3d.Manifold.cube([w_arm, 0.8, 1.3], center=False).translate([
-        -w_arm / 2.0, r_wall - 0.8, 0.0
+    # Retention tooth on the inner face (Z=1.6mm to 3.1mm)
+    tooth_box = m3d.Manifold.cube([w_arm, 0.85, 1.5], center=False).translate([
+        -w_arm / 2.0, r_wall - 0.85, 1.6
     ])
     
-    # 45-degree lead-in entry ramp cutter on the tooth
-    ramp_cutter = m3d.Manifold.cube([w_arm + 1.0, 1.2, 1.2], center=False).rotate([
+    # 45-degree entry ramp cutter sloping down to Z=1.6mm
+    ramp_cutter = m3d.Manifold.cube([w_arm + 1.0, 1.3, 1.3], center=False).rotate([
         -45, 0, 0
-    ]).translate([-(w_arm + 1.0) / 2.0, r_wall - 0.85, 0.0])
+    ]).translate([-(w_arm + 1.0) / 2.0, r_wall - 0.9, 1.6])
     
     tooth = tooth_box - ramp_cutter
     spring_assembly = arm_body + tooth
     return spring_assembly.rotate([0, 0, angle_deg])
 
-def make_blind_flex_trench(angle_deg, pcb_dia=39.0):
+def make_u_slot_isolation_cut(angle_deg, pcb_dia=39.0):
     """
-    Generates a BLIND flex relief trench behind the cantilever arm:
-    - Depth: Z = -0.1mm to Z = 3.5mm (strictly BLIND, leaving >2.0mm solid plastic on front face)
-    - Radial gap: 1.3mm (allows 0.8mm outward deflection when PCB is inserted)
-    - Arc width: 8.0mm
+    Generates a 3-sided U-shaped isolation cut (left slit + right slit + back trench + top gap):
+    - Depth: Z = -0.1mm to Z = 3.6mm (strictly blind, front face >2.0mm remains 100% solid)
+    - Back trench: 1.4mm thick behind the arm
+    - Side slits: 1.2mm wide cuts on left and right isolating the beam
+    - Top clearance gap: 0.5mm gap above arm tip (Z=3.1 to 3.6mm)
     """
-    r_trench = pcb_dia / 2.0 + 1.4
-    trench_w = 8.0
-    trench_thick = 1.3
-    trench_depth = 3.6  # Z = -0.1 to 3.5mm
+    r_wall = pcb_dia / 2.0
+    w_arm = 5.0
+    slit_w = 1.2
+    total_w = w_arm + 2 * slit_w  # 7.4mm total
+    trench_thick = 1.4
+    depth_z = 3.7
     
-    c1 = m3d.Manifold.cylinder(trench_depth, 0.65, 0.65, 16).translate([-3.3, 0, 0])
-    c2 = m3d.Manifold.cylinder(trench_depth, 0.65, 0.65, 16).translate([3.3, 0, 0])
-    slot = m3d.Manifold.hull(c1 + c2).translate([0, r_trench + trench_thick / 2.0, -0.1])
-    return slot.rotate([0, 0, angle_deg])
+    # Outer bounding cut block
+    outer_box = m3d.Manifold.cube([total_w, 1.4 + trench_thick + 0.5, depth_z], center=False).translate([
+        -total_w / 2.0, r_wall, -0.1
+    ])
+    
+    # Keep the arm volume (subtract arm from the cut box to leave only the U-gap around it)
+    arm_void = m3d.Manifold.cube([w_arm, 1.4, 3.1], center=False).translate([
+        -w_arm / 2.0, r_wall, -0.1
+    ])
+    
+    u_cut = outer_box - arm_void
+    return u_cut.rotate([0, 0, angle_deg])
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -223,13 +237,13 @@ def generate_front_bezel():
     # 5. Rear Retention Lip for PCB + Top Relief Notch
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
     
-    # 6. BLIND Flex Relief Trenches (Depth = 3.5mm max, leaves solid front face!)
-    blind_trenches = (make_blind_flex_trench(40, pcb_dia) + 
-                      make_blind_flex_trench(-40, pcb_dia) + 
-                      make_blind_flex_trench(130, pcb_dia) + 
-                      make_blind_flex_trench(-130, pcb_dia))
+    # 6. U-Shaped Isolation Cuts (Left slit + Right slit + Back trench + Top gap)
+    u_cuts = (make_u_slot_isolation_cut(40, pcb_dia) + 
+              make_u_slot_isolation_cut(-40, pcb_dia) + 
+              make_u_slot_isolation_cut(130, pcb_dia) + 
+              make_u_slot_isolation_cut(-130, pcb_dia))
                       
-    cuts = window_funnel + glass_recess + pcb_recess + blind_trenches
+    cuts = window_funnel + glass_recess + pcb_recess + u_cuts
     
     # 7. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
@@ -248,13 +262,14 @@ def generate_front_bezel():
             
     bezel_hollowed = bezel_solid - cuts
     
-    # 9. Add 4x Cantilever Spring Arms with Retention Teeth (Anchored at Z=3.5mm inside pocket)
-    spring_arms = (make_blind_snap_spring_arm(40, pcb_dia) + 
-                   make_blind_snap_spring_arm(-40, pcb_dia) + 
-                   make_blind_snap_spring_arm(130, pcb_dia) + 
-                   make_blind_snap_spring_arm(-130, pcb_dia))
+    # 9. Add 4x Fully Isolated Compliant Spring Arms with Retention Teeth
+    spring_arms = (make_isolated_snap_spring_arm(40, pcb_dia) + 
+                   make_isolated_snap_spring_arm(-40, pcb_dia) + 
+                   make_isolated_snap_spring_arm(130, pcb_dia) + 
+                   make_isolated_snap_spring_arm(-130, pcb_dia))
                    
     return bezel_hollowed + spring_arms
+
 
 
 

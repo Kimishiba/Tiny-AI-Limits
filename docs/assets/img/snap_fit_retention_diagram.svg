@@ -5,12 +5,7 @@
       <stop offset="100%" stop-color="#0a0d14"/>
     </linearGradient>
 
-    <linearGradient id="bezelPcb" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1e293b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-
-    <linearGradient id="springGrad" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="beamGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#38bdf8"/>
       <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
@@ -26,101 +21,67 @@
 
   <rect width="960" height="620" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5"/>
 
-  <g opacity="0.12">
-    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-      <circle cx="2" cy="2" r="1" fill="#94a3b8"/>
-    </pattern>
-    <rect width="960" height="620" fill="url(#grid)"/>
-  </g>
-
+  <!-- Title -->
   <g transform="translate(36, 26)">
-    <rect x="0" y="0" width="130" height="24" rx="5" fill="#0284c7"/>
-    <text x="65" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">BLIND SPRING SNAP</text>
+    <rect x="0" y="0" width="150" height="24" rx="5" fill="#f43f5e"/>
+    <text x="75" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">PROPER COMPLIANCE</text>
     
-    <text x="145" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">COMPLIANT CANTILEVER ARMS WITH BLIND RELIEF TRENCHES</text>
-    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">Blind cavity behind arm allows radial flexing • Stops at Z=3.5mm leaving 100% solid front face</text>
+    <text x="165" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">ISOLATED CANTILEVER SPRING MECHANICS</text>
+    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">Side relief slits + Top clearance gap completely isolate the spring beam for effortless bending</text>
   </g>
 
-  <!-- LEFT: REAR VIEW -->
+  <!-- LEFT: 3D-ISOMETRIC STYLE KINEMATICS VIEW -->
   <g transform="translate(40, 95)">
     <rect x="0" y="0" width="440" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: REAR OF FRONT BEZEL (BLIND TRENCHES)</text>
+    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: 3-SIDED ISOLATION (U-SLOT CUT)</text>
 
-    <g transform="translate(220, 260)">
-      <!-- Outer Solid Chamfered Plate -->
-      <polygon points="-110,-140 110,-140 140,-110 140,110 110,140 -110,140 -140,110 -140,-110" fill="url(#bezelPcb)" stroke="#475569" stroke-width="2"/>
-      
-      <!-- 4 Corner M3 Mounting Screw Holes -->
-      <circle cx="-95" cy="-95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
-      <circle cx="95" cy="-95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
-      <circle cx="-95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
-      <circle cx="95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+    <g transform="translate(50, 70)">
+      <!-- Surrounding Bezel Wall (Dark Grey) -->
+      <path d="M 0 0 L 340 0 L 340 360 L 0 360 Z" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
 
-      <!-- Circular Screen Pocket Recess (Dia 39.0mm) -->
-      <circle cx="0" cy="-6" r="95" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
-      
-      <!-- Top Relief Notch (18x23mm) -->
-      <path d="M -44 -65 L -44 -122 L 44 -122 L 44 -65" fill="#090d16" stroke="#f59e0b" stroke-width="1.5"/>
-      <text x="0" y="-95" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="800" text-anchor="middle">TOP CLEARANCE NOTCH</text>
+      <!-- U-Shaped Isolation Trench (Pink/Red Void) -->
+      <!-- Left slit (1.2mm wide) -->
+      <rect x="110" y="70" width="15" height="220" rx="3" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
+      <!-- Right slit (1.2mm wide) -->
+      <rect x="215" y="70" width="15" height="220" rx="3" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
+      <!-- Top clearance gap (1.5mm wide) -->
+      <rect x="110" y="70" width="120" height="18" rx="3" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
 
-      <!-- Bottom Connector Tab Recess (24x26.6mm) -->
-      <path d="M -58 50 L -58 125 L 58 125 L 58 50" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <!-- The Fully Isolated Cantilever Spring Beam (Cyan) -->
+      <rect x="130" y="94" width="80" height="196" rx="4" fill="url(#beamGrad)" stroke="#ffffff" stroke-width="1.5" filter="url(#glowCyan)"/>
+      <text x="170" y="190" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="900" text-anchor="middle">SPRING</text>
+      <text x="170" y="210" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="900" text-anchor="middle">BEAM</text>
 
-      <!-- Center Optical Viewing Aperture -->
-      <circle cx="0" cy="-6" r="77" fill="#1e293b" stroke="#00e5ff" stroke-width="1.5"/>
-      <text x="0" y="-3" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">FRONT APERTURE</text>
-      <text x="0" y="11" fill="#475569" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">Ø33.0mm (SOLID FRONT)</text>
+      <!-- Retention Tooth with Ramp on Free End (Top) -->
+      <polygon points="135,120 205,120 170,95" fill="#fde047" stroke="#ca8a04" stroke-width="1.5"/>
+      <text x="170" y="145" fill="#fde047" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">SNAP TOOTH</text>
 
-      <!-- 4x BLIND SPRING ARMS & REAR TRENCHES -->
-      <!-- Arm 1: Upper-Left -->
-      <g transform="translate(-70, -65) rotate(-40)">
-        <rect x="-16" y="5" width="32" height="6" rx="3" fill="#000000" stroke="#f43f5e" stroke-width="1.2"/>
-        <rect x="-12" y="-4" width="24" height="9" rx="1.5" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="0" y="2" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="6.5" font-weight="900" text-anchor="middle">ARM 1</text>
-      </g>
+      <!-- Root Hinge / Anchor at Bottom -->
+      <rect x="125" y="285" width="90" height="10" fill="#10b981" opacity="0.4"/>
+      <text x="170" y="320" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">ROOT ANCHOR (BOTTOM)</text>
 
-      <!-- Arm 2: Upper-Right -->
-      <g transform="translate(70, -65) rotate(40)">
-        <rect x="-16" y="5" width="32" height="6" rx="3" fill="#000000" stroke="#f43f5e" stroke-width="1.2"/>
-        <rect x="-12" y="-4" width="24" height="9" rx="1.5" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="0" y="2" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="6.5" font-weight="900" text-anchor="middle">ARM 2</text>
-      </g>
-
-      <!-- Arm 3: Lower-Left -->
-      <g transform="translate(-76, 48) rotate(-130)">
-        <rect x="-16" y="5" width="32" height="6" rx="3" fill="#000000" stroke="#f43f5e" stroke-width="1.2"/>
-        <rect x="-12" y="-4" width="24" height="9" rx="1.5" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="0" y="2" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="6.5" font-weight="900" text-anchor="middle">ARM 3</text>
-      </g>
-
-      <!-- Arm 4: Lower-Right -->
-      <g transform="translate(76, 48) rotate(130)">
-        <rect x="-16" y="5" width="32" height="6" rx="3" fill="#000000" stroke="#f43f5e" stroke-width="1.2"/>
-        <rect x="-12" y="-4" width="24" height="9" rx="1.5" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
-        <text x="0" y="2" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="6.5" font-weight="900" text-anchor="middle">ARM 4</text>
-      </g>
-
-      <g transform="translate(0, 150)">
-        <text x="0" y="0" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">⬇ CONNECTOR HEADER TAB (24.0mm) ⬇</text>
-      </g>
+      <!-- Dimension Labels -->
+      <text x="55" y="180" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">LEFT SLIT</text>
+      <text x="240" y="180" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">RIGHT SLIT</text>
+      <text x="170" y="55" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">★ TOP CLEARANCE GAP ★</text>
     </g>
   </g>
 
-  <!-- RIGHT: DETAILED CROSS SECTION & FLEX ACTION -->
+  <!-- RIGHT: SIDE CROSS-SECTION & DEFLECTION MECHANICS -->
   <g transform="translate(500, 95)">
     <rect x="0" y="0" width="420" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: CROSS-SECTION (CANTILEVER DEFLECTION)</text>
+    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: CROSS SECTION WITH TOP GAP</text>
 
     <g transform="translate(60, 75)">
-      <!-- Bezel Cross Section Body (100% Solid front floor from Z=3.5 to 7.0mm) -->
+      <!-- Bezel Body -->
       <path d="M 0 240 L 0 0 L 100 0 L 100 60 L 160 60 L 160 240 Z" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
-      <text x="50" y="140" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle" transform="rotate(-90 50 140)">100% SOLID FRONT FACE</text>
+      <text x="50" y="140" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle" transform="rotate(-90 50 140)">SOLID FRONT FACE</text>
 
       <!-- Glass Front Lip -->
       <rect x="100" y="60" width="35" height="15" fill="#334155" stroke="#64748b" stroke-width="1"/>
       <text x="117" y="50" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">FRONT STOP</text>
 
-      <!-- Screen Assembly -->
+      <!-- Screen PCB -->
       <g transform="translate(135, 75)">
         <rect x="0" y="0" width="130" height="30" rx="2" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
         <text x="65" y="20" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">1.28" LCD GLASS</text>
@@ -129,49 +90,34 @@
         <text x="65" y="45" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">SCREEN PCB (1.6mm)</text>
       </g>
 
-      <!-- Blind Flex Trench (Depth only to Z=3.5, leaving solid floor) -->
-      <rect x="75" y="130" width="25" height="100" rx="4" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
-      <text x="87" y="185" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800" text-anchor="middle" transform="rotate(-90 87 185)">BLIND AIR GAP (1.3mm)</text>
+      <!-- TOP CLEARANCE GAP (Allows tip of beam to swing freely!) -->
+      <rect x="95" y="110" width="35" height="18" fill="#f43f5e" opacity="0.3"/>
+      <text x="145" y="123" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">TOP GAP (FREE TIP)</text>
 
-      <!-- Cantilever Spring Arm with Lead-in Ramp -->
+      <!-- Isolated Cantilever Spring Arm -->
       <g transform="translate(100, 130)">
-        <path d="M 0 0 L 22 0 L 22 80 L 0 100 Z" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1.5" filter="url(#glowCyan)"/>
-        <!-- Undercut Lock Tooth with 45-deg Ramp -->
-        <polygon points="22,70 32,80 22,80" fill="#fde047" stroke="#ca8a04" stroke-width="1"/>
-        <text x="11" y="45" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle" transform="rotate(-90 11 45)">SPRING BEAM</text>
+        <path d="M 0 0 L 22 0 L 22 90 L 0 90 Z" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1.5" filter="url(#glowCyan)"/>
+        <!-- Tooth with 45 deg ramp -->
+        <polygon points="22,10 32,25 22,25" fill="#fde047" stroke="#ca8a04" stroke-width="1"/>
+        <text x="11" y="55" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle" transform="rotate(-90 11 55)">FREE BEAM</text>
         
-        <!-- Deflection Arc Arrow -->
-        <path d="M -4 50 C -12 50, -12 70, -4 70" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,3"/>
-        <polygon points="-3,70 -9,66 -9,74" fill="#38bdf8"/>
-        <text x="-26" y="63" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800">FLEX</text>
+        <!-- Bending Motion Arc -->
+        <path d="M -6 15 C -20 15, -20 40, -6 40" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="3,3"/>
+        <polygon points="-5,15 -14,11 -14,19" fill="#f43f5e"/>
+        <text x="-48" y="30" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900">BENDS</text>
       </g>
 
-      <!-- Push In Arrow -->
+      <!-- Insertion Arrow -->
       <g transform="translate(200, 20)">
         <line x1="0" y1="0" x2="0" y2="40" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
         <polygon points="0,48 -5,35 5,35" fill="#00e5ff"/>
-        <text x="12" y="26" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900">PUSH IN</text>
-      </g>
-
-      <!-- Feature Callouts -->
-      <g transform="translate(185, 150)">
-        <rect x="0" y="0" width="150" height="42" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
-        <text x="8" y="16" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900">1. Blind Relief Trench:</text>
-        <text x="8" y="32" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8">Allows arm to bend back</text>
-
-        <rect x="0" y="50" width="150" height="42" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-        <text x="8" y="66" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">2. True Spring Action:</text>
-        <text x="8" y="82" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8">Slender 1.4mm beam flexes</text>
-
-        <rect x="0" y="100" width="150" height="42" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-        <text x="8" y="116" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">3. 100% Solid Front:</text>
-        <text x="8" y="132" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8">Zero holes on outer face</text>
+        <text x="12" y="26" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900">PRESS IN</text>
       </g>
     </g>
 
     <g transform="translate(20, 440)">
       <rect x="0" y="0" width="380" height="38" rx="6" fill="#182030" stroke="#334155" stroke-width="1"/>
-      <text x="190" y="24" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Beam bends into blind trench on push-in, snaps over PCB</text>
+      <text x="190" y="24" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Beam tip is completely free at the top to flex effortlessly</text>
     </g>
   </g>
 </svg>

@@ -157,26 +157,30 @@ module gc9a01_blueprint_pocket(h) {
 // Blind Cantilever Spring Arm with Retention Tooth
 module snap_spring_arm(angle) {
     rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, 0]) {
-        // Slender 1.4mm spring beam from Z=0 to Z=3.5mm
-        translate([-3.0, 0, 0])
-            cube([6.0, 1.4, 3.5]);
-        // Retention tooth with 45-deg entry ramp
+        // Slender spring beam from Z=0 to Z=3.1mm
+        translate([-2.5, 0, 0])
+            cube([5.0, 1.4, 3.1]);
+        // Retention tooth with 45-deg entry ramp on top
         difference() {
-            translate([-3.0, -0.8, 0])
-                cube([6.0, 0.8, 1.3]);
-            translate([-3.5, -0.85, 0])
+            translate([-2.5, -0.85, 1.6])
+                cube([5.0, 0.85, 1.5]);
+            translate([-3.0, -0.9, 1.6])
                 rotate([-45, 0, 0])
-                    cube([7.0, 1.2, 1.2]);
+                    cube([6.0, 1.3, 1.3]);
         }
     }
 }
 
-// Blind Flex Relief Trench (Strictly stops at Z=3.5mm, leaving >2.0mm solid front face!)
-module blind_flex_trench(angle) {
-    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 + 1.4 + 0.65, -0.1]) {
-        hull() {
-            translate([-3.3, 0, 0]) cylinder(d = 1.3, h = 3.6);
-            translate([3.3, 0, 0])  cylinder(d = 1.3, h = 3.6);
+// 3-Sided U-Shaped Isolation Cut (Left Slit + Right Slit + Back Trench + Top Gap)
+module u_slot_isolation_cut(angle) {
+    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, -0.1]) {
+        difference() {
+            // Outer bounding cut (7.4mm wide x 2.8mm thick x 3.7mm depth)
+            translate([-3.7, 0, 0])
+                cube([7.4, 2.8, 3.7]);
+            // Preserve arm space up to Z=3.1mm (leaving 0.5mm top gap above arm)
+            translate([-2.5, 0, 0])
+                cube([5.0, 1.4, 3.2]);
         }
     }
 }
@@ -193,7 +197,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (100% Solid Front Face, Blind Flexible Spring Snap Arms)
+// 1. FRONT BEZEL RING PLATE (100% Solid Front Face, Fully Isolated Cantilever Spring Arms)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -217,11 +221,11 @@ module front_bezel() {
             translate([0, 0, -0.1])
                 gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
                 
-            // 4. Blind Flex Relief Trenches (Depth = 3.5mm, leaves solid front face!)
-            blind_flex_trench(40);
-            blind_flex_trench(-40);
-            blind_flex_trench(130);
-            blind_flex_trench(-130);
+            // 4. 3-Sided U-Shaped Isolation Cuts (Left + Right Slits + Back Trench + Top Gap)
+            u_slot_isolation_cut(40);
+            u_slot_isolation_cut(-40);
+            u_slot_isolation_cut(130);
+            u_slot_isolation_cut(-130);
                 
             // 5. 4 Corner M3 Screw Holes with Recessed Counterbores
             for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -240,13 +244,14 @@ module front_bezel() {
             }
         }
         
-        // 7. Cantilever Spring Arms (Anchored at Z=3.5mm inside pocket, flex outwards into blind trench)
+        // 7. Fully Isolated Cantilever Spring Arms (Free tip at top, flexes outward on push-in)
         snap_spring_arm(40);
         snap_spring_arm(-40);
         snap_spring_arm(130);
         snap_spring_arm(-130);
     }
 }
+
 
 
 
