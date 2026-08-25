@@ -1207,36 +1207,30 @@ void fetchBackendData() {
 }
 
 // ==========================================
-// WIFI CONNECTION (from working commit 74e9073)
+// WIFI CONNECTION
 // ==========================================
 bool connectToWifi(const char* ssid, const char* password) {
-    WiFi.mode(WIFI_OFF);
-    delay(100);
+    WiFi.disconnect(true, true);
+    delay(150);
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm);
-    delay(50);
+    WiFi.setTxPower(WIFI_POWER_8_5dBm); // Tuned for KPN router RF sensitivity & ESP32-C3 LDO stability
 
-    wifi_country_t country = {"01", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
+    wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
     esp_wifi_set_country(&country);
-
-    WiFi.disconnect(true, true);
     delay(50);
 
-    Serial.printf("\n[WiFi] Connecting to '%s'...\n", ssid);
+    Serial.printf("\n[WiFi] Connecting to '%s' (TX: 8.5dBm)...\n", ssid);
     WiFi.begin(ssid, password);
-    wifi_config_t wifiConfig = {};
-    esp_wifi_get_config(WIFI_IF_STA, &wifiConfig);
-    wifiConfig.sta.pmf_cfg.capable = false;
-    wifiConfig.sta.pmf_cfg.required = false;
-    esp_wifi_set_config(WIFI_IF_STA, &wifiConfig);
-    WiFi.disconnect(false);
-    delay(50);
-    esp_wifi_connect();
 
     unsigned long connectStart = millis();
+    int attempts = 0;
     while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
-        delay(250);
+        delay(500);
+        attempts++;
+        if (attempts % 4 == 0) {
+            Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
+        }
         improvSerial.handleSerial();
     }
 
@@ -1246,9 +1240,8 @@ bool connectToWifi(const char* ssid, const char* password) {
         return true;
     }
 
-    Serial.printf("[WiFi] Connection to '%s' failed.\n", ssid);
-    WiFi.disconnect(true, false); // abort the pending connect attempt so the STA
-                                   // returns to idle and scanNetworks() works again
+    Serial.printf("[WiFi] Connection to '%s' failed (status: %d).\n", ssid, WiFi.status());
+    WiFi.disconnect(true, false);
     delay(50);
     return false;
 }
@@ -1369,13 +1362,22 @@ void setup() {
     // 3. Initialize Active Display
     initActiveDisplay();
 
-    // 4. Wi-Fi Configuration for ESP32-C3 SuperMini (STA mode, power-tuned, 13-channel worldwide)
+    // 4. Wi-Fi Configuration for ESP32-C3
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     WiFi.setTxPower(WIFI_POWER_8_5dBm);
-    wifi_country_t country = {"01", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
+    wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
     esp_wifi_set_country(&country);
     delay(50);
+
+    WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
+        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+            Serial.printf("[WiFi] Disconnected! Reason code: %d\n", info.wifi_sta_disconnected.reason);
+        } else if (event == ARDUINO_EVENT_WIFI_STA_GOT_IP) {
+            Serial.printf("[WiFi] Got IP: %s\n", IPAddress(info.got_ip.ip_info.ip.addr).toString().c_str());
+        }
+    });
+
     WiFi.disconnect(true, true);
     delay(50);
 
@@ -1470,8 +1472,20 @@ void loop() {
     static unsigned long lastWiFiCheck = 0;
     if (now - lastWiFiCheck >= 10000) {
         lastWiFiCheck = now;
-        if (WiFi.status() != WL_CONNECTED && !provisioningMode) {
-            WiFi.reconnect();
+        if (WiFi.status() != WL_CONNECTED) {
+            if (!provisioningMode) {
+                WiFi.reconnect();
+            } else {
+                // A failed first-boot attempt leaves us here permanently otherwise --
+                // RF flakiness (auth/handshake timeouts) means a retry often succeeds.
+                wifiPrefs.begin("wifi", false);
+                String storedSsid = wifiPrefs.getString("ssid", "");
+                String storedPassword = wifiPrefs.getString("password", "");
+                wifiPrefs.end();
+                if (storedSsid.length() > 0 && connectToWifi(storedSsid.c_str(), storedPassword.c_str())) {
+                    provisioningMode = false;
+                }
+            }
         }
     }
 
