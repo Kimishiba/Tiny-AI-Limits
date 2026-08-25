@@ -119,14 +119,20 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
 def make_gc9a01_pcb_pocket(depth_pocket=3.3):
     """
     Creates exact composite shape for GC9A01 PCB:
-    - Upper circular body: 38.8mm dia (38.0mm PCB + 0.8mm tolerance [+0.1mm per side])
-    - Lower connector tab: 23.8mm wide (22.92mm tab + 0.88mm tolerance) extending down to y = -26.6mm
+    - Upper circular body: 39.0mm dia (38.0mm PCB + 1.0mm tolerance [+0.1mm extra clearance per side])
+    - Lower connector tab: 24.0mm wide (22.92mm tab + 1.08mm tolerance) extending down to y = -26.6mm
+    - Top extra material relief notch: 18.0mm wide extending to y = +23.0mm
     """
-    top_circle = m3d.Manifold.cylinder(depth_pocket, 38.8 / 2.0, 38.8 / 2.0, 64)
-    tab_w = 23.8
+    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.0 / 2.0, 39.0 / 2.0, 64)
+    tab_w = 24.0
     tab_h = 26.6
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
-    return top_circle + tab_box
+    
+    top_notch_w = 18.0
+    top_notch_h = 23.0
+    top_box = m3d.Manifold.cube([top_notch_w, top_notch_h, depth_pocket], center=False).translate([-top_notch_w / 2.0, 0, 0])
+    
+    return top_circle + tab_box + top_box
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -147,6 +153,7 @@ def generate_front_bezel():
     oal_t = t + ring_h
     screw_dist = 19.50
     chamfer_outer = 1.2
+    pcb_dia = 39.0
     
     # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
@@ -156,31 +163,27 @@ def generate_front_bezel():
     bezel_solid = base + ring_chamfered
     
     # 3. Wide Sloping Inner Conical Bezel Funnel
-    r_glass = 16.4
-    r_front = 19.2
+    r_glass = 16.5
+    r_front = 19.3
     funnel_h = oal_t + 2.0
     dr_dz = (r_front - r_glass) / (oal_t - 3.3)
     r_bot = r_glass - dr_dz * (3.3 - (-1.0))
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
     
-    # 4. Glass Step Pocket (+0.1mm clearance per side -> dia 36.2mm)
-    glass_recess = m3d.Manifold.cylinder(1.8, 36.2 / 2.0, 36.2 / 2.0, 64).translate([0, 0, -0.1])
-    
-    # 5. Rear Retention Lip for PCB
+    # 4. Rear Retention Pocket for PCB + Top Relief Notch (Single clean uniform flat pocket)
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
-
     
-    cuts = window_funnel + glass_recess + pcb_recess
+    cuts = window_funnel + pcb_recess
     
-    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
+    # 5. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 7. 2 Blind M2 Pilot Holes
+    # 6. 2 Blind M2 Pilot Holes
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -188,7 +191,82 @@ def generate_front_bezel():
         s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
         cuts = cuts + s_hole
             
-    return bezel_solid - cuts
+    bezel_hollowed = bezel_solid - cuts
+    return bezel_hollowed
+
+def generate_mid_clamp():
+    """
+    Sandwich Mid Clamp Continuous-Border X-Brace:
+    - Sits between Front Bezel and Main Housing creating a seamless continuous outer block
+    - Continuous outer 54x54mm octagonal perimeter border matching housing outer walls
+    - 4 corner screw pads at (+/-19.50, +/-19.50) with 3.4mm M3 clearance holes
+    - 7.0mm wide diagonal X-arms meeting at center with 14.0mm center component-relief hole
+    - 0.6mm forward compression pads on diagonal arms (inside dia = 38.6mm) to clamp the screen PCB
+    - 4 large open quadrant windows for DuPont wire routing & internal ventilation
+    """
+    w = 54.0
+    c = 6.0
+    t = 2.0
+    lip_h = 0.6
+    arm_w = 7.0
+    center_hole_d = 14.0
+    outer_dia = 38.6
+    screw_dist = 19.50
+    total_h = t + lip_h
+
+    # 1. 2D CrossSection of Outer Octagonal Perimeter and Inner Cavity
+    hw = w / 2.0
+    oct_pts = [
+        [-hw + c, -hw], [hw - c, -hw],
+        [hw, -hw + c],  [hw, hw - c],
+        [hw - c, hw],   [-hw + c, hw],
+        [-hw, hw - c],  [-hw, -hw + c]
+    ]
+    oct_outer = m3d.CrossSection([oct_pts])
+    
+    cw, cc = 46.0, 13.0
+    hcw = cw / 2.0
+    cav_pts = [
+        [-hcw + cc, -hcw], [hcw - cc, -hcw],
+        [hcw, -hcw + cc],  [hcw, hcw - cc],
+        [hcw - cc, hcw],   [-hcw + cc, hcw],
+        [-hcw, hcw - cc],  [-hcw, -hcw + cc]
+    ]
+    oct_inner = m3d.CrossSection([cav_pts])
+    
+    # Continuous outer perimeter border
+    border_2d = oct_outer - oct_inner
+    
+    # Diagonal X-arms
+    arm45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(45)
+    arm_m45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(-45)
+    x_arms = (arm45 + arm_m45) ^ oct_outer
+    
+    # Full 2D base: border + X-arms, minus center clearance hole
+    base_2d = (border_2d + x_arms) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
+    base_3d = m3d.Manifold.extrude(base_2d, t)
+    
+    # 2. Forward compression pads on the 4 diagonal arms (0.6mm protrusion inside dia 38.6mm)
+    lip_2d = ((arm45 + arm_m45) ^ m3d.CrossSection.circle(outer_dia / 2.0, 64)) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
+    pads_3d = m3d.Manifold.extrude(lip_2d, lip_h).translate([0, 0, t])
+    
+    solid = base_3d + pads_3d
+    
+    # 3. 4 Corner M3 Through-Holes
+    cut_h = total_h + 2.0
+    cuts = m3d.Manifold()
+    for sx in [-screw_dist, screw_dist]:
+        for sy in [-screw_dist, screw_dist]:
+            cuts = cuts + m3d.Manifold.cylinder(cut_h, 1.7, 1.7, 32).translate([sx, sy, -1.0])
+            
+    return solid - cuts
+
+
+
+
+
+
+
 
 def generate_main_housing():
     w = 54.0
@@ -265,6 +343,8 @@ def generate_main_housing():
     standoffs_locked = standoffs - pin_cuts
     
     return housing_body + standoffs_locked
+
+
 
 def generate_stand_tier1_base():
     """
@@ -344,9 +424,9 @@ def generate_stand_tier2_trunk():
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    # 3. Exact Pod V-Saddle Negative Mold (accommodates full 30.0mm assembled pod with clearance):
+    # 3. Exact Pod V-Saddle Negative Mold (accommodates full 35.0mm assembled pod with clearance):
     w_c = 54.8
-    slot_depth = 34.2
+    slot_depth = 36.5
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [
@@ -405,7 +485,7 @@ def generate_monolithic_desk_stand():
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
     w_c = 54.8
-    slot_depth = 34.2
+    slot_depth = 36.5
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [
@@ -443,22 +523,27 @@ def main():
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Main Housing Enclosure (Accentuated USB Chamfer)
+    # 2. Mid Clamp Sandwich Bracket
+    mid_clamp = generate_mid_clamp()
+    mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
+    export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
+
+    # 3. Main Housing Enclosure (Accentuated USB Chamfer)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod (Accentuated USB-C Chamfer)")
 
-    # 3. Two-Tier Stand: Tier 1 Base Plate (with 4 Alignment Pillars)
+    # 4. Two-Tier Stand: Tier 1 Base Plate (with 4 Alignment Pillars)
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
     export_stl(tier1, tier1_path, "Stand Tier 1 Base Plate (with 4 Alignment Pillars)")
 
-    # 4. Two-Tier Stand: Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)
+    # 5. Two-Tier Stand: Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)
     tier2 = generate_stand_tier2_trunk()
     tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
     export_stl(tier2, tier2_path, "Stand Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)")
 
-    # 5. Monolithic Desk Stand (Unified)
+    # 6. Monolithic Desk Stand (Unified)
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")

@@ -12,10 +12,15 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 * **Function:** Precision carrier holding the display glass, PCB, and retaining screws flush.
 * **Outer Profile:** $54.00\text{mm} \times 54.00\text{mm}$ with $6.00\text{mm} \times 45^\circ$ corner chamfers.
 * **Plate Thickness:** $5.50\text{mm}$ carrier body $+ 1.50\text{mm}$ raised decorative trim ring ($\varnothing 44.00\text{mm}$) = $7.00\text{mm}$ Overall Length (OAL).
-* **Active Screen Viewport:** $\varnothing 32.80\text{mm}$ through-hole with $36.4^\circ$ inner bevel ring (aperture dia $\varnothing 38.40\text{mm}$).
-* **Glass Lens Retention Step:** $\varnothing 36.20\text{mm} \times 1.80\text{mm}$ deep (from rear, $+0.1\text{mm}$ clearance per side).
-* **Full PCB Retention Pocket:** $\varnothing 38.80\text{mm}$ circular top $+ 23.80\text{mm}$ wide bottom tab down to $Y = -26.60\text{mm}$ ($3.30\text{mm}$ deep into bezel from rear, $+0.1\text{mm}$ clearance per side).
+* **Active Screen Viewport:** $\varnothing 33.00\text{mm}$ through-hole with $36.4^\circ$ inner bevel ring (aperture dia $\varnothing 38.60\text{mm}$).
+* **Glass Lens Retention Step:** $\varnothing 36.40\text{mm} \times 1.80\text{mm}$ deep (from rear, $+0.80\text{mm}$ clearance).
+* **Full PCB Retention Pocket:** $\varnothing 39.00\text{mm}$ circular top $+ 24.00\text{mm}$ wide bottom tab down to $Y = -26.60\text{mm}$ ($3.30\text{mm}$ deep into bezel from rear, $+1.00\text{mm}$ tolerance, straight cylinder).
+* **Top Relief Notch:** $18.00\text{mm} \text{ wide} \times 23.00\text{mm} \text{ height}$ extended clearance for top solder/ribbon overhang.
+* **Reverse Catch Detents:** $4 \times$ discrete $0.35\text{mm}$ forward-locking shelves at rear pocket entrance ($Z = 1.1\text{mm}$) locking the PCB forward against the front stop.
 * **Screen Bolting Pilot Holes:** $2 \times \varnothing 1.75\text{mm}$ blind pilot holes at $X = \pm 9.63\text{mm}, Y = -18.91\text{mm}$ ($19.26\text{mm}$ pitch), depth $3.30\text{mm}$ from rear (leaves solid front face).
+
+
+
 
 * **Corner Enclosure Screws:** $4 \times$ M2 through-holes ($\varnothing 2.60\text{mm}$) with counterbore pockets ($\varnothing 4.80\text{mm} \times 2.20\text{mm}$ deep) at $X = \pm 21.00\text{mm}, Y = \pm 21.00\text{mm}$ ($42.00\text{mm}$ Bolt Circle).
 * **3D Print Orientation:** Print flat on front face ($Z = 7.0\text{mm}$ on bed). **Zero supports required.**

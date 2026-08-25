@@ -17,10 +17,12 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 
 | File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
-| **[`gc9a01_front_bezel.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_front_bezel.stl)** | Front bezel plate with $\varnothing 32.6\text{mm}$ active window, 2 M2 screen bolting holes, and 4 M2 counterbored corner pockets | $54 \times 54 \times 4.5\text{mm}$ | ~25 mins |
-| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Slim $26\text{mm}$ main housing with bottom DuPont wire trench, pin-locking standoffs, and USB-C cutout | $54 \times 54 \times 26.0\text{mm}$ | ~45 mins |
-| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & $20\text{mm}$ cable channel | $64 \times 68 \times 34.0\text{mm}$ | ~45 mins |
-| **[`gc9a01_stand_accent_base.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_accent_base.stl)** | Optional standalone Tier-1 bottom plate for wood PLA or dual-material printing | $64 \times 68 \times 6.0\text{mm}$ | ~20 mins |
+| **[`gc9a01_front_bezel.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_front_bezel.stl)** | Front bezel plate with $\varnothing 33.0\text{mm}$ conical anti-shadow window, clean $\varnothing 39.0\text{mm}$ screen pocket, 2 blind M2 pilot holes, and 4 M3 counterbored corner pockets | $54 \times 54 \times 7.0\text{mm}$ | ~25 mins |
+| **[`gc9a01_mid_clamp.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_mid_clamp.stl)** | Sandwich mid clamp diagonal X-brace with $7.0\text{mm}$ cross arms, forward compression pads, $\varnothing 14.0\text{mm}$ center component-relief hole, and open wiring quadrants | $54 \times 54 \times 2.6\text{mm}$ | ~10 mins |
+| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Support-free $27.5\text{mm}$ deep main housing with bottom DuPont wire trench, pin-locking standoffs, and flared USB-C entry | $54 \times 54 \times 27.5\text{mm}$ | ~45 mins |
+| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & slide-in pod channel | $64 \times 68 \times 29.0\text{mm}$ | ~45 mins |
+| **[`gc9a01_stand_tier1_base.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_tier1_base.stl)** | Standalone Tier-1 bottom plate with 4 alignment pillars for wood PLA or dual-material printing | $64 \times 68 \times 8.5\text{mm}$ | ~20 mins |
+| **[`gc9a01_stand_tier2_trunk.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_tier2_trunk.stl)** | Tier-2 cradle trunk with alignment sockets and $22^\circ$ V-saddle | $62 \times 66 \times 24.0\text{mm}$ | ~40 mins |
 | **[`gc9a01_cyberdeck_enclosure.scad`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_cyberdeck_enclosure.scad)** | Fully parametric OpenSCAD source file | — | — |
 | **[`generate_stl.py`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/generate_stl.py)** | Standalone Boolean CSG mesh generator script generating 100% watertight binary STLs | — | — |
 
@@ -33,9 +35,8 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 | **GC9A01 1.28″ Round IPS SPI Display** | 1 | Circular $240\times 240$ color screen module |
 | **ESP32-C3 SuperMini** | 1 | Microcontroller board (pin headers soldered facing up) |
 | **Female-to-Female DuPont Jumpers (10cm)** | 7 | Standard jumper wires for SPI wiring harness |
-| **M2 $\times$ 4mm or 6mm Pan/Socket Screws** | 2 | Fastens GC9A01 bottom tab directly to the front bezel |
-| **M2 $\times$ 12mm Socket Head Cap Screws** | 4 | Fastens front bezel to main housing (Brass or Black Oxide) |
-| **M2 Brass Heat-Set Inserts** *(optional)* | 4–6 | Inserted into bezel & housing posts (or direct self-tap) |
+| **M3 $\times$ 35mm Socket Head Cap Screws** | 4 | Fastens Front Bezel $\to$ Mid Clamp $\to$ Main Housing |
+| **M3 Brass Heat-Set Inserts / Direct Tap** | 4 | Main housing corner posts |
 | **8mm $\times$ 1.5mm Adhesive Rubber Feet** | 4 | Fitted into stand base recesses for non-slip desk grip |
 | **USB-C Cable (Braided or Right-Angle)** | 1 | Power delivery & firmware flashing |
 
@@ -43,13 +44,14 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 
 ## ⚙️ Slicer Print Settings (Cura / PrusaSlicer / Bambu Studio / OrcaSlicer)
 
-* **Material:** Matte Charcoal Black PLA / PETG for the body, Wood PLA or Walnut Brown for the base.
+* **Material:** Matte Charcoal Black PLA / PETG for the housing & bezel, Accent color (e.g. Orange / Cyan / White) for the Mid Clamp, Wood PLA or Walnut Brown for the stand base.
 * **Layer Height:** `0.16mm` or `0.20mm`.
 * **Perimeters / Walls:** `3` walls (for solid screw hole threading).
 * **Top/Bottom Solid Layers:** `4` top, `4` bottom.
 * **Infill:** `20% Gyroid` or `Grid`.
 * **Supports:** **NO SUPPORTS NEEDED** when oriented properly:
   * **Front Bezel:** Print face-down on build plate (flat side down).
+  * **Mid Clamp:** Print flat on build plate (compression lip facing up).
   * **Main Housing:** Print with rear face on build plate (open front cavity facing up).
   * **Desk Stand:** Print flat on base bottom (angled V-saddle cradle facing up).
 
@@ -57,9 +59,9 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
 
 ## 🪛 Assembly Step-by-Step
 
-1. **Bolt Display to Front Bezel:** Seat the GC9A01 display into the rear of the front bezel and secure it with 2 $\times$ M2 screws through the bottom tab holes ($X = \pm 9.63\text{mm}, Y = -18.91\text{mm}$).
-2. **Mount ESP32-C3:** Drop the ESP32-C3 SuperMini onto the standoff rails with upward-pointing pin headers. The solder pin tails will lock into the 16 registration holes, aligning the USB-C port with the left-side window.
-3. **Connect DuPont Wiring Harness:** Connect the 7 SPI jumper wires between the **GC9A01** and **ESP32-C3 SuperMini**:
+1. **Insert Screen into Front Bezel:** Drop the GC9A01 display face-down into the rear pocket of the front bezel.
+2. **Position Mid Clamp:** Place the **Mid Clamp** behind the screen so the circular compression collar rests against the rear fiberglass rim of the PCB.
+3. **Mount ESP32-C3 & Wire Harness:** Drop the ESP32-C3 SuperMini into the main housing standoffs and connect the 7 SPI jumper wires between the **GC9A01** and **ESP32-C3 SuperMini**:
    * `SCL` $\to$ `GPIO 4`
    * `SDA` $\to$ `GPIO 6`
    * `CS` $\to$ `GPIO 5`
@@ -67,5 +69,5 @@ All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Doc
    * `RST` $\to$ `GPIO 1`
    * `BLK` $\to$ `3V3` or `GPIO 0`
    * `VCC` $\to$ `3V3` / `GND` $\to$ `GND`
-4. **Fasten Bezel to Housing:** Place the assembled front bezel over the main housing and fasten with 4 $\times$ M2 $\times$ 12mm corner screws.
-5. **Slot into Stand:** Slide the assembled pod into the sculpted $22^\circ$ V-saddle desk cradle and route the USB-C cable through the rear channel.
+4. **Fasten 3-Piece Sandwich:** Mate Front Bezel $\to$ Mid Clamp $\to$ Main Housing and secure with 4 $\times$ M3 corner screws. Tightening the corner screws compresses the mid clamp against the screen PCB, locking it rigidly against the front window.
+5. **Slot into Stand:** Slide the assembled pod into the sculpted $22^\circ$ V-saddle desk cradle and connect your USB-C cable through the chamfered port opening.
