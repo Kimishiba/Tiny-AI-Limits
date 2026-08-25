@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Stand Tier 1 Base, 4 = Stand Tier 2 Trunk, 5 = Monolithic Stand
+part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Stand
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
@@ -27,6 +27,12 @@ display_tab_h      = 26.6; // Tab height from center (45.6mm total height)
 display_top_tab_w  = 18.0; // Top clearance notch width for screen protrusion / ribbon / extra material (mm)
 display_top_tab_h  = 23.0; // Top notch height from center (mm)
 display_pcb_depth  = 3.3;  // Bezel rear pocket depth (+0.1mm depth clearance) (mm)
+
+// Mid Clamp Sandwich Plate Parameters
+mid_clamp_thickness = 2.0;  // Mid clamp sandwich plate thickness (mm)
+mid_clamp_lip_h     = 0.6;  // Forward circular compression collar protrusion (mm)
+mid_clamp_inner_dia = 34.0; // Central component clearance opening (mm)
+mid_clamp_outer_dia = 38.6; // Outer compression rim diameter (mm)
 
 
 // Direct Screen Bolting Blind Pilot Holes (1.75mm dia for M2 plastic thread grip)
@@ -154,21 +160,6 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Single Clean Forward-Holding Retention Catch Tab (Smooth ramp to Z=0.7, flat shelf at Z=1.1)
-module reverse_catch_detent(angle) {
-    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, 0]) {
-        rotate([0, 90, 0]) linear_extrude(height = 3.5, center = true) {
-            polygon([
-                [0.0, 0.5],
-                [0.7, -0.35],
-                [1.1, -0.35],
-                [1.1, 0.5]
-            ]);
-        }
-    }
-}
-
-
 // Lowered Precision Oval USB-C Cutter with Accentuated Lead-In Chamfer
 module usbc_stadium_cutter() {
     hull() {
@@ -181,7 +172,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Single Flat Pocket with Forward-Holding Catch Tabs)
+// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Single Clean Flat Pocket)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -216,12 +207,81 @@ module front_bezel() {
                 cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
         }
     }
+}
+
+// 2. MID CLAMP CONTINUOUS-BORDER X-BRACE (Seamless Outer Block with Internal X-Clamp)
+module mid_clamp() {
+    arm_w = 7.0;
+    center_hole_d = 14.0;
+    total_h = mid_clamp_thickness + mid_clamp_lip_h;
+    hw = enclosure_width / 2;
+    hcw = cavity_w / 2;
     
-    // Retention Catch Tabs at rear entrance holding screen forward against the front
-    reverse_catch_detent(45);
-    reverse_catch_detent(-45);
-    reverse_catch_detent(135);
-    reverse_catch_detent(-135);
+    difference() {
+        union() {
+            // Main 2.0mm Base Plate (Continuous Outer Octagonal Border + Diagonal X-Arms)
+            linear_extrude(height = mid_clamp_thickness) {
+                difference() {
+                    union() {
+                        // Continuous outer perimeter border (54mm outer, 46mm inner cavity)
+                        difference() {
+                            polygon([
+                                [-hw + chamfer_size, -hw], [hw - chamfer_size, -hw],
+                                [hw, -hw + chamfer_size],  [hw, hw - chamfer_size],
+                                [hw - chamfer_size, hw],   [-hw + chamfer_size, hw],
+                                [-hw, hw - chamfer_size],  [-hw, -hw + chamfer_size]
+                            ]);
+                            polygon([
+                                [-hcw + cavity_chamfer, -hcw], [hcw - cavity_chamfer, -hcw],
+                                [hcw, -hcw + cavity_chamfer],  [hcw, hcw - cavity_chamfer],
+                                [hcw - cavity_chamfer, hcw],   [-hcw + cavity_chamfer, hcw],
+                                [-hcw, hcw - cavity_chamfer],  [-hcw, -hcw + cavity_chamfer]
+                            ]);
+                        }
+                        // Diagonal X-Arms clipped to outer perimeter
+                        intersection() {
+                            polygon([
+                                [-hw + chamfer_size, -hw], [hw - chamfer_size, -hw],
+                                [hw, -hw + chamfer_size],  [hw, hw - chamfer_size],
+                                [hw - chamfer_size, hw],   [-hw + chamfer_size, hw],
+                                [-hw, hw - chamfer_size],  [-hw, -hw + chamfer_size]
+                            ]);
+                            union() {
+                                rotate([0, 0, 45]) square([arm_w, 80], center = true);
+                                rotate([0, 0, -45]) square([arm_w, 80], center = true);
+                            }
+                        }
+                    }
+                    // Center component clearance hole
+                    circle(d = center_hole_d);
+                }
+            }
+            
+            // Forward 0.6mm compression pads on diagonal arms (entering bezel pocket)
+            translate([0, 0, mid_clamp_thickness]) {
+                linear_extrude(height = mid_clamp_lip_h) {
+                    difference() {
+                        intersection() {
+                            circle(d = mid_clamp_outer_dia);
+                            union() {
+                                rotate([0, 0, 45]) square([arm_w, 80], center = true);
+                                rotate([0, 0, -45]) square([arm_w, 80], center = true);
+                            }
+                        }
+                        circle(d = center_hole_d);
+                    }
+                }
+            }
+        }
+        
+        // 4 Corner M3 Screw Clearance Through-Holes
+        for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
+            for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
+                translate([sx, sy, -0.1])
+                    cylinder(d = screw_hole_dia, h = total_h + 0.2);
+            }
+        }
+    }
 }
 
 
@@ -310,7 +370,7 @@ module stand_tier1_base() {
     }
 }
 
-// 4. STAND TIER 2 MONOLITHIC PEDESTAL TRUNK (Deep V-Saddle Cradle)
+// 5. STAND TIER 2 MONOLITHIC PEDESTAL TRUNK (Deep V-Saddle Cradle)
 module stand_tier2_trunk() {
     difference() {
         hull() {
@@ -328,10 +388,38 @@ module stand_tier2_trunk() {
             }
         }
         
-        // Deep Negative Cradle Slot for Full 33.0mm Assembled Pod (34.2mm depth with slide clearance)
+        // Deep Negative Cradle Slot for Full 35.0mm Assembled Pod (36.5mm depth with slide clearance)
         translate([0, -4.0, 42.40])
             rotate([90.0 - stand_tilt_deg, 0, 180.0])
-            octagonal_prism(enclosure_width + 0.8, 34.2, 6.0);
+            octagonal_prism(enclosure_width + 0.8, 36.5, 6.0);
+    }
+}
+
+// 6. UNIFIED MONOLITHIC DESK STAND
+module desk_stand() {
+    difference() {
+        union() {
+            rounded_rect_prism(stand_base_w, stand_base_d, stand_base_h, 6.0);
+            hull() {
+                translate([0, 0, stand_base_h])
+                    rounded_rect_prism(62.0, 66.0, 0.01, 5.0);
+                translate([0, 0, stand_base_h + stand_trunk_h - 0.01])
+                    rounded_rect_prism(54.0, 58.0, 0.01, 3.5);
+            }
+        }
+        
+        // Underside rubber feet recesses
+        for (fx = [-stand_base_w/2 + 10, stand_base_w/2 - 10]) {
+            for (fy = [-stand_base_d/2 + 10, stand_base_d/2 - 10]) {
+                translate([fx, fy, -0.1])
+                    cylinder(d = 8.2, h = 1.5);
+            }
+        }
+        
+        // Deep Negative Cradle Slot for Full 35.0mm Assembled Pod (36.5mm depth with slide clearance)
+        translate([0, -4.0, 42.40])
+            rotate([90.0 - stand_tilt_deg, 0, 180.0])
+            octagonal_prism(enclosure_width + 0.8, 36.5, 6.0);
     }
 }
 
@@ -341,14 +429,19 @@ if (part == 1) {
 } else if (part == 2) {
     main_housing();
 } else if (part == 3) {
-    stand_tier1_base();
+    mid_clamp();
 } else if (part == 4) {
+    stand_tier1_base();
+} else if (part == 5) {
     stand_tier2_trunk();
+} else if (part == 6) {
+    desk_stand();
 } else {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance)
     translate([0, -4.0, 42.40])
         rotate([90.0 - stand_tilt_deg, 0, 180.0]) {
-            translate([0, 0, 27.5]) color("#22252B") front_bezel();
+            translate([0, 0, housing_depth + mid_clamp_thickness]) color("#22252B") front_bezel();
+            translate([0, 0, housing_depth]) color("#D08770") mid_clamp();
             color("#181A1F") main_housing();
         }
     color("#5c4033") stand_tier1_base();

@@ -159,9 +159,11 @@ def get_weather():
 
         result = {
             "temperature": current_temp,
+            "temp": current_temp,
             "hours_until_rain": hours_until_rain,
             "date_string": datetime.now().strftime("%a %d %b").upper(),
-            "location_name": loc_name
+            "location_name": loc_name,
+            "location": loc_name
         }
         _weather_cache["data"] = result
         _weather_cache["timestamp"] = now
@@ -174,9 +176,11 @@ def get_weather():
         # location detection failed too.
         result = {
             "temperature": 0.0,
+            "temp": 0.0,
             "hours_until_rain": -1,
             "date_string": "ERR",
-            "location_name": loc_name
+            "location_name": loc_name,
+            "location": loc_name
         }
         # Cache failures too (briefly) so a rate-limited/down API doesn't get
         # hammered again on the very next 3s poll.
