@@ -154,33 +154,15 @@ module gc9a01_blueprint_pocket(h) {
     }
 }
 
-// Blind Cantilever Spring Arm with Retention Tooth
-module snap_spring_arm(angle) {
+// Smooth Tapered Friction Rib for Snug Zero-Rattle Screen Seating
+module tapered_friction_rib(angle) {
     rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, 0]) {
-        // Slender spring beam from Z=0 to Z=3.1mm
-        translate([-2.5, 0, 0])
-            cube([5.0, 1.4, 3.1]);
-        // Retention tooth with 45-deg entry ramp on top
-        difference() {
-            translate([-2.5, -0.85, 1.6])
-                cube([5.0, 0.85, 1.5]);
-            translate([-3.0, -0.9, 1.6])
-                rotate([-45, 0, 0])
-                    cube([6.0, 1.3, 1.3]);
-        }
-    }
-}
-
-// 3-Sided U-Shaped Isolation Cut (Left Slit + Right Slit + Back Trench + Top Gap)
-module u_slot_isolation_cut(angle) {
-    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2, -0.1]) {
-        difference() {
-            // Outer bounding cut (7.4mm wide x 2.8mm thick x 3.7mm depth)
-            translate([-3.7, 0, 0])
-                cube([7.4, 2.8, 3.7]);
-            // Preserve arm space up to Z=3.1mm (leaving 0.5mm top gap above arm)
-            translate([-2.5, 0, 0])
-                cube([5.0, 1.4, 3.2]);
+        // Tapered wedge: 0.0mm protrusion at Z=0 to 0.25mm protrusion at Z=3.3mm
+        hull() {
+            translate([-1.0, 0, 0])
+                cube([2.0, 0.05, 0.05]);
+            translate([-1.0, -0.25, display_pcb_depth - 0.1])
+                cube([2.0, 0.30, 0.1]);
         }
     }
 }
@@ -197,60 +179,53 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (100% Solid Front Face, Fully Isolated Cantilever Spring Arms)
+// 1. FRONT BEZEL RING PLATE (Solid 5.5mm Plate, Tapered Friction Ribs, Clean Pocket)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
-    union() {
-        difference() {
-            union() {
-                chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
-                translate([0, 0, bezel_thickness])
-                    cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
-            }
+    difference() {
+        union() {
+            chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
+            translate([0, 0, bezel_thickness])
+                cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
+        }
+        
+        // 1. Wide Sloping Conical Anti-Shadow Aperture
+        translate([0, 0, -1])
+            cylinder(d1 = display_active_dia - 2.0, d2 = display_funnel_top + 1.0, h = oal_t + 2.0);
             
-            // 1. Wide Sloping Conical Anti-Shadow Aperture
-            translate([0, 0, -1])
-                cylinder(d1 = display_active_dia - 2.0, d2 = display_funnel_top + 1.0, h = oal_t + 2.0);
-                
-            // 2. Glass Retention Lip
-            translate([0, 0, -0.1])
-                cylinder(d = display_glass_dia, h = 1.8);
-                
-            // 3. PCB Retention Pocket with Top & Bottom Relief
-            translate([0, 0, -0.1])
-                gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
-                
-            // 4. 3-Sided U-Shaped Isolation Cuts (Left + Right Slits + Back Trench + Top Gap)
-            u_slot_isolation_cut(40);
-            u_slot_isolation_cut(-40);
-            u_slot_isolation_cut(130);
-            u_slot_isolation_cut(-130);
-                
-            // 5. 4 Corner M3 Screw Holes with Recessed Counterbores
-            for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
-                    translate([sx, sy, -1])
-                        cylinder(d = screw_hole_dia, h = bezel_thickness + 3.0);
-                    translate([sx, sy, oal_t - screw_head_depth])
-                        cylinder(d = screw_head_dia, h = screw_head_depth + 0.1);
-                }
-            }
+        // 2. Glass Retention Lip
+        translate([0, 0, -0.1])
+            cylinder(d = display_glass_dia, h = 1.8);
             
-            // 6. 2 Blind 1.75mm M2 Screen Pilot Holes
-            for (sx = [-screen_bolt_x, screen_bolt_x]) {
-                translate([sx, screen_bolt_y, -0.1])
-                    cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
+        // 3. PCB Retention Pocket with Top & Bottom Relief (+0.1mm Clearance)
+        translate([0, 0, -0.1])
+            gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
+            
+        // 4. 4 Corner M3 Screw Holes with Recessed Counterbores
+        for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
+            for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
+                translate([sx, sy, -1])
+                    cylinder(d = screw_hole_dia, h = bezel_thickness + 3.0);
+                translate([sx, sy, oal_t - screw_head_depth])
+                    cylinder(d = screw_head_dia, h = screw_head_depth + 0.1);
             }
         }
         
-        // 7. Fully Isolated Cantilever Spring Arms (Free tip at top, flexes outward on push-in)
-        snap_spring_arm(40);
-        snap_spring_arm(-40);
-        snap_spring_arm(130);
-        snap_spring_arm(-130);
+        // 5. 2 Blind 1.75mm M2 Screen Pilot Holes
+        for (sx = [-screen_bolt_x, screen_bolt_x]) {
+            translate([sx, screen_bolt_y, -0.1])
+                cylinder(d = screen_bolt_dia, h = screen_bolt_depth);
+        }
     }
+    
+    // Tapered friction ribs inside pocket for snug drop-in seating
+    tapered_friction_rib(45);
+    tapered_friction_rib(-45);
+    tapered_friction_rib(135);
+    tapered_friction_rib(-135);
 }
+
 
 
 

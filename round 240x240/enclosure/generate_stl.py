@@ -134,65 +134,21 @@ def make_gc9a01_pcb_pocket(depth_pocket=3.3):
     
     return top_circle + tab_box + top_box
 
-def make_isolated_snap_spring_arm(angle_deg, pcb_dia=39.0):
+def make_tapered_friction_rib(angle_deg, pcb_dia=39.0, depth_pocket=3.3):
     """
-    Generates a fully isolated compliant cantilever spring arm with retention tooth:
-    - Anchored at bottom root (Z=0)
-    - Free tip at top (Z=3.1mm) with 0.5mm top clearance gap separating it from the front plate
-    - Thickness: 1.4mm
-    - Width: 5.0mm
-    - Retention tooth on the inner face (Z=1.6mm to 3.0mm) with 45-degree entry ramp
+    Generates a smooth tapered friction rib on pocket wall:
+    - 0.0mm protrusion at entrance (Z=0) for easy drop-in insertion
+    - 0.25mm gentle tapered protrusion at seat (Z=3.3mm) for snug zero-rattle hold
+    - Width: 2.0mm
     """
     r_wall = pcb_dia / 2.0
-    w_arm = 5.0
-    h_arm = 3.1  # Arm stops at 3.1mm, leaving 0.4mm top clearance gap before 3.5mm pocket depth
+    w_rib = 2.0
     
-    # Slender spring arm body
-    arm_body = m3d.Manifold.cube([w_arm, 1.4, h_arm], center=False).translate([
-        -w_arm / 2.0, r_wall, 0.0
-    ])
-    
-    # Retention tooth on the inner face (Z=1.6mm to 3.1mm)
-    tooth_box = m3d.Manifold.cube([w_arm, 0.85, 1.5], center=False).translate([
-        -w_arm / 2.0, r_wall - 0.85, 1.6
-    ])
-    
-    # 45-degree entry ramp cutter sloping down to Z=1.6mm
-    ramp_cutter = m3d.Manifold.cube([w_arm + 1.0, 1.3, 1.3], center=False).rotate([
-        -45, 0, 0
-    ]).translate([-(w_arm + 1.0) / 2.0, r_wall - 0.9, 1.6])
-    
-    tooth = tooth_box - ramp_cutter
-    spring_assembly = arm_body + tooth
-    return spring_assembly.rotate([0, 0, angle_deg])
-
-def make_u_slot_isolation_cut(angle_deg, pcb_dia=39.0):
-    """
-    Generates a 3-sided U-shaped isolation cut (left slit + right slit + back trench + top gap):
-    - Depth: Z = -0.1mm to Z = 3.6mm (strictly blind, front face >2.0mm remains 100% solid)
-    - Back trench: 1.4mm thick behind the arm
-    - Side slits: 1.2mm wide cuts on left and right isolating the beam
-    - Top clearance gap: 0.5mm gap above arm tip (Z=3.1 to 3.6mm)
-    """
-    r_wall = pcb_dia / 2.0
-    w_arm = 5.0
-    slit_w = 1.2
-    total_w = w_arm + 2 * slit_w  # 7.4mm total
-    trench_thick = 1.4
-    depth_z = 3.7
-    
-    # Outer bounding cut block
-    outer_box = m3d.Manifold.cube([total_w, 1.4 + trench_thick + 0.5, depth_z], center=False).translate([
-        -total_w / 2.0, r_wall, -0.1
-    ])
-    
-    # Keep the arm volume (subtract arm from the cut box to leave only the U-gap around it)
-    arm_void = m3d.Manifold.cube([w_arm, 1.4, 3.1], center=False).translate([
-        -w_arm / 2.0, r_wall, -0.1
-    ])
-    
-    u_cut = outer_box - arm_void
-    return u_cut.rotate([0, 0, angle_deg])
+    # 3D hull creating smooth continuous draft taper
+    pt_bot1 = m3d.Manifold.cube([w_rib, 0.05, 0.05], center=False).translate([-w_rib / 2.0, r_wall - 0.05, 0.0])
+    pt_top1 = m3d.Manifold.cube([w_rib, 0.30, 0.10], center=False).translate([-w_rib / 2.0, r_wall - 0.30, depth_pocket - 0.1])
+    rib = m3d.Manifold.hull(pt_bot1 + pt_top1)
+    return rib.rotate([0, 0, angle_deg])
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -234,25 +190,19 @@ def generate_front_bezel():
     # 4. Glass Step Pocket (+0.1mm extra clearance -> dia 36.4mm)
     glass_recess = m3d.Manifold.cylinder(1.8, 36.4 / 2.0, 36.4 / 2.0, 64).translate([0, 0, -0.1])
     
-    # 5. Rear Retention Lip for PCB + Top Relief Notch
+    # 5. Rear Retention Lip for PCB + Top Relief Notch (Pocket dia 39.0mm + 18x23mm Top Notch)
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
     
-    # 6. U-Shaped Isolation Cuts (Left slit + Right slit + Back trench + Top gap)
-    u_cuts = (make_u_slot_isolation_cut(40, pcb_dia) + 
-              make_u_slot_isolation_cut(-40, pcb_dia) + 
-              make_u_slot_isolation_cut(130, pcb_dia) + 
-              make_u_slot_isolation_cut(-130, pcb_dia))
-                      
-    cuts = window_funnel + glass_recess + pcb_recess + u_cuts
+    cuts = window_funnel + glass_recess + pcb_recess
     
-    # 7. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
+    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 8. 2 Blind M2 Pilot Holes
+    # 7. 2 Blind M2 Pilot Holes
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -262,13 +212,14 @@ def generate_front_bezel():
             
     bezel_hollowed = bezel_solid - cuts
     
-    # 9. Add 4x Fully Isolated Compliant Spring Arms with Retention Teeth
-    spring_arms = (make_isolated_snap_spring_arm(40, pcb_dia) + 
-                   make_isolated_snap_spring_arm(-40, pcb_dia) + 
-                   make_isolated_snap_spring_arm(130, pcb_dia) + 
-                   make_isolated_snap_spring_arm(-130, pcb_dia))
-                   
-    return bezel_hollowed + spring_arms
+    # 8. Add 4x Smooth Tapered Friction Ribs for Snug Drop-In Seating
+    friction_ribs = (make_tapered_friction_rib(45, pcb_dia) + 
+                     make_tapered_friction_rib(-45, pcb_dia) + 
+                     make_tapered_friction_rib(135, pcb_dia) + 
+                     make_tapered_friction_rib(-135, pcb_dia))
+                     
+    return bezel_hollowed + friction_ribs
+
 
 
 

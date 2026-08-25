@@ -5,7 +5,12 @@
       <stop offset="100%" stop-color="#0a0d14"/>
     </linearGradient>
 
-    <linearGradient id="beamGrad" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="bezelPcb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="ribGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#38bdf8"/>
       <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
@@ -21,67 +26,93 @@
 
   <rect width="960" height="620" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5"/>
 
-  <!-- Title -->
+  <!-- Title Badge -->
   <g transform="translate(36, 26)">
-    <rect x="0" y="0" width="150" height="24" rx="5" fill="#f43f5e"/>
-    <text x="75" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">PROPER COMPLIANCE</text>
+    <rect x="0" y="0" width="160" height="24" rx="5" fill="#0284c7"/>
+    <text x="80" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">OPTION 2 + OPTION 3</text>
     
-    <text x="165" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">ISOLATED CANTILEVER SPRING MECHANICS</text>
-    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">Side relief slits + Top clearance gap completely isolate the spring beam for effortless bending</text>
+    <text x="175" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">TAPERED FRICTION RIBS & HOUSING CLAMP RETENTION</text>
+    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">100% Solid Bezel • Smooth tapered ribs for drop-in snug fit • Housing rim locks PCB permanently</text>
   </g>
 
-  <!-- LEFT: 3D-ISOMETRIC STYLE KINEMATICS VIEW -->
+  <!-- LEFT: REAR VIEW OF FRONT BEZEL WITH TAPERED RIBS -->
   <g transform="translate(40, 95)">
     <rect x="0" y="0" width="440" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: 3-SIDED ISOLATION (U-SLOT CUT)</text>
+    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: REAR OF SOLID FRONT BEZEL (CLEAN POCKET)</text>
 
-    <g transform="translate(50, 70)">
-      <!-- Surrounding Bezel Wall (Dark Grey) -->
-      <path d="M 0 0 L 340 0 L 340 360 L 0 360 Z" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+    <g transform="translate(220, 260)">
+      <!-- Outer Solid Chamfered Plate -->
+      <polygon points="-110,-140 110,-140 140,-110 140,110 110,140 -110,140 -140,110 -140,-110" fill="url(#bezelPcb)" stroke="#475569" stroke-width="2"/>
+      
+      <!-- 4 Corner M3 Mounting Screw Holes -->
+      <circle cx="-95" cy="-95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+      <circle cx="95" cy="-95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+      <circle cx="-95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+      <circle cx="95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
 
-      <!-- U-Shaped Isolation Trench (Pink/Red Void) -->
-      <!-- Left slit (1.2mm wide) -->
-      <rect x="110" y="70" width="15" height="220" rx="3" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
-      <!-- Right slit (1.2mm wide) -->
-      <rect x="215" y="70" width="15" height="220" rx="3" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
-      <!-- Top clearance gap (1.5mm wide) -->
-      <rect x="110" y="70" width="120" height="18" rx="3" fill="#050811" stroke="#f43f5e" stroke-width="1.5"/>
+      <!-- Circular Screen Pocket Recess (Dia 39.0mm + 0.1mm clearance) -->
+      <circle cx="0" cy="-6" r="95" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
+      
+      <!-- Top Relief Notch (18.0 x 23.0mm) -->
+      <path d="M -44 -65 L -44 -122 L 44 -122 L 44 -65" fill="#090d16" stroke="#f59e0b" stroke-width="1.5"/>
+      <rect x="-42" y="-120" width="84" height="28" fill="#f59e0b" opacity="0.15"/>
+      <text x="0" y="-98" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">★ TOP CLEARANCE NOTCH</text>
+      <text x="0" y="-85" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="7.5" text-anchor="middle">(18.0mm × 23.0mm)</text>
 
-      <!-- The Fully Isolated Cantilever Spring Beam (Cyan) -->
-      <rect x="130" y="94" width="80" height="196" rx="4" fill="url(#beamGrad)" stroke="#ffffff" stroke-width="1.5" filter="url(#glowCyan)"/>
-      <text x="170" y="190" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="900" text-anchor="middle">SPRING</text>
-      <text x="170" y="210" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="900" text-anchor="middle">BEAM</text>
+      <!-- Bottom Connector Tab Recess (24.0 x 26.6mm) -->
+      <path d="M -58 50 L -58 125 L 58 125 L 58 50" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
 
-      <!-- Retention Tooth with Ramp on Free End (Top) -->
-      <polygon points="135,120 205,120 170,95" fill="#fde047" stroke="#ca8a04" stroke-width="1.5"/>
-      <text x="170" y="145" fill="#fde047" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">SNAP TOOTH</text>
+      <!-- Center Optical Viewing Aperture -->
+      <circle cx="0" cy="-6" r="77" fill="#1e293b" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="0" y="-3" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">FRONT APERTURE</text>
+      <text x="0" y="11" fill="#475569" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">Ø33.0mm (SOLID 5.5mm PLATE)</text>
 
-      <!-- Root Hinge / Anchor at Bottom -->
-      <rect x="125" y="285" width="90" height="10" fill="#10b981" opacity="0.4"/>
-      <text x="170" y="320" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">ROOT ANCHOR (BOTTOM)</text>
+      <!-- 4x SMOOTH TAPERED FRICTION RIBS -->
+      <!-- Rib 1: Upper-Right (45 deg) -->
+      <g transform="translate(68, -74) rotate(-45)">
+        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
+        <text x="12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800">RIB 1</text>
+      </g>
 
-      <!-- Dimension Labels -->
-      <text x="55" y="180" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">LEFT SLIT</text>
-      <text x="240" y="180" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">RIGHT SLIT</text>
-      <text x="170" y="55" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">★ TOP CLEARANCE GAP ★</text>
+      <!-- Rib 2: Upper-Left (-45 deg) -->
+      <g transform="translate(-68, -74) rotate(45)">
+        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
+        <text x="-12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="end">RIB 2</text>
+      </g>
+
+      <!-- Rib 3: Lower-Right (135 deg) -->
+      <g transform="translate(72, 60) rotate(-135)">
+        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
+        <text x="12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800">RIB 3</text>
+      </g>
+
+      <!-- Rib 4: Lower-Left (-135 deg) -->
+      <g transform="translate(-72, 60) rotate(135)">
+        <polygon points="-4,-2 4,-2 2,6 -2,6" fill="url(#ribGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowCyan)"/>
+        <text x="-12" y="4" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="800" text-anchor="end">RIB 4</text>
+      </g>
+
+      <g transform="translate(0, 150)">
+        <text x="0" y="0" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">⬇ CONNECTOR HEADER TAB (24.0mm) ⬇</text>
+      </g>
     </g>
   </g>
 
-  <!-- RIGHT: SIDE CROSS-SECTION & DEFLECTION MECHANICS -->
+  <!-- RIGHT: FULL ASSEMBLY CLAMPING CROSS-SECTION -->
   <g transform="translate(500, 95)">
     <rect x="0" y="0" width="420" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
-    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: CROSS SECTION WITH TOP GAP</text>
+    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: DUAL-RETENTION CROSS SECTION</text>
 
-    <g transform="translate(60, 75)">
-      <!-- Bezel Body -->
-      <path d="M 0 240 L 0 0 L 100 0 L 100 60 L 160 60 L 160 240 Z" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
-      <text x="50" y="140" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle" transform="rotate(-90 50 140)">SOLID FRONT FACE</text>
+    <g transform="translate(50, 70)">
+      <!-- FRONT BEZEL BODY -->
+      <path d="M 0 160 L 0 0 L 100 0 L 100 60 L 160 60 L 160 160 Z" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+      <text x="45" y="90" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle" transform="rotate(-90 45 90)">FRONT BEZEL</text>
 
       <!-- Glass Front Lip -->
       <rect x="100" y="60" width="35" height="15" fill="#334155" stroke="#64748b" stroke-width="1"/>
       <text x="117" y="50" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">FRONT STOP</text>
 
-      <!-- Screen PCB -->
+      <!-- Screen Glass + PCB -->
       <g transform="translate(135, 75)">
         <rect x="0" y="0" width="130" height="30" rx="2" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
         <text x="65" y="20" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">1.28" LCD GLASS</text>
@@ -90,34 +121,41 @@
         <text x="65" y="45" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">SCREEN PCB (1.6mm)</text>
       </g>
 
-      <!-- TOP CLEARANCE GAP (Allows tip of beam to swing freely!) -->
-      <rect x="95" y="110" width="35" height="18" fill="#f43f5e" opacity="0.3"/>
-      <text x="145" y="123" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">TOP GAP (FREE TIP)</text>
+      <!-- Tapered Friction Rib (Option 3) -->
+      <polygon points="100,127 108,127 100,75" fill="#38bdf8" stroke="#0284c7" stroke-width="1" filter="url(#glowCyan)"/>
+      <text x="60" y="105" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800">TAPERED RIB</text>
 
-      <!-- Isolated Cantilever Spring Arm -->
-      <g transform="translate(100, 130)">
-        <path d="M 0 0 L 22 0 L 22 90 L 0 90 Z" fill="url(#springGrad)" stroke="#ffffff" stroke-width="1.5" filter="url(#glowCyan)"/>
-        <!-- Tooth with 45 deg ramp -->
-        <polygon points="22,10 32,25 22,25" fill="#fde047" stroke="#ca8a04" stroke-width="1"/>
-        <text x="11" y="55" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle" transform="rotate(-90 11 55)">FREE BEAM</text>
-        
-        <!-- Bending Motion Arc -->
-        <path d="M -6 15 C -20 15, -20 40, -6 40" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="3,3"/>
-        <polygon points="-5,15 -14,11 -14,19" fill="#f43f5e"/>
-        <text x="-48" y="30" fill="#f43f5e" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900">BENDS</text>
-      </g>
+      <!-- MAIN HOUSING POD CLAMPING RIM (Option 2) -->
+      <path d="M 0 160 L 0 320 L 80 320 L 80 200 L 150 200 L 150 160 Z" fill="#0f172a" stroke="#10b981" stroke-width="2"/>
+      <text x="45" y="240" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle" transform="rotate(-90 45 240)">MAIN HOUSING POD</text>
+      
+      <!-- Compression Clamping Zone (Green Highlight) -->
+      <rect x="125" y="152" width="25" height="12" fill="#10b981" opacity="0.7"/>
+      <text x="210" y="162" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900">⚡ FORWARD CLAMP FORCE</text>
 
-      <!-- Insertion Arrow -->
-      <g transform="translate(200, 20)">
-        <line x1="0" y1="0" x2="0" y2="40" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
-        <polygon points="0,48 -5,35 5,35" fill="#00e5ff"/>
-        <text x="12" y="26" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900">PRESS IN</text>
+      <!-- Corner M3 Screw Line -->
+      <line x1="20" y1="20" x2="20" y2="300" stroke="#facc15" stroke-width="2" stroke-dasharray="4,4"/>
+      <text x="25" y="315" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800">M3 CORNER BOLT</text>
+
+      <!-- Feature Callouts -->
+      <g transform="translate(160, 200)">
+        <rect x="0" y="0" width="165" height="40" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="8" y="16" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">1. Option 3 (Friction Ribs):</text>
+        <text x="8" y="30" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Snug drop-in during assembly</text>
+
+        <rect x="0" y="46" width="165" height="40" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+        <text x="8" y="62" fill="#34d399" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">2. Option 2 (Housing Clamp):</text>
+        <text x="8" y="76" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Permanent rock-solid compression</text>
+
+        <rect x="0" y="92" width="165" height="40" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <text x="8" y="108" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900">3. 100% Solid Geometry:</text>
+        <text x="8" y="122" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="7.5">Flawless, robust 3D print</text>
       </g>
     </g>
 
     <g transform="translate(20, 440)">
       <rect x="0" y="0" width="380" height="38" rx="6" fill="#182030" stroke="#334155" stroke-width="1"/>
-      <text x="190" y="24" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Beam tip is completely free at the top to flex effortlessly</text>
+      <text x="190" y="24" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Clean drop-in snug fit + permanent housing compression</text>
     </g>
   </g>
 </svg>

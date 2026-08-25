@@ -16,8 +16,10 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 * **Glass Lens Retention Step:** $\varnothing 36.40\text{mm} \times 1.80\text{mm}$ deep (from rear, $+0.80\text{mm}$ clearance).
 * **Full PCB Retention Pocket:** $\varnothing 39.00\text{mm}$ circular top $+ 24.00\text{mm}$ wide bottom tab down to $Y = -26.60\text{mm}$ ($3.30\text{mm}$ deep into bezel from rear, $+1.00\text{mm}$ tolerance).
 * **Top Relief Notch:** $18.00\text{mm} \text{ wide} \times 23.00\text{mm} \text{ height}$ extended clearance for top solder/ribbon overhang.
-* **Cantilever Snap Clips:** $4 \times$ integrated spring snap clips at $\pm 40^\circ$ and $\pm 130^\circ$ for positive, toolless lock.
+* **Tapered Friction Ribs:** $4 \times$ smooth $0.25\text{mm}$ draft ribs on pocket wall for snug, zero-rattle drop-in seating.
+* **Forward Clamping Retention:** Main housing pod rim locks the screen PCB firmly forward against the front bezel when corner M3 screws are fastened.
 * **Screen Bolting Pilot Holes:** $2 \times \varnothing 1.75\text{mm}$ blind pilot holes at $X = \pm 9.63\text{mm}, Y = -18.91\text{mm}$ ($19.26\text{mm}$ pitch), depth $3.30\text{mm}$ from rear (leaves solid front face).
+
 
 
 * **Corner Enclosure Screws:** $4 \times$ M2 through-holes ($\varnothing 2.60\text{mm}$) with counterbore pockets ($\varnothing 4.80\text{mm} \times 2.20\text{mm}$ deep) at $X = \pm 21.00\text{mm}, Y = \pm 21.00\text{mm}$ ($42.00\text{mm}$ Bolt Circle).
