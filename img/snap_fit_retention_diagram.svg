@@ -1,0 +1,194 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" width="100%" height="100%">
+  <defs>
+    <!-- Background & PCB Gradients -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#141824"/>
+      <stop offset="100%" stop-color="#0a0d14"/>
+    </linearGradient>
+
+    <linearGradient id="bezelPcb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="clipGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FF5F1F"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="glowOrange" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#FF5F1F" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="960" height="620" rx="16" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Subtle Grid Dots Pattern -->
+  <g opacity="0.12">
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#94a3b8"/>
+    </pattern>
+    <rect width="960" height="620" fill="url(#grid)"/>
+  </g>
+
+  <!-- Header & Title Badge -->
+  <g transform="translate(36, 26)">
+    <rect x="0" y="0" width="105" height="24" rx="5" fill="#FF5F1F"/>
+    <text x="52" y="16" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">OPTION 1</text>
+    
+    <text x="120" y="18" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">SNAP-FIT RETENTION WITH EXPANDED TOP CLEARANCE</text>
+    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">Enlarged top relief notch for screen material + dual flank snap clips</text>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- LEFT: REAR VIEW OF FRONT BEZEL WITH TOP NOTCH & CLIPS    -->
+  <!-- ======================================================== -->
+  <g transform="translate(40, 95)">
+    <rect x="0" y="0" width="440" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="220" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW A: REAR OF FRONT BEZEL (ENLARGED TOP NOTCH)</text>
+
+    <!-- Octagonal Front Bezel Outer Perimeter (54x54mm with chamfers) -->
+    <g transform="translate(220, 260)">
+      <!-- Outer Chamfered Plate -->
+      <polygon points="-110,-140 110,-140 140,-110 140,110 110,140 -110,140 -140,110 -140,-110" fill="url(#bezelPcb)" stroke="#475569" stroke-width="2"/>
+      
+      <!-- 4 Corner M3 Mounting Screw Holes -->
+      <circle cx="-95" cy="-95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+      <circle cx="95" cy="-95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+      <circle cx="-95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+      <circle cx="95" cy="95" r="9" fill="#090d16" stroke="#94a3b8" stroke-width="1.5"/>
+
+      <!-- Circular Screen Pocket Recess (Dia 38.8mm) -->
+      <circle cx="0" cy="-6" r="94" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
+      
+      <!-- NEW: EXPANDED TOP RELIEF NOTCH (for screen material / solder tab / ribbon) -->
+      <path d="M -42 -70 L -42 -122 L 42 -122 L 42 -70" fill="#090d16" stroke="#f59e0b" stroke-width="2"/>
+      <rect x="-40" y="-120" width="80" height="30" fill="#f59e0b" opacity="0.15"/>
+      <text x="0" y="-102" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">★ ENLARGED TOP NOTCH</text>
+      <text x="0" y="-88" fill="#fbbf24" font-family="'JetBrains Mono', monospace" font-size="7.5" text-anchor="middle">(EXTRA MATERIAL CLEARANCE)</text>
+
+      <!-- Bottom Connector Tab Recess -->
+      <path d="M -56 50 L -56 125 L 56 125 L 56 50" fill="#090d16" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+      <!-- Center Optical Viewing Aperture (Glass pass-through) -->
+      <circle cx="0" cy="-6" r="76" fill="#1e293b" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="0" y="-3" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700" text-anchor="middle">FRONT APERTURE</text>
+      <text x="0" y="11" fill="#475569" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">Ø32.8mm</text>
+
+      <!-- GHOSTED GC9A01 PCB OUTLINE WITH TOP PROTRUSION -->
+      <circle cx="0" cy="-6" r="90" fill="none" stroke="#22d3ee" stroke-width="1.5" opacity="0.6"/>
+      <rect x="-30" y="-115" width="60" height="25" rx="3" fill="#22d3ee" opacity="0.25" stroke="#22d3ee" stroke-width="1"/>
+
+      <!-- REPOSITIONED CANTILEVER SNAP CLIPS (FLANKING THE NOTCH) -->
+      <!-- Clip 1: Upper-Left (approx -40 degrees) -->
+      <g transform="translate(-70, -65) rotate(-40)">
+        <path d="M -20 -5 L 20 -5 L 20 7 L -20 7 Z" fill="#090d16" stroke="#64748b" stroke-width="1"/>
+        <rect x="-13" y="-2" width="26" height="13" rx="2" fill="url(#clipGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowOrange)"/>
+        <text x="0" y="7" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="900" text-anchor="middle">CLIP 1L</text>
+      </g>
+
+      <!-- Clip 2: Upper-Right (approx +40 degrees) -->
+      <g transform="translate(70, -65) rotate(40)">
+        <path d="M -20 -5 L 20 -5 L 20 7 L -20 7 Z" fill="#090d16" stroke="#64748b" stroke-width="1"/>
+        <rect x="-13" y="-2" width="26" height="13" rx="2" fill="url(#clipGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowOrange)"/>
+        <text x="0" y="7" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="900" text-anchor="middle">CLIP 1R</text>
+      </g>
+
+      <!-- Clip 3: Bottom-Left -->
+      <g transform="translate(-80, 42) rotate(-55)">
+        <path d="M -20 -5 L 20 -5 L 20 7 L -20 7 Z" fill="#090d16" stroke="#64748b" stroke-width="1"/>
+        <rect x="-13" y="-2" width="26" height="13" rx="2" fill="url(#clipGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowOrange)"/>
+        <text x="0" y="7" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="900" text-anchor="middle">CLIP 2</text>
+      </g>
+
+      <!-- Clip 4: Bottom-Right -->
+      <g transform="translate(80, 42) rotate(55)">
+        <path d="M -20 -5 L 20 -5 L 20 7 L -20 7 Z" fill="#090d16" stroke="#64748b" stroke-width="1"/>
+        <rect x="-13" y="-2" width="26" height="13" rx="2" fill="url(#clipGrad)" stroke="#ffffff" stroke-width="1" filter="url(#glowOrange)"/>
+        <text x="0" y="7" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="900" text-anchor="middle">CLIP 3</text>
+      </g>
+
+      <g transform="translate(0, 150)">
+        <text x="0" y="0" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">⬇ BOTTOM CONNECTOR HEADER TAB ⬇</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- RIGHT: DETAILED CROSS-SECTION VIEW & SNAP MECHANICS      -->
+  <!-- ======================================================== -->
+  <g transform="translate(500, 95)">
+    <rect x="0" y="0" width="420" height="495" rx="12" fill="#0f172a" stroke="#334155" stroke-width="1.5" filter="url(#shadow)"/>
+    <text x="210" y="32" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="12" font-weight="800" text-anchor="middle">VIEW B: TOP NOTCH & SNAP ACTION</text>
+
+    <!-- Detailed 2D Cross Section Diagram -->
+    <g transform="translate(60, 75)">
+      
+      <!-- Bezel Cross Section Body -->
+      <path d="M 0 240 L 0 0 L 100 0 L 100 60 L 160 60 L 160 240 Z" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
+      <text x="50" y="140" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" text-anchor="middle" transform="rotate(-90 50 140)">BEZEL BODY</text>
+
+      <!-- Glass Front Lip (Bottom Stopper) -->
+      <rect x="100" y="60" width="35" height="15" fill="#334155" stroke="#64748b" stroke-width="1"/>
+      <text x="117" y="50" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">FRONT STOP</text>
+
+      <!-- Screen Assembly (Glass + PCB + Protruding Tab) -->
+      <g transform="translate(135, 75)">
+        <!-- LCD Glass -->
+        <rect x="0" y="0" width="130" height="30" rx="2" fill="#0284c7" stroke="#38bdf8" stroke-width="1.5"/>
+        <text x="65" y="20" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">1.28" LCD GLASS</text>
+
+        <!-- PCB Substrate -->
+        <rect x="-10" y="30" width="150" height="22" rx="2" fill="#15803d" stroke="#4ade80" stroke-width="1.5"/>
+        <text x="65" y="45" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">SCREEN PCB (1.6mm)</text>
+
+        <!-- Top Extra Material / Protrusion Overhang (Gold) -->
+        <rect x="-24" y="26" width="18" height="28" rx="2" fill="#f59e0b" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="-15" y="18" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">EXTRA TAB</text>
+      </g>
+
+      <!-- Integrated Snap Clip -->
+      <g transform="translate(100, 128)">
+        <path d="M 0 0 L 0 75 L 24 75 L 24 20 L 16 0 Z" fill="url(#clipGrad)" stroke="#ffffff" stroke-width="1.5" filter="url(#glowOrange)"/>
+        <polygon points="24,20 34,35 24,35" fill="#fde047" stroke="#ca8a04" stroke-width="1"/>
+        <rect x="24" y="18" width="10" height="4" fill="#ffffff"/>
+
+        <path d="M -15 45 C -25 45, -25 65, -10 65" fill="none" stroke="#facc15" stroke-width="2" stroke-dasharray="3,3"/>
+        <polygon points="-8,65 -16,61 -16,69" fill="#facc15"/>
+        <text x="-40" y="58" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">FLEX</text>
+      </g>
+
+      <!-- Insertion Motion Arrows -->
+      <g transform="translate(200, 20)">
+        <line x1="0" y1="0" x2="0" y2="40" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+        <polygon points="0,48 -5,35 5,35" fill="#00e5ff"/>
+        <text x="12" y="26" fill="#00e5ff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900">PUSH IN</text>
+      </g>
+
+      <!-- Feature Callout Badges -->
+      <g transform="translate(185, 145)">
+        <rect x="0" y="0" width="150" height="44" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="8" y="18" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900">1. Top Relief Notch:</text>
+        <text x="8" y="34" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8">Expanded for extra tab</text>
+
+        <rect x="0" y="52" width="150" height="44" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <text x="8" y="70" fill="#4ade80" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">2. Flanked Snap Clips:</text>
+        <text x="8" y="86" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8">Lock clean round edge</text>
+
+        <rect x="0" y="104" width="150" height="44" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+        <text x="8" y="122" fill="#38bdf8" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800">3. Zero Interference:</text>
+        <text x="8" y="138" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8">100% flush drop-in seat</text>
+      </g>
+    </g>
+
+    <g transform="translate(20, 440)">
+      <rect x="0" y="0" width="380" height="38" rx="6" fill="#182030" stroke="#334155" stroke-width="1"/>
+      <text x="190" y="24" fill="#f59e0b" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">✨ Generous clearance for top solder/ribbon protrusion</text>
+    </g>
+  </g>
+</svg>

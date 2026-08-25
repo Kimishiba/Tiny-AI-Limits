@@ -17,13 +17,15 @@ bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)
 
-// Display Pocket Dimensions (from Engineering Blueprint + 0.1mm additional clearance)
-display_active_dia = 32.8; // Active LCD A.A clearing diameter at glass plane (mm)
-display_funnel_top = 38.4; // Wide front opening diameter (36.4° conical anti-shadow slope) (mm)
-display_glass_dia  = 36.2; // Glass / Backlight step (35.6mm blueprint + 0.6mm clearance [+0.1mm clearance per side])
-display_pcb_dia    = 38.8; // Circular PCB body (38.0mm blueprint + 0.8mm clearance [+0.1mm clearance per side])
-display_tab_w      = 23.8; // Bottom connector tab width (22.92mm blueprint + 0.88mm clearance)
+// Display Pocket Dimensions (from Engineering Blueprint + generous 3D print clearance)
+display_active_dia = 33.0; // Active LCD A.A clearing diameter at glass plane (+0.1mm clearance) (mm)
+display_funnel_top = 38.6; // Wide front opening diameter (36.4° conical anti-shadow slope) (mm)
+display_glass_dia  = 36.4; // Glass / Backlight step (35.6mm blueprint + 0.8mm clearance [+0.1mm extra])
+display_pcb_dia    = 39.0; // Circular PCB body (38.0mm blueprint + 1.0mm clearance [+0.1mm extra])
+display_tab_w      = 24.0; // Bottom connector tab width (22.92mm blueprint + 1.08mm clearance)
 display_tab_h      = 26.6; // Tab height from center (45.6mm total height)
+display_top_tab_w  = 18.0; // Top clearance notch width for screen protrusion / ribbon / extra material (mm)
+display_top_tab_h  = 23.0; // Top notch height from center (mm)
 display_pcb_depth  = 3.3;  // Bezel rear pocket depth (+0.1mm depth clearance) (mm)
 
 
@@ -139,12 +141,44 @@ module rounded_rect_prism(w, d, h, r) {
     }
 }
 
-// Composite GC9A01 Blueprint PCB Pocket
+// Composite GC9A01 Blueprint PCB Pocket with Top Relief Notch
 module gc9a01_blueprint_pocket(h) {
     union() {
         cylinder(d = display_pcb_dia, h = h);
+        // Bottom connector tab
         translate([-display_tab_w / 2, -display_tab_h, 0])
             cube([display_tab_w, display_tab_h, h]);
+        // Top extra material relief notch
+        translate([-display_top_tab_w / 2, 0, 0])
+            cube([display_top_tab_w, display_top_tab_h, h]);
+    }
+}
+
+// Cantilever Snap-Fit Retention Clip (Parametric)
+module snap_clip(angle) {
+    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 - 0.5, 0]) {
+        // Snap Arm
+        difference() {
+            translate([-3.0, 0, 0])
+                cube([6.0, 2.2, 5.0]);
+            // 45-degree lead-in ramp
+            translate([-3.1, 0.6, 3.3])
+                rotate([45, 0, 0])
+                    cube([6.2, 3.0, 3.0]);
+        }
+        // Locking Undercut Ledge
+        translate([-3.0, -0.6, 3.3])
+            cube([6.0, 0.8, 1.7]);
+    }
+}
+
+// Flex Relief Slot for Snap-Fit Clip
+module snap_relief_slot(angle) {
+    rotate([0, 0, angle]) translate([0, display_pcb_dia / 2 + 1.8, -0.1]) {
+        hull() {
+            translate([-4.5, 0, 0]) cylinder(d = 1.6, h = 5.6);
+            translate([4.5, 0, 0])  cylinder(d = 1.6, h = 5.6);
+        }
     }
 }
 
@@ -160,7 +194,7 @@ module usbc_stadium_cutter() {
     }
 }
 
-// 1. FRONT BEZEL RING PLATE (Balanced M3 Screws, 1.2mm Chamfers)
+// 1. FRONT BEZEL RING PLATE (Balanced M3 Screws, 1.2mm Chamfers, Snap-Fit Locks)
 module front_bezel() {
     oal_t = bezel_thickness + 1.5;
     
@@ -169,6 +203,12 @@ module front_bezel() {
             chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
             translate([0, 0, bezel_thickness])
                 cylinder(d1 = 44.0, d2 = 41.0, h = 1.5);
+            
+            // Integrated Snap Clips (+/-40 deg upper flanks, +/-130 deg lower flanks)
+            snap_clip(40);
+            snap_clip(-40);
+            snap_clip(130);
+            snap_clip(-130);
         }
         
         // 1. Wide Sloping Conical Anti-Shadow Aperture
@@ -177,11 +217,17 @@ module front_bezel() {
             
         // 2. Glass Retention Lip
         translate([0, 0, -0.1])
-            cylinder(d = display_glass_dia, h = 1.7);
+            cylinder(d = display_glass_dia, h = 1.8);
             
-        // 3. PCB Retention Lip
+        // 3. PCB Retention Pocket with Top & Bottom Relief
         translate([0, 0, -0.1])
             gc9a01_blueprint_pocket(display_pcb_depth + 0.1);
+
+        // Snap Clip Flex Relief Cutouts
+        snap_relief_slot(40);
+        snap_relief_slot(-40);
+        snap_relief_slot(130);
+        snap_relief_slot(-130);
             
         // 4. 4 Corner M3 Screw Holes with Recessed Counterbores
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {

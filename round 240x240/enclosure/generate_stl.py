@@ -119,14 +119,45 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
 def make_gc9a01_pcb_pocket(depth_pocket=3.3):
     """
     Creates exact composite shape for GC9A01 PCB:
-    - Upper circular body: 38.8mm dia (38.0mm PCB + 0.8mm tolerance [+0.1mm per side])
-    - Lower connector tab: 23.8mm wide (22.92mm tab + 0.88mm tolerance) extending down to y = -26.6mm
+    - Upper circular body: 39.0mm dia (38.0mm PCB + 1.0mm tolerance [+0.1mm extra clearance per side])
+    - Lower connector tab: 24.0mm wide (22.92mm tab + 1.08mm tolerance) extending down to y = -26.6mm
+    - Top extra material relief notch: 18.0mm wide extending to y = +23.0mm
     """
-    top_circle = m3d.Manifold.cylinder(depth_pocket, 38.8 / 2.0, 38.8 / 2.0, 64)
-    tab_w = 23.8
+    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.0 / 2.0, 39.0 / 2.0, 64)
+    tab_w = 24.0
     tab_h = 26.6
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
-    return top_circle + tab_box
+    
+    top_notch_w = 18.0
+    top_notch_h = 23.0
+    top_box = m3d.Manifold.cube([top_notch_w, top_notch_h, depth_pocket], center=False).translate([-top_notch_w / 2.0, 0, 0])
+    
+    return top_circle + tab_box + top_box
+
+def make_snap_clip(angle_deg, pcb_dia=39.0):
+    """Generates a parametric cantilever snap clip with 45-deg lead-in ramp and retention undercut."""
+    rad = math.radians(angle_deg)
+    r_pos = pcb_dia / 2.0 - 0.5
+    
+    # Base snap arm
+    clip_box = m3d.Manifold.cube([6.0, 2.2, 5.0], center=False).translate([-3.0, 0, 0])
+    # 45 deg ramp cutter
+    ramp_cutter = m3d.Manifold.cube([6.2, 3.0, 3.0], center=False).rotate([45, 0, 0]).translate([-3.1, 0.6, 3.3])
+    clip_arm = clip_box - ramp_cutter
+    
+    # Retention tooth ledge
+    tooth = m3d.Manifold.cube([6.0, 0.8, 1.7], center=False).translate([-3.0, -0.6, 3.3])
+    full_clip = clip_arm + tooth
+    
+    return full_clip.translate([0, r_pos, 0]).rotate([0, 0, angle_deg])
+
+def make_snap_relief_slot(angle_deg, pcb_dia=39.0, h=5.6):
+    """Generates the flex relief slot behind the snap clip."""
+    r_pos = pcb_dia / 2.0 + 1.8
+    c1 = m3d.Manifold.cylinder(h, 0.8, 0.8, 16).translate([-4.5, 0, 0])
+    c2 = m3d.Manifold.cylinder(h, 0.8, 0.8, 16).translate([4.5, 0, 0])
+    slot = m3d.Manifold.hull(c1 + c2)
+    return slot.translate([0, r_pos, -0.1]).rotate([0, 0, angle_deg])
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -147,40 +178,53 @@ def generate_front_bezel():
     oal_t = t + ring_h
     screw_dist = 19.50
     chamfer_outer = 1.2
+    pcb_dia = 39.0
     
     # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
     
     # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render
     ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.5, 64).translate([0, 0, t])
-    bezel_solid = base + ring_chamfered
     
-    # 3. Wide Sloping Inner Conical Bezel Funnel
-    r_glass = 16.4
-    r_front = 19.2
+    # 3. Add 4x Monolithic Snap-Fit Retention Clips (+/-40 deg upper flanks, +/-130 deg lower flanks)
+    clips = (make_snap_clip(40, pcb_dia) + 
+             make_snap_clip(-40, pcb_dia) + 
+             make_snap_clip(130, pcb_dia) + 
+             make_snap_clip(-130, pcb_dia))
+             
+    bezel_solid = base + ring_chamfered + clips
+    
+    # 4. Wide Sloping Inner Conical Bezel Funnel
+    r_glass = 16.5
+    r_front = 19.3
     funnel_h = oal_t + 2.0
     dr_dz = (r_front - r_glass) / (oal_t - 3.3)
     r_bot = r_glass - dr_dz * (3.3 - (-1.0))
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
     
-    # 4. Glass Step Pocket (+0.1mm clearance per side -> dia 36.2mm)
-    glass_recess = m3d.Manifold.cylinder(1.8, 36.2 / 2.0, 36.2 / 2.0, 64).translate([0, 0, -0.1])
+    # 5. Glass Step Pocket (+0.1mm extra clearance -> dia 36.4mm)
+    glass_recess = m3d.Manifold.cylinder(1.8, 36.4 / 2.0, 36.4 / 2.0, 64).translate([0, 0, -0.1])
     
-    # 5. Rear Retention Lip for PCB
+    # 6. Rear Retention Lip for PCB + Top Relief Notch
     pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
-
     
-    cuts = window_funnel + glass_recess + pcb_recess
+    # 7. Snap-Fit Flex Relief Slots
+    relief_slots = (make_snap_relief_slot(40, pcb_dia) +
+                    make_snap_relief_slot(-40, pcb_dia) +
+                    make_snap_relief_slot(130, pcb_dia) +
+                    make_snap_relief_slot(-130, pcb_dia))
     
-    # 6. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
+    cuts = window_funnel + glass_recess + pcb_recess + relief_slots
+    
+    # 8. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 7. 2 Blind M2 Pilot Holes
+    # 9. 2 Blind M2 Pilot Holes
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -189,6 +233,7 @@ def generate_front_bezel():
         cuts = cuts + s_hole
             
     return bezel_solid - cuts
+
 
 def generate_main_housing():
     w = 54.0
