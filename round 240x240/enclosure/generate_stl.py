@@ -193,8 +193,9 @@ def generate_front_bezel():
 def generate_main_housing():
     w = 54.0
     c = 6.0
-    depth = 24.5
+    depth = 27.5
     floor_t = 2.5
+
     cavity_depth = depth - floor_t
     screw_dist = 19.50
     chamfer_outer = 1.2
@@ -215,8 +216,8 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Lowered Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 6.80mm):
-    usbc_z = 6.80
+    # 3. Elevated Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 8.25mm):
+    usbc_z = 8.25
     c1 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
     c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
     usbc_tunnel = m3d.Manifold.hull(c1 + c2)
@@ -226,18 +227,21 @@ def generate_main_housing():
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
     usbc_port = usbc_tunnel + usbc_flare
     
-    # 4. 4 Corner M3 Screw Pilot Holes
+    # 4. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to depth)
+    dupont_trench = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
+    
+    # 5. 4 Corner M3 Screw Pilot Holes
     screw_pilot_cuts = m3d.Manifold()
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             pilot_m3 = m3d.Manifold.cylinder(15.2, 1.4, 1.4, 32).translate([sx, sy, depth - 15.0])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3
             
-    cuts = cavity_obj + usbc_port + screw_pilot_cuts
+    cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts
     housing_body = chassis - cuts
     
-    # 5. Internal ESP32-C3 SuperMini Mounting Standoff Rails (Lowered to 1.4mm)
-    rail_h = 1.4
+    # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails (2.5mm Height)
+    rail_h = 2.5
     rail_z_top = floor_t + rail_h
     esp_l, esp_w = 23.0, 18.4
     esp_center_x = -10.0
@@ -248,6 +252,7 @@ def generate_main_housing():
         esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.0) / 2.0
     ])
     standoffs = rail_top + rail_bot + rear_stop
+
     
     pin_cuts = m3d.Manifold()
     x0 = -18.3
@@ -341,7 +346,7 @@ def generate_stand_tier2_trunk():
             
     # 3. Exact Pod V-Saddle Negative Mold (accommodates full 30.0mm assembled pod with clearance):
     w_c = 54.8
-    slot_depth = 31.2
+    slot_depth = 34.2
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [
@@ -400,7 +405,7 @@ def generate_monolithic_desk_stand():
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
     w_c = 54.8
-    slot_depth = 31.2
+    slot_depth = 34.2
     c_c = 6.0
     hw_c = w_c / 2.0
     pts_c = [

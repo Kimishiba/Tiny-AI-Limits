@@ -26,12 +26,12 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 ![Sheet 2: Main Housing Pod](technical_drawings_main_housing.png)
 
 * **Function:** Open electronics bucket with continuous vertical walls and zero mid-air ceilings.
-* **Outer Profile:** $54.00\text{mm} \times 54.00\text{mm} \times 24.50\text{mm}$ depth with $6.00\text{mm} \times 45^\circ$ corner chamfers.
+* **Outer Profile:** $54.00\text{mm} \times 54.00\text{mm} \times 27.50\text{mm}$ depth with $6.00\text{mm} \times 45^\circ$ corner chamfers.
 * **Solid Enclosed Bottom Wall:** 100% continuous, solid outer perimeter walls (zero exterior bottom slits or holes).
-* **Electronics & Wire Cavity:** $44.00\text{mm} \times 44.00\text{mm} \times 22.00\text{mm}$ continuous vertical open tub from floor ($Z = 2.5\text{mm}$) to top rim ($Z = 24.5\text{mm}$).
-* **Corner Screw Pillars:** $4 \times \varnothing 7.60\text{mm}$ solid pillars running from floor to rim with $\varnothing 2.00\text{mm} \times 12.00\text{mm}$ pilot holes.
-* **Internal Lower Tab Pocket:** $23.60\text{mm} \text{ wide} \times 5.00\text{mm} \text{ deep}$ internal pocket ($Y = -22.00\text{mm} \to -25.50\text{mm}$) inside the shell, maintaining a solid $1.50\text{mm}$ bottom outer wall.
-* **USB-C Side Window:** $13.00\text{mm} \text{ wide} \times 8.00\text{mm} \text{ tall}$ through left wall at $X = -27.00\text{mm}$.
+* **Electronics & Wire Cavity:** $46.00\text{mm} \times 46.00\text{mm} \times 25.00\text{mm}$ continuous vertical open tub from floor ($Z = 2.5\text{mm}$) to top rim ($Z = 27.5\text{mm}$).
+* **Corner Screw Pillars:** $4 \times$ solid pillars running from floor to rim with $\varnothing 2.80\text{mm} \times 15.00\text{mm}$ pilot holes at $X = \pm 19.50\text{mm}, Y = \pm 19.50\text{mm}$ ($39.00\text{mm}$ Bolt Circle) for M3 screws or heat-set brass inserts.
+* **DuPont Connector & Wire Trench:** $26.00\text{mm} \text{ wide} \times 5.00\text{mm} \text{ deep}$ internal trench ($Y = -21.00\text{mm} \to -26.00\text{mm}$) running full depth ($25.00\text{mm}$), keeping a solid $1.00\text{mm}$ outer bottom wall.
+* **Elevated USB-C Port:** Precision oval cutout with $45^\circ$ lead-in chamfer centered at $Z = 8.25\text{mm}$ on left wall at $X = -27.00\text{mm}$.
 * **ESP32-C3 SuperMini Mounting:**
   * Standoff rails at $Y = \pm 7.62\text{mm}$ ($0.6''$ pin row spacing), height $2.50\text{mm}$.
   * $16 \times \varnothing 1.50\text{mm}$ blind pin-registration holes ($2.00\text{mm}$ deep) at $2.54\text{mm}$ pitch along $X$.
@@ -45,7 +45,7 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 
 * **Tier 1 Base Plate:** $64.00\text{mm} \text{ wide} \times 68.00\text{mm} \text{ deep} \times 5.00\text{mm} \text{ height}$ with $R = 6.00\text{mm}$ rounded corners and $4 \times$ upward alignment pins ($\varnothing 5.00\text{mm} \times 3.50\text{mm}$).
 * **Tier 2 Pyramidal Trunk:** $24.00\text{mm}$ height ($62.0\times 66.0\text{mm}$ base tapering to $54.0\times 58.0\text{mm}$ top) for a $29.00\text{mm}$ total stand height.
-* **Cradle Sliding Slot:** $54.80\text{mm} \text{ wide} \times 31.20\text{mm} \text{ depth} \times 12.00\text{mm} \text{ seating pocket}$ at an ergonomic **$22.0^\circ$ backward tilt**, accommodating the full $30.00\text{mm}$ assembled pod (housing + bezel) with $1.20\text{mm}$ smooth slide clearance.
+* **Cradle Sliding Slot:** $54.80\text{mm} \text{ wide} \times 34.20\text{mm} \text{ depth} \times 12.00\text{mm} \text{ seating pocket}$ at an ergonomic **$22.0^\circ$ backward tilt**, accommodating the full $33.00\text{mm}$ assembled pod (housing + bezel) with $1.20\text{mm}$ smooth slide clearance.
 * **Anti-Slip Rubber Foot Recesses:** $4 \times \varnothing 8.20\text{mm} \times 1.50\text{mm}$ deep on underside ($X = \pm 22.00\text{mm}, Y = \pm 24.00\text{mm}$).
 
 ---
@@ -56,10 +56,11 @@ Comprehensive mechanical engineering drawing sheets and dimensional specificatio
 * **Stackup Sequence:**
   1. Front Bezel Display Carrier ($5.50\text{mm}$)
   2. GC9A01 1.28″ Round Display Module ($3.10\text{mm}$) — fastened to bezel with $2 \times$ M2 screws
-  3. Main Housing Pod Open Tub ($24.50\text{mm}$) with ESP32-C3 SuperMini inside
-  4. Sculpted Two-Tier Desk Stand ($34.00\text{mm}$)
+  3. Main Housing Pod Open Tub ($27.50\text{mm}$) with ESP32-C3 SuperMini inside
+  4. Sculpted Two-Tier Desk Stand ($29.00\text{mm}$)
 * **Hardware BOM:**
   * $2 \times \text{M2} \times 4\text{mm} / 6\text{mm}$ pan/socket screws (screen to bezel)
-  * $4 \times \text{M2} \times 12\text{mm}$ socket head cap screws (bezel to housing)
+  * $4 \times \text{M3} \times 12\text{mm} / 16\text{mm}$ socket head cap screws (bezel to housing)
   * $4 \times \varnothing 8.0\text{mm}$ adhesive rubber feet
   * $7 \times 10\text{cm}$ female-to-female DuPont jumper wires
+

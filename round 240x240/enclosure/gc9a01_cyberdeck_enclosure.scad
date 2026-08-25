@@ -11,7 +11,8 @@ part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Stand 
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
-housing_depth    = 24.5; // Open-tub housing depth (mm)
+housing_depth    = 27.5; // Open-tub housing depth (+3mm extra wire/DuPont clearance) (mm)
+
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)
@@ -45,8 +46,9 @@ cavity_chamfer     = 13.0; // 13.0mm corner chamfers leaving massive corner scre
 floor_t            = 2.5;  // Rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
-esp_standoff_h     = 1.4;  // Lowered standoff height (mm)
-usbc_center_z      = 6.8;  // Lowered USB-C port centerline (mm)
+esp_standoff_h     = 2.5;  // ESP32 standoff rail height (mm)
+usbc_center_z      = 8.25; // Elevated USB-C port centerline with ample clearance (mm)
+
 
 // Stand Parameters (Exact Concept Render Proportions)
 stand_base_w       = 64.0; // Tier 1 base width (mm)
@@ -216,7 +218,12 @@ module main_housing() {
         // 2. Lowered Precision Chamfered Oval/Stadium USB-C Port Cutout
         usbc_stadium_cutter();
             
-        // 3. 4 Corner M3 Screw Pilot Holes
+        // 3. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to top)
+        translate([-13.0, -26.0, floor_t])
+            cube([26.0, 5.0, cavity_depth + 0.1]);
+            
+        // 4. 4 Corner M3 Screw Pilot Holes
+
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, housing_depth - 15.0])
@@ -289,10 +296,10 @@ module stand_tier2_trunk() {
             }
         }
         
-        // Deep Negative Cradle Slot for Full 30.0mm Assembled Pod (31.2mm depth with slide clearance)
+        // Deep Negative Cradle Slot for Full 33.0mm Assembled Pod (34.2mm depth with slide clearance)
         translate([0, -4.0, 42.40])
             rotate([90.0 - stand_tilt_deg, 0, 180.0])
-            octagonal_prism(enclosure_width + 0.8, 31.2, 6.0);
+            octagonal_prism(enclosure_width + 0.8, 34.2, 6.0);
     }
 }
 
@@ -309,9 +316,10 @@ if (part == 1) {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance)
     translate([0, -4.0, 42.40])
         rotate([90.0 - stand_tilt_deg, 0, 180.0]) {
-            translate([0, 0, 24.5]) color("#22252B") front_bezel();
+            translate([0, 0, 27.5]) color("#22252B") front_bezel();
             color("#181A1F") main_housing();
         }
     color("#5c4033") stand_tier1_base();
     color("#2E3440") stand_tier2_trunk();
 }
+
