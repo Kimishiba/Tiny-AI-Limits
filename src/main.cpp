@@ -141,6 +141,12 @@ uint16_t pairedPort = 0;
 String pairedId = "";
 Preferences pairPrefs;
 
+// Defined with the data-fetching code below, used by the web server above it.
+void savePairing(const String& host, uint16_t port, const String& id);
+bool isValidIPv4(const String& s);
+void applyPairedBackendUrl();
+String deviceHostname();
+
 Preferences wifiPrefs;
 ImprovWiFi improvSerial(&Serial);
 bool provisioningMode = false;
@@ -1061,6 +1067,11 @@ void onWifiConnected();
 // HTTP SERVER (Companion App Screen Provisioning)
 // ==========================================
 void setupWebServer() {
+    // The setup page is served from the companion app's origin
+    // (http://localhost:5000), so pairing calls to the board are
+    // cross-origin and are preflighted.
+    server.enableCORS(true);
+
     server.on("/api/screen", HTTP_GET, []() {
         StaticJsonDocument<256> doc;
         doc["configured_mode"] = (configuredScreenType == SCREEN_AUTO) ? "auto" :
@@ -1104,6 +1115,58 @@ void setupWebServer() {
         doc["status"] = "ok";
         doc["configured_mode"] = mode;
         doc["active_screen"] = (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled";
+        String out;
+        serializeJson(doc, out);
+        server.send(200, "application/json", out);
+    });
+
+    // Pair over HTTP as well as over serial. Improv provisioning carries only
+    // an SSID and password -- the protocol has no room for a host address --
+    // so a board set up that way can only be paired once it is on the network.
+    // This also lets a user re-pair without plugging the board back in.
+    server.on("/api/pair", HTTP_OPTIONS, []() {
+        server.send(204);
+    });
+
+    server.on("/api/pair", HTTP_POST, []() {
+        StaticJsonDocument<256> doc;
+        if (!server.hasArg("plain") || deserializeJson(doc, server.arg("plain"))) {
+            server.send(400, "application/json", "{\"error\":\"invalid_json\"}");
+            return;
+        }
+
+        // Default to the caller's address: the setup page runs in a browser on
+        // the same machine as the companion app, so it is the right host.
+        String host = doc["host"] | "";
+        if (host.length() == 0) host = server.client().remoteIP().toString();
+        long port = doc["port"] | 0;
+        String id = doc["pair_id"] | "";
+
+        if (!isValidIPv4(host) || port <= 0 || port > 65535) {
+            server.send(400, "application/json", "{\"error\":\"invalid_host_or_port\"}");
+            return;
+        }
+
+        savePairing(host, (uint16_t)port, id);
+        applyPairedBackendUrl();
+
+        StaticJsonDocument<256> out;
+        out["status"] = "ok";
+        out["paired_host"] = pairedHost;
+        out["paired_port"] = pairedPort;
+        out["pair_id"] = pairedId;
+        String body;
+        serializeJson(out, body);
+        server.send(200, "application/json", body);
+    });
+
+    server.on("/api/pair", HTTP_GET, []() {
+        StaticJsonDocument<256> doc;
+        doc["paired"] = pairedHost.length() > 0;
+        doc["paired_host"] = pairedHost;
+        doc["paired_port"] = pairedPort;
+        doc["pair_id"] = pairedId;
+        doc["hostname"] = deviceHostname();
         String out;
         serializeJson(doc, out);
         server.send(200, "application/json", out);
