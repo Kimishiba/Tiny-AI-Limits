@@ -503,6 +503,14 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
     gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
 }
 
+// Set whenever the screen was just showing something drawGC9A01RoundFlipUI()
+// doesn't own (the boot/connecting animation) and needs to be wiped before
+// the HUD's own redraw-on-change caches take over. Without this, the HUD
+// only repaints pixels it thinks changed, so boot-animation content in
+// regions the HUD never touches -- the spinning ring, the status pill, the
+// brand text -- keeps showing through indefinitely once the HUD takes over.
+bool gHudNeedsFreshPaint = true;
+
 void drawGC9A01RoundFlipUI() {
     int cx = 120, cy = 120, rScreen = 114;
 
@@ -531,6 +539,30 @@ void drawGC9A01RoundFlipUI() {
     static int oldDigits[4] = {-1, -1, -1, -1};
     static int prevTarget[4] = {-1, -1, -1, -1};
     static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    if (gHudNeedsFreshPaint) {
+        gHudNeedsFreshPaint = false;
+        gcGfx->fillScreen(GC_COLOR_BLACK);
+        // Invalidate every redraw-on-change cache above so this pass treats
+        // all of them as changed and repaints the whole HUD onto the fresh
+        // black background, rather than leaving most of it black until its
+        // underlying value happens to change on its own.
+        bezelDrawn = false;
+        lastFlashState = false;
+        lastWaitingState = false;
+        lastHoursUntilRain = -999;
+        lastLedState = -1;
+        lastClaudePct = -1;
+        lastAntiPct = -1;
+        lastTemp = -999.0f;
+        lastDate = "";
+        lastWaiting = false;
+        for (int i = 0; i < 4; i++) {
+            oldDigits[i] = -1;
+            prevTarget[i] = -1;
+            flipProg[i] = 1.0f;
+        }
+    }
 
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
     uint16_t colEmerald = gcGfx->color565(0, 255, 136);     // #00FF88 Neon Emerald
@@ -1247,6 +1279,14 @@ bool connectToWifi(const char* ssid, const char* password) {
     int attempts = 0;
     int animFrame = 0;
 
+    // Paint the connecting screen fresh before animating it. connectToWifi()
+    // can run again later while the HUD is already live (re-provisioning
+    // over serial), and the loop below increments animFrame before its first
+    // render call, so without this explicit frameIndex-0 call the ring would
+    // spin directly over whatever the HUD last drew for the entire connect
+    // attempt, not just leave it behind afterward.
+    renderGC9A01BootAnimationFrame(animFrame, "CONNECTING WI-FI...", false);
+
     // Poll every 40ms (not 500ms): Improv WiFi's browser-side handshake sends a
     // single request-current-state call with no retry, and a serial connection
     // opening resets this board -- so if the timing lands inside this loop with
@@ -1278,6 +1318,13 @@ bool connectToWifi(const char* ssid, const char* password) {
         // Brief "READY" status flash with emerald green indicator
         renderGC9A01BootAnimationFrame(animFrame, "TINY SCREEN READY", true);
         delay(400);
+
+        // Hand off to the live HUD on a clean screen -- see
+        // gHudNeedsFreshPaint. Applies on every successful connect, not just
+        // the first: a board can reach here again later (re-provisioning
+        // over serial while already running), and the HUD may already be
+        // mid-render on screen at that point.
+        gHudNeedsFreshPaint = true;
 
         onWifiConnected();
         return true;
@@ -1597,12 +1644,11 @@ void loop() {
     if (now - lastFrameTime >= frameIntervalMs) {
         lastFrameTime = now;
 
-        // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-        static bool initialCleared = false;
-        if (!initialCleared) {
-            initialCleared = true;
-            gcGfx->fillScreen(GC_COLOR_BLACK);
-        }
+        // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD).
+        // The initial clear-and-reset, and any later one after the boot/
+        // connecting animation hands off, is drawGC9A01RoundFlipUI()'s own
+        // responsibility -- see gHudNeedsFreshPaint.
+        //
         // Keeps the blink/gaze state live for drawGC9A01RoundFaceUI(), which
         // is wired up but not currently selected by the loop.
         updateFacePhysics(now);
