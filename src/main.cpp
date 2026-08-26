@@ -1631,12 +1631,15 @@ void handleSerialCommunication() {
                     }
                 }
             } else if (line == "STATUS") {
-                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\"}\n",
+                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\",\"backend_connected\":%s,\"backend_url\":\"%s\",\"failures\":%d}\n",
                     wifiConnected ? "true" : "false",
                     wifiConnected ? WiFi.localIP().toString().c_str() : "",
                     (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled",
                     deviceHostname().c_str(),
-                    pairedHost.c_str(), pairedPort, pairedId.c_str());
+                    pairedHost.c_str(), pairedPort, pairedId.c_str(),
+                    backendConnected ? "true" : "false",
+                    backendUrl.c_str(),
+                    consecutiveBackendFailures);
             }
         } else {
             serialBuffer += c;
@@ -1696,7 +1699,7 @@ void setup() {
     // 5. Improv Wi-Fi Provisioning Setup
     improvSerial.setDeviceInfo(
         ImprovTypes::ChipFamily::CF_ESP32_C3,
-        "TinyScreenFirmware", "2.0.0", "Tiny AI Screen", ""
+        "TinyScreenFirmware", "0.4.0", "Tiny AI Screen", ""
     );
     improvSerial.onImprovError(onImprovWiFiErrorCb);
     improvSerial.onImprovConnected(onImprovWiFiConnectedCb);

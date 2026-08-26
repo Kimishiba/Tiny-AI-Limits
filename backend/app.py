@@ -45,7 +45,7 @@ def save_config(cfg):
     except Exception as e:
         print(f"Error saving config: {e}")
 
-COMPANION_VERSION = "0.3.0"
+COMPANION_VERSION = "0.4.0"
 
 def get_pair_id(cfg):
     """Stable per-install identifier used to pair a board to *this* companion.
