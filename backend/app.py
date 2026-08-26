@@ -78,7 +78,7 @@ def serve_qbit_prototype():
 def serve_setup_page():
     setup_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "setup.html")
     if os.path.exists(setup_path):
-        return send_file(setup_path)
+        return send_file(setup_path, max_age=0)
     return "Setup page not found", 404
 
 @app.route('/setup/vendor/<path:filename>')
@@ -756,15 +756,17 @@ def register_mdns_service(port=PORT):
     global _zeroconf_instance
     try:
         local_ip = get_local_ip()
+        host_label = socket.gethostname().split('.')[0].replace(' ', '-') or "tinyscreen-host"
         info = ServiceInfo(
             "_tinyscreen._tcp.local.",
             "Tiny AI Screen Companion._tinyscreen._tcp.local.",
             addresses=[socket.inet_aton(local_ip)],
             port=port,
+            server=f"{host_label}.local.",
         )
         _zeroconf_instance = Zeroconf()
         _zeroconf_instance.register_service(info)
-        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:{port}")
+        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:{port} (server: {host_label}.local.)")
     except Exception as e:
         print(f"[mDNS] Failed to register service: {e}")
 
