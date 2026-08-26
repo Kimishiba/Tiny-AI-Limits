@@ -431,7 +431,6 @@
       border-radius: 8px;
       position: relative;
       overflow: hidden;
-      cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -439,16 +438,6 @@
       max-width: 380px;
       margin: 0 auto;
       width: 100%;
-      transition: transform 0.1s ease;
-    }
-
-    .screen-glass.oled-mode {
-      aspect-ratio: 2 / 1;
-      max-width: 440px;
-    }
-
-    .screen-glass:active {
-      transform: scale(0.99);
     }
 
     canvas#simCanvas {
@@ -514,39 +503,6 @@
       display: flex;
       align-items: center;
       gap: 0.45rem;
-    }
-
-    .screen-tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
-    }
-
-    .tab-btn {
-      background: var(--card-bg);
-      border: var(--border-thin) solid var(--border-dark);
-      box-shadow: 2px 2px 0px 0px var(--border-dark);
-      padding: 0.6rem 0.5rem;
-      font-family: 'Anybody', sans-serif;
-      font-size: 0.82rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: all 0.12s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.35rem;
-    }
-
-    .tab-btn:hover {
-      background: var(--accent-orange-light);
-    }
-
-    .tab-btn.active {
-      background: var(--accent-orange);
-      color: #ffffff;
     }
 
     .ctrl-row {
@@ -634,14 +590,10 @@
     /* Hardware Showcase Grid */
     .showcase-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 2rem;
-    }
-
-    @media (max-width: 900px) {
-      .showcase-grid {
-        grid-template-columns: 1fr;
-      }
+      max-width: 560px;
+      margin: 0 auto;
     }
 
     .showcase-card {
@@ -961,7 +913,6 @@
       <div class="badge-pill-row">
         <div class="badge-pill">⚙️ ESP32-C3 SuperMini</div>
         <div class="badge-pill">🔘 GC9A01 240x240 Round IPS</div>
-        <div class="badge-pill">📺 SSD1306 128x64 OLED</div>
         <div class="badge-pill">⚡ Dual Circular Radial Arcs</div>
         <div class="badge-pill">🤖 Expressive Saccadic Eyes</div>
         <div class="badge-pill">📶 1-Click WebSerial Wi-Fi</div>
@@ -998,36 +949,18 @@
             </div>
           </div>
 
-          <div class="screen-glass" id="screenGlass" title="Click screen to cycle screens">
+          <div class="screen-glass" id="screenGlass">
             <canvas id="simCanvas" width="240" height="240"></canvas>
           </div>
 
           <div class="touch-hint-bar">
             <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">touch_app</span>
-            Click screen glass to toggle modes or adjust real-time sliders on the right.
+            Adjust the real-time sliders on the right to drive the display.
           </div>
         </div>
 
         <!-- Right: Simulator Controls -->
         <div class="controls-stack">
-
-          <!-- Screen Selection -->
-          <div class="neo-card">
-            <div class="card-title-bar">
-              <div class="card-title">
-                <span class="material-symbols-outlined" style="color: var(--accent-orange);">view_carousel</span>
-                Select Screen Edition
-              </div>
-            </div>
-            <div class="screen-tabs">
-              <button class="tab-btn active" id="tabRound" onclick="setScreenMode('round')">
-                🔘 GC9A01 Round (240x240)
-              </button>
-              <button class="tab-btn" id="tabOled" onclick="setScreenMode('oled')">
-                📺 SSD1306 OLED (128x64)
-              </button>
-            </div>
-          </div>
 
           <!-- Telemetry Sliders & Mock Controls -->
           <div class="neo-card">
@@ -1077,16 +1010,16 @@
       <div class="section-header">
         <h2 class="section-title">
           <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">view_in_ar</span>
-          Two Hardware Editions You Can Build
+          The Hardware You Can Build
         </h2>
-        <div class="section-subtitle">Modular 3D-Printable Desktop Pods</div>
+        <div class="section-subtitle">Modular 3D-Printable Desktop Pod</div>
       </div>
 
       <div class="showcase-grid">
-        <!-- Edition 1: GC9A01 Round Cyberdeck -->
+        <!-- GC9A01 Round Cyberdeck -->
         <div class="showcase-card">
           <div class="showcase-img-wrap">
-            <span class="showcase-badge">Flagship Edition</span>
+            <span class="showcase-badge">Cyberdeck Edition</span>
             <img src="./assets/round/gc9a01_3d_enclosure_render.jpg" alt="GC9A01 Circular Cyberdeck Enclosure Render">
           </div>
           <div class="showcase-body">
@@ -1099,26 +1032,6 @@
               <li><span class="bullet">▸</span> <strong>UI:</strong> 2×2 Flip Clock + Left/Right Circular Radial Telemetry Arcs</li>
               <li><span class="bullet">▸</span> <strong>Hardware:</strong> 4× Counterbored M3 Socket Head Cap Screws</li>
               <li><span class="bullet">▸</span> <strong>Pedestal:</strong> Two-tier modular pedestal with dark walnut base</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Edition 2: SSD1306 OLED Robot Companion -->
-        <div class="showcase-card">
-          <div class="showcase-img-wrap">
-            <span class="showcase-badge">Companion Edition</span>
-            <img src="./assets/img/ssd1306_real_robot_render.jpg" alt="SSD1306 OLED Robot Companion Render">
-          </div>
-          <div class="showcase-body">
-            <h3 class="showcase-title">0.96" / 1.3" OLED Robot Face</h3>
-            <p style="color: var(--text-muted); font-size: 0.92rem;">
-              A retro-futuristic desktop robot featuring physics-driven saccadic eye glances, context-aware mood reactions, and auto-cycling screens.
-            </p>
-            <ul class="spec-list">
-              <li><span class="bullet">▸</span> <strong>Display:</strong> 0.96" or 1.3" Monochrome I2C OLED (128×64)</li>
-              <li><span class="bullet">▸</span> <strong>Moods:</strong> Normal idle, fatigued/sweat (heavy tokens), wide-eyed shock alert</li>
-              <li><span class="bullet">▸</span> <strong>Wiring:</strong> Super simple 4-pin I2C hookup</li>
-              <li><span class="bullet">▸</span> <strong>Enclosure:</strong> Matching chamfered cyberdeck with rectangular aperture</li>
             </ul>
           </div>
         </div>
@@ -1177,16 +1090,6 @@
         <div class="section-subtitle">Visual Vector Diagrams & Pin Configuration</div>
       </div>
 
-      <!-- Diagram Selector Tabs -->
-      <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
-        <button class="tab-btn active" id="tabWiringRound" onclick="switchWiringDiagram('round')" style="padding: 0.65rem 1.2rem; font-size: 0.9rem;">
-          🔘 GC9A01 1.28" Round SPI Diagram
-        </button>
-        <button class="tab-btn" id="tabWiringOled" onclick="switchWiringDiagram('oled')" style="padding: 0.65rem 1.2rem; font-size: 0.9rem;">
-          📺 SSD1306 0.96"/1.3" OLED I2C Diagram
-        </button>
-      </div>
-
       <!-- SVG Diagram Container -->
       <div class="neo-box" style="padding: 1rem; background: #0f1218; margin-bottom: 1.75rem; overflow: hidden;">
         <img id="wiringSvgImg" src="./assets/img/wiring_gc9a01_round.svg" alt="ESP32-C3 Wiring Diagram" style="width: 100%; height: auto; display: block; border-radius: 8px;">
@@ -1198,7 +1101,7 @@
           <thead>
             <tr>
               <th>Function</th>
-              <th>Display Pin (GC9A01 / SSD1306)</th>
+              <th>Display Pin (GC9A01)</th>
               <th>ESP32-C3 SuperMini Pin</th>
               <th>Physical Header Location</th>
               <th>Wire Color Cue</th>
@@ -1221,22 +1124,6 @@
               <td>Left Header (Pin 2)</td>
               <td><span style="color: #64748b; font-weight: 800;">● Black</span></td>
               <td>Common Ground</td>
-            </tr>
-            <tr>
-              <td><strong>I2C Clock (OLED)</strong></td>
-              <td><code>SCL / SCK</code></td>
-              <td><code>GPIO 9</code></td>
-              <td>Right Header (Pin 13)</td>
-              <td><span style="color: #eab308; font-weight: 800;">● Yellow</span></td>
-              <td>Hardware I2C Clock</td>
-            </tr>
-            <tr>
-              <td><strong>I2C Data (OLED)</strong></td>
-              <td><code>SDA</code></td>
-              <td><code>GPIO 8</code></td>
-              <td>Right Header (Pin 14)</td>
-              <td><span style="color: #06b6d4; font-weight: 800;">● Cyan</span></td>
-              <td>Hardware I2C Data</td>
             </tr>
             <tr>
               <td><strong>SPI Clock (GC9A01)</strong></td>
@@ -1350,7 +1237,6 @@
     const canvas = document.getElementById("simCanvas");
     const ctx = canvas.getContext("2d");
 
-    let screenMode = "round"; // "round" or "oled"
     let claudeRemaining = 68;
     let antiRemaining = 42;
     let temperature = 23.5;
@@ -1359,55 +1245,6 @@
     let isWorkComplete = false;
     let blinkState = false;
     let lastBlink = Date.now();
-
-    // Robot Eye Animation State
-    let eyeLookX = 0;
-    let eyeLookY = 0;
-    let eyeTargetX = 0;
-    let eyeTargetY = 0;
-    let eyeBlinkProgress = 0; // 0 = open, 1 = closed
-    let nextGlanceTime = Date.now() + 2000;
-    let nextBlinkTime = Date.now() + 3000;
-
-    function setScreenMode(mode) {
-      screenMode = mode;
-      document.getElementById("tabRound").classList.toggle("active", mode === "round");
-      document.getElementById("tabOled").classList.toggle("active", mode === "oled");
-      const glass = document.getElementById("screenGlass");
-      const title = document.getElementById("bezelTitle");
-
-      if (mode === "round") {
-        canvas.width = 240;
-        canvas.height = 240;
-        glass.classList.remove("oled-mode");
-        title.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span> GC9A01 240×240 IPS (Round)';
-      } else {
-        canvas.width = 128;
-        canvas.height = 64;
-        glass.classList.add("oled-mode");
-        title.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">monitor</span> SSD1306 128×64 OLED (Monochrome)';
-      }
-    }
-
-    function switchWiringDiagram(type) {
-      const img = document.getElementById("wiringSvgImg");
-      const tabRound = document.getElementById("tabWiringRound");
-      const tabOled = document.getElementById("tabWiringOled");
-      if (type === "round") {
-        img.src = "./assets/img/wiring_gc9a01_round.svg";
-        tabRound.classList.add("active");
-        tabOled.classList.remove("active");
-      } else {
-        img.src = "./assets/img/wiring_ssd1306_oled.svg";
-        tabOled.classList.add("active");
-        tabRound.classList.remove("active");
-      }
-    }
-
-
-    document.getElementById("screenGlass").addEventListener("click", () => {
-      setScreenMode(screenMode === "round" ? "oled" : "round");
-    });
 
     function updateClaude(val) {
       claudeRemaining = parseInt(val, 10);
@@ -1609,87 +1446,6 @@
       ctx.restore();
     }
 
-    // --- DRAWING: SSD1306 128x64 OLED Robot Companion ---
-    function drawOledDisplay() {
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, 128, 64);
-
-      // Update saccadic eye physics
-      const now = Date.now();
-      if (now > nextGlanceTime) {
-        eyeTargetX = (Math.random() - 0.5) * 12;
-        eyeTargetY = (Math.random() - 0.5) * 6;
-        nextGlanceTime = now + 1500 + Math.random() * 2500;
-      }
-      eyeLookX += (eyeTargetX - eyeLookX) * 0.15;
-      eyeLookY += (eyeTargetY - eyeLookY) * 0.15;
-
-      // Handle randomized blink
-      if (now > nextBlinkTime) {
-        eyeBlinkProgress = 1.0;
-        nextBlinkTime = now + 2500 + Math.random() * 4000;
-      }
-      if (eyeBlinkProgress > 0) {
-        eyeBlinkProgress -= 0.12;
-        if (eyeBlinkProgress < 0) eyeBlinkProgress = 0;
-      }
-
-      if (isAlertActive) {
-        // Wide-eyed shock reaction with warning banner
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, 128, 12);
-        ctx.fillStyle = "#000000";
-        ctx.font = "bold 9px 'JetBrains Mono', monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("! PLAN APPROVAL !", 64, 9);
-
-        // Huge wide eyes
-        const eyeW = 34;
-        const eyeH = 34;
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.roundRect(20, 20, eyeW, eyeH, [10]);
-        ctx.roundRect(74, 20, eyeW, eyeH, [10]);
-        ctx.fill();
-
-        // Shock pupils
-        ctx.fillStyle = "#000000";
-        ctx.beginPath();
-        ctx.arc(37, 37, 7, 0, Math.PI * 2);
-        ctx.arc(91, 37, 7, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        // Normal Expressive Robot Eyes
-        const eyeBaseW = 32;
-        const eyeBaseH = 36 * (1 - eyeBlinkProgress);
-        const eyeY = 32 - (eyeBaseH / 2) + eyeLookY;
-
-        ctx.fillStyle = "#ffffff";
-
-        if (eyeBaseH > 3) {
-          // Left Eye
-          ctx.beginPath();
-          ctx.roundRect(24 + eyeLookX, eyeY, eyeBaseW, eyeBaseH, [8]);
-          ctx.fill();
-
-          // Right Eye
-          ctx.beginPath();
-          ctx.roundRect(72 + eyeLookX, eyeY, eyeBaseW, eyeBaseH, [8]);
-          ctx.fill();
-        } else {
-          // Closed eyelid slit
-          ctx.fillRect(24 + eyeLookX, 31, eyeBaseW, 3);
-          ctx.fillRect(72 + eyeLookX, 31, eyeBaseW, 3);
-        }
-
-        // Heavy token usage fatigue (falling sweat droplet)
-        if (claudeRemaining < 25) {
-          const sweatY = 18 + ((now / 15) % 30);
-          ctx.fillRect(114, sweatY, 3, 5);
-        }
-      }
-    }
-
     // Main 60 FPS Render Loop
     function renderLoop() {
       const now = Date.now();
@@ -1698,11 +1454,7 @@
         lastBlink = now;
       }
 
-      if (screenMode === "round") {
-        drawRoundDisplay();
-      } else {
-        drawOledDisplay();
-      }
+      drawRoundDisplay();
 
       requestAnimationFrame(renderLoop);
     }

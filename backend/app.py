@@ -26,8 +26,7 @@ def load_config():
         "lat": 52.5200,
         "lon": 13.4050,
         "antigravity_5h_quota": 200,
-        "antigravity_account_email": None,
-        "screen_type": "auto"
+        "antigravity_account_email": None
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -84,14 +83,6 @@ def serve_emulator():
     if os.path.exists(emulator_path):
         return send_file(emulator_path, max_age=0)
     return "Emulator file not found", 404
-
-@app.route('/faces')
-@app.route('/qbit')
-def serve_qbit_prototype():
-    prototype_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "qbit_faces_prototype.html")
-    if os.path.exists(prototype_path):
-        return send_file(prototype_path)
-    return "QBIT Prototype file not found", 404
 
 @app.route('/setup')
 def serve_setup_page():
@@ -689,27 +680,7 @@ def get_data():
             "state": agent_state,
             "prompt_text": prompt_text,
             "completion_text": completion_text
-        },
-        "device": {
-            "screen_type": config.get("screen_type", "auto")
         }
-    })
-
-@app.route('/api/screen', methods=['GET', 'POST'])
-def handle_screen_api():
-    global config
-    if request.method == 'POST':
-        data = request.json or request.form or {}
-        mode = data.get("mode") or data.get("screen_type") or request.args.get("mode") or "auto"
-        mode = str(mode).lower()
-        if mode in ["auto", "round", "gc9a01", "oled", "128x64"]:
-            config["screen_type"] = "round" if mode in ["round", "gc9a01"] else ("oled" if mode in ["oled", "128x64"] else "auto")
-            save_config(config)
-            return jsonify({"status": "ok", "screen_type": config["screen_type"]})
-        return jsonify({"status": "error", "message": f"Invalid screen mode '{mode}'"}), 400
-    return jsonify({
-        "screen_type": config.get("screen_type", "auto"),
-        "options": ["auto", "round", "oled"]
     })
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -719,10 +690,6 @@ def handle_config():
         data = request.json or {}
         if "auto_location" in data:
             config["auto_location"] = bool(data["auto_location"])
-        if "screen_type" in data:
-            val = str(data["screen_type"]).lower()
-            if val in ["auto", "round", "gc9a01", "oled", "128x64"]:
-                config["screen_type"] = "round" if val in ["round", "gc9a01"] else ("oled" if val in ["oled", "128x64"] else "auto")
         if "antigravity_5h_quota" in data:
             try:
                 config["antigravity_5h_quota"] = int(data["antigravity_5h_quota"])

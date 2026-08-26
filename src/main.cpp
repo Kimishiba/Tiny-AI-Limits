@@ -1,8 +1,5 @@
 #include <Arduino.h>
-#include <Wire.h>
 #include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <Arduino_GFX_Library.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -20,11 +17,7 @@ DNSServer dnsServer;
 // ==========================================
 // PIN CONFIGURATION (ESP32-C3 SuperMini)
 // ==========================================
-// 1. I2C Bus for SSD1306 / SH1106 OLED (128x64)
-#define I2C_SDA_PIN 8
-#define I2C_SCL_PIN 9
-
-// 2. SPI Bus for GC9A01 Circular IPS (240x240)
+// SPI Bus for GC9A01 Circular IPS (240x240)
 #define GC9A01_SCK_PIN  4
 #define GC9A01_MOSI_PIN 6
 #define GC9A01_CS_PIN   5
@@ -35,32 +28,12 @@ DNSServer dnsServer;
 // ==========================================
 // DISPLAY HARDWARE DEFINITIONS & DRIVERS
 // ==========================================
-#define OLED_SCREEN_WIDTH  128
-#define OLED_SCREEN_HEIGHT 64
-#define OLED_RESET         -1
-
-Adafruit_SSD1306 oledDisplay(OLED_SCREEN_WIDTH, OLED_SCREEN_HEIGHT, &Wire, OLED_RESET);
-
 // GC9A01 SPI Hardware Driver (Using reliable Arduino_HWSPI)
 Arduino_DataBus *gcBus = new Arduino_HWSPI(GC9A01_DC_PIN, GC9A01_CS_PIN, GC9A01_SCK_PIN, GC9A01_MOSI_PIN, GFX_NOT_DEFINED);
 Arduino_GFX *gcGfx = new Arduino_GC9A01(gcBus, GC9A01_RST_PIN, 0 /* rotation */, true /* IPS */);
 
-// ==========================================
-// SCREEN PROVISIONING & HARDWARE SELECTION
-// ==========================================
-enum HardwareScreenType {
-    SCREEN_AUTO = 0,
-    SCREEN_GC9A01_ROUND = 1,
-    SCREEN_OLED_128X64 = 2
-};
-
-HardwareScreenType configuredScreenType = SCREEN_AUTO;
-HardwareScreenType activeScreenType = SCREEN_GC9A01_ROUND;
-bool oledFound = false;
-uint8_t oledAddress = 0x3C;
 bool gc9a01Initialized = false;
 
-Preferences screenPrefs;
 WebServer server(80);
 
 const unsigned long wifiConnectTimeoutMs = 30000;
@@ -116,18 +89,6 @@ const unsigned long sleepIdleThresholdMs = 15UL * 60UL * 1000UL;
 unsigned long lastBackendPoll = 0;
 const unsigned long backendPollInterval = 3000;
 
-unsigned long lastScreenSwitch = 0;
-const unsigned long screenSwitchInterval = 8000;
-
-enum OLEDMode {
-    SCREEN_FACE = 0,
-    SCREEN_SPLIT_HUD = 1,
-    SCREEN_LIMITS = 2,
-    SCREEN_CLOCK_WEATHER = 3,
-    SCREEN_AGENT_ALERT = 4
-};
-
-OLEDMode currentOLEDMode = SCREEN_FACE;
 bool wifiConnected = false;
 bool backendConnected = false;
 String backendUrl = "";
@@ -157,7 +118,7 @@ ImprovWiFi improvSerial(&Serial);
 bool provisioningMode = false;
 
 // ==========================================
-// OLED FACE & BLINKING ANIMATION ENGINE
+// FACE & BLINKING ANIMATION ENGINE
 // ==========================================
 enum BlinkPhase {
     EYES_OPEN,
@@ -261,110 +222,6 @@ void updateFacePhysics(unsigned long now) {
 
     face.currentPupilX += (face.targetPupilX - face.currentPupilX) * 0.25f;
     face.currentPupilY += (face.targetPupilY - face.currentPupilY) * 0.25f;
-}
-
-// ==========================================
-// OLED DRAWING ROUTINES
-// ==========================================
-void drawCyberEye(int cx, int cy, float openPct, float pupilX, float pupilY, bool isRight) {
-    int maxW = 44;
-    int maxH = 36;
-    int curH = (int)(maxH * openPct);
-    if (curH < 2) curH = 2;
-
-    int rX = cx - maxW / 2;
-    int rY = cy - curH / 2;
-
-    oledDisplay.fillRoundRect(rX, rY, maxW, curH, 12, SSD1306_WHITE);
-
-    if (curH > 8) {
-        int pX = cx - 5 + (int)pupilX;
-        int pY = cy - 6 + (int)pupilY;
-        oledDisplay.fillCircle(pX, pY, 3, SSD1306_BLACK);
-    }
-}
-
-void renderFaceScreen() {
-    drawCyberEye(36, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, false);
-    drawCyberEye(92, 32, face.currentOpenPct, face.currentPupilX, face.currentPupilY, true);
-}
-
-void renderSplitHUDScreen() {
-    oledDisplay.setTextSize(1);
-    oledDisplay.setTextColor(SSD1306_WHITE);
-    oledDisplay.setCursor(4, 4);
-    oledDisplay.printf("CLAUDE: %ldk", claudeData.tokensToday / 1000);
-
-    oledDisplay.setCursor(4, 20);
-    oledDisplay.printf("AGY 5h: %d/%d", agData.remaining, agData.limit);
-
-    oledDisplay.drawFastHLine(0, 34, 128, SSD1306_WHITE);
-
-    oledDisplay.setCursor(4, 40);
-    oledDisplay.printf("TIME: %s", timeData.time_str.c_str());
-
-    oledDisplay.setCursor(4, 52);
-    if (weatherData.hours_until_rain >= 0) {
-        oledDisplay.printf("%.1fC Rain:%dh", weatherData.temp, weatherData.hours_until_rain);
-    } else {
-        oledDisplay.printf("%.1fC No Rain", weatherData.temp);
-    }
-}
-
-void renderLimitsScreen() {
-    oledDisplay.setTextSize(1);
-    oledDisplay.setTextColor(SSD1306_WHITE);
-    oledDisplay.setCursor(4, 4);
-    oledDisplay.print("=== AI LIMITS ===");
-
-    oledDisplay.setCursor(4, 22);
-    oledDisplay.printf("Claude Today: %ldk", claudeData.tokensToday / 1000);
-
-    oledDisplay.setCursor(4, 38);
-    oledDisplay.printf("Antigravity: %d rem", agData.remaining);
-    int barW = map(agData.remaining, 0, agData.limit, 0, 120);
-    oledDisplay.drawRect(4, 50, 120, 8, SSD1306_WHITE);
-    oledDisplay.fillRect(6, 52, max(0, barW - 4), 4, SSD1306_WHITE);
-}
-
-void renderClockWeatherScreen() {
-    oledDisplay.setTextSize(2);
-    oledDisplay.setTextColor(SSD1306_WHITE);
-    oledDisplay.setCursor(16, 12);
-    oledDisplay.printf("%02d:%02d", timeData.hours, timeData.minutes);
-
-    oledDisplay.setTextSize(1);
-    oledDisplay.setCursor(4, 44);
-    oledDisplay.printf("%.1f C  %s", weatherData.temp, weatherData.location.c_str());
-}
-
-void renderAgentAlertScreen() {
-    bool blink = (millis() / 400) % 2 == 0;
-    oledDisplay.drawRect(0, 0, 128, 64, blink ? SSD1306_WHITE : SSD1306_BLACK);
-    oledDisplay.setTextSize(1);
-    oledDisplay.setTextColor(SSD1306_WHITE);
-    oledDisplay.setCursor(14, 14);
-    if (agentData.waiting_for_input) {
-        oledDisplay.print("! AGENT ALERT !");
-        oledDisplay.setCursor(10, 36);
-        oledDisplay.print(agentData.prompt_text);
-    } else {
-        oledDisplay.print("* TASK COMPLETE *");
-        oledDisplay.setCursor(10, 36);
-        oledDisplay.print(agentData.completion_text);
-    }
-}
-
-void renderProvisioningScreen() {
-    oledDisplay.setTextSize(1);
-    oledDisplay.setTextColor(SSD1306_WHITE);
-    oledDisplay.setCursor(24, 6);
-    oledDisplay.print("SETUP MODE");
-    oledDisplay.drawFastHLine(8, 16, 112, SSD1306_WHITE);
-    oledDisplay.setCursor(8, 28);
-    oledDisplay.print("Open setup portal to");
-    oledDisplay.setCursor(8, 40);
-    oledDisplay.print("provision Wi-Fi / Screen");
 }
 
 // ==========================================
@@ -1021,54 +878,22 @@ void drawGC9A01RoundFaceUI() {
 // ==========================================
 // HARDWARE AUTO-DETECTION & INITIALIZATION
 // ==========================================
-HardwareScreenType detectHardwareDisplay() {
-    Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-    Wire.beginTransmission(0x3C);
-    if (Wire.endTransmission() == 0) {
-        oledAddress = 0x3C;
-        oledFound = true;
-        Serial.println("[Display] Auto-detected I2C OLED at 0x3C");
-        return SCREEN_OLED_128X64;
-    }
-
-    Wire.beginTransmission(0x3D);
-    if (Wire.endTransmission() == 0) {
-        oledAddress = 0x3D;
-        oledFound = true;
-        Serial.println("[Display] Auto-detected I2C OLED at 0x3D");
-        return SCREEN_OLED_128X64;
-    }
-
-    Serial.println("[Display] No I2C OLED detected. Defaulting to SPI GC9A01 Round 240x240");
-    return SCREEN_GC9A01_ROUND;
-}
-
 void initActiveDisplay() {
-    if (activeScreenType == SCREEN_OLED_128X64) {
-        Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
-        if (oledDisplay.begin(SSD1306_SWITCHCAPVCC, oledAddress)) {
-            oledFound = true;
-            oledDisplay.clearDisplay();
-            oledDisplay.display();
-            Serial.println("[Display] OLED initialized successfully");
-        }
-    } else {
-        // GC9A01 Round Screen Init
-        pinMode(GC9A01_RST_PIN, OUTPUT);
-        digitalWrite(GC9A01_RST_PIN, HIGH);
-        delay(10);
-        digitalWrite(GC9A01_RST_PIN, LOW);
-        delay(20);
-        digitalWrite(GC9A01_RST_PIN, HIGH);
-        delay(100);
+    // GC9A01 Round Screen Init
+    pinMode(GC9A01_RST_PIN, OUTPUT);
+    digitalWrite(GC9A01_RST_PIN, HIGH);
+    delay(10);
+    digitalWrite(GC9A01_RST_PIN, LOW);
+    delay(20);
+    digitalWrite(GC9A01_RST_PIN, HIGH);
+    delay(100);
 
-        if (gcGfx->begin(40000000)) {
-            gc9a01Initialized = true;
-            gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
-            Serial.println("[Display] GC9A01 Round IPS initialized with boot logo");
-        } else {
-            Serial.println("[Display] Failed to initialize GC9A01 display!");
-        }
+    if (gcGfx->begin(40000000)) {
+        gc9a01Initialized = true;
+        gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
+        Serial.println("[Display] GC9A01 Round IPS initialized with boot logo");
+    } else {
+        Serial.println("[Display] Failed to initialize GC9A01 display!");
     }
 }
 
@@ -1083,54 +908,6 @@ void setupWebServer() {
     // (http://localhost:5000), so pairing calls to the board are
     // cross-origin and are preflighted.
     server.enableCORS(true);
-
-    server.on("/api/screen", HTTP_GET, []() {
-        StaticJsonDocument<256> doc;
-        doc["configured_mode"] = (configuredScreenType == SCREEN_AUTO) ? "auto" :
-                                 ((configuredScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled");
-        doc["active_screen"] = (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled";
-        doc["status"] = "ok";
-        String out;
-        serializeJson(doc, out);
-        server.send(200, "application/json", out);
-    });
-
-    server.on("/api/screen", HTTP_POST, []() {
-        String mode = server.arg("mode");
-        if (mode.length() == 0 && server.hasArg("plain")) {
-            StaticJsonDocument<200> doc;
-            deserializeJson(doc, server.arg("plain"));
-            mode = doc["mode"].as<String>();
-        }
-        mode.toLowerCase();
-        if (mode == "round" || mode == "gc9a01") {
-            configuredScreenType = SCREEN_GC9A01_ROUND;
-        } else if (mode == "oled" || mode == "128x64") {
-            configuredScreenType = SCREEN_OLED_128X64;
-        } else {
-            configuredScreenType = SCREEN_AUTO;
-        }
-
-        screenPrefs.begin("screen", false);
-        screenPrefs.putInt("type", (int)configuredScreenType);
-        screenPrefs.end();
-
-        if (configuredScreenType == SCREEN_AUTO) {
-            activeScreenType = detectHardwareDisplay();
-        } else {
-            activeScreenType = configuredScreenType;
-        }
-
-        initActiveDisplay();
-
-        StaticJsonDocument<256> doc;
-        doc["status"] = "ok";
-        doc["configured_mode"] = mode;
-        doc["active_screen"] = (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled";
-        String out;
-        serializeJson(doc, out);
-        server.send(200, "application/json", out);
-    });
 
     // Pair over HTTP as well as over serial. Improv provisioning carries only
     // an SSID and password -- the protocol has no room for a host address --
@@ -1397,18 +1174,6 @@ void fetchBackendData() {
                     timeData.date_str = doc["time"]["date_string"].as<String>();
                 }
             }
-            if (doc.containsKey("device")) {
-                String devScreen = doc["device"]["screen_type"] | "auto";
-                if (configuredScreenType == SCREEN_AUTO) {
-                    if (devScreen == "round" && activeScreenType != SCREEN_GC9A01_ROUND) {
-                        activeScreenType = SCREEN_GC9A01_ROUND;
-                        initActiveDisplay();
-                    } else if (devScreen == "oled" && activeScreenType != SCREEN_OLED_128X64) {
-                        activeScreenType = SCREEN_OLED_128X64;
-                        initActiveDisplay();
-                    }
-                }
-            }
         }
     } else {
         backendConnected = false;
@@ -1622,7 +1387,7 @@ void handleSerialCommunication() {
                 Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\"}\n",
                     wifiConnected ? "true" : "false",
                     wifiConnected ? WiFi.localIP().toString().c_str() : "",
-                    (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled",
+                    "round",
                     deviceHostname().c_str(),
                     pairedHost.c_str(), pairedPort, pairedId.c_str());
             }
@@ -1645,24 +1410,12 @@ void setup() {
     Serial.begin(115200);
     delay(200);
 
-    // 1. Load Stored Screen Preferences
-    screenPrefs.begin("screen", false);
-    configuredScreenType = (HardwareScreenType)screenPrefs.getInt("type", SCREEN_AUTO);
-    screenPrefs.end();
-
     loadPairing();
 
-    // 2. Hardware Auto-Detection / Pin Configuration
-    if (configuredScreenType == SCREEN_AUTO) {
-        activeScreenType = detectHardwareDisplay();
-    } else {
-        activeScreenType = configuredScreenType;
-    }
-
-    // 3. Initialize Active Display
+    // 1. Initialize Display
     initActiveDisplay();
 
-    // 4. Wi-Fi Configuration for ESP32-C3
+    // 2. Wi-Fi Configuration for ESP32-C3
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     WiFi.setTxPower(WIFI_POWER_8_5dBm);
@@ -1681,7 +1434,7 @@ void setup() {
     WiFi.disconnect(true, true);
     delay(50);
 
-    // 5. Improv Wi-Fi Provisioning Setup
+    // 3. Improv Wi-Fi Provisioning Setup
     improvSerial.setDeviceInfo(
         ImprovTypes::ChipFamily::CF_ESP32_C3,
         "TinyScreenFirmware", "2.0.0", "Tiny AI Screen", ""
@@ -1690,7 +1443,7 @@ void setup() {
     improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
     improvSerial.setCustomConnectWiFi(connectToWifi);
 
-    // 6. Connect Stored Wi-Fi
+    // 4. Connect Stored Wi-Fi
     wifiPrefs.begin("wifi", false);
     String storedSsid = wifiPrefs.getString("ssid", "");
     String storedPassword = wifiPrefs.getString("password", "");
@@ -1708,7 +1461,6 @@ void setup() {
         Serial.println("[WiFi] Ready for setup over USB Serial or Improv Wi-Fi.");
     }
 
-    lastScreenSwitch = millis();
 }
 
 // ==========================================
@@ -1730,51 +1482,16 @@ void loop() {
     if (now - lastFrameTime >= frameIntervalMs) {
         lastFrameTime = now;
 
-        if (activeScreenType == SCREEN_GC9A01_ROUND) {
-            // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-            static bool initialCleared = false;
-            if (!initialCleared) {
-                initialCleared = true;
-                gcGfx->fillScreen(GC_COLOR_BLACK);
-            }
-            drawGC9A01RoundFlipUI();
-        } else {
-            // SSD1306 OLED Loop
-            updateFacePhysics(now);
-            oledDisplay.clearDisplay();
-
-            if (provisioningMode) {
-                renderProvisioningScreen();
-            } else {
-                switch (currentOLEDMode) {
-                    case SCREEN_FACE:
-                        renderFaceScreen();
-                        break;
-                    case SCREEN_SPLIT_HUD:
-                        renderSplitHUDScreen();
-                        break;
-                    case SCREEN_LIMITS:
-                        renderLimitsScreen();
-                        break;
-                    case SCREEN_CLOCK_WEATHER:
-                        renderClockWeatherScreen();
-                        break;
-                    case SCREEN_AGENT_ALERT:
-                        renderAgentAlertScreen();
-                        break;
-                }
-                // STATUS_UNPAIRED_NOTE: a single lit pixel in the bottom-right
-                // corner means the board is reading from whichever companion
-                // answered mDNS first rather than one it was paired with, so
-                // on a shared network the figures may not be this user's.
-                // Mono display, so this is the quietest marker available; the
-                // round display uses an amber status LED for the same state.
-                if (backendConnected && pairedHost.length() == 0) {
-                    oledDisplay.drawPixel(OLED_SCREEN_WIDTH - 1, OLED_SCREEN_HEIGHT - 1, SSD1306_WHITE);
-                }
-            }
-            oledDisplay.display();
+        // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
+        static bool initialCleared = false;
+        if (!initialCleared) {
+            initialCleared = true;
+            gcGfx->fillScreen(GC_COLOR_BLACK);
         }
+        // Keeps the blink/gaze state live for drawGC9A01RoundFaceUI(), which
+        // is wired up but not currently selected by the loop.
+        updateFacePhysics(now);
+        drawGC9A01RoundFlipUI();
     }
 
     // 3. Auto-reconnect Wi-Fi
@@ -1819,16 +1536,6 @@ void loop() {
         fetchBackendData();
     }
 
-    // 6. OLED Screen Mode Cycler
-    if (agentData.waiting_for_input || agentData.work_completed) {
-        currentOLEDMode = SCREEN_AGENT_ALERT;
-    } else if (activeScreenType == SCREEN_OLED_128X64) {
-        if (now - lastScreenSwitch >= screenSwitchInterval) {
-            lastScreenSwitch = now;
-            if (currentOLEDMode == SCREEN_FACE) currentOLEDMode = SCREEN_SPLIT_HUD;
-            else if (currentOLEDMode == SCREEN_SPLIT_HUD) currentOLEDMode = SCREEN_LIMITS;
-            else if (currentOLEDMode == SCREEN_LIMITS) currentOLEDMode = SCREEN_CLOCK_WEATHER;
-            else currentOLEDMode = SCREEN_FACE;
-        }
-    }
+    // The round HUD renders agent alerts inline (see drawGC9A01RoundFlipUI),
+    // so it needs no screen-mode cycler.
 }
