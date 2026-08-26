@@ -1037,8 +1037,8 @@ void initActiveDisplay() {
 
         if (gcGfx->begin(40000000)) {
             gc9a01Initialized = true;
-            gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
-            Serial.println("[Display] GC9A01 Round IPS initialized with boot logo");
+            renderGC9A01BootAnimationFrame(0, "STARTING SYSTEM...", false);
+            Serial.println("[Display] GC9A01 Round IPS initialized with boot animation");
         } else {
             Serial.println("[Display] Failed to initialize GC9A01 display!");
         }
