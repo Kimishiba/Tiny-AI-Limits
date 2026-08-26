@@ -34,7 +34,27 @@ python -m platformio run --target upload
 
 ## How do I set up Wi-Fi on the device?
 
-With the device plugged in via USB-C, open `http://localhost:5000/setup` in Google Chrome or Microsoft Edge (which use the Web Serial API). Click "Connect & Set Up WiFi", select the board's serial port, and enter your Wi-Fi credentials. The device saves them to flash and automatically locates the companion server.
+With the device plugged in via USB-C, open `http://localhost:5000/setup` in Google Chrome or Microsoft Edge (which use the Web Serial API). Use the "Direct Serial Setup" section: select the board's serial port, scan for networks, and enter your Wi-Fi credentials. The device saves them to flash, and the same step pairs it to your computer.
+
+## Why does my board show someone else's token quotas?
+
+This happens when more than one person runs the companion app on the same Wi-Fi. Older firmware asked the network "who is running a companion app?" and used whichever answered first — which could be a colleague's machine.
+
+The fix is **pairing**: your board stores your computer's address and a `pair_id`, and talks only to that machine. Re-run "Direct Serial Setup" on `http://localhost:5000/setup` to pair a board, or use the "Pair an Existing Board" box if the board is already on Wi-Fi.
+
+If you set the board up with the "Connect & Set Up WiFi" button, it is **not** paired — that protocol can only carry Wi-Fi credentials. Use the "Pair an Existing Board" box afterwards.
+
+## My board stopped finding the companion app after a router restart
+
+Your computer's IP probably changed. A paired board re-finds it automatically by matching its `pair_id` against the mDNS records, usually within a minute.
+
+If it does not recover, check that the companion app is running, then re-pair with the "Pair an Existing Board" box on the setup page using the board's IP.
+
+## Can I run several boards on one network?
+
+Yes. Each board claims a unique mDNS name derived from its MAC address (`tinyscreen-F030.local` and so on), so they do not collide, and each is paired to its own companion app.
+
+The board prints its hostname on the serial console at boot, and the setup page reports it when you connect over serial.
 
 ## Can I test the interface without building the physical hardware?
 

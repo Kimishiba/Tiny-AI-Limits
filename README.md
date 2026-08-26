@@ -164,7 +164,25 @@ python backend/app.py
 ```
 
 ### 3. USB WiFi Provisioning (No Recompiling)
-With the device plugged in via USB-C, open **[`http://localhost:5000/setup`](http://localhost:5000/setup)** in Google Chrome or Microsoft Edge (Web Serial API). Click **"Connect & Set Up WiFi"**, select the board's serial port, and enter your Wi-Fi credentials. The device saves them to flash and automatically locates the companion server.
+With the device plugged in via USB-C, open **[`http://localhost:5000/setup`](http://localhost:5000/setup)** in Google Chrome or Microsoft Edge (Web Serial API). Use the **Direct Serial Setup** section: select the board's serial port, scan for networks, and enter your Wi-Fi credentials. The device saves them to flash.
+
+The same step also **pairs** the board to this computer, storing your companion app's address so the board reads your stats and nobody else's. See [Multiple boards on one network](#-multiple-boards-on-one-network).
+
+---
+
+## 🔗 Multiple Boards on One Network
+
+If several people run Tiny AI Screen on the same Wi-Fi (a shared office or household), each board needs to know *which* companion app is its own. Otherwise a board can pick up a colleague's app and display their Claude Code / Antigravity quotas.
+
+**Pairing** solves this. Each companion app generates a stable `pair_id` (stored in `~/.tiny_ai_screen/config.json`), and a paired board talks only to the computer it was paired with.
+
+* **Direct Serial Setup** (recommended) pairs the board automatically — no extra step.
+* **"Connect & Set Up WiFi"** (Improv) can only send Wi-Fi credentials; the protocol has no room for an address. After it finishes, pair the board with the **"Pair an Existing Board"** box on the setup page, entering the board's IP.
+* If your computer's IP changes (DHCP lease renewal), a paired board re-finds it automatically by matching `pair_id` against the mDNS TXT records. If that fails, re-pair with the same box.
+
+Each board also claims a unique mDNS name derived from its MAC — `tinyscreen-F030.local` rather than a shared `tinyscreen.local` — so several boards can coexist on one subnet.
+
+> **Upgrading an existing board?** Boards flashed before pairing existed keep working: they fall back to mDNS discovery. But that fallback is exactly what can latch onto the wrong companion, so **re-run Direct Serial Setup once** after updating the firmware to pin the board to your machine.
 
 ---
 
