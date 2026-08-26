@@ -674,6 +674,36 @@
       </div>
     </div>
 
+    <!-- Pair an already-connected board -->
+    <div class="setup-card" style="margin-top: 1.5rem;">
+      <div class="card-header-badge" style="background: #F5A97F; color: #000;">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">link</span>
+        PAIR AN EXISTING BOARD
+      </div>
+
+      <div>
+        <h2 class="setup-title" style="font-size: 1.5rem;">Pair a Board to This Computer</h2>
+        <p class="setup-description">
+          Setting up over USB above pairs the board automatically. Use this only if
+          you set the board up with <strong>Connect &amp; Set Up WiFi</strong> (which
+          can only send Wi-Fi credentials), or if this computer's address changed and
+          the board can no longer find it.
+          Enter the board's address &mdash; shown at the end of the Wi-Fi setup dialog,
+          and printed on the board's serial output at boot.
+        </p>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-top: 1rem;">
+          <input type="text" id="pair-host-input" placeholder="Board IP, e.g. 192.168.1.42" style="flex: 1; min-width: 220px; padding: 0.6rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;" />
+          <button type="button" id="pair-btn" class="nav-btn" style="background: var(--accent-green); color: #fff; border: 2px solid var(--border-dark); padding: 0.6rem 1.2rem; cursor: pointer;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem;">link</span>
+            Pair Board
+          </button>
+        </div>
+
+        <div id="pair-status" style="margin-top: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;"></div>
+      </div>
+    </div>
+
     <!-- Display Hardware Provisioning Card -->
     <div class="setup-card" style="margin-top: 1.5rem;">
       <div class="card-header-badge" style="background: #00E5FF; color: #000;">
@@ -793,7 +823,9 @@
       } else if (provisioned) {
         statusPanel.className = 'status-panel success';
         statusBadge.textContent = 'SUCCESS';
-        statusMsg.textContent = "✓ Wi-Fi configured successfully! The Tiny AI Screen will connect and display live status within seconds.";
+        // Improv carries only SSID and password, so the board is on the
+        // network but not yet pinned to this computer.
+        statusMsg.textContent = "✓ Wi-Fi configured successfully! To make sure the board reads this computer's stats and not another one's, pair it using \"Pair an Existing Board\" below.";
       } else {
         statusPanel.className = 'status-panel';
         statusBadge.textContent = 'CANCELLED';
@@ -892,6 +924,57 @@
       } catch (e) {
         logDirect("Failed to open serial port: " + e.message, "#f38ba8");
         return null;
+      }
+    }
+
+    // Identity of the companion app this browser is talking to. The board is
+    // pinned to it so that on a shared network it cannot latch onto whichever
+    // companion answers mDNS first and show someone else's quota data.
+    let companionIdentity = null;
+    async function getCompanionIdentity(log = logDirect) {
+      if (companionIdentity) return companionIdentity;
+      try {
+        const res = await fetch('/whoami');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        companionIdentity = await res.json();
+        return companionIdentity;
+      } catch (e) {
+        // Non-fatal: the board still gets its Wi-Fi credentials and falls
+        // back to mDNS discovery, exactly as it did before pairing existed.
+        log("Could not read companion address (" + e.message + "); board will fall back to mDNS discovery.", "#f9e2af");
+        return null;
+      }
+    }
+
+    // The provisioning line is tab-delimited, so anything that could shift a
+    // field has to be escaped rather than sent raw. Spaces are escaped too:
+    // the firmware trims each field, which would otherwise silently eat a
+    // leading or trailing space in a password.
+    function escapeField(s) {
+      return String(s).replace(/[%\t\r\n ]/g, c =>
+        '%' + c.charCodeAt(0).toString(16).padStart(2, '0').toUpperCase());
+    }
+
+    // Used after Improv provisioning, whose protocol carries only an SSID and
+    // password and so cannot pair the board on its own.
+    async function pairOverHttp(boardIp, log = logDirect) {
+      const id = await getCompanionIdentity(log);
+      if (!id || !boardIp) return false;
+      try {
+        const res = await fetch(`http://${boardIp}/api/pair`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ host: id.ip, port: id.port, pair_id: id.pair_id })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const out = await res.json();
+        log(`✓ Paired to this computer (${out.paired_host}:${out.paired_port})`, "#a6e3a1");
+        return true;
+      } catch (e) {
+        // A failed fetch here is usually the board being unreachable or off,
+        // but the browser reports those identically to a CORS rejection.
+        log("Could not reach the board at " + boardIp + " (" + e.message + "). Check the address and that the board is powered on and on this network.", "#f38ba8");
+        return false;
       }
     }
 
@@ -1064,9 +1147,19 @@
       }
 
       try {
+        // Pair the board to this computer in the same line that carries the
+        // Wi-Fi credentials, so setup needs no extra step from the user.
+        const identity = await getCompanionIdentity();
+        const payload = identity
+          ? `WIFI:${escapeField(ssid)}\t${escapeField(pass)}\t${identity.ip}\t${identity.port}\t${identity.pair_id}\n`
+          : `WIFI:${escapeField(ssid)}\t${escapeField(pass)}\n`;
+        if (identity) {
+          logDirect(`Pairing board to this computer (${identity.ip}:${identity.port})...`, "#89b4fa");
+        }
+
         const response = await readFromSerial(
           port,
-          `WIFI:${ssid}\t${pass}\n`,
+          payload,
           (text) => (text.includes("CONNECTED:") && text.indexOf("\n", text.indexOf("CONNECTED:")) !== -1) || text.includes("ERROR:"),
           35000,
           (chunk) => logDirect(chunk.trim())
@@ -1076,7 +1169,9 @@
           const ip = response.split("CONNECTED:")[1].split(/[\r\n]+/)[0].trim();
           statusPanel.className = 'status-panel success';
           statusBadge.textContent = 'CONNECTED';
-          statusMsg.textContent = `✓ Successfully connected to Wi-Fi! Device IP: ${ip}`;
+          statusMsg.textContent = identity
+            ? `✓ Connected and paired to this computer. Device IP: ${ip}`
+            : `✓ Successfully connected to Wi-Fi! Device IP: ${ip}`;
           logDirect(`✓ Connected successfully! IP: ${ip}`, "#a6e3a1");
         } else if (response.includes("ERROR:")) {
           statusPanel.className = 'status-panel error';
@@ -1091,6 +1186,33 @@
       } finally {
         directConnectBtn.disabled = false;
         directConnectBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 1.1rem;">link</span> 2. Save &amp; Connect';
+      }
+    });
+
+    // Pair an already-connected board (Improv path, or re-pairing after this
+    // computer's address changed).
+    const pairHostInput = document.getElementById('pair-host-input');
+    const pairBtn = document.getElementById('pair-btn');
+    const pairStatus = document.getElementById('pair-status');
+
+    function logPair(msg, color = '#cdd6f4') {
+      pairStatus.style.color = color;
+      pairStatus.textContent = msg;
+    }
+
+    pairBtn.addEventListener('click', async () => {
+      const boardIp = pairHostInput.value.trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      if (!boardIp) {
+        logPair("Enter the board's IP address first.", "#f38ba8");
+        return;
+      }
+
+      pairBtn.disabled = true;
+      logPair(`Pairing board at ${boardIp}...`, "#89b4fa");
+      try {
+        await pairOverHttp(boardIp, logPair);
+      } finally {
+        pairBtn.disabled = false;
       }
     });
 

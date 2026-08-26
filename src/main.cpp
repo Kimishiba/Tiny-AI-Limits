@@ -132,6 +132,26 @@ bool wifiConnected = false;
 bool backendConnected = false;
 String backendUrl = "";
 
+// Pairing: which companion app this board belongs to. When pairedHost is set
+// the board talks only to that host and never falls back to picking whichever
+// companion answers mDNS first, which is how it used to end up showing
+// another user's quota data on a shared network.
+String pairedHost = "";
+uint16_t pairedPort = 0;
+String pairedId = "";
+// Latch: set the first time a board is ever paired and never cleared. A board
+// that has been paired once must not fall back to first-responder discovery
+// again, even if its stored host later stops answering -- that fallback is
+// what let it pick up another user's companion app.
+bool everPaired = false;
+Preferences pairPrefs;
+
+// Defined with the data-fetching code below, used by the web server above it.
+bool savePairing(const String& host, uint16_t port, const String& id);
+bool isValidIPv4(const String& s);
+void applyPairedBackendUrl();
+String deviceHostname();
+
 Preferences wifiPrefs;
 ImprovWiFi improvSerial(&Serial);
 bool provisioningMode = false;
@@ -729,7 +749,10 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
-    int curLedState = backendConnected ? 1 : 0;
+    // 0 = no backend, 1 = paired, 2 = connected but unpaired (amber): the
+    // board is reading from whichever companion answered mDNS first, which on
+    // a shared network may not be this user's. See STATUS_UNPAIRED_NOTE.
+    int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
 
     if (weatherData.hours_until_rain != lastHoursUntilRain || curLedState != lastLedState) {
         lastHoursUntilRain = weatherData.hours_until_rain;
@@ -739,8 +762,9 @@ void drawGC9A01RoundFlipUI() {
         gcGfx->fillRect(cx - 50, cy - 110, 100, 28, GC_COLOR_BLACK);
 
         // LED Indicator Dot (Centered at cx=120, y=cy-105=15)
-        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :  // #22C55E Emerald Connected
-                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Red Disconnected
+        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :   // #22C55E Emerald Paired
+                          (curLedState == 2) ? gcGfx->color565(245, 158, 11) :  // #F59E0B Amber Unpaired
+                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Disconnected
 
         // LED Housing Bezel
         gcGfx->drawCircle(cx, cy - 105, 3, colBezel);
@@ -916,7 +940,10 @@ void drawGC9A01RoundFaceUI() {
     }
 
     // 2. Top Crown: Connection Status LED & Rain Indicator
-    uint16_t dotCol = wifiConnected ? gcGfx->color565(34, 197, 94) : gcGfx->color565(239, 68, 68);
+    // Amber means connected but unpaired -- see STATUS_UNPAIRED_NOTE.
+    uint16_t dotCol = !wifiConnected            ? gcGfx->color565(239, 68, 68)
+                    : (pairedHost.length() > 0) ? gcGfx->color565(34, 197, 94)
+                                                : gcGfx->color565(245, 158, 11);
     gcGfx->fillCircle(cx, cy - 105, 3, dotCol);
 
     char rainStr[24];
@@ -1052,6 +1079,11 @@ void onWifiConnected();
 // HTTP SERVER (Companion App Screen Provisioning)
 // ==========================================
 void setupWebServer() {
+    // The setup page is served from the companion app's origin
+    // (http://localhost:5000), so pairing calls to the board are
+    // cross-origin and are preflighted.
+    server.enableCORS(true);
+
     server.on("/api/screen", HTTP_GET, []() {
         StaticJsonDocument<256> doc;
         doc["configured_mode"] = (configuredScreenType == SCREEN_AUTO) ? "auto" :
@@ -1100,6 +1132,61 @@ void setupWebServer() {
         server.send(200, "application/json", out);
     });
 
+    // Pair over HTTP as well as over serial. Improv provisioning carries only
+    // an SSID and password -- the protocol has no room for a host address --
+    // so a board set up that way can only be paired once it is on the network.
+    // This also lets a user re-pair without plugging the board back in.
+    server.on("/api/pair", HTTP_OPTIONS, []() {
+        server.send(204);
+    });
+
+    server.on("/api/pair", HTTP_POST, []() {
+        StaticJsonDocument<256> doc;
+        if (!server.hasArg("plain") || deserializeJson(doc, server.arg("plain"))) {
+            server.send(400, "application/json", "{\"error\":\"invalid_json\"}");
+            return;
+        }
+
+        // Default to the caller's address: the setup page runs in a browser on
+        // the same machine as the companion app, so it is the right host.
+        String host = doc["host"] | "";
+        if (host.length() == 0) host = server.client().remoteIP().toString();
+        long port = doc["port"] | 0;
+        String id = doc["pair_id"] | "";
+
+        if (!isValidIPv4(host) || port <= 0 || port > 65535) {
+            server.send(400, "application/json", "{\"error\":\"invalid_host_or_port\"}");
+            return;
+        }
+
+        if (!savePairing(host, (uint16_t)port, id)) {
+            server.send(400, "application/json", "{\"error\":\"missing_pair_id\"}");
+            return;
+        }
+        applyPairedBackendUrl();
+
+        StaticJsonDocument<256> out;
+        out["status"] = "ok";
+        out["paired_host"] = pairedHost;
+        out["paired_port"] = pairedPort;
+        out["pair_id"] = pairedId;
+        String body;
+        serializeJson(out, body);
+        server.send(200, "application/json", body);
+    });
+
+    server.on("/api/pair", HTTP_GET, []() {
+        StaticJsonDocument<256> doc;
+        doc["paired"] = pairedHost.length() > 0;
+        doc["paired_host"] = pairedHost;
+        doc["paired_port"] = pairedPort;
+        doc["pair_id"] = pairedId;
+        doc["hostname"] = deviceHostname();
+        String out;
+        serializeJson(doc, out);
+        server.send(200, "application/json", out);
+    });
+
     server.begin();
     Serial.println("[HTTP] Provisioning Web Server started on port 80");
 }
@@ -1110,19 +1197,144 @@ void setupWebServer() {
 unsigned long lastMdnsResolve = 0;
 const unsigned long mdnsResolveCooldownMs = 10000;
 
+// A paired board keeps using its stored host across transient failures. Only
+// after this many consecutive failures does it consider that the companion
+// may have moved (DHCP lease change) and try to re-locate it.
+const int maxBackendFailures = 5;
+int consecutiveBackendFailures = 0;
+
+void loadPairing() {
+    pairPrefs.begin("pair", true);
+    pairedHost = pairPrefs.getString("host", "");
+    pairedPort = (uint16_t)pairPrefs.getUShort("port", 0);
+    pairedId = pairPrefs.getString("id", "");
+    everPaired = pairPrefs.getBool("ever", false);
+    pairPrefs.end();
+    if (pairedHost.length() > 0) {
+        Serial.printf("[Pair] Paired with %s:%u (id: %s)\n",
+                      pairedHost.c_str(), pairedPort, pairedId.c_str());
+    } else if (everPaired) {
+        Serial.println("[Pair] Previously paired but no host stored; will not auto-discover");
+    } else {
+        Serial.println("[Pair] No pairing stored; will discover via mDNS");
+    }
+}
+
+// Callers must supply a non-empty id: without one the board cannot re-find its
+// companion after a DHCP change, and a half-paired board is a state we would
+// rather not have to reason about.
+bool savePairing(const String& host, uint16_t port, const String& id) {
+    if (id.length() == 0) {
+        Serial.println("[Pair] Rejecting pairing with empty pair_id");
+        return false;
+    }
+    pairPrefs.begin("pair", false);
+    pairPrefs.putString("host", host);
+    pairPrefs.putUShort("port", port);
+    pairPrefs.putString("id", id);
+    pairPrefs.putBool("ever", true);
+    pairPrefs.end();
+    pairedHost = host;
+    pairedPort = port;
+    pairedId = id;
+    everPaired = true;
+    Serial.printf("[Pair] Stored pairing %s:%u (id: %s)\n", host.c_str(), port, id.c_str());
+    return true;
+}
+
+// Accepts only a dotted quad, so a malformed provisioning payload can't put
+// garbage into NVS that the board would then retry forever.
+bool isValidIPv4(const String& s) {
+    IPAddress probe;
+    return probe.fromString(s);
+}
+
+// The companion serves /data only to boards that prove which companion they
+// belong to (#38): without pair_id, any board on the LAN could read the
+// owner's email, token volume and location.
+void applyPairedBackendUrl() {
+    backendUrl = "http://" + pairedHost + ":" + String(pairedPort) + "/data?pair_id=" + pairedId;
+}
+
+// Confirm a candidate host actually serves us before we commit it to NVS.
+// MDNS.IP() returns only the first IPv4 a host advertises, and a machine on
+// Wi-Fi plus Ethernet/VPN/Docker may advertise an address the board cannot
+// route to. Probing is cheaper than exposing the full address list.
+bool probeBackend(const String& host, uint16_t port) {
+    HTTPClient probe;
+    // Same pair_id the real poll will use, so the probe fails on a companion
+    // that would reject us rather than reporting it reachable.
+    probe.begin("http://" + host + ":" + String(port) + "/data?pair_id=" + pairedId);
+    probe.setTimeout(2000);
+    int code = probe.GET();
+    probe.end();
+    return code == HTTP_CODE_OK;
+}
+
+// Re-locate our own companion after its IP changed, matching on pair_id from
+// the mDNS TXT records. Never falls back to "first responder": with no match
+// we keep the old URL and keep retrying, because guessing is what leaked
+// another user's data in the first place.
+bool repairViaTxtRecords() {
+    if (pairedId.length() == 0) return false;
+
+    int n = MDNS.queryService("tinyscreen", "tcp");
+    Serial.printf("[Pair] Re-locating companion %s across %d service(s)\n", pairedId.c_str(), n);
+    for (int i = 0; i < n; i++) {
+        if (MDNS.txt(i, "pair_id") != pairedId) continue;
+
+        IPAddress ip = MDNS.IP(i);
+        uint16_t port = MDNS.port(i);
+        if (ip == IPAddress() || !probeBackend(ip.toString(), port)) {
+            Serial.printf("[Pair] Matched pair_id but %s:%u is unreachable; keeping stored host\n",
+                          ip.toString().c_str(), port);
+            return false;
+        }
+
+        savePairing(ip.toString(), port, pairedId);
+        applyPairedBackendUrl();
+        Serial.printf("[Pair] Re-paired to %s:%u\n", ip.toString().c_str(), port);
+        return true;
+    }
+    Serial.println("[Pair] No companion matched our pair_id; keeping stored host");
+    return false;
+}
+
 bool resolveBackendUrl() {
     // Some networks (enterprise/guest WiFi in particular) filter multicast
     // traffic, which silently breaks mDNS while normal unicast HTTP still
     // works fine. A manually configured backend URL (set via the BACKEND:
     // serial command) takes priority and skips mDNS entirely in that case.
+    // It outranks pairing too: it is an explicit instruction from the user.
     Preferences backendPrefs;
     backendPrefs.begin("backend", true);
     String manualUrl = backendPrefs.getString("url", "");
     backendPrefs.end();
     if (manualUrl.length() > 0) {
         backendUrl = manualUrl;
+        // An updated companion serves /data only to boards that identify
+        // themselves, so carry pair_id when we have one -- otherwise a
+        // manual URL would be refused with 403.
+        if (pairedId.length() > 0 && manualUrl.indexOf("pair_id=") == -1) {
+            backendUrl += (manualUrl.indexOf('?') >= 0) ? "&" : "?";
+            backendUrl += "pair_id=" + pairedId;
+        }
         Serial.printf("[Backend] Using manually configured URL: %s\n", backendUrl.c_str());
         return true;
+    }
+
+    // Paired boards never run discovery -- that is the whole point.
+    if (pairedHost.length() > 0) {
+        applyPairedBackendUrl();
+        return true;
+    }
+
+    // Paired once, host since lost: still refuse to guess. Re-pair via the
+    // setup page rather than risk adopting someone else's companion.
+    if (everPaired) {
+        Serial.println("[Pair] Previously paired; refusing mDNS fallback. Re-pair from the setup page.");
+        backendUrl = "";
+        return false;
     }
 
     int n = MDNS.queryService("tinyscreen", "tcp");
@@ -1153,6 +1365,18 @@ void fetchBackendData() {
         return;
     }
 
+    // A paired board that has failed repeatedly may have had its companion
+    // move to a new IP. Try to find it again by pair_id, rate-limited so a
+    // genuinely offline companion doesn't mean an mDNS query every cycle.
+    if (consecutiveBackendFailures >= maxBackendFailures &&
+        pairedHost.length() > 0 &&
+        millis() - lastMdnsResolve > mdnsResolveCooldownMs) {
+        lastMdnsResolve = millis();
+        if (repairViaTxtRecords()) {
+            consecutiveBackendFailures = 0;
+        }
+    }
+
     HTTPClient http;
     http.begin(backendUrl);
     http.setTimeout(2500);
@@ -1160,6 +1384,7 @@ void fetchBackendData() {
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
         backendConnected = true;
+        consecutiveBackendFailures = 0;
         String payload = http.getString();
         StaticJsonDocument<1536> doc;
         DeserializationError error = deserializeJson(doc, payload);
@@ -1215,7 +1440,23 @@ void fetchBackendData() {
     } else {
         Serial.printf("[Backend] GET %s failed: %s (%d)\n", backendUrl.c_str(), http.errorToString(httpCode).c_str(), httpCode);
         backendConnected = false;
-        backendUrl = "";
+        if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
+        if (httpCode == HTTP_CODE_FORBIDDEN) {
+            // Reached a companion, but it does not recognise our pair_id --
+            // someone else's app, or ours after its identity was reset.
+            // Distinct from a network fault, so say so rather than retrying
+            // silently and looking offline.
+            Serial.println("[Pair] Companion refused us (403): not paired with this app. Re-pair from the setup page.");
+        }
+        // Previously this cleared backendUrl on *any* failure, so a single
+        // dropped packet sent the board back to mDNS discovery -- and, before
+        // pairing existed, potentially onto a different user's companion.
+        // A board that has never been paired still has nothing better to fall
+        // back on; one that has been paired keeps retrying its own host.
+        if (!everPaired && pairedHost.length() == 0 &&
+            consecutiveBackendFailures >= maxBackendFailures) {
+            backendUrl = "";
+        }
     }
     http.end();
 }
@@ -1268,13 +1509,32 @@ bool connectToWifi(const char* ssid, const char* password) {
     return false;
 }
 
+// Per-board mDNS name, e.g. "tinyscreen-F030". Without this every board
+// claims "tinyscreen.local" and they collide as soon as two share a subnet.
+//
+// Reads the efuse directly so STATUS can report the hostname on a board that
+// has never connected to WiFi. esp_efuse_mac_get_default() packs the six MAC
+// bytes into a little-endian u64, so byte N is (mac >> 8*N); the suffix as
+// printed on the board is bytes 4 then 5. Note the ordering: extracting a
+// u16 in one shot yields those two bytes reversed.
+String deviceHostname() {
+    uint64_t mac = ESP.getEfuseMac();
+    char hostStr[24];
+    snprintf(hostStr, sizeof(hostStr), "tinyscreen-%02X%02X",
+             (uint8_t)((mac >> 32) & 0xFF), (uint8_t)((mac >> 40) & 0xFF));
+    return String(hostStr);
+}
+
 void onWifiConnected() {
     wifiConnected = true;
     provisioningMode = false;
     Serial.printf("[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
 
-    if (!MDNS.begin("tinyscreen")) {
+    String hostname = deviceHostname();
+    if (!MDNS.begin(hostname.c_str())) {
         Serial.println("[mDNS] Error starting responder");
+    } else {
+        Serial.printf("[mDNS] Responder started as %s.local\n", hostname.c_str());
     }
 
     setupWebServer();
@@ -1297,6 +1557,28 @@ void onImprovWiFiErrorCb(ImprovTypes::Error err) {
 }
 
 static String serialBuffer = "";
+
+// The provisioning line is tab-delimited, so the setup page percent-escapes
+// any tab, newline or '%' inside the SSID/password rather than letting them
+// shift the later fields.
+String percentDecode(const String& in) {
+    String out;
+    out.reserve(in.length());
+    for (unsigned int i = 0; i < in.length(); i++) {
+        if (in[i] == '%' && i + 2 < in.length()) {
+            char hex[3] = { in[i + 1], in[i + 2], 0 };
+            char* end;
+            long v = strtol(hex, &end, 16);
+            if (*end == 0) {
+                out += (char)v;
+                i += 2;
+                continue;
+            }
+        }
+        out += in[i];
+    }
+    return out;
+}
 
 void handleSerialCommunication() {
     while (Serial.available()) {
@@ -1332,14 +1614,46 @@ void handleSerialCommunication() {
                 Serial.println("]");
                 WiFi.scanDelete();
             } else if (line.startsWith("WIFI:")) {
+                // WIFI:<ssid>\t<pass>[\t<host>\t<port>[\t<pair_id>]]
+                // Two fields is the legacy form and still works, so a cached
+                // copy of the old setup page keeps provisioning boards.
                 String creds = line.substring(5);
-                int sep = creds.indexOf('\t');
-                if (sep == -1) sep = creds.indexOf(',');
-                if (sep != -1) {
-                    String ssid = creds.substring(0, sep);
-                    String pass = creds.substring(sep + 1);
-                    ssid.trim();
-                    pass.trim();
+                String fields[5];
+                int fieldCount = 0;
+                int start = 0;
+                while (fieldCount < 5) {
+                    int sep = creds.indexOf('\t', start);
+                    // Legacy setup pages sent a comma when there was no tab.
+                    if (sep == -1 && fieldCount == 0) sep = creds.indexOf(',', start);
+                    if (sep == -1) { fields[fieldCount++] = creds.substring(start); break; }
+                    fields[fieldCount++] = creds.substring(start, sep);
+                    start = sep + 1;
+                }
+
+                if (fieldCount >= 2) {
+                    // Trim before decoding: whitespace the user meant to keep
+                    // arrives percent-escaped and so survives.
+                    fields[0].trim();
+                    fields[1].trim();
+                    String ssid = percentDecode(fields[0]);
+                    String pass = percentDecode(fields[1]);
+
+                    if (fieldCount >= 4) {
+                        String host = fields[2]; host.trim();
+                        String portStr = fields[3]; portStr.trim();
+                        String id = (fieldCount >= 5) ? fields[4] : "";
+                        id.trim();
+                        long port = portStr.toInt();
+                        if (isValidIPv4(host) && port > 0 && port <= 65535) {
+                            savePairing(host, (uint16_t)port, id);
+                        } else {
+                            Serial.printf("[Pair] Ignoring invalid host/port '%s:%s'\n",
+                                          host.c_str(), portStr.c_str());
+                        }
+                    } else if (fieldCount == 3) {
+                        Serial.println("[Pair] Ignoring incomplete pairing fields");
+                    }
+
                     Serial.printf("[WiFi] Connecting to '%s'...\n", ssid.c_str());
                     if (connectToWifi(ssid.c_str(), pass.c_str())) {
                         wifiPrefs.begin("wifi", false);
@@ -1352,12 +1666,15 @@ void handleSerialCommunication() {
                     }
                 }
             } else if (line == "STATUS") {
-                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"backend_connected\":%s,\"backend_url\":\"%s\"}\n",
+                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\",\"backend_connected\":%s,\"backend_url\":\"%s\",\"failures\":%d}\n",
                     wifiConnected ? "true" : "false",
                     wifiConnected ? WiFi.localIP().toString().c_str() : "",
                     (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled",
+                    deviceHostname().c_str(),
+                    pairedHost.c_str(), pairedPort, pairedId.c_str(),
                     backendConnected ? "true" : "false",
-                    backendUrl.c_str());
+                    backendUrl.c_str(),
+                    consecutiveBackendFailures);
             } else if (line.startsWith("BACKEND:")) {
                 // Manual override for when mDNS discovery of the backend fails
                 // (e.g. multicast filtered by an enterprise/guest network).
@@ -1373,9 +1690,13 @@ void handleSerialCommunication() {
                     backendPrefs.begin("backend", false);
                     backendPrefs.putString("url", url);
                     backendPrefs.end();
-                    backendUrl = url;
                     backendConnected = false;
-                    Serial.printf("BACKEND_SET:%s\n", url.c_str());
+                    // Go through resolveBackendUrl() rather than assigning
+                    // directly, so the manual URL picks up pair_id the same
+                    // way it does on boot -- otherwise the very next poll is
+                    // refused with 403 by an updated companion.
+                    resolveBackendUrl();
+                    Serial.printf("BACKEND_SET:%s\n", backendUrl.c_str());
                 } else {
                     Serial.println("ERROR:INVALID_BACKEND");
                 }
@@ -1385,11 +1706,17 @@ void handleSerialCommunication() {
                 backendPrefs.clear();
                 backendPrefs.end();
                 backendUrl = "";
+                // Fall back to whatever pairing says, rather than leaving the
+                // board with no target until the next poll cycle.
+                resolveBackendUrl();
                 Serial.println("[Backend] Manual override cleared.");
             }
         } else {
             serialBuffer += c;
-            if (serialBuffer.length() > 256) {
+            // Raised from 256: a provisioning line now carries host, port and
+            // pair_id on top of the credentials, and percent-escaping can
+            // triple an SSID or password in the worst case.
+            if (serialBuffer.length() > 512) {
                 serialBuffer = "";
             }
         }
@@ -1409,7 +1736,7 @@ void setup() {
     // (~700ms+ of blocking work), it can time out before we ever see it.
     improvSerial.setDeviceInfo(
         ImprovTypes::ChipFamily::CF_ESP32_C3,
-        "TinyScreenFirmware", "2.0.0", "Tiny AI Screen", ""
+        "TinyScreenFirmware", "0.4.0", "Tiny AI Screen", ""
     );
     improvSerial.onImprovError(onImprovWiFiErrorCb);
     improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
@@ -1427,6 +1754,8 @@ void setup() {
     screenPrefs.begin("screen", false);
     configuredScreenType = (HardwareScreenType)screenPrefs.getInt("type", SCREEN_AUTO);
     screenPrefs.end();
+
+    loadPairing();
 
     // 2. Hardware Auto-Detection / Pin Configuration
     if (configuredScreenType == SCREEN_AUTO) {
@@ -1529,6 +1858,15 @@ void loop() {
                     case SCREEN_AGENT_ALERT:
                         renderAgentAlertScreen();
                         break;
+                }
+                // STATUS_UNPAIRED_NOTE: a single lit pixel in the bottom-right
+                // corner means the board is reading from whichever companion
+                // answered mDNS first rather than one it was paired with, so
+                // on a shared network the figures may not be this user's.
+                // Mono display, so this is the quietest marker available; the
+                // round display uses an amber status LED for the same state.
+                if (backendConnected && pairedHost.length() == 0) {
+                    oledDisplay.drawPixel(OLED_SCREEN_WIDTH - 1, OLED_SCREEN_HEIGHT - 1, SSD1306_WHITE);
                 }
             }
             oledDisplay.display();

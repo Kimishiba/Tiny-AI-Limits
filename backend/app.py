@@ -1,5 +1,6 @@
 import json
 import glob
+import getpass
 import os
 import platform
 import socket
@@ -7,6 +8,7 @@ import time
 import subprocess
 import requests
 import sys
+import uuid
 from datetime import datetime
 from flask import Flask, jsonify, request
 from threading import Thread
@@ -42,6 +44,23 @@ def save_config(cfg):
             json.dump(cfg, f, indent=4)
     except Exception as e:
         print(f"Error saving config: {e}")
+
+COMPANION_VERSION = "0.4.0"
+
+def get_pair_id(cfg):
+    """Stable per-install identifier used to pair a board to *this* companion.
+
+    Deliberately not the OS username or hostname: two machines on the same LAN
+    can easily share either one (both "admin", both "MacBook-Pro"), which would
+    let a board re-pair with the wrong computer after a DHCP lease change.
+    Generated once and persisted, so it survives restarts and IP changes.
+    """
+    pair_id = cfg.get("pair_id")
+    if not pair_id:
+        pair_id = uuid.uuid4().hex[:12]
+        cfg["pair_id"] = pair_id
+        save_config(cfg)
+    return pair_id
 
 from flask import Flask, jsonify, request, send_file
 import webbrowser
@@ -536,8 +555,41 @@ def handle_test_alert():
         "prompt_text": test_complete_prompt if test_complete_override else test_alert_prompt
     })
 
+def client_is_local():
+    """Requests from this machine: the emulator, the setup page, local curl.
+
+    These fetch /data same-origin and have no pair_id to send, so they are
+    exempt from the pairing check.
+    """
+    return request.remote_addr in ("127.0.0.1", "::1")
+
+
+def caller_is_paired():
+    """Whether the caller proved it belongs to this companion.
+
+    /data carries a personal email address, working hours, token volume and
+    location. Without this check any board on the LAN that finds us over mDNS
+    reads all of it -- which is exactly what was happening in the wild (#38):
+    a colleague's board on older firmware had been polling every 3 seconds.
+    """
+    if client_is_local():
+        return True
+    if config.get("allow_unpaired_clients", False):
+        return True
+    return request.args.get("pair_id", "") == get_pair_id(config)
+
+
 @app.route('/data', methods=['GET'])
 def get_data():
+    if not caller_is_paired():
+        # 403 rather than 404: the board should surface "not paired with this
+        # companion", not retry as though the endpoint were missing.
+        return jsonify({
+            "error": "not_paired",
+            "message": "This board is not paired with this companion app. "
+                       "Run setup, or set allow_unpaired_clients in config.json.",
+        }), 403
+
     try:
         antigravity_data = get_antigravity_quota()
     except Exception as e:
@@ -752,21 +804,48 @@ def find_available_port(preferred_port=5000):
 
 PORT = find_available_port(5000)
 
+def get_host_label():
+    return socket.gethostname().split('.')[0].replace(' ', '-') or "tinyscreen-host"
+
+@app.route('/whoami', methods=['GET'])
+def whoami():
+    """Identity of this companion, read by the setup page before it provisions
+    a board over Web Serial. The browser has no API for the machine's own LAN
+    IP, so the setup page asks us for it and passes it straight to the board."""
+    return jsonify({
+        "ip": get_local_ip(),
+        "port": PORT,
+        "pair_id": get_pair_id(config),
+        "hostname": get_host_label(),
+        "user": getpass.getuser(),
+        "version": COMPANION_VERSION,
+    })
+
 def register_mdns_service(port=PORT):
     global _zeroconf_instance
     try:
         local_ip = get_local_ip()
-        host_label = socket.gethostname().split('.')[0].replace(' ', '-') or "tinyscreen-host"
+        host_label = get_host_label()
+        pair_id = get_pair_id(config)
+        properties = {
+            "pair_id": pair_id,
+            "hostname": host_label,
+            "user": getpass.getuser(),
+            "version": COMPANION_VERSION,
+        }
         info = ServiceInfo(
             "_tinyscreen._tcp.local.",
-            "Tiny AI Screen Companion._tinyscreen._tcp.local.",
+            # Instance name includes the host label: two companions on one LAN
+            # would otherwise register the identical name and conflict.
+            f"Tiny AI Screen Companion ({host_label})._tinyscreen._tcp.local.",
             addresses=[socket.inet_aton(local_ip)],
             port=port,
+            properties=properties,
             server=f"{host_label}.local.",
         )
         _zeroconf_instance = Zeroconf()
         _zeroconf_instance.register_service(info)
-        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:{port} (server: {host_label}.local.)")
+        print(f"[mDNS] Advertising _tinyscreen._tcp.local at {local_ip}:{port} (server: {host_label}.local., pair_id: {pair_id})")
     except Exception as e:
         print(f"[mDNS] Failed to register service: {e}")
 
