@@ -895,6 +895,105 @@
       }
     }
 
+    async function readFromSerial(port, sendCommand, breakCondition, timeoutMs, onChunk) {
+      if (sendCommand) {
+        const encoder = new TextEncoder();
+        const writer = port.writable.getWriter();
+        await writer.write(encoder.encode(sendCommand));
+        writer.releaseLock();
+      }
+
+      const decoder = new TextDecoder();
+      let reader = null;
+      let fullOutput = "";
+      try {
+        reader = port.readable.getReader();
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeoutMs) {
+          const { value, done } = await Promise.race([
+            reader.read(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("read_timeout")), 1000))
+          ]).catch(err => {
+            if (err && err.message === "read_timeout") return { value: null, done: false };
+            throw err;
+          });
+
+          if (value) {
+            const text = decoder.decode(value);
+            fullOutput += text;
+            if (onChunk) onChunk(text);
+            if (breakCondition && breakCondition(fullOutput)) {
+              break;
+            }
+          }
+          if (done) break;
+        }
+      } finally {
+        if (reader) {
+          try {
+            await reader.cancel();
+          } catch (e) {}
+          try {
+            reader.releaseLock();
+          } catch (e) {}
+        }
+      }
+      return fullOutput;
+    }
+
+    function parseNetworks(text) {
+      const networks = [];
+      const seen = new Set();
+
+      // 1. Try JSON Array match first
+      const arrayMatch = text.match(/\[\s*\{[\s\S]*?"ssid"[\s\S]*?\}\s*\]/);
+      if (arrayMatch) {
+        try {
+          const parsed = JSON.parse(arrayMatch[0]);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(n => {
+              if (n && n.ssid && !seen.has(n.ssid)) {
+                seen.add(n.ssid);
+                networks.push({ ssid: n.ssid, rssi: n.rssi || 0, secure: !!n.secure });
+              }
+            });
+          }
+        } catch (e) {}
+      }
+
+      // 2. Regex fallback matching individual {"ssid": "..."} objects
+      const objRegex = /\{"ssid"\s*:\s*"([^"]+)"(?:\s*,\s*"rssi"\s*:\s*(-?\d+))?(?:\s*,\s*"secure"\s*:\s*(true|false))?[^}]*\}/g;
+      let m;
+      while ((m = objRegex.exec(text)) !== null) {
+        const ssid = m[1];
+        if (ssid && !seen.has(ssid)) {
+          seen.add(ssid);
+          networks.push({
+            ssid: ssid,
+            rssi: m[2] ? parseInt(m[2], 10) : 0,
+            secure: m[3] === 'true'
+          });
+        }
+      }
+      return networks;
+    }
+
+    function updateDropdown(networks) {
+      if (!Array.isArray(networks) || networks.length === 0) return false;
+      directSsidSelect.innerHTML = '<option value="">-- Choose Scanned Network --</option>';
+      networks.forEach(net => {
+        const opt = document.createElement('option');
+        opt.value = net.ssid;
+        opt.textContent = `${net.ssid} (${net.rssi ? net.rssi + ' dBm' : ''}${net.secure ? ' 🔒' : ' 🔓'})`;
+        directSsidSelect.appendChild(opt);
+      });
+      if (!directSsidInput.value && networks.length > 0) {
+        directSsidSelect.value = networks[0].ssid;
+        directSsidInput.value = networks[0].ssid;
+      }
+      return true;
+    }
+
     directScanBtn.addEventListener('click', async () => {
       directScanBtn.disabled = true;
       directScanBtn.textContent = 'Scanning...';
@@ -908,44 +1007,33 @@
       }
 
       try {
-        const encoder = new TextEncoder();
-        const writer = port.writable.getWriter();
-        await writer.write(encoder.encode("SCAN\n"));
-        writer.releaseLock();
-
-        const decoder = new TextDecoder();
-        const reader = port.readable.getReader();
-
-        let fullOutput = "";
-        const startTime = Date.now();
-        while (Date.now() - startTime < 15000) {
-          const { value, done } = await Promise.race([
-            reader.read(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Scan timeout")), 8000))
-          ]).catch(() => ({ value: null, done: false }));
-
-          if (value) {
-            const text = decoder.decode(value);
-            fullOutput += text;
-            logDirect(text.trim());
-            if (fullOutput.includes("SCAN_RESULT:")) break;
+        let accumulatedNetworks = [];
+        const fullOutput = await readFromSerial(
+          port,
+          "SCAN\n",
+          (text) => {
+            const found = parseNetworks(text);
+            if (found.length > 0 && (text.includes("]") || text.indexOf("\n", text.indexOf("SCAN_RESULT:")) !== -1)) {
+              return true;
+            }
+            return false;
+          },
+          15000,
+          (chunk) => {
+            logDirect(chunk.trim());
+            const nets = parseNetworks(chunk);
+            if (nets.length > 0) {
+              updateDropdown(nets);
+            }
           }
-        }
-        reader.releaseLock();
+        );
 
-        if (fullOutput.includes("SCAN_RESULT:")) {
-          const jsonStr = fullOutput.split("SCAN_RESULT:")[1].split("\n")[0].trim();
-          const networks = JSON.parse(jsonStr);
-          directSsidSelect.innerHTML = '<option value="">-- Select a Scanned Wi-Fi Network --</option>';
-          networks.forEach(net => {
-            const opt = document.createElement('option');
-            opt.value = net.ssid;
-            opt.textContent = `${net.ssid} (${net.rssi} dBm${net.secure ? ' 🔒' : ' 🔓'})`;
-            directSsidSelect.appendChild(opt);
-          });
-          logDirect(`✓ Found ${networks.length} Wi-Fi networks! Pick one above.`, "#a6e3a1");
+        accumulatedNetworks = parseNetworks(fullOutput);
+        if (accumulatedNetworks.length > 0) {
+          updateDropdown(accumulatedNetworks);
+          logDirect(`✓ Found ${accumulatedNetworks.length} Wi-Fi networks! Selected from dropdown.`, "#a6e3a1");
         } else {
-          logDirect("Scan finished. You can pick or manually enter your SSID below.", "#f9e2af");
+          logDirect("Scan completed. Type your Wi-Fi SSID directly in the box below.", "#f9e2af");
         }
       } catch (err) {
         logDirect("Scan notice: " + err.message, "#f9e2af");
@@ -976,33 +1064,16 @@
       }
 
       try {
-        const encoder = new TextEncoder();
-        const writer = port.writable.getWriter();
-        await writer.write(encoder.encode(`WIFI:${ssid}\t${pass}\n`));
-        writer.releaseLock();
-
-        const decoder = new TextDecoder();
-        const reader = port.readable.getReader();
-
-        let response = "";
-        const startTime = Date.now();
-        while (Date.now() - startTime < 30000) {
-          const { value, done } = await Promise.race([
-            reader.read(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout waiting for connection")), 2000))
-          ]).catch(() => ({ value: null, done: false }));
-
-          if (value) {
-            const text = decoder.decode(value);
-            response += text;
-            logDirect(text.trim());
-            if (response.includes("CONNECTED:") || response.includes("ERROR:")) break;
-          }
-        }
-        reader.releaseLock();
+        const response = await readFromSerial(
+          port,
+          `WIFI:${ssid}\t${pass}\n`,
+          (text) => (text.includes("CONNECTED:") && text.indexOf("\n", text.indexOf("CONNECTED:")) !== -1) || text.includes("ERROR:"),
+          35000,
+          (chunk) => logDirect(chunk.trim())
+        );
 
         if (response.includes("CONNECTED:")) {
-          const ip = response.split("CONNECTED:")[1].split("\n")[0].trim();
+          const ip = response.split("CONNECTED:")[1].split(/[\r\n]+/)[0].trim();
           statusPanel.className = 'status-panel success';
           statusBadge.textContent = 'CONNECTED';
           statusMsg.textContent = `✓ Successfully connected to Wi-Fi! Device IP: ${ip}`;
@@ -1012,6 +1083,8 @@
           statusBadge.textContent = 'FAILED';
           statusMsg.textContent = "Wi-Fi connection failed. Please double-check your network password and try again.";
           logDirect("Connection failed. Check SSID/Password.", "#f38ba8");
+        } else {
+          logDirect("Device connecting in background. Check serial monitor if IP is not shown yet.", "#f9e2af");
         }
       } catch (err) {
         logDirect("Connection attempt note: " + err.message, "#f9e2af");

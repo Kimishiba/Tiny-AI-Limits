@@ -13,6 +13,7 @@
 #include <esp_wifi.h>
 #include <Preferences.h>
 #include <ImprovWiFiLibrary.h>
+#include "boot_logo.h"
 
 DNSServer dnsServer;
 
@@ -1036,10 +1037,8 @@ void initActiveDisplay() {
 
         if (gcGfx->begin(40000000)) {
             gc9a01Initialized = true;
-            gcGfx->fillScreen(GC_COLOR_CARD_TOP);
-            delay(100);
-            gcGfx->fillScreen(GC_COLOR_BLACK);
-            Serial.println("[Display] GC9A01 Round IPS initialized successfully");
+            gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
+            Serial.println("[Display] GC9A01 Round IPS initialized with boot logo");
         } else {
             Serial.println("[Display] Failed to initialize GC9A01 display!");
         }

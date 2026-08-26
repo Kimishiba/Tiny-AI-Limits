@@ -116,20 +116,20 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
     poly = m3d.CrossSection([pts])
     return m3d.Manifold.extrude(poly, h)
 
-def make_gc9a01_pcb_pocket(depth_pocket=3.3):
+def make_gc9a01_pcb_pocket(depth_pocket=3.4):
     """
     Creates exact composite shape for GC9A01 PCB:
-    - Upper circular body: 39.0mm dia (38.0mm PCB + 1.0mm tolerance [+0.1mm extra clearance per side])
+    - Upper circular body: 39.4mm dia (38.0mm PCB + 1.4mm tolerance)
     - Lower connector tab: 24.0mm wide (22.92mm tab + 1.08mm tolerance) extending down to y = -26.6mm
-    - Top extra material relief notch: 18.0mm wide extending to y = +23.0mm
+    - Top extra material relief notch: 24.0mm wide extending to y = +26.0mm (+6.0mm width, +3.0mm height extra clearance)
     """
-    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.0 / 2.0, 39.0 / 2.0, 64)
+    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.4 / 2.0, 39.4 / 2.0, 64)
     tab_w = 24.0
     tab_h = 26.6
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
     
-    top_notch_w = 18.0
-    top_notch_h = 23.0
+    top_notch_w = 24.0
+    top_notch_h = 26.0
     top_box = m3d.Manifold.cube([top_notch_w, top_notch_h, depth_pocket], center=False).translate([-top_notch_w / 2.0, 0, 0])
     
     return top_circle + tab_box + top_box
@@ -153,7 +153,7 @@ def generate_front_bezel():
     oal_t = t + ring_h
     screw_dist = 19.50
     chamfer_outer = 1.2
-    pcb_dia = 39.0
+    pcb_dia = 39.4
     
     # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
@@ -164,15 +164,15 @@ def generate_front_bezel():
     
     # 3. Wide Sloping Inner Conical Bezel Funnel
     r_glass = 16.5
-    r_front = 19.3
+    r_front = 19.4
     funnel_h = oal_t + 2.0
-    dr_dz = (r_front - r_glass) / (oal_t - 3.3)
-    r_bot = r_glass - dr_dz * (3.3 - (-1.0))
+    dr_dz = (r_front - r_glass) / (oal_t - 3.4)
+    r_bot = r_glass - dr_dz * (3.4 - (-1.0))
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
     
     # 4. Rear Retention Pocket for PCB + Top Relief Notch (Single clean uniform flat pocket)
-    pcb_recess = make_gc9a01_pcb_pocket(3.3).translate([0, 0, -0.1])
+    pcb_recess = make_gc9a01_pcb_pocket(3.4).translate([0, 0, -0.1])
     
     cuts = window_funnel + pcb_recess
     
