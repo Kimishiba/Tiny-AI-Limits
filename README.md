@@ -76,9 +76,9 @@ The ultra-compact ESP32-C3 SuperMini board powers the device via USB-C (3.3V log
 | **SCL / SCLK** | **GPIO 4** | SPI Clock |
 | **SDA / MOSI** | **GPIO 6** | SPI MOSI (Data) |
 | **DC** | **GPIO 7** | Data / Command Control |
-| **CS** | **GPIO 10** | Chip Select |
-| **RST / RES** | **GPIO 8** | Hardware Reset |
-| **BLK** | **GPIO 5** (or 3V3) | Backlight PWM / Enable |
+| **CS** | **GPIO 5** | Chip Select |
+| **RST / RES** | **GPIO 1** | Hardware Reset |
+| **BLK** | **GPIO 0** (or 3V3) | Backlight PWM / Enable |
 
 *(For breadboard hookup instructions, see [`WIRING.md`](WIRING.md)).*
 
