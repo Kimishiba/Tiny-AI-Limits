@@ -132,6 +132,15 @@ bool wifiConnected = false;
 bool backendConnected = false;
 String backendUrl = "";
 
+// Pairing: which companion app this board belongs to. When pairedHost is set
+// the board talks only to that host and never falls back to picking whichever
+// companion answers mDNS first, which is how it used to end up showing
+// another user's quota data on a shared network.
+String pairedHost = "";
+uint16_t pairedPort = 0;
+String pairedId = "";
+Preferences pairPrefs;
+
 Preferences wifiPrefs;
 ImprovWiFi improvSerial(&Serial);
 bool provisioningMode = false;
@@ -1110,7 +1119,100 @@ void setupWebServer() {
 unsigned long lastMdnsResolve = 0;
 const unsigned long mdnsResolveCooldownMs = 10000;
 
+// A paired board keeps using its stored host across transient failures. Only
+// after this many consecutive failures does it consider that the companion
+// may have moved (DHCP lease change) and try to re-locate it.
+const int maxBackendFailures = 5;
+int consecutiveBackendFailures = 0;
+
+void loadPairing() {
+    pairPrefs.begin("pair", true);
+    pairedHost = pairPrefs.getString("host", "");
+    pairedPort = (uint16_t)pairPrefs.getUShort("port", 0);
+    pairedId = pairPrefs.getString("id", "");
+    pairPrefs.end();
+    if (pairedHost.length() > 0) {
+        Serial.printf("[Pair] Paired with %s:%u (id: %s)\n",
+                      pairedHost.c_str(), pairedPort,
+                      pairedId.length() ? pairedId.c_str() : "none");
+    } else {
+        Serial.println("[Pair] No pairing stored; will discover via mDNS");
+    }
+}
+
+void savePairing(const String& host, uint16_t port, const String& id) {
+    pairPrefs.begin("pair", false);
+    pairPrefs.putString("host", host);
+    pairPrefs.putUShort("port", port);
+    pairPrefs.putString("id", id);
+    pairPrefs.end();
+    pairedHost = host;
+    pairedPort = port;
+    pairedId = id;
+    Serial.printf("[Pair] Stored pairing %s:%u (id: %s)\n",
+                  host.c_str(), port, id.length() ? id.c_str() : "none");
+}
+
+// Accepts only a dotted quad, so a malformed provisioning payload can't put
+// garbage into NVS that the board would then retry forever.
+bool isValidIPv4(const String& s) {
+    IPAddress probe;
+    return probe.fromString(s);
+}
+
+void applyPairedBackendUrl() {
+    backendUrl = "http://" + pairedHost + ":" + String(pairedPort) + "/data";
+}
+
+// Confirm a candidate host actually serves us before we commit it to NVS.
+// MDNS.IP() returns only the first IPv4 a host advertises, and a machine on
+// Wi-Fi plus Ethernet/VPN/Docker may advertise an address the board cannot
+// route to. Probing is cheaper than exposing the full address list.
+bool probeBackend(const String& host, uint16_t port) {
+    HTTPClient probe;
+    probe.begin("http://" + host + ":" + String(port) + "/data");
+    probe.setTimeout(2000);
+    int code = probe.GET();
+    probe.end();
+    return code == HTTP_CODE_OK;
+}
+
+// Re-locate our own companion after its IP changed, matching on pair_id from
+// the mDNS TXT records. Never falls back to "first responder": with no match
+// we keep the old URL and keep retrying, because guessing is what leaked
+// another user's data in the first place.
+bool repairViaTxtRecords() {
+    if (pairedId.length() == 0) return false;
+
+    int n = MDNS.queryService("tinyscreen", "tcp");
+    Serial.printf("[Pair] Re-locating companion %s across %d service(s)\n", pairedId.c_str(), n);
+    for (int i = 0; i < n; i++) {
+        if (MDNS.txt(i, "pair_id") != pairedId) continue;
+
+        IPAddress ip = MDNS.IP(i);
+        uint16_t port = MDNS.port(i);
+        if (ip == IPAddress() || !probeBackend(ip.toString(), port)) {
+            Serial.printf("[Pair] Matched pair_id but %s:%u is unreachable; keeping stored host\n",
+                          ip.toString().c_str(), port);
+            return false;
+        }
+
+        savePairing(ip.toString(), port, pairedId);
+        applyPairedBackendUrl();
+        Serial.printf("[Pair] Re-paired to %s:%u\n", ip.toString().c_str(), port);
+        return true;
+    }
+    Serial.println("[Pair] No companion matched our pair_id; keeping stored host");
+    return false;
+}
+
 bool resolveBackendUrl() {
+    // Paired boards never run discovery -- that is the whole point.
+    if (pairedHost.length() > 0) {
+        applyPairedBackendUrl();
+        return true;
+    }
+
     int n = MDNS.queryService("tinyscreen", "tcp");
     if (n > 0) {
         IPAddress ip = MDNS.IP(0);
@@ -1139,6 +1241,18 @@ void fetchBackendData() {
         return;
     }
 
+    // A paired board that has failed repeatedly may have had its companion
+    // move to a new IP. Try to find it again by pair_id, rate-limited so a
+    // genuinely offline companion doesn't mean an mDNS query every cycle.
+    if (consecutiveBackendFailures >= maxBackendFailures &&
+        pairedHost.length() > 0 &&
+        millis() - lastMdnsResolve > mdnsResolveCooldownMs) {
+        lastMdnsResolve = millis();
+        if (repairViaTxtRecords()) {
+            consecutiveBackendFailures = 0;
+        }
+    }
+
     HTTPClient http;
     http.begin(backendUrl);
     http.setTimeout(2500);
@@ -1146,6 +1260,7 @@ void fetchBackendData() {
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
         backendConnected = true;
+        consecutiveBackendFailures = 0;
         String payload = http.getString();
         StaticJsonDocument<1536> doc;
         DeserializationError error = deserializeJson(doc, payload);
@@ -1200,7 +1315,14 @@ void fetchBackendData() {
         }
     } else {
         backendConnected = false;
-        backendUrl = "";
+        if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
+        // Previously this cleared backendUrl on *any* failure, so a single
+        // dropped packet sent the board back to mDNS discovery -- and, before
+        // pairing existed, potentially onto a different user's companion.
+        // An unpaired board still has nothing better to fall back on.
+        if (pairedHost.length() == 0 && consecutiveBackendFailures >= maxBackendFailures) {
+            backendUrl = "";
+        }
     }
     http.end();
 }
@@ -1294,6 +1416,28 @@ void onImprovWiFiErrorCb(ImprovTypes::Error err) {
 
 static String serialBuffer = "";
 
+// The provisioning line is tab-delimited, so the setup page percent-escapes
+// any tab, newline or '%' inside the SSID/password rather than letting them
+// shift the later fields.
+String percentDecode(const String& in) {
+    String out;
+    out.reserve(in.length());
+    for (unsigned int i = 0; i < in.length(); i++) {
+        if (in[i] == '%' && i + 2 < in.length()) {
+            char hex[3] = { in[i + 1], in[i + 2], 0 };
+            char* end;
+            long v = strtol(hex, &end, 16);
+            if (*end == 0) {
+                out += (char)v;
+                i += 2;
+                continue;
+            }
+        }
+        out += in[i];
+    }
+    return out;
+}
+
 void handleSerialCommunication() {
     while (Serial.available()) {
         int peekByte = Serial.peek();
@@ -1324,14 +1468,44 @@ void handleSerialCommunication() {
                 Serial.println("]");
                 WiFi.scanDelete();
             } else if (line.startsWith("WIFI:")) {
+                // WIFI:<ssid>\t<pass>[\t<host>\t<port>[\t<pair_id>]]
+                // Two fields is the legacy form and still works, so a cached
+                // copy of the old setup page keeps provisioning boards.
                 String creds = line.substring(5);
-                int sep = creds.indexOf('\t');
-                if (sep == -1) sep = creds.indexOf(',');
-                if (sep != -1) {
-                    String ssid = creds.substring(0, sep);
-                    String pass = creds.substring(sep + 1);
-                    ssid.trim();
-                    pass.trim();
+                String fields[5];
+                int fieldCount = 0;
+                int start = 0;
+                while (fieldCount < 5) {
+                    int sep = creds.indexOf('\t', start);
+                    // Legacy setup pages sent a comma when there was no tab.
+                    if (sep == -1 && fieldCount == 0) sep = creds.indexOf(',', start);
+                    if (sep == -1) { fields[fieldCount++] = creds.substring(start); break; }
+                    fields[fieldCount++] = creds.substring(start, sep);
+                    start = sep + 1;
+                }
+
+                if (fieldCount >= 2) {
+                    // Trim before decoding: whitespace the user meant to keep
+                    // arrives percent-escaped and so survives.
+                    fields[0].trim();
+                    fields[1].trim();
+                    String ssid = percentDecode(fields[0]);
+                    String pass = percentDecode(fields[1]);
+
+                    if (fieldCount >= 4) {
+                        String host = fields[2]; host.trim();
+                        String portStr = fields[3]; portStr.trim();
+                        String id = (fieldCount >= 5) ? fields[4] : "";
+                        id.trim();
+                        long port = portStr.toInt();
+                        if (isValidIPv4(host) && port > 0 && port <= 65535) {
+                            savePairing(host, (uint16_t)port, id);
+                        } else {
+                            Serial.printf("[Pair] Ignoring invalid host/port '%s:%s'\n",
+                                          host.c_str(), portStr.c_str());
+                        }
+                    }
+
                     Serial.printf("[WiFi] Connecting to '%s'...\n", ssid.c_str());
                     if (connectToWifi(ssid.c_str(), pass.c_str())) {
                         wifiPrefs.begin("wifi", false);
@@ -1344,15 +1518,19 @@ void handleSerialCommunication() {
                     }
                 }
             } else if (line == "STATUS") {
-                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\"}\n",
+                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\"}\n",
                     wifiConnected ? "true" : "false",
                     wifiConnected ? WiFi.localIP().toString().c_str() : "",
                     (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled",
-                    deviceHostname().c_str());
+                    deviceHostname().c_str(),
+                    pairedHost.c_str(), pairedPort, pairedId.c_str());
             }
         } else {
             serialBuffer += c;
-            if (serialBuffer.length() > 256) {
+            // Raised from 256: a provisioning line now carries host, port and
+            // pair_id on top of the credentials, and percent-escaping can
+            // triple an SSID or password in the worst case.
+            if (serialBuffer.length() > 512) {
                 serialBuffer = "";
             }
         }
@@ -1370,6 +1548,8 @@ void setup() {
     screenPrefs.begin("screen", false);
     configuredScreenType = (HardwareScreenType)screenPrefs.getInt("type", SCREEN_AUTO);
     screenPrefs.end();
+
+    loadPairing();
 
     // 2. Hardware Auto-Detection / Pin Configuration
     if (configuredScreenType == SCREEN_AUTO) {
