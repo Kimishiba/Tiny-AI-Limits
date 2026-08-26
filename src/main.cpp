@@ -1245,13 +1245,32 @@ bool connectToWifi(const char* ssid, const char* password) {
     return false;
 }
 
+// Per-board mDNS name, e.g. "tinyscreen-F030". Without this every board
+// claims "tinyscreen.local" and they collide as soon as two share a subnet.
+//
+// Reads the efuse directly so STATUS can report the hostname on a board that
+// has never connected to WiFi. esp_efuse_mac_get_default() packs the six MAC
+// bytes into a little-endian u64, so byte N is (mac >> 8*N); the suffix as
+// printed on the board is bytes 4 then 5. Note the ordering: extracting a
+// u16 in one shot yields those two bytes reversed.
+String deviceHostname() {
+    uint64_t mac = ESP.getEfuseMac();
+    char hostStr[24];
+    snprintf(hostStr, sizeof(hostStr), "tinyscreen-%02X%02X",
+             (uint8_t)((mac >> 32) & 0xFF), (uint8_t)((mac >> 40) & 0xFF));
+    return String(hostStr);
+}
+
 void onWifiConnected() {
     wifiConnected = true;
     provisioningMode = false;
     Serial.printf("[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
 
-    if (!MDNS.begin("tinyscreen")) {
+    String hostname = deviceHostname();
+    if (!MDNS.begin(hostname.c_str())) {
         Serial.println("[mDNS] Error starting responder");
+    } else {
+        Serial.printf("[mDNS] Responder started as %s.local\n", hostname.c_str());
     }
 
     setupWebServer();
@@ -1325,10 +1344,11 @@ void handleSerialCommunication() {
                     }
                 }
             } else if (line == "STATUS") {
-                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\"}\n",
+                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\"}\n",
                     wifiConnected ? "true" : "false",
                     wifiConnected ? WiFi.localIP().toString().c_str() : "",
-                    (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled");
+                    (activeScreenType == SCREEN_GC9A01_ROUND) ? "round" : "oled",
+                    deviceHostname().c_str());
             }
         } else {
             serialBuffer += c;
