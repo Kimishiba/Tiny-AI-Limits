@@ -1301,6 +1301,28 @@ bool repairViaTxtRecords() {
 }
 
 bool resolveBackendUrl() {
+    // Some networks (enterprise/guest WiFi in particular) filter multicast
+    // traffic, which silently breaks mDNS while normal unicast HTTP still
+    // works fine. A manually configured backend URL (set via the BACKEND:
+    // serial command) takes priority and skips mDNS entirely in that case.
+    // It outranks pairing too: it is an explicit instruction from the user.
+    Preferences backendPrefs;
+    backendPrefs.begin("backend", true);
+    String manualUrl = backendPrefs.getString("url", "");
+    backendPrefs.end();
+    if (manualUrl.length() > 0) {
+        backendUrl = manualUrl;
+        // An updated companion serves /data only to boards that identify
+        // themselves, so carry pair_id when we have one -- otherwise a
+        // manual URL would be refused with 403.
+        if (pairedId.length() > 0 && manualUrl.indexOf("pair_id=") == -1) {
+            backendUrl += (manualUrl.indexOf('?') >= 0) ? "&" : "?";
+            backendUrl += "pair_id=" + pairedId;
+        }
+        Serial.printf("[Backend] Using manually configured URL: %s\n", backendUrl.c_str());
+        return true;
+    }
+
     // Paired boards never run discovery -- that is the whole point.
     if (pairedHost.length() > 0) {
         applyPairedBackendUrl();
@@ -1416,6 +1438,7 @@ void fetchBackendData() {
             }
         }
     } else {
+        Serial.printf("[Backend] GET %s failed: %s (%d)\n", backendUrl.c_str(), http.errorToString(httpCode).c_str(), httpCode);
         backendConnected = false;
         if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
         if (httpCode == HTTP_CODE_FORBIDDEN) {
@@ -1457,13 +1480,21 @@ bool connectToWifi(const char* ssid, const char* password) {
 
     unsigned long connectStart = millis();
     int attempts = 0;
+    // Poll every 50ms (not 500ms): Improv WiFi's browser-side handshake sends a
+    // single request-current-state call with no retry, and a serial connection
+    // opening resets this board -- so if the timing lands inside this loop with
+    // only 500ms granularity, the handshake can time out before we ever service it.
     while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
-        delay(500);
+        delay(50);
         attempts++;
-        if (attempts % 4 == 0) {
+        if (attempts % 40 == 0) {
             Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
         }
-        improvSerial.handleSerial();
+        // handleSerial() consumes exactly one byte per call -- drain everything
+        // waiting so a full Improv packet doesn't take multiple ticks to parse.
+        while (Serial.available()) {
+            improvSerial.handleSerial();
+        }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
@@ -1553,7 +1584,11 @@ void handleSerialCommunication() {
     while (Serial.available()) {
         int peekByte = Serial.peek();
         if (peekByte == 'I' && serialBuffer.length() == 0) {
-            improvSerial.handleSerial();
+            // handleSerial() consumes exactly one byte per call -- drain everything
+            // waiting so a full Improv packet doesn't take multiple loop() ticks to parse.
+            while (Serial.available()) {
+                improvSerial.handleSerial();
+            }
             return;
         }
 
@@ -1640,6 +1675,41 @@ void handleSerialCommunication() {
                     backendConnected ? "true" : "false",
                     backendUrl.c_str(),
                     consecutiveBackendFailures);
+            } else if (line.startsWith("BACKEND:")) {
+                // Manual override for when mDNS discovery of the backend fails
+                // (e.g. multicast filtered by an enterprise/guest network).
+                String value = line.substring(8);
+                value.trim();
+                int sep = value.indexOf(':');
+                String host = (sep != -1) ? value.substring(0, sep) : value;
+                uint16_t port = (sep != -1) ? (uint16_t)value.substring(sep + 1).toInt() : 5000;
+                host.trim();
+                if (host.length() > 0) {
+                    String url = "http://" + host + ":" + String(port) + "/data";
+                    Preferences backendPrefs;
+                    backendPrefs.begin("backend", false);
+                    backendPrefs.putString("url", url);
+                    backendPrefs.end();
+                    backendConnected = false;
+                    // Go through resolveBackendUrl() rather than assigning
+                    // directly, so the manual URL picks up pair_id the same
+                    // way it does on boot -- otherwise the very next poll is
+                    // refused with 403 by an updated companion.
+                    resolveBackendUrl();
+                    Serial.printf("BACKEND_SET:%s\n", backendUrl.c_str());
+                } else {
+                    Serial.println("ERROR:INVALID_BACKEND");
+                }
+            } else if (line == "CLEAR_BACKEND") {
+                Preferences backendPrefs;
+                backendPrefs.begin("backend", false);
+                backendPrefs.clear();
+                backendPrefs.end();
+                backendUrl = "";
+                // Fall back to whatever pairing says, rather than leaving the
+                // board with no target until the next poll cycle.
+                resolveBackendUrl();
+                Serial.println("[Backend] Manual override cleared.");
             }
         } else {
             serialBuffer += c;
@@ -1658,7 +1728,27 @@ void handleSerialCommunication() {
 // ==========================================
 void setup() {
     Serial.begin(115200);
-    delay(200);
+
+    // Register Improv WiFi as early as physically possible, before the slower
+    // display/WiFi init below. Opening a serial connection resets this board,
+    // and the browser-side Improv handshake sends a single request with no
+    // retry -- if we don't start servicing it until after display + WiFi setup
+    // (~700ms+ of blocking work), it can time out before we ever see it.
+    improvSerial.setDeviceInfo(
+        ImprovTypes::ChipFamily::CF_ESP32_C3,
+        "TinyScreenFirmware", "0.4.0", "Tiny AI Screen", ""
+    );
+    improvSerial.onImprovError(onImprovWiFiErrorCb);
+    improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
+    improvSerial.setCustomConnectWiFi(connectToWifi);
+    // handleSerial() consumes exactly one byte per call -- drain everything
+    // waiting each tick so a full Improv packet doesn't take multiple ticks to parse.
+    for (int i = 0; i < 4; i++) {
+        while (Serial.available()) {
+            improvSerial.handleSerial();
+        }
+        delay(50);
+    }
 
     // 1. Load Stored Screen Preferences
     screenPrefs.begin("screen", false);
@@ -1695,15 +1785,6 @@ void setup() {
 
     WiFi.disconnect(true, true);
     delay(50);
-
-    // 5. Improv Wi-Fi Provisioning Setup
-    improvSerial.setDeviceInfo(
-        ImprovTypes::ChipFamily::CF_ESP32_C3,
-        "TinyScreenFirmware", "0.4.0", "Tiny AI Screen", ""
-    );
-    improvSerial.onImprovError(onImprovWiFiErrorCb);
-    improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
-    improvSerial.setCustomConnectWiFi(connectToWifi);
 
     // 6. Connect Stored Wi-Fi
     wifiPrefs.begin("wifi", false);
