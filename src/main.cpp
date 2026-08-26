@@ -139,10 +139,15 @@ String backendUrl = "";
 String pairedHost = "";
 uint16_t pairedPort = 0;
 String pairedId = "";
+// Latch: set the first time a board is ever paired and never cleared. A board
+// that has been paired once must not fall back to first-responder discovery
+// again, even if its stored host later stops answering -- that fallback is
+// what let it pick up another user's companion app.
+bool everPaired = false;
 Preferences pairPrefs;
 
 // Defined with the data-fetching code below, used by the web server above it.
-void savePairing(const String& host, uint16_t port, const String& id);
+bool savePairing(const String& host, uint16_t port, const String& id);
 bool isValidIPv4(const String& s);
 void applyPairedBackendUrl();
 String deviceHostname();
@@ -744,7 +749,10 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
-    int curLedState = backendConnected ? 1 : 0;
+    // 0 = no backend, 1 = paired, 2 = connected but unpaired (amber): the
+    // board is reading from whichever companion answered mDNS first, which on
+    // a shared network may not be this user's. See STATUS_UNPAIRED_NOTE.
+    int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
 
     if (weatherData.hours_until_rain != lastHoursUntilRain || curLedState != lastLedState) {
         lastHoursUntilRain = weatherData.hours_until_rain;
@@ -754,8 +762,9 @@ void drawGC9A01RoundFlipUI() {
         gcGfx->fillRect(cx - 50, cy - 110, 100, 28, GC_COLOR_BLACK);
 
         // LED Indicator Dot (Centered at cx=120, y=cy-105=15)
-        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :  // #22C55E Emerald Connected
-                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Red Disconnected
+        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :   // #22C55E Emerald Paired
+                          (curLedState == 2) ? gcGfx->color565(245, 158, 11) :  // #F59E0B Amber Unpaired
+                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Disconnected
 
         // LED Housing Bezel
         gcGfx->drawCircle(cx, cy - 105, 3, colBezel);
@@ -931,7 +940,10 @@ void drawGC9A01RoundFaceUI() {
     }
 
     // 2. Top Crown: Connection Status LED & Rain Indicator
-    uint16_t dotCol = wifiConnected ? gcGfx->color565(34, 197, 94) : gcGfx->color565(239, 68, 68);
+    // Amber means connected but unpaired -- see STATUS_UNPAIRED_NOTE.
+    uint16_t dotCol = !wifiConnected            ? gcGfx->color565(239, 68, 68)
+                    : (pairedHost.length() > 0) ? gcGfx->color565(34, 197, 94)
+                                                : gcGfx->color565(245, 158, 11);
     gcGfx->fillCircle(cx, cy - 105, 3, dotCol);
 
     char rainStr[24];
@@ -1147,7 +1159,10 @@ void setupWebServer() {
             return;
         }
 
-        savePairing(host, (uint16_t)port, id);
+        if (!savePairing(host, (uint16_t)port, id)) {
+            server.send(400, "application/json", "{\"error\":\"missing_pair_id\"}");
+            return;
+        }
         applyPairedBackendUrl();
 
         StaticJsonDocument<256> out;
@@ -1193,27 +1208,38 @@ void loadPairing() {
     pairedHost = pairPrefs.getString("host", "");
     pairedPort = (uint16_t)pairPrefs.getUShort("port", 0);
     pairedId = pairPrefs.getString("id", "");
+    everPaired = pairPrefs.getBool("ever", false);
     pairPrefs.end();
     if (pairedHost.length() > 0) {
         Serial.printf("[Pair] Paired with %s:%u (id: %s)\n",
-                      pairedHost.c_str(), pairedPort,
-                      pairedId.length() ? pairedId.c_str() : "none");
+                      pairedHost.c_str(), pairedPort, pairedId.c_str());
+    } else if (everPaired) {
+        Serial.println("[Pair] Previously paired but no host stored; will not auto-discover");
     } else {
         Serial.println("[Pair] No pairing stored; will discover via mDNS");
     }
 }
 
-void savePairing(const String& host, uint16_t port, const String& id) {
+// Callers must supply a non-empty id: without one the board cannot re-find its
+// companion after a DHCP change, and a half-paired board is a state we would
+// rather not have to reason about.
+bool savePairing(const String& host, uint16_t port, const String& id) {
+    if (id.length() == 0) {
+        Serial.println("[Pair] Rejecting pairing with empty pair_id");
+        return false;
+    }
     pairPrefs.begin("pair", false);
     pairPrefs.putString("host", host);
     pairPrefs.putUShort("port", port);
     pairPrefs.putString("id", id);
+    pairPrefs.putBool("ever", true);
     pairPrefs.end();
     pairedHost = host;
     pairedPort = port;
     pairedId = id;
-    Serial.printf("[Pair] Stored pairing %s:%u (id: %s)\n",
-                  host.c_str(), port, id.length() ? id.c_str() : "none");
+    everPaired = true;
+    Serial.printf("[Pair] Stored pairing %s:%u (id: %s)\n", host.c_str(), port, id.c_str());
+    return true;
 }
 
 // Accepts only a dotted quad, so a malformed provisioning payload can't put
@@ -1274,6 +1300,14 @@ bool resolveBackendUrl() {
     if (pairedHost.length() > 0) {
         applyPairedBackendUrl();
         return true;
+    }
+
+    // Paired once, host since lost: still refuse to guess. Re-pair via the
+    // setup page rather than risk adopting someone else's companion.
+    if (everPaired) {
+        Serial.println("[Pair] Previously paired; refusing mDNS fallback. Re-pair from the setup page.");
+        backendUrl = "";
+        return false;
     }
 
     int n = MDNS.queryService("tinyscreen", "tcp");
@@ -1382,8 +1416,10 @@ void fetchBackendData() {
         // Previously this cleared backendUrl on *any* failure, so a single
         // dropped packet sent the board back to mDNS discovery -- and, before
         // pairing existed, potentially onto a different user's companion.
-        // An unpaired board still has nothing better to fall back on.
-        if (pairedHost.length() == 0 && consecutiveBackendFailures >= maxBackendFailures) {
+        // A board that has never been paired still has nothing better to fall
+        // back on; one that has been paired keeps retrying its own host.
+        if (!everPaired && pairedHost.length() == 0 &&
+            consecutiveBackendFailures >= maxBackendFailures) {
             backendUrl = "";
         }
     }
@@ -1567,6 +1603,8 @@ void handleSerialCommunication() {
                             Serial.printf("[Pair] Ignoring invalid host/port '%s:%s'\n",
                                           host.c_str(), portStr.c_str());
                         }
+                    } else if (fieldCount == 3) {
+                        Serial.println("[Pair] Ignoring incomplete pairing fields");
                     }
 
                     Serial.printf("[WiFi] Connecting to '%s'...\n", ssid.c_str());
@@ -1724,6 +1762,15 @@ void loop() {
                     case SCREEN_AGENT_ALERT:
                         renderAgentAlertScreen();
                         break;
+                }
+                // STATUS_UNPAIRED_NOTE: a single lit pixel in the bottom-right
+                // corner means the board is reading from whichever companion
+                // answered mDNS first rather than one it was paired with, so
+                // on a shared network the figures may not be this user's.
+                // Mono display, so this is the quietest marker available; the
+                // round display uses an amber status LED for the same state.
+                if (backendConnected && pairedHost.length() == 0) {
+                    oledDisplay.drawPixel(OLED_SCREEN_WIDTH - 1, OLED_SCREEN_HEIGHT - 1, SSD1306_WHITE);
                 }
             }
             oledDisplay.display();

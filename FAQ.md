@@ -44,11 +44,24 @@ The fix is **pairing**: your board stores your computer's address and a `pair_id
 
 If you set the board up with the "Connect & Set Up WiFi" button, it is **not** paired — that protocol can only carry Wi-Fi credentials. Use the "Pair an Existing Board" box afterwards.
 
+## How can I tell whether my board is paired?
+
+Watch the status light:
+
+- **Round display**: green dot means paired, **amber** means connected but unpaired, red means no connection.
+- **OLED**: a single lit pixel in the bottom-right corner means connected but unpaired.
+
+Unpaired means the board is reading from whichever companion app answered first, so on a shared network the figures may not be yours.
+
+You can also send `STATUS` over the serial console, which reports `paired_host` and `pair_id`.
+
 ## My board stopped finding the companion app after a router restart
 
 Your computer's IP probably changed. A paired board re-finds it automatically by matching its `pair_id` against the mDNS records, usually within a minute.
 
 If it does not recover, check that the companion app is running, then re-pair with the "Pair an Existing Board" box on the setup page using the board's IP.
+
+A board that has been paired will **not** fall back to picking another companion app, even if it can no longer reach its own. It shows no data and waits to be re-paired. That is deliberate: showing nothing is better than showing someone else's numbers.
 
 ## Can I run several boards on one network?
 

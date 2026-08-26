@@ -180,9 +180,19 @@ If several people run Tiny AI Screen on the same Wi-Fi (a shared office or house
 * **"Connect & Set Up WiFi"** (Improv) can only send Wi-Fi credentials; the protocol has no room for an address. After it finishes, pair the board with the **"Pair an Existing Board"** box on the setup page, entering the board's IP.
 * If your computer's IP changes (DHCP lease renewal), a paired board re-finds it automatically by matching `pair_id` against the mDNS TXT records. If that fails, re-pair with the same box.
 
+**Pairing is one-way.** Once a board has been paired, it never goes back to picking whichever companion answers first — even if it loses track of its host. It will show no data and wait to be re-paired rather than risk reading someone else's stats.
+
+**The status light tells you which mode a board is in:**
+
+| Round display | OLED | Meaning |
+| --- | --- | --- |
+| Green dot | — | Paired, reading from your companion app |
+| Amber dot | Single lit pixel, bottom-right | Connected but **unpaired** — the figures may not be yours |
+| Red dot | — | No connection |
+
 Each board also claims a unique mDNS name derived from its MAC — `tinyscreen-F030.local` rather than a shared `tinyscreen.local` — so several boards can coexist on one subnet.
 
-> **Upgrading an existing board?** Boards flashed before pairing existed keep working: they fall back to mDNS discovery. But that fallback is exactly what can latch onto the wrong companion, so **re-run Direct Serial Setup once** after updating the firmware to pin the board to your machine.
+> **Upgrading an existing board?** Boards flashed before pairing existed keep working: they fall back to mDNS discovery, and show the amber/unpaired indicator while they do. That fallback is exactly what can latch onto the wrong companion, so **re-run Direct Serial Setup once** after updating the firmware. After that the board is pinned for good.
 
 ---
 
