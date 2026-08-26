@@ -134,7 +134,7 @@ def get_location():
 # open-meteo.com on every single call -- ~28,800 requests/day to each free
 # API, which exhausts open-meteo's daily quota well before the day is over
 # (seen as a 429 "Daily API request limit exceeded", masquerading as a
-# "location not found" style all-zero fallback on the OLED). Weather doesn't
+# "location not found" style all-zero fallback on the display). Weather doesn't
 # need second-by-second freshness anyway, so cache it.
 _weather_cache = {"data": None, "timestamp": 0}
 _WEATHER_CACHE_TTL_SECONDS = 600
@@ -442,7 +442,7 @@ def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
 def get_antigravity_accounts(use_cache=True):
     """Returns one entry per signed-in Antigravity account currently running
     locally: {"email", "remaining_fraction", "reset_time"}. remaining_fraction
-    is the Gemini model family's quota (what this project's OLED calls
+    is the Gemini model family's quota (what this project's display calls
     "Antigravity quota") since that's the family Antigravity itself is built
     around; Claude/GPT quotas inside Antigravity are tracked separately and
     aren't what this metric means here."""

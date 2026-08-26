@@ -190,7 +190,6 @@ Preview and interact with all screens, animations, and telemetry states in real 
 │   ├── index.html            # Canvas emulator for the round HUD
 │   └── setup.html            # WebSerial USB Wi-Fi provisioning
 ├── img/                      # 3D product renders & animation demos
-│   └── ili9341_cyberdeck_render.jpg
 ├── src/                      # ESP32-C3 Arduino C++ firmware
 │   └── main.cpp
 ├── platformio.ini            # PlatformIO build configuration
