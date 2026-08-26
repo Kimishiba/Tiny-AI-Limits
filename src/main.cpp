@@ -1026,8 +1026,11 @@ bool isValidIPv4(const String& s) {
     return probe.fromString(s);
 }
 
+// The companion serves /data only to boards that prove which companion they
+// belong to (#38): without pair_id, any board on the LAN could read the
+// owner's email, token volume and location.
 void applyPairedBackendUrl() {
-    backendUrl = "http://" + pairedHost + ":" + String(pairedPort) + "/data";
+    backendUrl = "http://" + pairedHost + ":" + String(pairedPort) + "/data?pair_id=" + pairedId;
 }
 
 // Confirm a candidate host actually serves us before we commit it to NVS.
@@ -1036,7 +1039,9 @@ void applyPairedBackendUrl() {
 // route to. Probing is cheaper than exposing the full address list.
 bool probeBackend(const String& host, uint16_t port) {
     HTTPClient probe;
-    probe.begin("http://" + host + ":" + String(port) + "/data");
+    // Same pair_id the real poll will use, so the probe fails on a companion
+    // that would reject us rather than reporting it reachable.
+    probe.begin("http://" + host + ":" + String(port) + "/data?pair_id=" + pairedId);
     probe.setTimeout(2000);
     int code = probe.GET();
     probe.end();
@@ -1073,6 +1078,28 @@ bool repairViaTxtRecords() {
 }
 
 bool resolveBackendUrl() {
+    // Some networks (enterprise/guest WiFi in particular) filter multicast
+    // traffic, which silently breaks mDNS while normal unicast HTTP still
+    // works fine. A manually configured backend URL (set via the BACKEND:
+    // serial command) takes priority and skips mDNS entirely in that case.
+    // It outranks pairing too: it is an explicit instruction from the user.
+    Preferences backendPrefs;
+    backendPrefs.begin("backend", true);
+    String manualUrl = backendPrefs.getString("url", "");
+    backendPrefs.end();
+    if (manualUrl.length() > 0) {
+        backendUrl = manualUrl;
+        // An updated companion serves /data only to boards that identify
+        // themselves, so carry pair_id when we have one -- otherwise a
+        // manual URL would be refused with 403.
+        if (pairedId.length() > 0 && manualUrl.indexOf("pair_id=") == -1) {
+            backendUrl += (manualUrl.indexOf('?') >= 0) ? "&" : "?";
+            backendUrl += "pair_id=" + pairedId;
+        }
+        Serial.printf("[Backend] Using manually configured URL: %s\n", backendUrl.c_str());
+        return true;
+    }
+
     // Paired boards never run discovery -- that is the whole point.
     if (pairedHost.length() > 0) {
         applyPairedBackendUrl();
@@ -1176,8 +1203,16 @@ void fetchBackendData() {
             }
         }
     } else {
+        Serial.printf("[Backend] GET %s failed: %s (%d)\n", backendUrl.c_str(), http.errorToString(httpCode).c_str(), httpCode);
         backendConnected = false;
         if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
+        if (httpCode == HTTP_CODE_FORBIDDEN) {
+            // Reached a companion, but it does not recognise our pair_id --
+            // someone else's app, or ours after its identity was reset.
+            // Distinct from a network fault, so say so rather than retrying
+            // silently and looking offline.
+            Serial.println("[Pair] Companion refused us (403): not paired with this app. Re-pair from the setup page.");
+        }
         // Previously this cleared backendUrl on *any* failure, so a single
         // dropped packet sent the board back to mDNS discovery -- and, before
         // pairing existed, potentially onto a different user's companion.
@@ -1210,13 +1245,21 @@ bool connectToWifi(const char* ssid, const char* password) {
 
     unsigned long connectStart = millis();
     int attempts = 0;
+    // Poll every 50ms (not 500ms): Improv WiFi's browser-side handshake sends a
+    // single request-current-state call with no retry, and a serial connection
+    // opening resets this board -- so if the timing lands inside this loop with
+    // only 500ms granularity, the handshake can time out before we ever service it.
     while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
-        delay(500);
+        delay(50);
         attempts++;
-        if (attempts % 4 == 0) {
+        if (attempts % 40 == 0) {
             Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
         }
-        improvSerial.handleSerial();
+        // handleSerial() consumes exactly one byte per call -- drain everything
+        // waiting so a full Improv packet doesn't take multiple ticks to parse.
+        while (Serial.available()) {
+            improvSerial.handleSerial();
+        }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
@@ -1306,7 +1349,11 @@ void handleSerialCommunication() {
     while (Serial.available()) {
         int peekByte = Serial.peek();
         if (peekByte == 'I' && serialBuffer.length() == 0) {
-            improvSerial.handleSerial();
+            // handleSerial() consumes exactly one byte per call -- drain everything
+            // waiting so a full Improv packet doesn't take multiple loop() ticks to parse.
+            while (Serial.available()) {
+                improvSerial.handleSerial();
+            }
             return;
         }
 
@@ -1384,12 +1431,50 @@ void handleSerialCommunication() {
                     }
                 }
             } else if (line == "STATUS") {
-                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\"}\n",
+                Serial.printf("STATUS:{\"connected\":%s,\"ip\":\"%s\",\"screen\":\"%s\",\"hostname\":\"%s\",\"paired_host\":\"%s\",\"paired_port\":%u,\"pair_id\":\"%s\",\"backend_connected\":%s,\"backend_url\":\"%s\",\"failures\":%d}\n",
                     wifiConnected ? "true" : "false",
                     wifiConnected ? WiFi.localIP().toString().c_str() : "",
                     "round",
                     deviceHostname().c_str(),
-                    pairedHost.c_str(), pairedPort, pairedId.c_str());
+                    pairedHost.c_str(), pairedPort, pairedId.c_str(),
+                    backendConnected ? "true" : "false",
+                    backendUrl.c_str(),
+                    consecutiveBackendFailures);
+            } else if (line.startsWith("BACKEND:")) {
+                // Manual override for when mDNS discovery of the backend fails
+                // (e.g. multicast filtered by an enterprise/guest network).
+                String value = line.substring(8);
+                value.trim();
+                int sep = value.indexOf(':');
+                String host = (sep != -1) ? value.substring(0, sep) : value;
+                uint16_t port = (sep != -1) ? (uint16_t)value.substring(sep + 1).toInt() : 5000;
+                host.trim();
+                if (host.length() > 0) {
+                    String url = "http://" + host + ":" + String(port) + "/data";
+                    Preferences backendPrefs;
+                    backendPrefs.begin("backend", false);
+                    backendPrefs.putString("url", url);
+                    backendPrefs.end();
+                    backendConnected = false;
+                    // Go through resolveBackendUrl() rather than assigning
+                    // directly, so the manual URL picks up pair_id the same
+                    // way it does on boot -- otherwise the very next poll is
+                    // refused with 403 by an updated companion.
+                    resolveBackendUrl();
+                    Serial.printf("BACKEND_SET:%s\n", backendUrl.c_str());
+                } else {
+                    Serial.println("ERROR:INVALID_BACKEND");
+                }
+            } else if (line == "CLEAR_BACKEND") {
+                Preferences backendPrefs;
+                backendPrefs.begin("backend", false);
+                backendPrefs.clear();
+                backendPrefs.end();
+                backendUrl = "";
+                // Fall back to whatever pairing says, rather than leaving the
+                // board with no target until the next poll cycle.
+                resolveBackendUrl();
+                Serial.println("[Backend] Manual override cleared.");
             }
         } else {
             serialBuffer += c;
@@ -1408,7 +1493,27 @@ void handleSerialCommunication() {
 // ==========================================
 void setup() {
     Serial.begin(115200);
-    delay(200);
+
+    // Register Improv WiFi as early as physically possible, before the slower
+    // display/WiFi init below. Opening a serial connection resets this board,
+    // and the browser-side Improv handshake sends a single request with no
+    // retry -- if we don't start servicing it until after display + WiFi setup
+    // (~700ms+ of blocking work), it can time out before we ever see it.
+    improvSerial.setDeviceInfo(
+        ImprovTypes::ChipFamily::CF_ESP32_C3,
+        "TinyScreenFirmware", "0.4.0", "Tiny AI Screen", ""
+    );
+    improvSerial.onImprovError(onImprovWiFiErrorCb);
+    improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
+    improvSerial.setCustomConnectWiFi(connectToWifi);
+    // handleSerial() consumes exactly one byte per call -- drain everything
+    // waiting each tick so a full Improv packet doesn't take multiple ticks to parse.
+    for (int i = 0; i < 4; i++) {
+        while (Serial.available()) {
+            improvSerial.handleSerial();
+        }
+        delay(50);
+    }
 
     loadPairing();
 
@@ -1434,16 +1539,7 @@ void setup() {
     WiFi.disconnect(true, true);
     delay(50);
 
-    // 3. Improv Wi-Fi Provisioning Setup
-    improvSerial.setDeviceInfo(
-        ImprovTypes::ChipFamily::CF_ESP32_C3,
-        "TinyScreenFirmware", "2.0.0", "Tiny AI Screen", ""
-    );
-    improvSerial.onImprovError(onImprovWiFiErrorCb);
-    improvSerial.onImprovConnected(onImprovWiFiConnectedCb);
-    improvSerial.setCustomConnectWiFi(connectToWifi);
-
-    // 4. Connect Stored Wi-Fi
+    // 3. Connect Stored Wi-Fi
     wifiPrefs.begin("wifi", false);
     String storedSsid = wifiPrefs.getString("ssid", "");
     String storedPassword = wifiPrefs.getString("password", "");
