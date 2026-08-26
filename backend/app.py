@@ -26,8 +26,7 @@ def load_config():
         "lat": 52.5200,
         "lon": 13.4050,
         "antigravity_5h_quota": 200,
-        "antigravity_account_email": None,
-        "screen_type": "auto"
+        "antigravity_account_email": None
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -85,14 +84,6 @@ def serve_emulator():
         return send_file(emulator_path, max_age=0)
     return "Emulator file not found", 404
 
-@app.route('/faces')
-@app.route('/qbit')
-def serve_qbit_prototype():
-    prototype_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "qbit_faces_prototype.html")
-    if os.path.exists(prototype_path):
-        return send_file(prototype_path)
-    return "QBIT Prototype file not found", 404
-
 @app.route('/setup')
 def serve_setup_page():
     setup_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "emulator", "setup.html")
@@ -143,7 +134,7 @@ def get_location():
 # open-meteo.com on every single call -- ~28,800 requests/day to each free
 # API, which exhausts open-meteo's daily quota well before the day is over
 # (seen as a 429 "Daily API request limit exceeded", masquerading as a
-# "location not found" style all-zero fallback on the OLED). Weather doesn't
+# "location not found" style all-zero fallback on the display). Weather doesn't
 # need second-by-second freshness anyway, so cache it.
 _weather_cache = {"data": None, "timestamp": 0}
 _WEATHER_CACHE_TTL_SECONDS = 600
@@ -451,7 +442,7 @@ def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
 def get_antigravity_accounts(use_cache=True):
     """Returns one entry per signed-in Antigravity account currently running
     locally: {"email", "remaining_fraction", "reset_time"}. remaining_fraction
-    is the Gemini model family's quota (what this project's OLED calls
+    is the Gemini model family's quota (what this project's display calls
     "Antigravity quota") since that's the family Antigravity itself is built
     around; Claude/GPT quotas inside Antigravity are tracked separately and
     aren't what this metric means here."""
@@ -722,27 +713,7 @@ def get_data():
             "state": agent_state,
             "prompt_text": prompt_text,
             "completion_text": completion_text
-        },
-        "device": {
-            "screen_type": config.get("screen_type", "auto")
         }
-    })
-
-@app.route('/api/screen', methods=['GET', 'POST'])
-def handle_screen_api():
-    global config
-    if request.method == 'POST':
-        data = request.json or request.form or {}
-        mode = data.get("mode") or data.get("screen_type") or request.args.get("mode") or "auto"
-        mode = str(mode).lower()
-        if mode in ["auto", "round", "gc9a01", "oled", "128x64"]:
-            config["screen_type"] = "round" if mode in ["round", "gc9a01"] else ("oled" if mode in ["oled", "128x64"] else "auto")
-            save_config(config)
-            return jsonify({"status": "ok", "screen_type": config["screen_type"]})
-        return jsonify({"status": "error", "message": f"Invalid screen mode '{mode}'"}), 400
-    return jsonify({
-        "screen_type": config.get("screen_type", "auto"),
-        "options": ["auto", "round", "oled"]
     })
 
 @app.route('/config', methods=['GET', 'POST'])
@@ -752,10 +723,6 @@ def handle_config():
         data = request.json or {}
         if "auto_location" in data:
             config["auto_location"] = bool(data["auto_location"])
-        if "screen_type" in data:
-            val = str(data["screen_type"]).lower()
-            if val in ["auto", "round", "gc9a01", "oled", "128x64"]:
-                config["screen_type"] = "round" if val in ["round", "gc9a01"] else ("oled" if val in ["oled", "128x64"] else "auto")
         if "antigravity_5h_quota" in data:
             try:
                 config["antigravity_5h_quota"] = int(data["antigravity_5h_quota"])

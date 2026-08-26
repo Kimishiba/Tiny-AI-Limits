@@ -3,7 +3,7 @@
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-kimishiba.github.io%2FTiny--AI--Limits-FF5F1F?style=flat-square)](https://kimishiba.github.io/Tiny-AI-Limits/)
 ![Framework](https://img.shields.io/badge/Framework-Arduino_ESP32--C3-007acc?style=flat-square)
 ![Hardware](https://img.shields.io/badge/Hardware-ESP32--C3_SuperMini-e67e22?style=flat-square)
-![Displays](https://img.shields.io/badge/Displays-GC9A01_Round_%7C_SSD1306_OLED-brightgreen?style=flat-square)
+![Display](https://img.shields.io/badge/Display-GC9A01_1.28%22_Round_IPS-brightgreen?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 An open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-compact **ESP32-C3 SuperMini** microcontroller.
@@ -15,13 +15,9 @@ It brings your AI developer environment to life with physical desktop hardware �
 
 ---
 
-## 🛠️ Two Hardware Device Options You Can Build
+## 🛠️ The Hardware You Can Build
 
-You can build **Tiny AI Limits** in either of two distinct physical form factors depending on your preferred display technology and aesthetic:
-
----
-
-### Option 1: GC9A01 1.28" Circular IPS Cyberdeck Edition
+**Tiny AI Limits** is built around a single physical form factor: the **GC9A01 1.28" Circular IPS Cyberdeck Edition**.
 
 <p align="center">
   <img src="./round 240x240/assets/gc9a01_3d_enclosure_render.jpg" alt="GC9A01 Circular Cyberdeck 3D Render" width="460">
@@ -31,7 +27,7 @@ You can build **Tiny AI Limits** in either of two distinct physical form factors
 
 An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 IPS Color Display (GC9A01 SPI)** resting at an ergonomic $18^\circ$ backward tilt on a two-tier modular pedestal.
 
-#### ✨ Features:
+### ✨ Features:
 * **2×2 Split-Flap Flip Clock:** Mechanical split-card matrix animating hour and minute transitions.
 * **Dual Circular Radial Telemetry Arcs:** Continuous $0\% \to 100\%$ gauges tracking Claude Code (Electric Cyan, left arc) and Antigravity CLI (Safety Orange, right arc).
 * **Curved Inside Telemetry Labels:** Dynamic curved text (`CLD 68%`, `AGY 42%`) positioned inside the active gauge sweeps.
@@ -41,38 +37,17 @@ An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 I
 
 ---
 
-### Option 2: SSD1306 Monochrome OLED Robot Companion Edition
+## 📊 Specifications
 
-<p align="center">
-  <img src="./img/ssd1306_real_robot_render.jpg" alt="SSD1306 OLED Companion 3D Render" width="460">
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./img/oled_companion_demo.gif" alt="ESP32 OLED Companion Animation Preview" width="460">
-</p>
-
-A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Monochrome I2C OLED Display (128×64, SSD1306 / SH1106)**.
-
-#### ✨ Features:
-* **👀 Expressive Animated Eyes & Eyelid Physics:** 30 FPS non-blocking animation engine with natural saccadic eye movement and randomized double-blinking.
-* **🎭 Context-Aware Mood Reactions:**
-  * *Normal Idle:* Calm, curious glances around your workspace.
-  * *Heavy Usage Today:* Droopy, tired eyes with animated falling sweat droplets as your daily Claude token consumption reaches high thresholds.
-  * *Agent Attention Alert:* Wide-eyed shock animation and retro warning banners when an AI coding agent is waiting for user approval.
-* **🔄 Auto-Cycling Companion Screens:** Cycles smoothly between Full Robot Face $\to$ Split HUD $\to$ Quota Telemetry Bars $\to$ Clock & Weather.
-* **Enclosure Architecture:** Matching chamfered cyberdeck pod with rectangular bezel aperture, brass M3 hardware, and two-tier pedestal stand.
-
----
-
-## 📊 Feature Comparison
-
-| Feature | GC9A01 Round Edition | SSD1306 OLED Edition |
-| :--- | :--- | :--- |
-| **Display Type** | 1.28" Round Color IPS (240×240) | 0.96" / 1.3" Monochrome OLED (128×64) |
-| **Interface** | High-Speed SPI | Hardware I2C (400 kHz) |
-| **Primary Theme** | Cyberdeck Split-Flap Clock & Dual Radial HUD | Expressive Animated Robot Companion |
-| **Claude & Antigravity Gauges** | Dual Continuous $180^\circ$ Radial Arcs | Horizontal Telemetry Progress Bars |
-| **Agent Approval Warning** | High-Contrast Yellow/Orange Sub-HUD Alert | Shocked Wide-Eye Animation & Flashing Banner |
-| **Weather & Rain Forecast** | Top Crown Indicator + Temperature Sub-HUD | Dedicated Cycling Weather Screen |
-| **Desk Stand** | Modular Two-Tier Pedestal (Walnut + Cradle) | Modular Two-Tier Pedestal (Walnut + Cradle) |
+| Aspect | Detail |
+| :--- | :--- |
+| **Display Type** | 1.28" Round Color IPS (240×240) |
+| **Interface** | High-Speed SPI |
+| **Primary Theme** | Cyberdeck Split-Flap Clock & Dual Radial HUD |
+| **Claude & Antigravity Gauges** | Dual Continuous $180^\circ$ Radial Arcs |
+| **Agent Approval Warning** | High-Contrast Yellow/Orange Sub-HUD Alert |
+| **Weather & Rain Forecast** | Top Crown Indicator + Temperature Sub-HUD |
+| **Desk Stand** | Modular Two-Tier Pedestal (Walnut + Cradle) |
 
 ---
 
@@ -80,15 +55,15 @@ A retro-futuristic desktop robot companion utilizing a crisp **0.96" or 1.3" Mon
 
 For a complete parts list, exact component specifications, and direct purchasing links (**Amazon**, **AliExpress**, **Waveshare**, **Adafruit**), see the dedicated BOM documentation:
 
-* 📦 [**`BOM/README.md`**](bom/README.md) — Quick-Start Shopping Kits & Assembly Cost Summary.
+* 📦 [**`BOM/README.md`**](bom/README.md) — Quick-Start Shopping Kit & Assembly Cost Summary.
 * 📋 [**`BOM/BOM.md`**](bom/BOM.md) — Comprehensive Bill of Materials with verified purchasing links.
 
 ---
 
 ## 🔌 Hardware & Wiring Schematics
 
-### 1. ESP32-C3 SuperMini Pinout (Shared Microcontroller)
-The ultra-compact ESP32-C3 SuperMini board powers both versions via USB-C (3.3V logic).
+### 1. ESP32-C3 SuperMini Pinout (Microcontroller)
+The ultra-compact ESP32-C3 SuperMini board powers the device via USB-C (3.3V logic).
 
 ---
 
@@ -101,20 +76,9 @@ The ultra-compact ESP32-C3 SuperMini board powers both versions via USB-C (3.3V 
 | **SCL / SCLK** | **GPIO 4** | SPI Clock |
 | **SDA / MOSI** | **GPIO 6** | SPI MOSI (Data) |
 | **DC** | **GPIO 7** | Data / Command Control |
-| **CS** | **GPIO 10** | Chip Select |
-| **RST / RES** | **GPIO 8** | Hardware Reset |
-| **BLK** | **GPIO 5** (or 3V3) | Backlight PWM / Enable |
-
----
-
-### 3. SSD1306 OLED Display Wiring (Hardware I2C)
-
-| SSD1306 OLED Pin | ESP32-C3 SuperMini Pin | Description |
-| :--- | :--- | :--- |
-| **VCC** | **3V3** (or 5V) | 3.3V Power Rail |
-| **GND** | **GND** | Ground |
-| **SCL / SCK** | **GPIO 9** | Hardware I2C Clock (400 kHz) |
-| **SDA** | **GPIO 8** | Hardware I2C Data |
+| **CS** | **GPIO 5** | Chip Select |
+| **RST / RES** | **GPIO 1** | Hardware Reset |
+| **BLK** | **GPIO 0** (or 3V3) | Backlight PWM / Enable |
 
 *(For breadboard hookup instructions, see [`WIRING.md`](WIRING.md)).*
 
@@ -184,11 +148,11 @@ If several people run Tiny AI Screen on the same Wi-Fi (a shared office or house
 
 **The status light tells you which mode a board is in:**
 
-| Round display | OLED | Meaning |
-| --- | --- | --- |
-| Green dot | — | Paired, reading from your companion app |
-| Amber dot | Single lit pixel, bottom-right | Connected but **unpaired** — the figures may not be yours |
-| Red dot | — | No connection |
+| Status dot | Meaning |
+| --- | --- |
+| Green dot | Paired, reading from your companion app |
+| Amber dot | Connected but **unpaired** — the figures may not be yours |
+| Red dot | No connection |
 
 Each board also claims a unique mDNS name derived from its MAC — `tinyscreen-F030.local` rather than a shared `tinyscreen.local` — so several boards can coexist on one subnet.
 
@@ -200,8 +164,7 @@ Each board also claims a unique mDNS name derived from its MAC — `tinyscreen-F
 
 Preview and interact with all screens, animations, and telemetry states in real time:
 
-* **Robot Face Visualizer:** `http://localhost:5000/faces`
-* **Full Display Emulator (Round & Rectangular):** `http://localhost:5000/emulator`
+* **Full Display Emulator:** `http://localhost:5000/emulator`
 
 ---
 
@@ -224,13 +187,9 @@ Preview and interact with all screens, animations, and telemetry states in real 
 │       ├── gc9a01_3d_enclosure_render.jpg
 │       └── gc9a01_round_display_demo.gif
 ├── emulator/                 # Interactive browser visualizers & emulators
-│   ├── index.html            # Canvas emulator for Round & Rectangular HUDs
-│   ├── qbit_faces_prototype.html
+│   ├── index.html            # Canvas emulator for the round HUD
 │   └── setup.html            # WebSerial USB Wi-Fi provisioning
 ├── img/                      # 3D product renders & animation demos
-│   ├── ssd1306_real_robot_render.jpg
-│   ├── oled_companion_demo.gif
-│   └── ili9341_cyberdeck_render.jpg
 ├── src/                      # ESP32-C3 Arduino C++ firmware
 │   └── main.cpp
 ├── platformio.ini            # PlatformIO build configuration

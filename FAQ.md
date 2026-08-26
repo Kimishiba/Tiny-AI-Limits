@@ -4,12 +4,9 @@
 
 It is an open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-compact ESP32-C3 SuperMini microcontroller. It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas for Claude Code and Google Antigravity CLI, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
 
-## What are the different hardware options available?
+## Which display does the hardware use?
 
-You can build the companion in two distinct forms:
-
-1. **GC9A01 1.28" Circular IPS Cyberdeck Edition**: An industrial sci-fi desktop pod featuring a vibrant 1.28" Circular 240×240 IPS Color Display.
-2. **SSD1306 Monochrome OLED Robot Companion Edition**: A retro-futuristic desktop robot companion utilizing a crisp 0.96" or 1.3" Monochrome I2C OLED Display.
+There is a single build: the **GC9A01 1.28" Circular IPS Cyberdeck Edition**, an industrial sci-fi desktop pod featuring a vibrant 1.28" Circular 240×240 IPS Color Display driven over SPI.
 
 ## Which microcontroller is used?
 
@@ -46,10 +43,7 @@ If you set the board up with the "Connect & Set Up WiFi" button, it is **not** p
 
 ## How can I tell whether my board is paired?
 
-Watch the status light:
-
-- **Round display**: green dot means paired, **amber** means connected but unpaired, red means no connection.
-- **OLED**: a single lit pixel in the bottom-right corner means connected but unpaired.
+Watch the status dot on the display: green means paired, **amber** means connected but unpaired, and red means no connection.
 
 Unpaired means the board is reading from whichever companion app answered first, so on a shared network the figures may not be yours.
 
@@ -73,5 +67,4 @@ The board prints its hostname on the serial console at boot, and the setup page 
 
 Yes! The project includes an interactive browser prototype and visualizer where you can preview and interact with all screens, animations, and telemetry states in real time:
 
-- **Robot Face Visualizer**: `http://localhost:5000/faces`
-- **Full Display Emulator (Round & Rectangular)**: `http://localhost:5000/emulator`
+- **Full Display Emulator**: `http://localhost:5000/emulator`
