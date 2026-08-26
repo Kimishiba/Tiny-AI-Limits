@@ -685,7 +685,7 @@ def get_data():
                         waiting_for_input = True
                         prompt_text = turn_pending_prompt
                         break
-                    elif (now_ts - mtime) < 30:
+                    elif (now_ts - mtime) < config.get("completion_duration_seconds", 10):
                         # Turn finished recently without requiring feedback -> Work Completed!
                         work_completed = True
                         completion_text = "WORK COMPLETE"
