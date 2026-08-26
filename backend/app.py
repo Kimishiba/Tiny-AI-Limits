@@ -555,8 +555,41 @@ def handle_test_alert():
         "prompt_text": test_complete_prompt if test_complete_override else test_alert_prompt
     })
 
+def client_is_local():
+    """Requests from this machine: the emulator, the setup page, local curl.
+
+    These fetch /data same-origin and have no pair_id to send, so they are
+    exempt from the pairing check.
+    """
+    return request.remote_addr in ("127.0.0.1", "::1")
+
+
+def caller_is_paired():
+    """Whether the caller proved it belongs to this companion.
+
+    /data carries a personal email address, working hours, token volume and
+    location. Without this check any board on the LAN that finds us over mDNS
+    reads all of it -- which is exactly what was happening in the wild (#38):
+    a colleague's board on older firmware had been polling every 3 seconds.
+    """
+    if client_is_local():
+        return True
+    if config.get("allow_unpaired_clients", False):
+        return True
+    return request.args.get("pair_id", "") == get_pair_id(config)
+
+
 @app.route('/data', methods=['GET'])
 def get_data():
+    if not caller_is_paired():
+        # 403 rather than 404: the board should surface "not paired with this
+        # companion", not retry as though the endpoint were missing.
+        return jsonify({
+            "error": "not_paired",
+            "message": "This board is not paired with this companion app. "
+                       "Run setup, or set allow_unpaired_clients in config.json.",
+        }), 403
+
     try:
         antigravity_data = get_antigravity_quota()
     except Exception as e:

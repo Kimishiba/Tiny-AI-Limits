@@ -1249,8 +1249,11 @@ bool isValidIPv4(const String& s) {
     return probe.fromString(s);
 }
 
+// The companion serves /data only to boards that prove which companion they
+// belong to (#38): without pair_id, any board on the LAN could read the
+// owner's email, token volume and location.
 void applyPairedBackendUrl() {
-    backendUrl = "http://" + pairedHost + ":" + String(pairedPort) + "/data";
+    backendUrl = "http://" + pairedHost + ":" + String(pairedPort) + "/data?pair_id=" + pairedId;
 }
 
 // Confirm a candidate host actually serves us before we commit it to NVS.
@@ -1259,7 +1262,9 @@ void applyPairedBackendUrl() {
 // route to. Probing is cheaper than exposing the full address list.
 bool probeBackend(const String& host, uint16_t port) {
     HTTPClient probe;
-    probe.begin("http://" + host + ":" + String(port) + "/data");
+    // Same pair_id the real poll will use, so the probe fails on a companion
+    // that would reject us rather than reporting it reachable.
+    probe.begin("http://" + host + ":" + String(port) + "/data?pair_id=" + pairedId);
     probe.setTimeout(2000);
     int code = probe.GET();
     probe.end();
@@ -1413,6 +1418,13 @@ void fetchBackendData() {
     } else {
         backendConnected = false;
         if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
+        if (httpCode == HTTP_CODE_FORBIDDEN) {
+            // Reached a companion, but it does not recognise our pair_id --
+            // someone else's app, or ours after its identity was reset.
+            // Distinct from a network fault, so say so rather than retrying
+            // silently and looking offline.
+            Serial.println("[Pair] Companion refused us (403): not paired with this app. Re-pair from the setup page.");
+        }
         // Previously this cleared backendUrl on *any* failure, so a single
         // dropped packet sent the board back to mDNS discovery -- and, before
         // pairing existed, potentially onto a different user's companion.
