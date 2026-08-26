@@ -10,7 +10,7 @@
 #include <esp_wifi.h>
 #include <Preferences.h>
 #include <ImprovWiFiLibrary.h>
-#include "boot_logo.h"
+#include "boot_animation.h"
 
 DNSServer dnsServer;
 
@@ -503,6 +503,14 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
     gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
 }
 
+// Set whenever the screen was just showing something drawGC9A01RoundFlipUI()
+// doesn't own (the boot/connecting animation) and needs to be wiped before
+// the HUD's own redraw-on-change caches take over. Without this, the HUD
+// only repaints pixels it thinks changed, so boot-animation content in
+// regions the HUD never touches -- the spinning ring, the status pill, the
+// brand text -- keeps showing through indefinitely once the HUD takes over.
+bool gHudNeedsFreshPaint = true;
+
 void drawGC9A01RoundFlipUI() {
     int cx = 120, cy = 120, rScreen = 114;
 
@@ -531,6 +539,30 @@ void drawGC9A01RoundFlipUI() {
     static int oldDigits[4] = {-1, -1, -1, -1};
     static int prevTarget[4] = {-1, -1, -1, -1};
     static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    if (gHudNeedsFreshPaint) {
+        gHudNeedsFreshPaint = false;
+        gcGfx->fillScreen(GC_COLOR_BLACK);
+        // Invalidate every redraw-on-change cache above so this pass treats
+        // all of them as changed and repaints the whole HUD onto the fresh
+        // black background, rather than leaving most of it black until its
+        // underlying value happens to change on its own.
+        bezelDrawn = false;
+        lastFlashState = false;
+        lastWaitingState = false;
+        lastHoursUntilRain = -999;
+        lastLedState = -1;
+        lastClaudePct = -1;
+        lastAntiPct = -1;
+        lastTemp = -999.0f;
+        lastDate = "";
+        lastWaiting = false;
+        for (int i = 0; i < 4; i++) {
+            oldDigits[i] = -1;
+            prevTarget[i] = -1;
+            flipProg[i] = 1.0f;
+        }
+    }
 
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
     uint16_t colEmerald = gcGfx->color565(0, 255, 136);     // #00FF88 Neon Emerald
@@ -890,8 +922,8 @@ void initActiveDisplay() {
 
     if (gcGfx->begin(40000000)) {
         gc9a01Initialized = true;
-        gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
-        Serial.println("[Display] GC9A01 Round IPS initialized with boot logo");
+        renderGC9A01BootAnimationFrame(0, "STARTING SYSTEM...", false);
+        Serial.println("[Display] GC9A01 Round IPS initialized with boot animation");
     } else {
         Serial.println("[Display] Failed to initialize GC9A01 display!");
     }
@@ -1245,14 +1277,27 @@ bool connectToWifi(const char* ssid, const char* password) {
 
     unsigned long connectStart = millis();
     int attempts = 0;
-    // Poll every 50ms (not 500ms): Improv WiFi's browser-side handshake sends a
+    int animFrame = 0;
+
+    // Paint the connecting screen fresh before animating it. connectToWifi()
+    // can run again later while the HUD is already live (re-provisioning
+    // over serial), and the loop below increments animFrame before its first
+    // render call, so without this explicit frameIndex-0 call the ring would
+    // spin directly over whatever the HUD last drew for the entire connect
+    // attempt, not just leave it behind afterward.
+    renderGC9A01BootAnimationFrame(animFrame, "CONNECTING WI-FI...", false);
+
+    // Poll every 40ms (not 500ms): Improv WiFi's browser-side handshake sends a
     // single request-current-state call with no retry, and a serial connection
     // opening resets this board -- so if the timing lands inside this loop with
-    // only 500ms granularity, the handshake can time out before we ever service it.
+    // only 500ms granularity, the handshake can time out before we ever service
+    // it. 40ms also gives the boot animation ~25 FPS.
     while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
-        delay(50);
+        animFrame++;
+        renderGC9A01BootAnimationFrame(animFrame, "CONNECTING WI-FI...", false);
+        delay(40);
         attempts++;
-        if (attempts % 40 == 0) {
+        if (attempts % 50 == 0) {
             Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
         }
         // handleSerial() consumes exactly one byte per call -- drain everything
@@ -1260,10 +1305,27 @@ bool connectToWifi(const char* ssid, const char* password) {
         while (Serial.available()) {
             improvSerial.handleSerial();
         }
+        if (WiFi.status() == WL_NO_SSID_AVAIL && attempts >= 75) {
+            // AP not found after ~3s -- stop blocking boot; loop()'s
+            // auto-reconnect keeps retrying in the background.
+            break;
+        }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
         Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
+
+        // Brief "READY" status flash with emerald green indicator
+        renderGC9A01BootAnimationFrame(animFrame, "TINY SCREEN READY", true);
+        delay(400);
+
+        // Hand off to the live HUD on a clean screen -- see
+        // gHudNeedsFreshPaint. Applies on every successful connect, not just
+        // the first: a board can reach here again later (re-provisioning
+        // over serial while already running), and the HUD may already be
+        // mid-render on screen at that point.
+        gHudNeedsFreshPaint = true;
+
         onWifiConnected();
         return true;
     }
@@ -1520,10 +1582,13 @@ void setup() {
     // 1. Initialize Display
     initActiveDisplay();
 
+    // Render Initial Cyber Kimishiba Boot Frame
+    renderGC9A01BootAnimationFrame(0, "STARTING SYSTEM...", false);
+
     // 2. Wi-Fi Configuration for ESP32-C3
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
     wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
     esp_wifi_set_country(&country);
     delay(50);
@@ -1554,6 +1619,7 @@ void setup() {
     } else {
         wifiConnected = false;
         provisioningMode = true;
+        renderGC9A01BootAnimationFrame(0, "READY FOR SETUP", false);
         Serial.println("[WiFi] Ready for setup over USB Serial or Improv Wi-Fi.");
     }
 
@@ -1578,12 +1644,11 @@ void loop() {
     if (now - lastFrameTime >= frameIntervalMs) {
         lastFrameTime = now;
 
-        // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-        static bool initialCleared = false;
-        if (!initialCleared) {
-            initialCleared = true;
-            gcGfx->fillScreen(GC_COLOR_BLACK);
-        }
+        // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD).
+        // The initial clear-and-reset, and any later one after the boot/
+        // connecting animation hands off, is drawGC9A01RoundFlipUI()'s own
+        // responsibility -- see gHudNeedsFreshPaint.
+        //
         // Keeps the blink/gaze state live for drawGC9A01RoundFaceUI(), which
         // is wired up but not currently selected by the loop.
         updateFacePhysics(now);
