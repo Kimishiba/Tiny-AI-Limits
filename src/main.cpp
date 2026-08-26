@@ -13,7 +13,7 @@
 #include <esp_wifi.h>
 #include <Preferences.h>
 #include <ImprovWiFiLibrary.h>
-#include "boot_logo.h"
+#include "boot_animation.h"
 
 DNSServer dnsServer;
 
@@ -1224,17 +1224,45 @@ bool connectToWifi(const char* ssid, const char* password) {
 
     unsigned long connectStart = millis();
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
-        delay(500);
+    int animFrame = 0;
+
+    // Poll every 40ms (~25 FPS) while smoothly animating Cyber Kimishiba spinning circuits
+    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < 8000) {
+        animFrame++;
+
+        if (activeScreenType == SCREEN_GC9A01_ROUND) {
+            renderGC9A01BootAnimationFrame(animFrame, "CONNECTING WI-FI...", false);
+        } else if (activeScreenType == SCREEN_OLED_128X64) {
+            renderOLEDBootAnimationFrame(animFrame, "CONNECTING...", false);
+        }
+
+        delay(40);
         attempts++;
-        if (attempts % 4 == 0) {
+        if (attempts % 50 == 0) {
             Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
         }
-        improvSerial.handleSerial();
+        // handleSerial() consumes exactly one byte per call -- drain everything
+        // waiting so a full Improv packet doesn't take multiple ticks to parse.
+        while (Serial.available()) {
+            improvSerial.handleSerial();
+        }
+        if (WiFi.status() == WL_NO_SSID_AVAIL && attempts >= 75) {
+            // AP not found after 3 seconds, don't block boot loop forever
+            break;
+        }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
         Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
+
+        // Brief "READY" status flash with emerald green indicator
+        if (activeScreenType == SCREEN_GC9A01_ROUND) {
+            renderGC9A01BootAnimationFrame(animFrame, "TINY SCREEN READY", true);
+        } else if (activeScreenType == SCREEN_OLED_128X64) {
+            renderOLEDBootAnimationFrame(animFrame, "SYSTEM READY", true);
+        }
+        delay(400);
+
         onWifiConnected();
         return true;
     }
@@ -1361,10 +1389,17 @@ void setup() {
     // 3. Initialize Active Display
     initActiveDisplay();
 
+    // Render Initial Cyber Kimishiba Boot Frame
+    if (activeScreenType == SCREEN_GC9A01_ROUND) {
+        renderGC9A01BootAnimationFrame(0, "STARTING SYSTEM...", false);
+    } else if (activeScreenType == SCREEN_OLED_128X64) {
+        renderOLEDBootAnimationFrame(0, "STARTING...", false);
+    }
+
     // 4. Wi-Fi Configuration for ESP32-C3
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
     wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
     esp_wifi_set_country(&country);
     delay(50);
@@ -1404,6 +1439,11 @@ void setup() {
     } else {
         wifiConnected = false;
         provisioningMode = true;
+        if (activeScreenType == SCREEN_GC9A01_ROUND) {
+            renderGC9A01BootAnimationFrame(0, "READY FOR SETUP", false);
+        } else if (activeScreenType == SCREEN_OLED_128X64) {
+            renderOLEDBootAnimationFrame(0, "READY FOR SETUP", false);
+        }
         Serial.println("[WiFi] Ready for setup over USB Serial or Improv Wi-Fi.");
     }
 
