@@ -679,38 +679,30 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                         else:
                             meta = {}
 
-                    if meta.get("RequestFeedback") is True:
-                        found_pending = True
-                        turn_pending_prompt = "APPROVE PLAN"
-                        break
-                    elif name == "ask_question":
-                        found_pending = True
-                        turn_pending_prompt = "ANSWER Q"
-                        break
-                    elif name == "ask_permission":
-                        found_pending = True
-                        turn_pending_prompt = "GRANT PERM"
-                        break
-                    elif name == "run_command":
-                        found_pending = True
-                        turn_pending_prompt = "ALLOW CMD"
-                        break
-                    elif name == "write_to_file":
-                        found_pending = True
-                        turn_pending_prompt = "ALLOW WRITE"
-                        break
-                    elif name == "replace_file_content":
-                        found_pending = True
-                        turn_pending_prompt = "ALLOW EDIT"
-                        break
-                    elif name == "invoke_subagent":
-                        found_pending = True
-                        turn_pending_prompt = "SPAWN AGENT"
-                        break
-                    elif name == "call_mcp_tool":
-                        found_pending = True
-                        turn_pending_prompt = "ALLOW MCP"
-                        break
+                        if meta.get("RequestFeedback") is True:
+                            turn_pending_prompt = "APPROVE PLAN"
+                            break
+                        elif name == "ask_question":
+                            turn_pending_prompt = "ANSWER Q"
+                            break
+                        elif name == "ask_permission":
+                            turn_pending_prompt = "GRANT PERM"
+                            break
+                        elif name == "run_command":
+                            turn_pending_prompt = "ALLOW CMD"
+                            break
+                        elif name == "write_to_file":
+                            turn_pending_prompt = "ALLOW WRITE"
+                            break
+                        elif name == "replace_file_content":
+                            turn_pending_prompt = "ALLOW EDIT"
+                            break
+                        elif name == "invoke_subagent":
+                            turn_pending_prompt = "SPAWN AGENT"
+                            break
+                        elif name == "call_mcp_tool":
+                            turn_pending_prompt = "ALLOW MCP"
+                            break
 
             # Check if this turn is currently executing tool calls
             has_unresolved_tools = False
@@ -730,14 +722,6 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
-<<<<<<< HEAD
-=======
-            elif has_unresolved_tools or (age < 30 and last_step_entry.get("type") in ("PLANNER_RESPONSE", "GENERIC") and len(tcs) > 0):
-                state = "WORKING"
-                code = "working"
-                detail = "EXECUTING..."
-                color = "#00E5FF"
->>>>>>> 4ae62bb (fix(firmware): debounce backend connection indicator and filter idle agents (#44))
             elif age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
