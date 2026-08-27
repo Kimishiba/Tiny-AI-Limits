@@ -313,25 +313,66 @@ module main_housing() {
             cube([26.0, 5.0, cavity_depth + 0.1]);
             
         // 4. 4 Corner M3 Screw Pilot Holes
-
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, housing_depth - 15.0])
                     cylinder(d = screw_pilot_dia, h = 15.1);
             }
         }
+        
+        // 5. Aeration Vent Slots (Rear Backplate Grille & Top Perimeter Exhaust)
+        // Rear backplate upper zone slots
+        for (vy = [11.5, 14.5, 17.5, 20.5]) {
+            translate([-12.0, vy - 0.9, -0.5])
+                cube([24.0, 1.8, floor_t + 1.0]);
+        }
+        // Rear backplate right side slots
+        for (vy = [-4.0, 0.0, 4.0]) {
+            translate([6.0, vy - 0.9, -0.5])
+                cube([10.0, 1.8, floor_t + 1.0]);
+        }
+        // Top perimeter wall exhaust slots
+        for (vx = [-12.0, 0.0, 12.0]) {
+            translate([vx - 3.0, 21.0, 9.0])
+                cube([6.0, 7.0, 12.0]);
+        }
     }
     
-    // Internal ESP32-C3 SuperMini Lowered Standoff Rails (1.4mm)
+    // Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs
+    guide_t = 1.6;
+    guide_h = esp_standoff_h + 2.8;
+    snap_z = floor_t + esp_standoff_h + 1.4;
+
     difference() {
         union() {
             translate([esp_center_x, 0, floor_t]) {
+                // Standoff rails
                 translate([-esp_l/2, 7.62 - 1.7, 0])
                     cube([esp_l, 3.4, esp_standoff_h]);
                 translate([-esp_l/2, -7.62 - 1.7, 0])
                     cube([esp_l, 3.4, esp_standoff_h]);
+                
+                // Reinforced Rear Thrust Bulkhead (+X Stop absorbing 100% USB-C cable insertion force)
                 translate([esp_l/2, -esp_w/2, 0])
-                    cube([2.5, esp_w, esp_standoff_h + 3.0]);
+                    cube([2.5, esp_w, esp_standoff_h + 3.5]);
+
+                // Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
+                translate([-esp_l/2 - 2.0, 7.45 - 1.75, 0])
+                    cube([2.0, 3.5, esp_standoff_h + 3.5]);
+                translate([-esp_l/2 - 2.0, -7.45 - 1.75, 0])
+                    cube([2.0, 3.5, esp_standoff_h + 3.5]);
+
+                // Lateral Guide Walls (+/-Y Lock)
+                translate([-esp_l/2, esp_w/2, 0])
+                    cube([esp_l, guide_t, guide_h]);
+                translate([-esp_l/2, -esp_w/2 - guide_t, 0])
+                    cube([esp_l, guide_t, guide_h]);
+
+                // Inward Snap-Fit Retention Overhang Lips (+Z Lock)
+                translate([-esp_l/2, esp_w/2 - 0.6, esp_standoff_h + 1.4])
+                    cube([esp_l, 0.6, 0.8]);
+                translate([-esp_l/2, -esp_w/2, esp_standoff_h + 1.4])
+                    cube([esp_l, 0.6, 0.8]);
             }
         }
         

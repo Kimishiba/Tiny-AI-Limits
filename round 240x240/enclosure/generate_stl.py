@@ -315,10 +315,25 @@ def generate_main_housing():
             pilot_m3 = m3d.Manifold.cylinder(15.2, 1.4, 1.4, 32).translate([sx, sy, depth - 15.0])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3
             
-    cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts
+    # 6. Aeration Vent Slots (Rear Backplate Grille & Top Perimeter Exhaust)
+    vent_cuts = m3d.Manifold()
+    # Rear backplate upper zone slots (Y = 11.5, 14.5, 17.5, 20.5, X in [-12, 12])
+    for vy in [11.5, 14.5, 17.5, 20.5]:
+        slot = m3d.Manifold.cube([24.0, 1.8, floor_t + 1.0], center=False).translate([-12.0, vy - 0.9, -0.5])
+        vent_cuts = vent_cuts + slot
+    # Rear backplate right side slots (Y = -4.0, 0.0, +4.0, X in [6, 16])
+    for vy in [-4.0, 0.0, 4.0]:
+        slot = m3d.Manifold.cube([10.0, 1.8, floor_t + 1.0], center=False).translate([6.0, vy - 0.9, -0.5])
+        vent_cuts = vent_cuts + slot
+    # Top perimeter wall exhaust slots (X = -12.0, 0.0, +12.0, Y in [21, 28], Z in [9, 21])
+    for vx in [-12.0, 0.0, 12.0]:
+        top_slot = m3d.Manifold.cube([6.0, 7.0, 12.0], center=False).translate([vx - 3.0, 21.0, 9.0])
+        vent_cuts = vent_cuts + top_slot
+
+    cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts
     housing_body = chassis - cuts
     
-    # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails (2.5mm Height)
+    # 7. Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs
     rail_h = 2.5
     rail_z_top = floor_t + rail_h
     esp_l, esp_w = 23.0, 18.4
@@ -326,12 +341,41 @@ def generate_main_housing():
     
     rail_top = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
     rail_bot = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
-    rear_stop = m3d.Manifold.cube([2.5, 18.4, rail_h + 3.0], center=True).translate([
-        esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.0) / 2.0
-    ])
-    standoffs = rail_top + rail_bot + rear_stop
-
     
+    # Reinforced Rear Thrust Bulkhead (+X Stop absorbing 100% USB-C cable insertion force)
+    rear_stop = m3d.Manifold.cube([2.5, 18.4, rail_h + 3.5], center=True).translate([
+        esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.5) / 2.0
+    ])
+    
+    # Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
+    front_stop_top = m3d.Manifold.cube([2.0, 3.5, rail_h + 3.5], center=True).translate([
+        esp_center_x - esp_l / 2.0 - 1.0, 7.45, floor_t + (rail_h + 3.5) / 2.0
+    ])
+    front_stop_bot = m3d.Manifold.cube([2.0, 3.5, rail_h + 3.5], center=True).translate([
+        esp_center_x - esp_l / 2.0 - 1.0, -7.45, floor_t + (rail_h + 3.5) / 2.0
+    ])
+    
+    # Lateral Guide Walls with Snap-Fit Positive Overhang Retention Lips (+/-Y & +Z Lock)
+    guide_t = 1.6
+    guide_h = rail_h + 2.8
+    guide_wall_top = m3d.Manifold.cube([esp_l, guide_t, guide_h], center=True).translate([
+        esp_center_x, esp_w / 2.0 + guide_t / 2.0, floor_t + guide_h / 2.0
+    ])
+    guide_wall_bot = m3d.Manifold.cube([esp_l, guide_t, guide_h], center=True).translate([
+        esp_center_x, -esp_w / 2.0 - guide_t / 2.0, floor_t + guide_h / 2.0
+    ])
+    
+    # Inward snap-fit retention overhang lips (0.5mm shelf at top of PCB Z)
+    snap_z_center = floor_t + rail_h + 1.4 + 0.4
+    snap_lip_top = m3d.Manifold.cube([esp_l, 0.6, 0.8], center=True).translate([
+        esp_center_x, esp_w / 2.0 - 0.3, snap_z_center
+    ])
+    snap_lip_bot = m3d.Manifold.cube([esp_l, 0.6, 0.8], center=True).translate([
+        esp_center_x, -esp_w / 2.0 + 0.3, snap_z_center
+    ])
+    
+    standoffs = rail_top + rail_bot + rear_stop + front_stop_top + front_stop_bot + guide_wall_top + guide_wall_bot + snap_lip_top + snap_lip_bot
+
     pin_cuts = m3d.Manifold()
     x0 = -18.3
     for k in range(8):
