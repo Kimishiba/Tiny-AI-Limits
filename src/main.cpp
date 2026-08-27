@@ -1974,7 +1974,8 @@ void setup() {
     xTaskCreate(
         [](void *pvParameters) {
             for (;;) {
-                if (wifiConnected && !provisioningMode) {
+                if (WiFi.status() == WL_CONNECTED && !provisioningMode) {
+                    wifiConnected = true;
                     fetchBackendData();
                 }
                 vTaskDelay(pdMS_TO_TICKS(backendPollInterval));
@@ -2017,9 +2018,10 @@ void loop() {
 
     // 3. Auto-reconnect Wi-Fi
     static unsigned long lastWiFiCheck = 0;
-    if (now - lastWiFiCheck >= 10000) {
+    if (now - lastWiFiCheck >= 5000) {
         lastWiFiCheck = now;
         if (WiFi.status() != WL_CONNECTED) {
+            wifiConnected = false;
             if (!provisioningMode) {
                 WiFi.reconnect();
             } else {
@@ -2031,8 +2033,11 @@ void loop() {
                 wifiPrefs.end();
                 if (storedSsid.length() > 0 && connectToWifi(storedSsid.c_str(), storedPassword.c_str())) {
                     provisioningMode = false;
+                    onWifiConnected();
                 }
             }
+        } else {
+            wifiConnected = true;
         }
     }
 
