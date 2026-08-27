@@ -1510,11 +1510,19 @@
           c.fillStyle = brandCol;
           c.fillText(ag.name || "Agent", cardX + 8, rowY + 11);
 
-          // Status Dot
-          c.fillStyle = ag.color || brandCol;
+          // Pulsating Status Badge Dot
+          const pulse = (Math.sin((now * 0.006) + (i * 1.3)) + 1) / 2; // 0..1
+          const dotR = 2.5 + 1.2 * pulse;
+          const dotColor = ag.color || brandCol;
+
+          c.save();
+          c.fillStyle = dotColor;
+          c.shadowColor = dotColor;
+          c.shadowBlur = 3 + 6 * pulse;
           c.beginPath();
-          c.arc(cardX + cardW - 10, rowY + 11, 3.5, 0, Math.PI * 2);
+          c.arc(cardX + cardW - 10, rowY + 11, dotR, 0, Math.PI * 2);
           c.fill();
+          c.restore();
 
           // Row 2: Detail / Action Text
           c.font = "9px 'JetBrains Mono', monospace";
