@@ -2,7 +2,7 @@ import os
 import json
 import time
 import unittest
-from app import check_agent_status, check_antigravity_status, check_claude_status
+from app import check_agent_status, scan_antigravity_sessions, scan_claude_sessions, get_multi_agent_status
 
 class TestAgentStatus(unittest.TestCase):
     def test_antigravity_ask_question(self):
@@ -105,6 +105,34 @@ class TestAgentStatus(unittest.TestCase):
             status = check_agent_status(antigravity_dirs=[ag_dir], claude_dirs=[cl_dir], now_ts=time.time())
             self.assertTrue(status["waiting_for_input"])
             self.assertEqual(status["source"], "claude")
+
+    def test_multi_agent_status_aggregation(self):
+        from app import get_multi_agent_status
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            ag_sess1 = os.path.join(brain_dir, "sess1", ".system_generated", "logs")
+            os.makedirs(ag_sess1, exist_ok=True)
+            with open(os.path.join(ag_sess1, "transcript.jsonl"), "w") as f:
+                f.write(json.dumps({"type": "ASK_QUESTION"}) + "\n")
+
+            claude_dir = os.path.join(tmp_dir, "claude")
+            cl_proj = os.path.join(claude_dir, "p1")
+            os.makedirs(cl_proj, exist_ok=True)
+            with open(os.path.join(cl_proj, "s1.jsonl"), "w") as f:
+                f.write(json.dumps({
+                    "type": "assistant",
+                    "message": {"content": [{"type": "tool_use", "name": "Bash"}]}
+                }) + "\n")
+
+            now = time.time()
+            res = get_multi_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[claude_dir], now_ts=now)
+            self.assertTrue(res["waiting_for_input"])
+            self.assertTrue(res["has_active_agents"])
+            self.assertEqual(len(res["active_agents"]), 2)
+            # The waiting AGY agent must be sorted first
+            self.assertEqual(res["active_agents"][0]["state"], "WAITING")
+            self.assertEqual(res["active_agents"][0]["source"], "antigravity")
 
 if __name__ == "__main__":
     unittest.main()

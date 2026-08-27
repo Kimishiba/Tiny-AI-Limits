@@ -61,9 +61,19 @@ struct WeatherInfo {
     String location = "DESKTOP";
 };
 
+struct SingleAgentInfo {
+    String name = "";
+    String state = "IDLE"; // WAITING, WORKING, COMPLETE, IDLE
+    String detail = "";
+    uint16_t color = 0x9D37; // default muted slate
+};
+
 struct AgentStatus {
     bool waiting_for_input = false;
     bool work_completed = false;
+    bool has_active_agents = false;
+    int active_agent_count = 0;
+    SingleAgentInfo active_agents[4];
     String prompt_text = "APPROVE PLAN";
     String completion_text = "WORK COMPLETE";
 };
@@ -703,41 +713,100 @@ void drawGC9A01RoundFlipUI() {
         gcPrintCentered(agyPctStr, 193, 121, colOrange);
     }
 
-    // 4. Center 2x2 Split-Flap Clock Matrix with 3D Folding Animation
-    int cardW = 48, cardH = 72, gap = 6;
-    int x1 = cx - cardW - gap / 2;
-    int x2 = cx + gap / 2;
-    int yTop = cy - cardH - gap / 2;
-    int yBot = cy + gap / 2;
+    // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
+    static bool wasShowingAgents = false;
+    bool showAgents = agentData.has_active_agents && (agentData.active_agent_count > 0);
 
-    int safeHours = constrain(timeData.hours, 0, 23);
-    int safeMinutes = constrain(timeData.minutes, 0, 59);
-
-    int dH1 = safeHours / 10;
-    int dH2 = safeHours % 10;
-    int dM1 = safeMinutes / 10;
-    int dM2 = safeMinutes % 10;
-
-    int targetDigits[4] = {dH1, dH2, dM1, dM2};
-
-    for (int i = 0; i < 4; i++) {
-        if (prevTarget[i] != -1 && prevTarget[i] != targetDigits[i]) {
-            oldDigits[i] = prevTarget[i];
-            flipProg[i] = 0.0f; // Start 3D flip animation!
-        }
-        prevTarget[i] = targetDigits[i];
-
-        if (flipProg[i] < 1.0f) {
-            flipProg[i] += 0.10f; // ~10 frames @ 30 FPS = ~300ms flip
-            if (flipProg[i] > 1.0f) flipProg[i] = 1.0f;
+    if (showAgents) {
+        if (!wasShowingAgents) {
+            // First transition into agent view: clear central safe corridor
+            gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
+            wasShowingAgents = true;
+            // Invalidate clock flip caches for clean return
+            for (int i = 0; i < 4; i++) {
+                oldDigits[i] = -1;
+                prevTarget[i] = -1;
+            }
         }
 
-        // Draw card when animating or on first boot
-        if (flipProg[i] < 1.0f || oldDigits[i] == -1) {
-            if (oldDigits[i] == -1) oldDigits[i] = targetDigits[i];
-            int px = (i % 2 == 0) ? x1 : x2;
-            int py = (i < 2) ? yTop : yBot;
-            drawGC9A01AnimatedFlipCard(px, py, cardW, cardH, oldDigits[i], targetDigits[i], flipProg[i]);
+        // Draw Multi-Agent Status Dashboard inside the 102px x 140px safe corridor
+        int startY = cy - 65; // y = 55
+        int visibleRows = min(agentData.active_agent_count, 3);
+
+        for (int i = 0; i < visibleRows; i++) {
+            int rowY = startY + (i * 44);
+            SingleAgentInfo &ag = agentData.active_agents[i];
+
+            // Card container background
+            gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BOT);
+            gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BORDER);
+
+            // Left status bar
+            gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, ag.color);
+
+            // Row 1: Agent Label & State Indicator
+            gcGfx->setTextSize(1);
+            gcGfx->setCursor(cx - 42, rowY + 6);
+            gcGfx->setTextColor(GC_COLOR_WHITE);
+            gcGfx->print(ag.name);
+
+            // Status Badge Dot
+            gcGfx->fillCircle(cx + 40, rowY + 10, 3, ag.color);
+
+            // Row 2: Detail / Action
+            gcGfx->setCursor(cx - 42, rowY + 22);
+            gcGfx->setTextColor(ag.color);
+            String det = ag.detail;
+            if (det.length() > 14) det = det.substring(0, 13) + ".";
+            gcGfx->print(det);
+        }
+    } else {
+        if (wasShowingAgents) {
+            // Clear center corridor when switching back to clock
+            gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
+            wasShowingAgents = false;
+            for (int i = 0; i < 4; i++) {
+                oldDigits[i] = -1;
+                prevTarget[i] = -1;
+            }
+        }
+
+        // 2x2 Split-Flap Clock Matrix with 3D Folding Animation
+        int cardW = 48, cardH = 72, gap = 6;
+        int x1 = cx - cardW - gap / 2;
+        int x2 = cx + gap / 2;
+        int yTop = cy - cardH - gap / 2;
+        int yBot = cy + gap / 2;
+
+        int safeHours = constrain(timeData.hours, 0, 23);
+        int safeMinutes = constrain(timeData.minutes, 0, 59);
+
+        int dH1 = safeHours / 10;
+        int dH2 = safeHours % 10;
+        int dM1 = safeMinutes / 10;
+        int dM2 = safeMinutes % 10;
+
+        int targetDigits[4] = {dH1, dH2, dM1, dM2};
+
+        for (int i = 0; i < 4; i++) {
+            if (prevTarget[i] != -1 && prevTarget[i] != targetDigits[i]) {
+                oldDigits[i] = prevTarget[i];
+                flipProg[i] = 0.0f; // Start 3D flip animation!
+            }
+            prevTarget[i] = targetDigits[i];
+
+            if (flipProg[i] < 1.0f) {
+                flipProg[i] += 0.10f; // ~10 frames @ 30 FPS = ~300ms flip
+                if (flipProg[i] > 1.0f) flipProg[i] = 1.0f;
+            }
+
+            // Draw card when animating or on first boot
+            if (flipProg[i] < 1.0f || oldDigits[i] == -1) {
+                if (oldDigits[i] == -1) oldDigits[i] = targetDigits[i];
+                int px = (i % 2 == 0) ? x1 : x2;
+                int py = (i < 2) ? yTop : yBot;
+                drawGC9A01AnimatedFlipCard(px, py, cardW, cardH, oldDigits[i], targetDigits[i], flipProg[i]);
+            }
         }
     }
 
@@ -1163,7 +1232,7 @@ void fetchBackendData() {
         backendConnected = true;
         consecutiveBackendFailures = 0;
         String payload = http.getString();
-        StaticJsonDocument<1536> doc;
+        StaticJsonDocument<2560> doc;
         DeserializationError error = deserializeJson(doc, payload);
 
         if (!error) {
@@ -1191,6 +1260,27 @@ void fetchBackendData() {
                 agentData.work_completed = doc["agent"]["work_completed"] | (doc["agent"]["completion_flash"] | false);
                 agentData.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
                 agentData.completion_text = doc["agent"]["completion_text"] | "WORK COMPLETE";
+                agentData.has_active_agents = doc["agent"]["has_active_agents"] | (agentData.waiting_for_input || agentData.work_completed);
+                
+                JsonArray arr = doc["agent"]["active_agents"].as<JsonArray>();
+                if (!arr.isNull()) {
+                    int count = 0;
+                    for (JsonObject obj : arr) {
+                        if (count >= 4) break;
+                        agentData.active_agents[count].name = obj["name"] | "Agent";
+                        agentData.active_agents[count].state = obj["state"] | "IDLE";
+                        agentData.active_agents[count].detail = obj["detail"] | "";
+                        String colStr = obj["color"] | "#94A3B8";
+                        if (colStr.equalsIgnoreCase("#FFB800")) agentData.active_agents[count].color = GC_COLOR_AMBER;
+                        else if (colStr.equalsIgnoreCase("#00FF88")) agentData.active_agents[count].color = gcGfx->color565(0, 255, 136);
+                        else if (colStr.equalsIgnoreCase("#00E5FF")) agentData.active_agents[count].color = GC_COLOR_CYAN;
+                        else agentData.active_agents[count].color = GC_COLOR_SLATE_GRAY;
+                        count++;
+                    }
+                    agentData.active_agent_count = count;
+                } else {
+                    agentData.active_agent_count = 0;
+                }
             }
             if (doc.containsKey("time")) {
                 timeData.hours = constrain((int)(doc["time"]["hours"] | 12), 0, 23);
