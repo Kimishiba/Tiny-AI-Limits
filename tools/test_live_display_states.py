@@ -130,11 +130,11 @@ def run_test_sequence():
     print("   • Top green bar: PING IS MUTED (stays in calm resting dim green)")
     print("   • Zero strobing or conflicting flashes at the top rim")
     print("-" * 65)
-    post_json("/api/test/toggle_alert", {"state": True, "prompt": "APPROVE PLAN"})
+    post_json("/api/test_alert", {"state": True, "prompt": "APPROVE PLAN"})
     for sec in range(10, 0, -1):
         print(f"  Observing Test 4... {sec}s remaining", end="\r")
         time.sleep(1)
-    post_json("/api/test/toggle_alert", {"state": False})
+    post_json("/api/test_alert", {"state": False})
     print("  [PASSED] Test 4 complete.                         \n")
 
     # -------------------------------------------------------------
@@ -147,11 +147,11 @@ def run_test_sequence():
     print("   • Bottom sub-HUD: '✨ TASK COMPLETE ✨'")
     print("   • Top green bar: Normal ping is muted to avoid visual competition")
     print("-" * 65)
-    post_json("/api/test/toggle_complete", {"state": True, "prompt": "ALL DONE"})
+    post_json("/api/test_complete", {"state": True, "prompt": "ALL DONE"})
     for sec in range(10, 0, -1):
         print(f"  Observing Test 5... {sec}s remaining", end="\r")
         time.sleep(1)
-    post_json("/api/test/toggle_complete", {"state": False})
+    post_json("/api/test_complete", {"state": False})
     print("  [PASSED] Test 5 complete.                         \n")
 
     # -------------------------------------------------------------
