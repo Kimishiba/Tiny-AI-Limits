@@ -832,6 +832,8 @@
     let prompt_text = "APPROVE PLAN";
     let work_completed = false;
     let completion_text = "WORK COMPLETE";
+    let active_agents = [];
+    let has_active_agents = false;
     let completionCountdownTimer = null;
 
     // Time keeping
@@ -1410,11 +1412,60 @@
         drawHingeBracket(posX + cardW);
       }
 
-      // Draw Animated 2x2 Matrix
-      draw2x2FlipCard(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);
-      draw2x2FlipCard(x2, yTop, roundOldDigits[1], dH2, roundFlipProgress[1]);
-      draw2x2FlipCard(x1, yBottom, roundOldDigits[2], dM1, roundFlipProgress[2]);
-      draw2x2FlipCard(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
+      // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
+      if (active_agents && active_agents.length > 0 && has_active_agents) {
+        // Draw Multi-Agent Status Dashboard inside the 102px x 140px safe corridor
+        const startY = cy - 65;
+        const visibleRows = Math.min(active_agents.length, 3);
+
+        for (let i = 0; i < visibleRows; i++) {
+          const rowY = startY + (i * 44);
+          const ag = active_agents[i];
+          const cardW = 98, cardH = 38;
+          const cardX = cx - cardW / 2;
+
+          // Card Background
+          c.fillStyle = "#12141C";
+          c.beginPath();
+          c.roundRect(cardX, rowY, cardW, cardH, 4);
+          c.fill();
+          c.strokeStyle = "#2B3042";
+          c.lineWidth = 1;
+          c.stroke();
+
+          // Left Status Indicator Bar
+          c.fillStyle = ag.color || "#94A3B8";
+          c.beginPath();
+          c.roundRect(cardX, rowY, 3, cardH, [4, 0, 0, 4]);
+          c.fill();
+
+          // Row 1: Agent Label & Status Dot
+          c.textAlign = "left";
+          c.textBaseline = "middle";
+          c.font = "bold 10px 'JetBrains Mono', monospace";
+          c.fillStyle = "#ffffff";
+          c.fillText(ag.name || "Agent", cardX + 8, rowY + 11);
+
+          // Status Dot
+          c.fillStyle = ag.color || "#94A3B8";
+          c.beginPath();
+          c.arc(cardX + cardW - 10, rowY + 11, 3.5, 0, Math.PI * 2);
+          c.fill();
+
+          // Row 2: Detail / Action Text
+          c.font = "9px 'JetBrains Mono', monospace";
+          c.fillStyle = ag.color || "#94A3B8";
+          let det = ag.detail || "";
+          if (det.length > 14) det = det.substring(0, 13) + "…";
+          c.fillText(det, cardX + 8, rowY + 26);
+        }
+      } else {
+        // Draw Animated 2x2 Matrix
+        draw2x2FlipCard(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);
+        draw2x2FlipCard(x2, yTop, roundOldDigits[1], dH2, roundFlipProgress[1]);
+        draw2x2FlipCard(x1, yBottom, roundOldDigits[2], dM1, roundFlipProgress[2]);
+        draw2x2FlipCard(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
+      }
 
       // 7. Bottom Sub-HUD (Date & Weather Stacked, or Agent Alert, or Work Complete)
       c.textAlign = "center";
@@ -1815,6 +1866,8 @@
             if (data.agent.completion_text) {
               completion_text = data.agent.completion_text;
             }
+            active_agents = data.agent.active_agents || [];
+            has_active_agents = !!data.agent.has_active_agents || (active_agents.length > 0 && (waiting_for_input || work_completed));
             const agentToggle = document.getElementById("agentInputToggle");
             if (agentToggle) agentToggle.checked = waiting_for_input;
             const completeToggle = document.getElementById("workCompleteToggle");

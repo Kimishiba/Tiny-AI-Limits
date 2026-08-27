@@ -570,19 +570,27 @@ def caller_is_paired():
     return request.args.get("pair_id", "") == get_pair_id(config)
 
 
-def check_antigravity_status(brain_dirs=None, now_ts=None):
+# Persistent/In-memory Registry for stable agent numbering
+_session_registry = {}
+_session_counters = {"claude": 0, "antigravity": 0}
+
+def get_stable_agent_label(source, session_key):
+    """Assign stable, clean human-readable names like 'Claude 1', 'AGY 1' to sessions."""
+    reg_key = f"{source}:{session_key}"
+    if reg_key not in _session_registry:
+        _session_counters[source] = _session_counters.get(source, 0) + 1
+        prefix = "Claude" if source == "claude" else "AGY"
+        _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
+    return _session_registry[reg_key]
+
+def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
     if brain_dirs is None:
         brain_dirs = _antigravity_brain_dirs()
     if now_ts is None:
         now_ts = time.time()
 
-    waiting_for_input = False
-    work_completed = False
-    prompt_text = "INPUT REQ"
-
+    sessions = []
     for brain_dir in brain_dirs:
-        if waiting_for_input:
-            break
         for root, dirs, files in os.walk(brain_dir):
             if "transcript.jsonl" not in files:
                 continue
@@ -592,8 +600,9 @@ def check_antigravity_status(brain_dirs=None, now_ts=None):
             except Exception:
                 continue
 
-            alert_timeout = config.get("alert_timeout_seconds", 120)
-            if now_ts - mtime >= alert_timeout:
+            # 30 minutes of slack accounts for realistic human reaction time
+            age = now_ts - mtime
+            if age >= 1800:
                 continue
 
             try:
@@ -604,7 +613,6 @@ def check_antigravity_status(brain_dirs=None, now_ts=None):
             if not lines:
                 continue
 
-            # Find index of last user input to define the current turn
             last_user_idx = -1
             for idx in range(len(lines) - 1, -1, -1):
                 try:
@@ -614,6 +622,27 @@ def check_antigravity_status(brain_dirs=None, now_ts=None):
                         break
                 except Exception:
                     pass
+
+            # Session identification (parent folder of .system_generated)
+            parts = os.path.normpath(fp).split(os.sep)
+            session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
+            label = get_stable_agent_label("antigravity", session_id)
+
+            if last_user_idx == len(lines) - 1:
+                # User just sent a prompt; assistant is currently thinking/executing
+                if age < 45:
+                    sessions.append({
+                        "id": session_id,
+                        "name": label,
+                        "source": "antigravity",
+                        "state": "WORKING",
+                        "code": "working",
+                        "detail": "EXECUTING...",
+                        "color": "#00E5FF",
+                        "age_seconds": int(age),
+                        "mtime": mtime
+                    })
+                continue
 
             turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
             if not turn_lines:
@@ -629,63 +658,148 @@ def check_antigravity_status(brain_dirs=None, now_ts=None):
             turn_pending_prompt = "INPUT REQ"
 
             step_type = last_step_entry.get("type")
+            is_final_turn_response = False
+            has_in_flight_tools = False
+
             if step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
                 found_pending = True
                 turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
             elif step_type == "PLANNER_RESPONSE":
-                for tc in last_step_entry.get("tool_calls", []) or []:
-                    name = tc.get("name")
-                    args = tc.get("args", {}) or {}
+                tool_calls = last_step_entry.get("tool_calls", []) or []
+                if tool_calls:
+                    # Tool call generated: check if it's a modal waiting on user
+                    for tc in tool_calls:
+                        name = tc.get("name")
+                        args = tc.get("args", {}) or {}
 
-                    meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                    if isinstance(meta_raw, str):
-                        try: meta = json.loads(meta_raw)
-                        except Exception: meta = {}
-                    elif isinstance(meta_raw, dict):
-                        meta = meta_raw
-                    else:
-                        meta = {}
+                        meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                        if isinstance(meta_raw, str):
+                            try: meta = json.loads(meta_raw)
+                            except Exception: meta = {}
+                        elif isinstance(meta_raw, dict):
+                            meta = meta_raw
+                        else:
+                            meta = {}
 
-                    if meta.get("RequestFeedback") is True:
-                        found_pending = True
-                        turn_pending_prompt = "APPROVE PLAN"
-                        break
-                    elif name == "ask_question":
-                        found_pending = True
-                        turn_pending_prompt = "ANSWER Q"
-                        break
-                    elif name == "ask_permission":
-                        found_pending = True
-                        turn_pending_prompt = "GRANT PERM"
-                        break
+                        if meta.get("RequestFeedback") is True:
+                            found_pending = True
+                            turn_pending_prompt = "APPROVE PLAN"
+                            break
+                        elif name == "ask_question":
+                            found_pending = True
+                            turn_pending_prompt = "ANSWER Q"
+                            break
+                        elif name == "ask_permission":
+                            found_pending = True
+                            turn_pending_prompt = "GRANT PERM"
+                            break
+                        elif name == "run_command":
+                            found_pending = True
+                            turn_pending_prompt = "ALLOW CMD"
+                            break
+                        elif name == "write_to_file":
+                            found_pending = True
+                            turn_pending_prompt = "ALLOW WRITE"
+                            break
+                        elif name == "replace_file_content":
+                            found_pending = True
+                            turn_pending_prompt = "ALLOW EDIT"
+                            break
+                        elif name == "invoke_subagent":
+                            found_pending = True
+                            turn_pending_prompt = "SPAWN AGENT"
+                            break
+                        elif name == "call_mcp_tool":
+                            found_pending = True
+                            turn_pending_prompt = "ALLOW MCP"
+                            break
+                elif last_step_entry.get("content"):
+                    # Final text response delivered to user
+                    is_final_turn_response = True
+                else:
+                    # Thinking or reasoning step with no tools and no text content yet
+                    has_in_flight_tools = True
+            elif step_type == "GENERIC":
+                # Intermediate tool output step: turn is still executing
+                has_in_flight_tools = True
+
+            # Session identification (parent folder of .system_generated)
+            parts = os.path.normpath(fp).split(os.sep)
+            session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
+            label = get_stable_agent_label("antigravity", session_id)
 
             if found_pending:
-                waiting_for_input = True
-                prompt_text = turn_pending_prompt
-                break
-            elif (now_ts - mtime) < config.get("completion_duration_seconds", 10):
-                work_completed = True
+                state = "WAITING"
+                code = "waiting_approval"
+                detail = turn_pending_prompt
+                color = "#FFB800"
+            elif has_in_flight_tools or (age < 45 and not is_final_turn_response):
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+            elif is_final_turn_response and age < config.get("completion_duration_seconds", 10):
+                state = "COMPLETE"
+                code = "work_complete"
+                detail = "WORK COMPLETE"
+                color = "#00FF88"
+            elif age < 45:
+                state = "WORKING"
+                code = "working"
+                detail = "THINKING..."
+                color = "#00E5FF"
+            else:
+                state = "IDLE"
+                code = "idle"
+                detail = "IDLE"
+                color = "#94A3B8"
 
+            sessions.append({
+                "id": session_id,
+                "name": label,
+                "source": "antigravity",
+                "state": state,
+                "code": code,
+                "detail": detail,
+                "color": color,
+                "age_seconds": int(age),
+                "mtime": mtime
+            })
+    return sessions
+
+def check_antigravity_status(brain_dirs=None, now_ts=None):
+    sessions = scan_antigravity_sessions(brain_dirs, now_ts)
+    waiting = next((s for s in sessions if s["state"] == "WAITING"), None)
+    if waiting:
+        return {
+            "waiting_for_input": True,
+            "work_completed": False,
+            "prompt_text": waiting["detail"],
+            "source": "antigravity"
+        }
+    complete = next((s for s in sessions if s["state"] == "COMPLETE"), None)
+    if complete:
+        return {
+            "waiting_for_input": False,
+            "work_completed": True,
+            "prompt_text": "INPUT REQ",
+            "source": "antigravity"
+        }
     return {
-        "waiting_for_input": waiting_for_input,
-        "work_completed": work_completed,
-        "prompt_text": prompt_text,
+        "waiting_for_input": False,
+        "work_completed": False,
+        "prompt_text": "INPUT REQ",
         "source": "antigravity"
     }
 
-def check_claude_status(claude_dirs=None, now_ts=None):
+def scan_claude_sessions(claude_dirs=None, now_ts=None):
     if claude_dirs is None:
         claude_dirs = get_claude_dirs()
     if now_ts is None:
         now_ts = time.time()
 
-    waiting_for_input = False
-    work_completed = False
-    prompt_text = "CLAUDE PROMPT"
-
+    sessions = []
     for c_dir in claude_dirs:
-        if waiting_for_input:
-            break
         pattern = os.path.join(c_dir, "**", "*.jsonl")
         for fp in glob.glob(pattern, recursive=True):
             try:
@@ -693,8 +807,8 @@ def check_claude_status(claude_dirs=None, now_ts=None):
             except Exception:
                 continue
 
-            alert_timeout = config.get("alert_timeout_seconds", 120)
-            if now_ts - mtime >= alert_timeout:
+            age = now_ts - mtime
+            if age >= 1800:
                 continue
 
             try:
@@ -705,13 +819,11 @@ def check_claude_status(claude_dirs=None, now_ts=None):
             if not lines:
                 continue
 
-            # Find index of last user prompt to delineate the turn
             last_user_idx = -1
             for idx in range(len(lines) - 1, -1, -1):
                 try:
                     entry = json.loads(lines[idx])
                     if entry.get("type") == "user":
-                        # Ensure it's a real user prompt, not just a tool_result response
                         msg = entry.get("message", {})
                         content = msg.get("content")
                         if isinstance(content, str):
@@ -724,6 +836,25 @@ def check_claude_status(claude_dirs=None, now_ts=None):
                                 break
                 except Exception:
                     pass
+
+            session_id = os.path.splitext(os.path.basename(fp))[0]
+            label = get_stable_agent_label("claude", session_id)
+
+            if last_user_idx == len(lines) - 1:
+                # User just sent a prompt; Claude is currently thinking/executing
+                if age < 45:
+                    sessions.append({
+                        "id": session_id,
+                        "name": label,
+                        "source": "claude",
+                        "state": "WORKING",
+                        "code": "working",
+                        "detail": "EXECUTING...",
+                        "color": "#00E5FF",
+                        "age_seconds": int(age),
+                        "mtime": mtime
+                    })
+                continue
 
             turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
             if not turn_lines:
@@ -738,7 +869,6 @@ def check_claude_status(claude_dirs=None, now_ts=None):
             found_pending = False
             turn_pending_prompt = "CLAUDE PROMPT"
 
-            # Check if last turn entry is assistant requesting tool_use AskUserQuestion or command permission
             if last_entry.get("type") == "assistant":
                 msg = last_entry.get("message", {})
                 content = msg.get("content", [])
@@ -746,48 +876,128 @@ def check_claude_status(claude_dirs=None, now_ts=None):
                     for item in content:
                         if isinstance(item, dict) and item.get("type") == "tool_use":
                             t_name = item.get("name", "")
+                            found_pending = True
                             if t_name == "AskUserQuestion" or t_name == "ask_user_question":
-                                found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif "permission" in t_name.lower() or "prompt" in t_name.lower():
-                                found_pending = True
+                            elif t_name == "Bash":
+                                turn_pending_prompt = "ALLOW BASH"
+                                break
+                            elif t_name in ("FileEdit", "Edit", "NotebookEditCell"):
+                                turn_pending_prompt = "ALLOW EDIT"
+                                break
+                            elif t_name in ("FileWrite", "Write"):
+                                turn_pending_prompt = "ALLOW WRITE"
+                                break
+                            elif "permission" in t_name.lower():
                                 turn_pending_prompt = "GRANT PERM"
                                 break
+                            elif "mcp" in t_name.lower():
+                                turn_pending_prompt = "ALLOW MCP"
+                                break
+                            else:
+                                turn_pending_prompt = "GRANT PERM"
 
             if found_pending:
-                waiting_for_input = True
-                prompt_text = turn_pending_prompt
-                break
-            elif (now_ts - mtime) < config.get("completion_duration_seconds", 10):
-                work_completed = True
+                state = "WAITING"
+                code = "waiting_approval"
+                detail = turn_pending_prompt
+                color = "#FFB800"
+            elif age < config.get("completion_duration_seconds", 10):
+                state = "COMPLETE"
+                code = "work_complete"
+                detail = "WORK COMPLETE"
+                color = "#00FF88"
+            elif age < 45:
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+            else:
+                state = "IDLE"
+                code = "idle"
+                detail = "IDLE"
+                color = "#94A3B8"
+
+            sessions.append({
+                "id": session_id,
+                "name": label,
+                "source": "claude",
+                "state": state,
+                "code": code,
+                "detail": detail,
+                "color": color,
+                "age_seconds": int(age),
+                "mtime": mtime
+            })
+    return sessions
+
+def check_claude_status(claude_dirs=None, now_ts=None):
+    sessions = scan_claude_sessions(claude_dirs, now_ts)
+    waiting = next((s for s in sessions if s["state"] == "WAITING"), None)
+    if waiting:
+        return {
+            "waiting_for_input": True,
+            "work_completed": False,
+            "prompt_text": waiting["detail"],
+            "source": "claude"
+        }
+    complete = next((s for s in sessions if s["state"] == "COMPLETE"), None)
+    if complete:
+        return {
+            "waiting_for_input": False,
+            "work_completed": True,
+            "prompt_text": "INPUT REQ",
+            "source": "claude"
+        }
+    return {
+        "waiting_for_input": False,
+        "work_completed": False,
+        "prompt_text": "INPUT REQ",
+        "source": "claude"
+    }
+
+def get_multi_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None):
+    if now_ts is None:
+        now_ts = time.time()
+
+    ag_sessions = scan_antigravity_sessions(antigravity_dirs, now_ts)
+    cl_sessions = scan_claude_sessions(claude_dirs, now_ts)
+    all_sessions = ag_sessions + cl_sessions
+
+    # State sorting priority: WAITING > WORKING > COMPLETE > IDLE
+    priority_map = {"WAITING": 0, "WORKING": 1, "COMPLETE": 2, "IDLE": 3}
+    all_sessions.sort(key=lambda s: (priority_map.get(s["state"], 4), s["age_seconds"]))
+
+    # Only show active sessions (WAITING, WORKING, COMPLETE). If none are active, active_agents is empty.
+    active = [s for s in all_sessions if s["state"] in ("WAITING", "WORKING", "COMPLETE")]
+
+    waiting_session = next((s for s in all_sessions if s["state"] == "WAITING"), None)
+    complete_session = next((s for s in all_sessions if s["state"] == "COMPLETE"), None)
+
+    waiting_for_input = waiting_session is not None
+    work_completed = complete_session is not None and not waiting_for_input
+    prompt_text = waiting_session["detail"] if waiting_session else "INPUT REQ"
+    completion_text = complete_session["detail"] if complete_session else "WORK COMPLETE"
+    source = waiting_session["source"] if waiting_session else (complete_session["source"] if complete_session else "none")
 
     return {
         "waiting_for_input": waiting_for_input,
         "work_completed": work_completed,
         "prompt_text": prompt_text,
-        "source": "claude"
+        "completion_text": completion_text,
+        "source": source,
+        "active_agents": active[:3],
+        "has_active_agents": len(active) > 0
     }
 
 def check_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None):
-    ag_status = check_antigravity_status(antigravity_dirs, now_ts)
-    if ag_status["waiting_for_input"]:
-        return ag_status
-
-    cl_status = check_claude_status(claude_dirs, now_ts)
-    if cl_status["waiting_for_input"]:
-        return cl_status
-
-    if ag_status["work_completed"]:
-        return ag_status
-    if cl_status["work_completed"]:
-        return cl_status
-
+    res = get_multi_agent_status(antigravity_dirs, claude_dirs, now_ts)
     return {
-        "waiting_for_input": False,
-        "work_completed": False,
-        "prompt_text": "INPUT REQ",
-        "source": "none"
+        "waiting_for_input": res["waiting_for_input"],
+        "work_completed": res["work_completed"],
+        "prompt_text": res["prompt_text"],
+        "source": res["source"]
     }
 
 
@@ -840,6 +1050,34 @@ def get_data():
 
     now = datetime.now()
     agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
+    multi_status = get_multi_agent_status()
+
+    # If test overrides are active, synthesize an active agent entry
+    if test_alert_override:
+        active_agents_payload = [{
+            "id": "test-alert",
+            "name": "Claude 1",
+            "source": "claude",
+            "state": "WAITING",
+            "code": "waiting_approval",
+            "detail": test_alert_prompt,
+            "color": "#FFB800"
+        }]
+        has_active = True
+    elif test_complete_override:
+        active_agents_payload = [{
+            "id": "test-complete",
+            "name": "AGY 1",
+            "source": "antigravity",
+            "state": "COMPLETE",
+            "code": "work_complete",
+            "detail": test_complete_prompt,
+            "color": "#00FF88"
+        }]
+        has_active = True
+    else:
+        active_agents_payload = multi_status["active_agents"]
+        has_active = multi_status["has_active_agents"]
 
     return jsonify({
         "claude": claude_data,
@@ -858,9 +1096,15 @@ def get_data():
             "state": agent_state,
             "prompt_text": prompt_text,
             "completion_text": completion_text,
-            "source": source
+            "source": source,
+            "has_active_agents": has_active,
+            "active_agents": active_agents_payload
         }
     })
+
+@app.route('/api/agents', methods=['GET'])
+def get_agents():
+    return jsonify(get_multi_agent_status())
 
 @app.route('/config', methods=['GET', 'POST'])
 def handle_config():
@@ -905,17 +1149,7 @@ def get_local_ip():
     finally:
         s.close()
 
-def find_available_port(preferred_port=5000):
-    for p in [preferred_port, 5001, 5050, 8080]:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('0.0.0.0', p))
-                return p
-        except OSError:
-            continue
-    return preferred_port
-
-PORT = find_available_port(5000)
+PORT = 5000
 
 def get_host_label():
     return socket.gethostname().split('.')[0].replace(' ', '-') or "tinyscreen-host"
