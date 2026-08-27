@@ -802,14 +802,14 @@ def install_claude_hooks(app_path=None):
     
     for event in hook_events:
         event_hooks = hooks.setdefault(event, [])
-        already = False
+        already_registered = False
         for h in event_hooks:
             for item in h.get("hooks", []):
                 cmd = item.get("command", "")
                 if "--hook" in cmd and (app_path in cmd or "app.py" in cmd or "tinyscreen" in cmd.lower()):
-                    already = True
+                    already_registered = True
                     break
-        if not already:
+        if not already_registered:
             event_hooks.append({
                 "hooks": [{
                     "type": "command",
@@ -1143,7 +1143,9 @@ def check_claude_status(claude_dirs=None, now_ts=None):
     if now_ts is None:
         now_ts = time.time()
     hook_sessions = get_hook_sessions(now_ts)
-    sessions = hook_sessions if hook_sessions else scan_claude_sessions(claude_dirs, now_ts)
+    hooked_ids = {s["id"] for s in hook_sessions}
+    scanned_sessions = [s for s in scan_claude_sessions(claude_dirs, now_ts) if s["id"] not in hooked_ids]
+    sessions = hook_sessions + scanned_sessions
     waiting = next((s for s in sessions if s["state"] == "WAITING"), None)
     if waiting:
         return {
@@ -1656,9 +1658,10 @@ if __name__ == '__main__':
             except Exception:
                 pass
         
-        if not event_data and len(sys.argv) > 2:
+        hook_idx = sys.argv.index("--hook")
+        if not event_data and len(sys.argv) > hook_idx + 1 and not sys.argv[hook_idx + 1].startswith("-"):
             try:
-                event_data = json.loads(sys.argv[2])
+                event_data = json.loads(sys.argv[hook_idx + 1])
             except Exception:
                 pass
         

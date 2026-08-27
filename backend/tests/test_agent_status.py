@@ -4,10 +4,29 @@ import json
 import time
 import unittest
 
+import tempfile
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from app import check_agent_status, check_antigravity_status, check_claude_status, scan_antigravity_sessions, scan_claude_sessions, get_multi_agent_status
+import app
+from app import check_agent_status, check_antigravity_status, check_claude_status, scan_antigravity_sessions, scan_claude_sessions, get_multi_agent_status, _hook_lock, _hook_sessions
 
 class TestAgentStatus(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.orig_hook_file = app._HOOK_STATE_FILE
+        app._HOOK_STATE_FILE = os.path.join(self.tmp_dir.name, "tinyscreen_hook_state.json")
+        with _hook_lock:
+            _hook_sessions.clear()
+        app._session_registry.clear()
+        app._session_counters = {"claude": 0, "antigravity": 0}
+
+    def tearDown(self):
+        with _hook_lock:
+            _hook_sessions.clear()
+        app._session_registry.clear()
+        app._session_counters = {"claude": 0, "antigravity": 0}
+        app._HOOK_STATE_FILE = self.orig_hook_file
+        self.tmp_dir.cleanup()
+
     def test_antigravity_ask_question(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
