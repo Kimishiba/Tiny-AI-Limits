@@ -590,9 +590,9 @@
     /* Hardware Showcase Grid */
     .showcase-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 2rem;
-      max-width: 560px;
+      max-width: 920px;
       margin: 0 auto;
     }
 
@@ -1226,26 +1226,46 @@
           <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">view_in_ar</span>
           The Hardware You Can Build
         </h2>
-        <div class="section-subtitle">Modular 3D-Printable Desktop Pod</div>
+        <div class="section-subtitle">GC9A01 1.28" Circular IPS Desktop Pod</div>
       </div>
 
       <div class="showcase-grid">
-        <!-- GC9A01 Round Cyberdeck -->
+        <!-- Live Screen UI Demo GIF -->
         <div class="showcase-card">
           <div class="showcase-img-wrap">
-            <span class="showcase-badge">Cyberdeck Edition</span>
+            <span class="showcase-badge" style="background: #00d2d3; color: #121316;">Live Screen UI</span>
+            <img src="./assets/round/gc9a01_round_display_demo.gif" alt="GC9A01 Circular Display UI Animation Demo">
+          </div>
+          <div class="showcase-body">
+            <h3 class="showcase-title">Real-Time Display Telemetry</h3>
+            <p style="color: var(--text-muted); font-size: 0.92rem;">
+              Vibrant 240×240 circular IPS interface featuring a 2×2 split-flap digital clock, dual radial telemetry arcs, and weather crown.
+            </p>
+            <ul class="spec-list">
+              <li><span class="bullet">▸</span> <strong>Left Arc (Cyan):</strong> Claude Code Token Usage (<span style="color: var(--accent-cyan); font-weight: 800;">CLD %</span>)</li>
+              <li><span class="bullet">▸</span> <strong>Right Arc (Orange):</strong> Google Antigravity Limit (<span style="color: var(--accent-orange); font-weight: 800;">AGY %</span>)</li>
+              <li><span class="bullet">▸</span> <strong>Top Crown:</strong> Live Rain Forecast & Weather</li>
+              <li><span class="bullet">▸</span> <strong>Center:</strong> 2×2 Split-Flap Animated Flip Clock</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- GC9A01 Round Cyberdeck 3D Enclosure -->
+        <div class="showcase-card">
+          <div class="showcase-img-wrap">
+            <span class="showcase-badge">3D Printed Pod</span>
             <img src="./assets/round/gc9a01_3d_enclosure_render.jpg" alt="GC9A01 Circular Cyberdeck Enclosure Render">
           </div>
           <div class="showcase-body">
             <h3 class="showcase-title">1.28" Circular IPS Cyberdeck</h3>
             <p style="color: var(--text-muted); font-size: 0.92rem;">
-              An industrial sci-fi pod featuring a vibrant 240×240 circular color screen mounted on an ergonomic 18° backward tilt pedestal.
+              An industrial sci-fi pod featuring a 240×240 circular color screen mounted on an ergonomic 18° backward tilt pedestal.
             </p>
             <ul class="spec-list">
               <li><span class="bullet">▸</span> <strong>Display:</strong> 1.28" GC9A01 Round SPI IPS (240×240, 65K Colors)</li>
-              <li><span class="bullet">▸</span> <strong>UI:</strong> 2×2 Flip Clock + Left/Right Circular Radial Telemetry Arcs</li>
-              <li><span class="bullet">▸</span> <strong>Hardware:</strong> 4× Counterbored M3 Socket Head Cap Screws</li>
-              <li><span class="bullet">▸</span> <strong>Pedestal:</strong> Two-tier modular pedestal with dark walnut base</li>
+              <li><span class="bullet">▸</span> <strong>Microcontroller:</strong> ESP32-C3 SuperMini RISC-V 160MHz</li>
+              <li><span class="bullet">▸</span> <strong>Hardware:</strong> 4× Counterbored M3 Socket Head Screws</li>
+              <li><span class="bullet">▸</span> <strong>Pedestal:</strong> Two-tier modular stand with dark walnut base</li>
             </ul>
           </div>
         </div>
