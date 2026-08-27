@@ -392,14 +392,15 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // 2. Fused Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock (45° Self-Supporting Overhangs)
+    // 2. Fused Internal ESP32-C3 SuperMini V4 Minimalist Inline Thrust Carrier Dock (Zero Suspended Parts Architecture)
     wall_thick  = 4.0;
     side_thick  = 1.8;
     tall_wall_h = 13.0; // Tall solid back thrust wall opposite USB-C
-    side_wall_h = esp_standoff_h + 3.0; // Low-profile side clip walls
+    side_wall_h = esp_standoff_h + 3.5; // Continuous side guide walls
     x_front     = esp_center_x - esp_l / 2;
     x_rear      = esp_center_x + esp_l / 2;
-    snap_z      = floor_t + esp_standoff_h + 1.4 + 0.3;
+    rib_l       = esp_l * 0.7;
+    rib_thick   = 0.45;
 
     difference() {
         union() {
@@ -408,24 +409,17 @@ module main_housing() {
                 translate([x_rear, -(esp_w / 2 + side_thick), 0])
                     cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
 
-                // 2. Sleek Low-Profile Side Clip Guide Walls (solid all the way to floor)
+                // 2. Continuous Vertical Side Guide Walls (solid all the way to floor)
                 translate([x_front, esp_w / 2, 0])
                     cube([esp_l, side_thick, side_wall_h]);
                 translate([x_front, -(esp_w / 2 + side_thick), 0])
                     cube([esp_l, side_thick, side_wall_h]);
 
-                // 3. 45-Degree Self-Supporting Inward Snap-Fit Retention Clips
-                // Top clip (45° underside slope and 45° top slope)
-                translate([esp_center_x, esp_w / 2, snap_z - floor_t])
-                    rotate([0, 90, 0])
-                        linear_extrude(height = esp_l * 0.6, center = true)
-                            polygon(points = [[0.1, -0.55], [0.1, 0.55], [-0.55, 0]]);
-                
-                // Bottom clip (45° underside slope and 45° top slope)
-                translate([esp_center_x, -esp_w / 2, snap_z - floor_t])
-                    rotate([0, 90, 0])
-                        linear_extrude(height = esp_l * 0.6, center = true)
-                            polygon(points = [[-0.1, -0.55], [0.55, 0], [-0.1, 0.55]]);
+                // 3. Continuous Vertical Guide & Retention Ribs (Zero mid-air overhangs)
+                translate([esp_center_x - rib_l / 2, esp_w / 2 - rib_thick, 0])
+                    cube([rib_l, rib_thick, side_wall_h]);
+                translate([esp_center_x - rib_l / 2, -esp_w / 2, 0])
+                    cube([rib_l, rib_thick, side_wall_h]);
 
                 // 4. Standoff Support Ledges (solid to floor_t)
                 translate([esp_center_x - esp_l/2, 7.62 - 2.4, 0])
@@ -441,11 +435,19 @@ module main_housing() {
             }
         }
         
-        // 6. Wide Continuous Pin Clearance Rail Channels (accommodates soldered pin headers)
+        // 6. 45-Degree Lead-In Top Entry Chamfers
+        translate([x_front - 0.1, esp_w / 2 - 0.35, floor_t + side_wall_h])
+            rotate([45, 0, 0])
+                cube([esp_l + 0.2, 1.0, 1.0]);
+        translate([x_front - 0.1, -esp_w / 2 + 0.35, floor_t + side_wall_h])
+            rotate([-45, 0, 0])
+                cube([esp_l + 0.2, 1.0, 1.0]);
+        
+        // 7. Wide Continuous Pin Clearance Rail Channels (bounded inside ledge -> Zero overhang ceilings)
         translate([esp_center_x, 7.62, floor_t + esp_standoff_h - 1.3])
-            cube([esp_l + 1.0, 4.2, 2.7], center=true);
+            cube([esp_l, 4.2, 2.7], center=true);
         translate([esp_center_x, -7.62, floor_t + esp_standoff_h - 1.3])
-            cube([esp_l + 1.0, 4.2, 2.7], center=true);
+            cube([esp_l, 4.2, 2.7], center=true);
     }
 }
 

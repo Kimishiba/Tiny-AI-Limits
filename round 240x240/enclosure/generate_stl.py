@@ -3,18 +3,18 @@
 GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
-100% Support-Free FDM 3D Printable Architecture:
+V4 ZERO SUSPENDED PARTS & 100% SUPPORT-FREE FDM ARCHITECTURE:
 - Front Bezel: Precision display carrier with:
   * Sleek 1.2mm x 45° outer perimeter edge chamfers
   * 45° conical chamfer on raised circular trim ring (dia 44.0mm -> dia 41.0mm)
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-19.50mm, +/-19.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing: Open-tub electronics bucket with:
-  * Minimalist Inline Thrust Carrier Dock
-  * 13.0mm tall solid rear thrust wall directly opposite USB-C port to absorb cable insertion force
-  * 45° self-supporting bidirectional snap-fit retention clips on side walls
-  * 4.2mm wide continuous pin clearance rail channels for soldered headers
+- Main Housing (V4 Zero Suspended Parts):
+  * Continuous Solid Extrusions (100% anchored to floor with ZERO mid-air overhangs)
+  * Solid 13.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
+  * Continuous Vertical Guide & Retention Ribs with 45° top entry chamfers (Zero suspended tabs)
+  * 4.2mm wide continuous pin clearance rail channels bounded inside ledges (Zero ceiling undercuts)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits
   * 45° peaked roof top vertical aeration exhaust slits
@@ -421,7 +421,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock (45° Self-Supporting Overhangs)
+    # 8. V4 Minimalist Inline Thrust Carrier Dock: Zero Suspended Parts Architecture
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
@@ -432,14 +432,14 @@ def generate_main_housing():
     wall_thick = 4.0
     side_thick = 1.8
     tall_wall_h = 13.0  # Tall solid back thrust wall opposite USB-C (Z = 2.0 to 15.0)
-    side_wall_h = rail_h + 3.0  # Sleek low-profile side snap clip walls (Z = 2.0 to 8.2)
+    side_wall_h = rail_h + 3.5  # 6.7mm height (Z = 2.0 to 8.7mm)
     
-    # 1. Tall Solid Rear Thrust Wall (Positioned directly opposite of USB-C port, solid all the way to floor)
+    # 1. Tall Solid Rear Thrust Wall (solid all the way to floor)
     rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
         x_rear, -(esp_w / 2.0 + side_thick), floor_t
     ])
     
-    # 2. Sleek Low-Profile Side Clip Guide Walls (solid all the way to floor)
+    # 2. Continuous Vertical Side Guide Walls (solid all the way to floor)
     side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, esp_w / 2.0, floor_t
     ])
@@ -447,20 +447,21 @@ def generate_main_housing():
         x_front, -(esp_w / 2.0 + side_thick), floor_t
     ])
     
-    # 3. 45-Degree Self-Supporting Inward Snap-Fit Retention Clips (Triangular chamfered profile with 45° underside slope)
-    snap_z_center = floor_t + rail_h + 1.4 + 0.3
-    clip_l = esp_l * 0.6
-    clip_w = 0.55
-    clip_h = 0.55
-
-    pts_top_2d = [[0.1, -clip_h], [0.1, clip_h], [-clip_w, 0.0]]
-    snap_lip_top = m3d.Manifold.extrude(m3d.CrossSection([pts_top_2d]), clip_l).rotate([90, 0, 90]).translate([
-        esp_center_x - clip_l / 2.0, esp_w / 2.0, snap_z_center
+    # 3. Continuous Vertical Guide & Retention Ribs with 45° Top Entry Chamfers (Zero mid-air overhangs)
+    rib_l = esp_l * 0.7
+    rib_thick = 0.45
+    rib_top = m3d.Manifold.cube([rib_l, rib_thick, side_wall_h], center=False).translate([
+        esp_center_x - rib_l / 2.0, esp_w / 2.0 - rib_thick, floor_t
+    ])
+    rib_bot = m3d.Manifold.cube([rib_l, rib_thick, side_wall_h], center=False).translate([
+        esp_center_x - rib_l / 2.0, -esp_w / 2.0, floor_t
     ])
 
-    pts_bot_2d = [[-0.1, -clip_h], [clip_w, 0.0], [-0.1, clip_h]]
-    snap_lip_bot = m3d.Manifold.extrude(m3d.CrossSection([pts_bot_2d]), clip_l).rotate([90, 0, 90]).translate([
-        esp_center_x - clip_l / 2.0, -esp_w / 2.0, snap_z_center
+    chamfer_top = m3d.Manifold.cube([esp_l + 0.2, 1.0, 1.0], center=False).rotate([45, 0, 0]).translate([
+        x_front - 0.1, esp_w / 2.0 - 0.35, floor_t + side_wall_h
+    ])
+    chamfer_bot = m3d.Manifold.cube([esp_l + 0.2, 1.0, 1.0], center=False).rotate([-45, 0, 0]).translate([
+        x_front - 0.1, -esp_w / 2.0 + 0.35, floor_t + side_wall_h
     ])
     
     # 4. Support Standoff Ledges (solid to floor_t)
@@ -475,11 +476,11 @@ def generate_main_housing():
         x_front - 1.0, -7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
     
-    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + snap_lip_top + snap_lip_bot + ledge_top + ledge_bot + front_stop_top + front_stop_bot
+    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + rib_top + rib_bot + ledge_top + ledge_bot + front_stop_top + front_stop_bot - chamfer_top - chamfer_bot
 
-    # 6. Wide continuous pin clearance rail channels (accommodates soldered header pins)
+    # 6. Continuous Pin Clearance Rail Channels (bounded inside the ledge length -> zero overhang ceilings)
     channel_w = 4.2
-    channel_l = esp_l + 1.0
+    channel_l = esp_l
     channel_depth = 2.6
     chan_top = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
         esp_center_x, 7.62, floor_t + rail_h - channel_depth / 2.0
@@ -655,9 +656,13 @@ def main():
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
+    # V4 Main Housing Pod (Refined Zero Suspended Parts)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Accentuated USB-C Chamfer)")
+    export_stl(housing, housing_path, "Main Housing Pod (V4 Refined Zero Suspended Parts)")
+    
+    housing_v4_path = os.path.join(output_dir, "gc9a01_main_housing_v4.stl")
+    export_stl(housing, housing_v4_path, "Main Housing Pod V4")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
