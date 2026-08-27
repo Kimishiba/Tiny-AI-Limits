@@ -8,7 +8,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Bangers&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
   <style>
@@ -684,26 +684,45 @@
     .comic-section {
       display: flex;
       flex-direction: column;
-      gap: 1.75rem;
+      gap: 2rem;
     }
 
-    .comic-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      background: var(--card-bg);
+    .comic-header-box {
+      background: #181b22;
       border: var(--border-width) solid var(--border-dark);
-      box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0px 0px var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
       border-radius: var(--radius);
-      padding: 0.85rem 1.25rem;
+      padding: 1.5rem 2rem;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .comic-badge-tag {
+      background: #facc15;
+      color: #121316;
+      font-family: 'Bangers', cursive, sans-serif;
+      font-size: 1.2rem;
+      letter-spacing: 1.5px;
+      padding: 0.3rem 0.9rem;
+      border: var(--border-thin) solid var(--border-dark);
+      border-radius: 6px;
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
+      transform: rotate(-1.5deg);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
     }
 
     .comic-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 1.75rem;
+      gap: 2rem;
     }
 
     @media (max-width: 860px) {
@@ -714,9 +733,9 @@
 
     .comic-panel {
       background: var(--card-bg);
-      border: var(--border-width) solid var(--border-dark);
-      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
-      border-radius: var(--radius);
+      border: 4px solid var(--border-dark);
+      box-shadow: 6px 6px 0px 0px var(--border-dark);
+      border-radius: 14px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -725,36 +744,36 @@
     }
 
     .comic-panel:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: calc(var(--shadow-offset) + 2px) calc(var(--shadow-offset) + 2px) 0px 0px var(--border-dark);
+      transform: translate(-3px, -3px);
+      box-shadow: 9px 9px 0px 0px var(--border-dark);
     }
 
     .comic-panel-header {
       background: var(--border-dark);
       color: #ffffff;
-      padding: 0.65rem 1rem;
+      padding: 0.65rem 1.1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: var(--border-width) solid var(--border-dark);
+      border-bottom: 3px solid var(--border-dark);
     }
 
     .comic-panel-num {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      font-weight: 900;
+      font-family: 'Bangers', cursive, sans-serif;
+      font-size: 1rem;
+      letter-spacing: 1px;
       background: var(--accent-orange);
       color: #ffffff;
-      padding: 0.2rem 0.55rem;
+      padding: 0.2rem 0.6rem;
       border-radius: 4px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      border: 1.5px solid #ffffff;
+      box-shadow: 2px 2px 0px 0px #000000;
     }
 
     .comic-panel-title {
       font-family: 'Anybody', sans-serif;
       font-weight: 900;
-      font-size: 1.05rem;
+      font-size: 1.1rem;
       letter-spacing: -0.02em;
       text-transform: uppercase;
       color: #ffffff;
@@ -762,138 +781,139 @@
 
     .comic-panel-canvas {
       background: #fdfbf7;
-      background-image: radial-gradient(#d8dae2 1.3px, transparent 1.3px);
+      background-image: radial-gradient(#d1d5db 1.5px, transparent 1.5px);
       background-size: 14px 14px;
-      padding: 1.35rem;
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.1rem;
       flex: 1;
       position: relative;
     }
 
-    /* Sound Effect Pop Badge */
+    /* Sound Effect Starburst Pop Badge */
     .sound-sfx-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      font-family: 'Anybody', sans-serif;
-      font-weight: 900;
-      font-size: 1.05rem;
-      font-style: italic;
-      text-transform: uppercase;
-      padding: 0.3rem 0.7rem;
-      border: var(--border-thin) solid var(--border-dark);
+      justify-content: center;
+      font-family: 'Bangers', cursive, sans-serif;
+      font-size: 1.35rem;
+      letter-spacing: 1.5px;
+      padding: 0.4rem 0.85rem;
+      border: 3px solid var(--border-dark);
       border-radius: 8px;
-      box-shadow: 3px 3px 0px 0px var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
       position: absolute;
       top: 12px;
       right: 12px;
       z-index: 5;
+      text-shadow: 1px 1px 0px rgba(0,0,0,0.3);
     }
 
     .sound-sfx-badge.orange {
       background: var(--accent-orange);
       color: #ffffff;
-      transform: rotate(3deg);
+      transform: rotate(4deg);
     }
 
     .sound-sfx-badge.yellow {
       background: #facc15;
       color: #121316;
-      transform: rotate(-3deg);
+      transform: rotate(-4deg);
     }
 
     .sound-sfx-badge.cyan {
       background: var(--accent-cyan);
       color: #121316;
-      transform: rotate(2.5deg);
+      transform: rotate(3deg);
     }
 
     .sound-sfx-badge.green {
       background: var(--accent-green);
       color: #ffffff;
-      transform: rotate(-2deg);
+      transform: rotate(-3deg);
     }
 
     /* Comic Speech & Narration Bubble */
-    .speech-bubble {
+    .comic-speech-bubble {
       background: #ffffff;
-      border: var(--border-thin) solid var(--border-dark);
-      box-shadow: 3px 3px 0px 0px var(--border-dark);
-      border-radius: 12px;
-      padding: 0.85rem 1.1rem;
+      border: 3px solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
+      border-radius: 14px;
+      padding: 0.95rem 1.25rem;
       position: relative;
       font-family: 'Hanken Grotesk', sans-serif;
       font-weight: 600;
-      font-size: 0.92rem;
+      font-size: 0.94rem;
       color: var(--text-main);
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
-    .speech-bubble strong {
+    .comic-speech-bubble strong {
       color: var(--accent-orange);
       font-weight: 800;
     }
 
-    .speech-bubble::before {
+    .comic-speech-bubble::before {
       content: "";
       position: absolute;
-      bottom: -9px;
-      left: 24px;
+      bottom: -11px;
+      left: 28px;
       width: 0;
       height: 0;
       border-style: solid;
-      border-width: 9px 9px 0 0;
+      border-width: 11px 11px 0 0;
       border-color: var(--border-dark) transparent transparent transparent;
     }
 
-    .speech-bubble::after {
+    .comic-speech-bubble::after {
       content: "";
       position: absolute;
-      bottom: -6px;
-      left: 26px;
+      bottom: -7px;
+      left: 30px;
       width: 0;
       height: 0;
       border-style: solid;
-      border-width: 7px 7px 0 0;
+      border-width: 8px 8px 0 0;
       border-color: #ffffff transparent transparent transparent;
     }
 
-    .narration-box {
+    .comic-caption-box {
       background: #fef08a;
-      border: var(--border-thin) solid var(--border-dark);
-      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      border: 2.5px solid var(--border-dark);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
       border-radius: 6px;
-      padding: 0.55rem 0.85rem;
+      padding: 0.6rem 0.9rem;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 700;
+      font-size: 0.8rem;
+      font-weight: 800;
       color: #713f12;
       text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
 
-    /* Panel 1: Exact Wiring Mini Breakdown */
-    .wiring-comic-card {
+    /* Panel Graphic Blocks */
+    .comic-illustration-card {
       background: #181b22;
-      border: var(--border-thin) solid var(--border-dark);
-      box-shadow: 2px 2px 0px 0px var(--border-dark);
-      border-radius: 10px;
-      padding: 0.85rem;
+      border: 3px solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
+      border-radius: 12px;
+      padding: 1.25rem;
       color: #ffffff;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      gap: 0.85rem;
+      position: relative;
     }
 
-    .wiring-pin-chips-grid {
+    .wiring-chips-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 0.4rem;
+      gap: 0.45rem;
     }
 
     @media (max-width: 480px) {
-      .wiring-pin-chips-grid {
+      .wiring-chips-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -905,9 +925,9 @@
       background: #232731;
       border: 1px solid #383e4d;
       border-radius: 6px;
-      padding: 0.35rem 0.55rem;
+      padding: 0.35rem 0.6rem;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
+      font-size: 0.78rem;
     }
 
     .pin-chip .pin-target {
@@ -916,26 +936,10 @@
     }
 
     .pin-chip .pin-wire {
-      font-size: 0.7rem;
-      padding: 0.1rem 0.35rem;
+      font-size: 0.72rem;
+      padding: 0.1rem 0.4rem;
       border-radius: 3px;
       font-weight: 700;
-    }
-
-    /* Panel Graphic Blocks */
-    .comic-art-block {
-      background: #181b22;
-      border: var(--border-thin) solid var(--border-dark);
-      box-shadow: 2px 2px 0px 0px var(--border-dark);
-      border-radius: 10px;
-      padding: 1.1rem;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      gap: 0.75rem;
     }
 
     /* WebSerial Launch Button Customization */
@@ -1250,12 +1254,19 @@
 
     <!-- Section 3: Comic Book Provisioning Guide -->
     <section id="provisioning" class="comic-section">
-      <div class="section-header">
-        <h2 class="section-title">
-          <span class="material-symbols-outlined" style="color: var(--accent-orange); font-size: 2rem;">menu_book</span>
-          Board Provisioning Guide
+      
+      <!-- Comic Section Hero Header -->
+      <div class="comic-header-box">
+        <div class="comic-badge-tag">
+          <span class="material-symbols-outlined" style="font-size: 1.3rem;">auto_stories</span>
+          THE HARDWARE SAGA // ISSUE #01
+        </div>
+        <h2 style="font-family: 'Bangers', cursive, sans-serif; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: 2px; color: #ffffff; text-shadow: 2px 2px 0px #000000; text-transform: uppercase;">
+          HOW TO PROVISION YOUR <span style="color: var(--accent-orange);">DESKTOP COMPANION</span>
         </h2>
-        <div class="section-subtitle">A Visual Graphic Journey // 6-Panel Setup</div>
+        <p style="font-family: 'Hanken Grotesk', sans-serif; font-size: 1.05rem; color: #cbd5e1; max-width: 680px; margin-top: 0.5rem;">
+          A 6-panel graphic step-by-step walkthrough: connect the 1.28" circular IPS display to the ESP32-C3 SuperMini, pair your Wi-Fi over Web Serial, and launch live AI limit monitoring!
+        </p>
       </div>
 
       <!-- Comic Strip 6-Panel Grid -->
@@ -1264,24 +1275,53 @@
         <!-- PANEL #01: THE BLUEPRINT & EXACT PIN WIRING -->
         <div class="comic-panel">
           <div class="comic-panel-header">
-            <span class="comic-panel-num">Panel #01</span>
+            <span class="comic-panel-num">PANEL #01</span>
             <span class="comic-panel-title">The Blueprint: Wire SPI Display</span>
           </div>
           <div class="comic-panel-canvas">
             <div class="sound-sfx-badge orange">CLACK! 🔌</div>
 
-            <div class="speech-bubble">
-              Connect the <strong>1.28" GC9A01 Round Display</strong> to the <strong>ESP32-C3 SuperMini</strong> headers. No soldering needed with 8 Dupont jumpers!
+            <div class="comic-speech-bubble">
+              Match the 8 pins from the <strong>1.28" GC9A01 Round IPS Display</strong> to the <strong>ESP32-C3 SuperMini</strong> headers. Use Dupont jumper wires — zero soldering needed!
             </div>
 
-            <!-- Exact Hardware Wiring Card -->
-            <div class="wiring-comic-card">
-              <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.85rem; color: var(--accent-orange); text-transform: uppercase; display: flex; align-items: center; justify-content: space-between;">
-                <span>Exact 8-Pin SPI Pin Mapping</span>
-                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #94a3b8;">400kHz SPI</span>
-              </div>
+            <!-- Illustrated SVG Diagram in Panel -->
+            <div class="comic-illustration-card">
+              <svg viewBox="0 0 400 130" width="100%" height="auto" style="display: block; overflow: visible;">
+                <!-- Display Circle on Left -->
+                <circle cx="60" cy="65" r="42" fill="#0d1017" stroke="#384156" stroke-width="3"/>
+                <circle cx="60" cy="65" r="35" fill="#131722" stroke="#FF5F1F" stroke-width="2"/>
+                <text x="60" y="62" fill="#00d2d3" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">GC9A01</text>
+                <text x="60" y="74" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">240x240</text>
+                <rect x="98" y="45" width="8" height="40" rx="2" fill="#334155"/>
 
-              <div class="wiring-pin-chips-grid">
+                <!-- ESP32-C3 on Right -->
+                <rect x="290" y="25" width="90" height="80" rx="8" fill="#1e1b4b" stroke="#6366f1" stroke-width="2.5"/>
+                <rect x="300" y="38" width="55" height="42" rx="4" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+                <text x="327" y="62" fill="#fde047" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">ESP32-C3</text>
+                <rect x="365" y="50" width="12" height="28" rx="3" fill="#cbd5e1" stroke="#000" stroke-width="1"/>
+
+                <!-- 8 Color Coded Wires -->
+                <!-- VCC (Red) -->
+                <path d="M 106 48 C 180 30, 220 32, 290 40" fill="none" stroke="#ef4444" stroke-width="2.5"/>
+                <!-- GND (Black/Slate) -->
+                <path d="M 106 53 C 180 38, 220 38, 290 47" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
+                <!-- SCL (Yellow) -->
+                <path d="M 106 58 C 180 48, 220 65, 290 76" fill="none" stroke="#eab308" stroke-width="2.5"/>
+                <!-- SDA (Cyan) -->
+                <path d="M 106 63 C 180 58, 220 95, 380 40" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
+                <!-- CS (Purple) -->
+                <path d="M 106 68 C 180 72, 220 85, 290 84" fill="none" stroke="#a855f7" stroke-width="2.5"/>
+                <!-- DC (Green) -->
+                <path d="M 106 73 C 180 82, 220 90, 380 48" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                <!-- RES (Orange) -->
+                <path d="M 106 78 C 180 92, 220 60, 290 60" fill="none" stroke="#f97316" stroke-width="2.5"/>
+                <!-- BLK (Pink) -->
+                <path d="M 106 83 C 180 100, 220 52, 290 53" fill="none" stroke="#ec4899" stroke-width="2.5"/>
+              </svg>
+
+              <!-- Exact Pin Chips Grid -->
+              <div class="wiring-chips-grid">
                 <div class="pin-chip">
                   <span>🔴 <strong>VCC</strong> ➔ 3V3</span>
                   <span class="pin-wire" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Left Pin 3</span>
@@ -1316,7 +1356,7 @@
                 </div>
               </div>
 
-              <div style="text-align: right; margin-top: 0.25rem;">
+              <div style="text-align: right;">
                 <a href="#wiring-ref" class="action-btn" style="display: inline-flex; font-size: 0.72rem; padding: 0.35rem 0.6rem; background: #232731; color: #ffffff; text-decoration: none;">
                   🔍 Inspect High-Res Vector Schematic ➔
                 </a>
@@ -1328,27 +1368,37 @@
         <!-- PANEL #02: POWER IGNITION -->
         <div class="comic-panel">
           <div class="comic-panel-header">
-            <span class="comic-panel-num">Panel #02</span>
+            <span class="comic-panel-num">PANEL #02</span>
             <span class="comic-panel-title">Ignition: Jack In Via USB-C</span>
           </div>
           <div class="comic-panel-canvas">
             <div class="sound-sfx-badge yellow">ZAP! ⚡</div>
 
-            <div class="speech-bubble">
+            <div class="comic-speech-bubble">
               Plug the <strong>USB-C cable</strong> into your Mac or PC workstation. 5V power energizes the 160MHz RISC-V core and boots the companion firmware!
             </div>
 
-            <div class="comic-art-block" style="min-height: 180px;">
-              <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
-                <span class="material-symbols-outlined" style="font-size: 3rem; color: var(--accent-orange);">cable</span>
-                <span class="material-symbols-outlined" style="font-size: 1.8rem; color: #facc15;">bolt</span>
-                <span class="material-symbols-outlined" style="font-size: 3.5rem; color: #00d2d3;">memory</span>
-              </div>
-              <div class="narration-box" style="width: 100%;">
+            <div class="comic-illustration-card" style="align-items: center; text-align: center;">
+              <svg viewBox="0 0 320 120" width="100%" height="auto" style="display: block; max-width: 280px;">
+                <!-- Lightning Bolts -->
+                <path d="M 130 15 L 145 40 L 138 45 L 155 75" fill="none" stroke="#facc15" stroke-width="3" stroke-linecap="round"/>
+                <path d="M 180 20 L 170 45 L 178 50 L 165 80" fill="none" stroke="#FF5F1F" stroke-width="2.5" stroke-linecap="round"/>
+                
+                <!-- USB Cable Head on Left -->
+                <rect x="20" y="48" width="60" height="24" rx="4" fill="#FF5F1F" stroke="#121316" stroke-width="2"/>
+                <rect x="80" y="52" width="25" height="16" rx="2" fill="#cbd5e1" stroke="#121316" stroke-width="1.5"/>
+                
+                <!-- ESP32 Board on Right -->
+                <rect x="150" y="25" width="140" height="70" rx="8" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
+                <rect x="135" y="48" width="20" height="24" rx="3" fill="#cbd5e1" stroke="#121316" stroke-width="1.5"/>
+                <!-- Glowing Power LED -->
+                <circle cx="175" cy="45" r="4" fill="#ef4444"/>
+                <circle cx="175" cy="45" r="8" fill="rgba(239, 68, 68, 0.4)"/>
+                <text x="215" y="65" fill="#facc15" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900">5V POWER ON</text>
+              </svg>
+
+              <div class="comic-caption-box" style="width: 100%;">
                 ⚡ 5V POWER BUS ACTIVE • SERIAL PORT READY
-              </div>
-              <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8;">
-                Red power LED lights up on the ESP32-C3 SuperMini.
               </div>
             </div>
           </div>
@@ -1357,31 +1407,44 @@
         <!-- PANEL #03: THE BROWSER PORTAL -->
         <div class="comic-panel">
           <div class="comic-panel-header">
-            <span class="comic-panel-num">Panel #03</span>
+            <span class="comic-panel-num">PANEL #03</span>
             <span class="comic-panel-title">Browser Matrix: Web Serial</span>
           </div>
           <div class="comic-panel-canvas">
             <div class="sound-sfx-badge cyan">READY! 🌐</div>
 
-            <div class="speech-bubble">
+            <div class="comic-speech-bubble">
               Launch <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>! Native Web Serial communicates directly with the microcontroller — zero command-line tools or drivers needed.
             </div>
 
-            <div class="comic-art-block" style="min-height: 180px; justify-content: space-between;">
-              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; width: 100%;">
-                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.4rem 0.8rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem;">
-                  <span style="color: #10b981;">✓</span> Chrome Desktop (89+)
+            <div class="comic-illustration-card" style="justify-content: space-between; gap: 1rem;">
+              <svg viewBox="0 0 320 80" width="100%" height="auto" style="display: block;">
+                <!-- Laptop Frame -->
+                <rect x="40" y="10" width="240" height="50" rx="4" fill="#1e2330" stroke="#384156" stroke-width="2"/>
+                <!-- Browser Title Bar -->
+                <rect x="40" y="10" width="240" height="12" rx="4" fill="#2d3748"/>
+                <circle cx="50" cy="16" r="2.5" fill="#ef4444"/>
+                <circle cx="58" cy="16" r="2.5" fill="#facc15"/>
+                <circle cx="66" cy="16" r="2.5" fill="#10b981"/>
+                <text x="160" y="42" fill="#00d2d3" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="900" text-anchor="middle">WEB SERIAL API: SUPPORTED</text>
+                <!-- Laptop Base -->
+                <polygon points="20,60 300,60 280,72 40,72" fill="#334155" stroke="#121316" stroke-width="1.5"/>
+              </svg>
+
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; width: 100%;">
+                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.35rem 0.65rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                  <span style="color: #10b981;">✓</span> Chrome (89+)
                 </div>
-                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.4rem 0.8rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem;">
-                  <span style="color: #10b981;">✓</span> Edge Desktop (89+)
+                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.35rem 0.65rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
+                  <span style="color: #10b981;">✓</span> Edge (89+)
                 </div>
-                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.4rem 0.8rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; display: flex; align-items: center; gap: 0.35rem;">
+                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.35rem 0.65rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; display: flex; align-items: center; gap: 0.35rem;">
                   <span style="color: #10b981;">✓</span> Opera (75+)
                 </div>
               </div>
 
-              <div class="narration-box" style="width: 100%;">
-                🛡️ HARDWARE ACCESS PERMISSION PROMPT UNLOCKED
+              <div class="comic-caption-box" style="width: 100%;">
+                🛡️ HARDWARE ACCESS PERMISSION UNLOCKED
               </div>
             </div>
           </div>
@@ -1390,22 +1453,22 @@
         <!-- PANEL #04: THE HANDSHAKE (IMPROV-WIFI) -->
         <div class="comic-panel">
           <div class="comic-panel-header">
-            <span class="comic-panel-num">Panel #04</span>
+            <span class="comic-panel-num">PANEL #04</span>
             <span class="comic-panel-title">The Handshake: Improv-WiFi</span>
           </div>
           <div class="comic-panel-canvas">
             <div class="sound-sfx-badge orange">BEEP BOOP! 📡</div>
 
-            <div class="speech-bubble">
+            <div class="comic-speech-bubble">
               Click the button below! Select <strong>"USB JTAG/serial debug unit"</strong> from the browser popup, then submit your Wi-Fi credentials.
             </div>
 
             <!-- Embedded Live Launch Component -->
-            <div class="comic-art-block" style="min-height: 180px; padding: 1.25rem;">
+            <div class="comic-illustration-card" style="padding: 1.5rem 1.25rem; align-items: center; text-align: center;">
               <improv-wifi-serial-launch-button></improv-wifi-serial-launch-button>
               
-              <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #94a3b8; line-height: 1.4;">
-                Credentials are saved directly into the board's secure non-volatile flash.
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #94a3b8; line-height: 1.4; margin-top: 0.5rem;">
+                * Credentials are encrypted and saved into the ESP32's non-volatile NVS flash memory.
               </div>
             </div>
           </div>
@@ -1414,29 +1477,30 @@
         <!-- PANEL #05: mDNS AUTO-DISCOVERY -->
         <div class="comic-panel">
           <div class="comic-panel-header">
-            <span class="comic-panel-num">Panel #05</span>
+            <span class="comic-panel-num">PANEL #05</span>
             <span class="comic-panel-title">Beacon Locked: Zero-Config mDNS</span>
           </div>
           <div class="comic-panel-canvas">
             <div class="sound-sfx-badge yellow">LOCKED! 🔒</div>
 
-            <div class="speech-bubble">
+            <div class="comic-speech-bubble">
               Zero manual IP typing! The board automatically browses for <strong>_tinyscreen._tcp</strong> on your LAN and locks onto your running companion daemon.
             </div>
 
-            <div class="comic-art-block" style="min-height: 180px;">
+            <div class="comic-illustration-card" style="align-items: center; text-align: center;">
               <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; width: 100%;">
-                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.4rem 0.6rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-align: center;">
-                  ESP32-C3 Pod<br><span style="color: var(--accent-cyan);">192.168.x.x</span>
+                <div style="background: #232731; border: 1.5px solid #383e4d; border-radius: 8px; padding: 0.5rem 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: center;">
+                  ESP32-C3 Pod<br><span style="color: var(--accent-cyan); font-weight: 800;">192.168.x.x</span>
                 </div>
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: var(--accent-orange);">
-                  ⟷ 📡 ⟷
+                <div style="font-family: 'Bangers', cursive, sans-serif; font-size: 1.4rem; color: var(--accent-orange); letter-spacing: 1px;">
+                  ⟷ BEACON ⟷
                 </div>
-                <div style="background: #232731; border: 1px solid #383e4d; border-radius: 6px; padding: 0.4rem 0.6rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-align: center;">
-                  Host Companion<br><span style="color: var(--accent-green);">_tinyscreen._tcp</span>
+                <div style="background: #232731; border: 1.5px solid #383e4d; border-radius: 8px; padding: 0.5rem 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: center;">
+                  Companion Daemon<br><span style="color: var(--accent-green); font-weight: 800;">_tinyscreen._tcp</span>
                 </div>
               </div>
-              <div class="narration-box" style="width: 100%;">
+              
+              <div class="comic-caption-box" style="width: 100%;">
                 🔗 SECURE PEER PAIRING & TOKEN STREAM ESTABLISHED
               </div>
             </div>
@@ -1446,32 +1510,32 @@
         <!-- PANEL #06: AWAKENING (TELEMETRY LIVE) -->
         <div class="comic-panel">
           <div class="comic-panel-header">
-            <span class="comic-panel-num">Panel #06</span>
+            <span class="comic-panel-num">PANEL #06</span>
             <span class="comic-panel-title">Awakening: Telemetry Online</span>
           </div>
           <div class="comic-panel-canvas">
             <div class="sound-sfx-badge green">ONLINE! ⚡✨</div>
 
-            <div class="speech-bubble">
+            <div class="comic-speech-bubble">
               Mission accomplished! The <strong>240×240 circular IPS screen</strong> springs to life, displaying your live split-flap clock and AI limit radial arcs!
             </div>
 
-            <div class="comic-art-block" style="min-height: 180px;">
-              <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
-                <div style="width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--accent-orange); background: #07090c; display: flex; align-items: center; justify-content: center; font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 0.75rem; color: #ffffff; box-shadow: 0 0 12px rgba(255, 95, 31, 0.4);">
+            <div class="comic-illustration-card" style="align-items: center; text-align: center;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 1.25rem;">
+                <div style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--accent-orange); background: #07090c; display: flex; align-items: center; justify-content: center; font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 0.85rem; color: #ffffff; box-shadow: 0 0 16px rgba(255, 95, 31, 0.5);">
                   12:02
                 </div>
                 <div style="text-align: left;">
-                  <div style="font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 0.95rem; text-transform: uppercase; color: #ffffff;">
+                  <div style="font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 1.05rem; text-transform: uppercase; color: #ffffff;">
                     Desktop Pod Online
                   </div>
-                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent-cyan);">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent-cyan); font-weight: 700;">
                     CLD: 68% • AGY: 42% • 23.5°C
                   </div>
                 </div>
               </div>
 
-              <div class="narration-box" style="width: 100%;">
+              <div class="comic-caption-box" style="width: 100%;">
                 🎉 SYSTEM READY ON YOUR DESK
               </div>
             </div>
