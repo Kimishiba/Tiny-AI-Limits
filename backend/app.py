@@ -9,6 +9,7 @@ import subprocess
 import requests
 import sys
 import uuid
+import threading
 from datetime import datetime
 from flask import Flask, jsonify, request
 from threading import Thread
@@ -546,6 +547,15 @@ def handle_test_alert():
         "prompt_text": test_complete_prompt if test_complete_override else test_alert_prompt
     })
 
+@app.route('/api/hook', methods=['POST'])
+def api_hook():
+    """Hook ingestion endpoint for Claude Code and compatible agent lifecycle events."""
+    payload = request.get_json(force=True, silent=True) or {}
+    result = handle_hook_event(payload)
+    if result is None:
+        return jsonify({"status": "error", "message": "missing session_id"}), 400
+    return jsonify(result), 200
+
 def client_is_local():
     """Requests from this machine: the emulator, the setup page, local curl.
 
@@ -574,6 +584,8 @@ def caller_is_paired():
 _session_registry = {}
 _session_counters = {"claude": 0, "antigravity": 0}
 
+IN_FLIGHT_TIMEOUT_SECONDS = 45
+
 def get_stable_agent_label(source, session_key):
     """Assign stable, clean human-readable names like 'Claude 1', 'AGY 1' to sessions."""
     reg_key = f"{source}:{session_key}"
@@ -582,6 +594,263 @@ def get_stable_agent_label(source, session_key):
         prefix = "Claude" if source == "claude" else "AGY"
         _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
     return _session_registry[reg_key]
+
+def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None):
+    """Deterministic state resolution: WAITING > WORKING > COMPLETE > IDLE."""
+    completion_duration = (cfg.get("completion_duration_seconds", 10) if isinstance(cfg, dict) else 10) if cfg else 10
+    if found_pending:
+        return "WAITING", "waiting_approval", turn_pending_prompt, "#FFB800"
+    elif has_in_flight_tools or (age < IN_FLIGHT_TIMEOUT_SECONDS and not is_final_turn_response):
+        return "WORKING", "working", "EXECUTING...", "#00E5FF"
+    elif is_final_turn_response and age < completion_duration:
+        return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
+    elif age < IN_FLIGHT_TIMEOUT_SECONDS:
+        return "WORKING", "working", "EXECUTING...", "#00E5FF"
+    else:
+        return "IDLE", "idle", "IDLE", "#94A3B8"
+
+# -----------------------------------------------------------------------------
+# Hook-Driven Lifecycle Adapter (inspired by clawlight-cli)
+# -----------------------------------------------------------------------------
+_HOOK_STATE_FILE = os.path.expanduser("~/.claude/tinyscreen_hook_state.json")
+_hook_sessions = {}
+_hook_lock = threading.Lock()
+
+def _load_hook_state():
+    global _hook_sessions
+    if not os.path.exists(_HOOK_STATE_FILE):
+        _hook_sessions = {}
+        return
+    try:
+        with open(_HOOK_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                _hook_sessions = data
+            else:
+                _hook_sessions = {}
+    except Exception:
+        _hook_sessions = {}
+
+def _save_hook_state():
+    try:
+        os.makedirs(os.path.dirname(_HOOK_STATE_FILE), exist_ok=True)
+        tmp = _HOOK_STATE_FILE + f".tmp.{os.getpid()}"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(_hook_sessions, f)
+        os.replace(tmp, _HOOK_STATE_FILE)
+    except Exception:
+        pass
+
+def _is_pid_alive(pid):
+    if not pid or not isinstance(pid, int) or pid <= 0:
+        return True
+    try:
+        os.kill(pid, 0)
+        return True
+    except PermissionError:
+        return True
+    except (ProcessLookupError, OSError):
+        return False
+
+def handle_hook_event(data, now_ts=None):
+    """Process a raw lifecycle hook payload from Claude Code or compatible agent."""
+    if now_ts is None:
+        now_ts = time.time()
+    
+    if not isinstance(data, dict):
+        return None
+
+    session_id = data.get("session_id")
+    if not session_id:
+        return None
+    
+    hook_event = data.get("hook_event_name") or data.get("event") or ""
+    notification_type = data.get("notification_type", "")
+    cwd = data.get("cwd") or data.get("directory") or ""
+    owner_pid = data.get("owner_pid") or data.get("pid")
+    if owner_pid is not None:
+        try:
+            owner_pid = int(owner_pid)
+        except Exception:
+            owner_pid = None
+
+    with _hook_lock:
+        _load_hook_state()
+        if hook_event == "SessionEnd":
+            _hook_sessions.pop(session_id, None)
+            _save_hook_state()
+            return {"status": "removed", "session_id": session_id}
+        
+        if hook_event == "Notification":
+            # Informational idle notifications should not flip yellow
+            if notification_type == "idle_prompt":
+                return {"status": "ignored", "session_id": session_id}
+            state = "WAITING"
+            code = "waiting_approval"
+            detail = "GRANT PERM"
+            color = "#FFB800"
+        elif hook_event in ("SessionStart", "UserPromptSubmit", "PreToolUse", "working", "resumed"):
+            state = "WORKING"
+            code = "working"
+            detail = "EXECUTING..."
+            color = "#00E5FF"
+        elif hook_event in ("Stop", "idle", "ended"):
+            state = "COMPLETE"
+            code = "work_complete"
+            detail = "WORK COMPLETE"
+            color = "#00FF88"
+        else:
+            return {"status": "ignored", "session_id": session_id}
+        
+        existing = _hook_sessions.get(session_id, {})
+        label = get_stable_agent_label("claude", session_id)
+        
+        entry = {
+            "id": session_id,
+            "name": label,
+            "source": "claude",
+            "state": state,
+            "code": code,
+            "detail": detail,
+            "color": color,
+            "mtime": now_ts,
+            "cwd": cwd or existing.get("cwd", ""),
+            "owner_pid": owner_pid or existing.get("owner_pid"),
+            "hook_event": hook_event
+        }
+        _hook_sessions[session_id] = entry
+        _save_hook_state()
+        return entry
+
+def get_hook_sessions(now_ts=None, cfg=None):
+    """Return active hook sessions, reaping zombie PIDs and stale entries."""
+    if now_ts is None:
+        now_ts = time.time()
+    if cfg is None:
+        cfg = config
+    
+    with _hook_lock:
+        _load_hook_state()
+        active = []
+        to_delete = []
+        completion_duration = cfg.get("completion_duration_seconds", 10) if isinstance(cfg, dict) else 10
+        
+        for s_id, s in list(_hook_sessions.items()):
+            pid = s.get("owner_pid")
+            if pid and not _is_pid_alive(pid):
+                to_delete.append(s_id)
+                continue
+            
+            mtime = s.get("mtime", now_ts)
+            age = now_ts - mtime
+            if age >= 1800:
+                to_delete.append(s_id)
+                continue
+            
+            state = s.get("state", "IDLE")
+            code = s.get("code", "idle")
+            detail = s.get("detail", "IDLE")
+            color = s.get("color", "#94A3B8")
+            
+            # Transition COMPLETE -> IDLE after completion_duration
+            if state == "COMPLETE" and age >= completion_duration:
+                state = "IDLE"
+                code = "idle"
+                detail = "IDLE"
+                color = "#94A3B8"
+            
+            active.append({
+                "id": s["id"],
+                "name": s["name"],
+                "source": "claude",
+                "state": state,
+                "code": code,
+                "detail": detail,
+                "color": color,
+                "age_seconds": int(age),
+                "mtime": mtime
+            })
+        
+        if to_delete:
+            for s_id in to_delete:
+                _hook_sessions.pop(s_id, None)
+            _save_hook_state()
+            
+        return active
+
+def install_claude_hooks(app_path=None):
+    """Idempotently register Tiny AI Limits hook command in ~/.claude/settings.json."""
+    if app_path is None:
+        app_path = os.path.abspath(__file__)
+    settings_path = os.path.expanduser("~/.claude/settings.json")
+    os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+    
+    settings = {}
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+        except Exception:
+            settings = {}
+    
+    if not isinstance(settings, dict):
+        settings = {}
+    
+    hooks = settings.setdefault("hooks", {})
+    hook_events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "Stop", "Notification", "SessionEnd"]
+    hook_cmd = f"python3 \"{app_path}\" --hook"
+    
+    for event in hook_events:
+        event_hooks = hooks.setdefault(event, [])
+        already = False
+        for h in event_hooks:
+            for item in h.get("hooks", []):
+                cmd = item.get("command", "")
+                if "--hook" in cmd and (app_path in cmd or "app.py" in cmd or "tinyscreen" in cmd.lower()):
+                    already = True
+                    break
+        if not already:
+            event_hooks.append({
+                "hooks": [{
+                    "type": "command",
+                    "command": hook_cmd
+                }]
+            })
+            
+    with open(settings_path, "w", encoding="utf-8") as f:
+        json.dump(settings, f, indent=2)
+    return True
+
+def uninstall_claude_hooks(app_path=None):
+    """Remove Tiny AI Limits hook entries from ~/.claude/settings.json."""
+    if app_path is None:
+        app_path = os.path.abspath(__file__)
+    settings_path = os.path.expanduser("~/.claude/settings.json")
+    if not os.path.exists(settings_path):
+        return True
+    try:
+        with open(settings_path, "r", encoding="utf-8") as f:
+            settings = json.load(f)
+        if not isinstance(settings, dict):
+            return True
+        hooks = settings.get("hooks", {})
+        for event, event_hooks in list(hooks.items()):
+            if isinstance(event_hooks, list):
+                new_list = []
+                for h in event_hooks:
+                    keep = True
+                    for item in h.get("hooks", []):
+                        cmd = item.get("command", "")
+                        if "--hook" in cmd and (app_path in cmd or "app.py" in cmd or "tinyscreen" in cmd.lower()):
+                            keep = False
+                    if keep:
+                        new_list.append(h)
+                hooks[event] = new_list
+        with open(settings_path, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception:
+        return False
 
 def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
     if brain_dirs is None:
@@ -710,32 +979,9 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             parts = os.path.normpath(fp).split(os.sep)
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
             label = get_stable_agent_label("antigravity", session_id)
-
-            if found_pending:
-                state = "WAITING"
-                code = "waiting_approval"
-                detail = turn_pending_prompt
-                color = "#FFB800"
-            elif has_in_flight_tools or (age < 45 and not is_final_turn_response):
-                state = "WORKING"
-                code = "working"
-                detail = "EXECUTING..."
-                color = "#00E5FF"
-            elif is_final_turn_response and age < config.get("completion_duration_seconds", 10):
-                state = "COMPLETE"
-                code = "work_complete"
-                detail = "WORK COMPLETE"
-                color = "#00FF88"
-            elif age < 45:
-                state = "WORKING"
-                code = "working"
-                detail = "THINKING..."
-                color = "#00E5FF"
-            else:
-                state = "IDLE"
-                code = "idle"
-                detail = "IDLE"
-                color = "#94A3B8"
+            state, code, detail, color = resolve_session_state(
+                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config
+            )
 
             sessions.append({
                 "id": session_id,
@@ -876,31 +1122,9 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 elif isinstance(content, str) and content.strip():
                     is_final_turn_response = True
 
-            if found_pending:
-                state = "WAITING"
-                code = "waiting_approval"
-                detail = turn_pending_prompt
-                color = "#FFB800"
-            elif has_in_flight_tools or (age < 45 and not is_final_turn_response):
-                state = "WORKING"
-                code = "working"
-                detail = "EXECUTING..."
-                color = "#00E5FF"
-            elif is_final_turn_response and age < config.get("completion_duration_seconds", 10):
-                state = "COMPLETE"
-                code = "work_complete"
-                detail = "WORK COMPLETE"
-                color = "#00FF88"
-            elif age < 45:
-                state = "WORKING"
-                code = "working"
-                detail = "EXECUTING..."
-                color = "#00E5FF"
-            else:
-                state = "IDLE"
-                code = "idle"
-                detail = "IDLE"
-                color = "#94A3B8"
+            state, code, detail, color = resolve_session_state(
+                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config
+            )
 
             sessions.append({
                 "id": session_id,
@@ -916,7 +1140,10 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
     return sessions
 
 def check_claude_status(claude_dirs=None, now_ts=None):
-    sessions = scan_claude_sessions(claude_dirs, now_ts)
+    if now_ts is None:
+        now_ts = time.time()
+    hook_sessions = get_hook_sessions(now_ts)
+    sessions = hook_sessions if hook_sessions else scan_claude_sessions(claude_dirs, now_ts)
     waiting = next((s for s in sessions if s["state"] == "WAITING"), None)
     if waiting:
         return {
@@ -944,9 +1171,12 @@ def get_multi_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None)
     if now_ts is None:
         now_ts = time.time()
 
-    ag_sessions = scan_antigravity_sessions(antigravity_dirs, now_ts)
-    cl_sessions = scan_claude_sessions(claude_dirs, now_ts)
-    all_sessions = ag_sessions + cl_sessions
+    hook_sessions = get_hook_sessions(now_ts)
+    hooked_ids = {s["id"] for s in hook_sessions}
+
+    ag_sessions = scan_antigravity_sessions(brain_dirs=antigravity_dirs, now_ts=now_ts)
+    cl_sessions = [s for s in scan_claude_sessions(claude_dirs=claude_dirs, now_ts=now_ts) if s["id"] not in hooked_ids]
+    all_sessions = hook_sessions + ag_sessions + cl_sessions
 
     # State sorting priority: WAITING > WORKING > COMPLETE > IDLE
     priority_map = {"WAITING": 0, "WORKING": 1, "COMPLETE": 2, "IDLE": 3}
@@ -1410,6 +1640,53 @@ class TinyScreenMacStatusBarApp(object):
         app.run()
 
 if __name__ == '__main__':
+    if "--hook" in sys.argv:
+        # Read JSON from stdin or argument
+        raw_input = ""
+        try:
+            if not sys.stdin.isatty():
+                raw_input = sys.stdin.read().strip()
+        except Exception:
+            pass
+        
+        event_data = {}
+        if raw_input:
+            try:
+                event_data = json.loads(raw_input)
+            except Exception:
+                pass
+        
+        if not event_data and len(sys.argv) > 2:
+            try:
+                event_data = json.loads(sys.argv[2])
+            except Exception:
+                pass
+        
+        if "owner_pid" not in event_data and "pid" not in event_data:
+            event_data["owner_pid"] = os.getppid()
+        
+        posted = False
+        try:
+            r = requests.post(f"http://127.0.0.1:{PORT}/api/hook", json=event_data, timeout=0.5)
+            if r.status_code == 200:
+                posted = True
+        except Exception:
+            pass
+        
+        if not posted:
+            handle_hook_event(event_data)
+        sys.exit(0)
+
+    if "--install-hooks" in sys.argv:
+        install_claude_hooks()
+        print("[OK] Tiny AI Limits lifecycle hooks installed into ~/.claude/settings.json")
+        sys.exit(0)
+
+    if "--uninstall-hooks" in sys.argv:
+        uninstall_claude_hooks()
+        print("[OK] Tiny AI Limits lifecycle hooks uninstalled from ~/.claude/settings.json")
+        sys.exit(0)
+
     if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
         print(f"[INFO] Running in server-only mode at http://localhost:{PORT}")
         start_flask()
