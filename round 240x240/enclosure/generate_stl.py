@@ -71,7 +71,7 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
         for x, y in pts_ch:
             verts.append([x, y, h])
     else:
-        for x, y in pts_ch:
+        for x, y in pts_main:
             verts.append([x, y, 0.0])
         for x, y in pts_main:
             verts.append([x, y, chamfer_outer])
