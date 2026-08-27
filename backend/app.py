@@ -623,6 +623,27 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 except Exception:
                     pass
 
+            # Session identification (parent folder of .system_generated)
+            parts = os.path.normpath(fp).split(os.sep)
+            session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
+            label = get_stable_agent_label("antigravity", session_id)
+
+            if last_user_idx == len(lines) - 1:
+                # User just sent a prompt; assistant is currently thinking/executing
+                if age < 45:
+                    sessions.append({
+                        "id": session_id,
+                        "name": label,
+                        "source": "antigravity",
+                        "state": "WORKING",
+                        "code": "working",
+                        "detail": "EXECUTING...",
+                        "color": "#00E5FF",
+                        "age_seconds": int(age),
+                        "mtime": mtime
+                    })
+                continue
+
             turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
             if not turn_lines:
                 continue
@@ -791,6 +812,25 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 except Exception:
                     pass
 
+            session_id = os.path.splitext(os.path.basename(fp))[0]
+            label = get_stable_agent_label("claude", session_id)
+
+            if last_user_idx == len(lines) - 1:
+                # User just sent a prompt; Claude is currently thinking/executing
+                if age < 45:
+                    sessions.append({
+                        "id": session_id,
+                        "name": label,
+                        "source": "claude",
+                        "state": "WORKING",
+                        "code": "working",
+                        "detail": "EXECUTING...",
+                        "color": "#00E5FF",
+                        "age_seconds": int(age),
+                        "mtime": mtime
+                    })
+                continue
+
             turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
             if not turn_lines:
                 continue
@@ -833,19 +873,11 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                             else:
                                 turn_pending_prompt = "GRANT PERM"
 
-            session_id = os.path.splitext(os.path.basename(fp))[0]
-            label = get_stable_agent_label("claude", session_id)
-
             if found_pending:
                 state = "WAITING"
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
-            elif has_active_tool:
-                state = "WORKING"
-                code = "working"
-                detail = "RUNNING TOOL..."
-                color = "#00E5FF"
             elif age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
@@ -854,7 +886,7 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
             elif age < 45:
                 state = "WORKING"
                 code = "working"
-                detail = "THINKING / RUNNING"
+                detail = "EXECUTING..."
                 color = "#00E5FF"
             else:
                 state = "IDLE"
