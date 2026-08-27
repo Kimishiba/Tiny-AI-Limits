@@ -320,21 +320,21 @@ module main_housing() {
             }
         }
         
-        // 5. Aeration Vent Slots (Rear Backplate Grille & Top Perimeter Exhaust)
-        // Rear backplate upper zone slots
-        for (vy = [11.5, 14.5, 17.5, 20.5]) {
-            translate([-12.0, vy - 0.9, -0.5])
-                cube([24.0, 1.8, floor_t + 1.0]);
+        // 5. Prominent Aeration Vent Slots (Rear Backplate Grille & Top Edge Exhaust)
+        // Rear backplate upper zone wide slots (Y = 11.0, 14.5, 18.0, 21.5, X in [-15, 15])
+        for (vy = [11.0, 14.5, 18.0, 21.5]) {
+            translate([-15.0, vy - 1.1, -1.0])
+                cube([30.0, 2.2, floor_t + 2.0]);
         }
-        // Rear backplate right side slots
-        for (vy = [-4.0, 0.0, 4.0]) {
-            translate([6.0, vy - 0.9, -0.5])
-                cube([10.0, 1.8, floor_t + 1.0]);
+        // Rear backplate lower/middle zone slots (Y = -6.0, -9.5, -13.0, X in [3, 17])
+        for (vy = [-6.0, -9.5, -13.0]) {
+            translate([3.0, vy - 1.1, -1.0])
+                cube([14.0, 2.2, floor_t + 2.0]);
         }
-        // Top perimeter wall exhaust slots
-        for (vx = [-12.0, 0.0, 12.0]) {
-            translate([vx - 3.0, 21.0, 9.0])
-                cube([6.0, 7.0, 12.0]);
+        // Top edge perimeter exhaust vents (5 vertical slots at X = -14, -7, 0, 7, 14; Z in [8, 21])
+        for (vx = [-14.0, -7.0, 0.0, 7.0, 14.0]) {
+            translate([vx - 1.5, 20.0, 8.0])
+                cube([3.0, 10.0, 13.0]);
         }
     }
     

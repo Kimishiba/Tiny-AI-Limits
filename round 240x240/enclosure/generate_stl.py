@@ -315,19 +315,19 @@ def generate_main_housing():
             pilot_m3 = m3d.Manifold.cylinder(15.2, 1.4, 1.4, 32).translate([sx, sy, depth - 15.0])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3
             
-    # 6. Aeration Vent Slots (Rear Backplate Grille & Top Perimeter Exhaust)
+    # 6. Prominent Aeration Vent Slots (Rear Backplate Grille & Top Edge Exhaust)
     vent_cuts = m3d.Manifold()
-    # Rear backplate upper zone slots (Y = 11.5, 14.5, 17.5, 20.5, X in [-12, 12])
-    for vy in [11.5, 14.5, 17.5, 20.5]:
-        slot = m3d.Manifold.cube([24.0, 1.8, floor_t + 1.0], center=False).translate([-12.0, vy - 0.9, -0.5])
+    # Rear backplate upper zone wide slots (Y = 11.0, 14.5, 18.0, 21.5, X in [-15, 15])
+    for vy in [11.0, 14.5, 18.0, 21.5]:
+        slot = m3d.Manifold.cube([30.0, 2.2, floor_t + 2.0], center=False).translate([-15.0, vy - 1.1, -1.0])
         vent_cuts = vent_cuts + slot
-    # Rear backplate right side slots (Y = -4.0, 0.0, +4.0, X in [6, 16])
-    for vy in [-4.0, 0.0, 4.0]:
-        slot = m3d.Manifold.cube([10.0, 1.8, floor_t + 1.0], center=False).translate([6.0, vy - 0.9, -0.5])
+    # Rear backplate lower/middle zone slots (Y = -6.0, -9.5, -13.0, X in [3, 17])
+    for vy in [-6.0, -9.5, -13.0]:
+        slot = m3d.Manifold.cube([14.0, 2.2, floor_t + 2.0], center=False).translate([3.0, vy - 1.1, -1.0])
         vent_cuts = vent_cuts + slot
-    # Top perimeter wall exhaust slots (X = -12.0, 0.0, +12.0, Y in [21, 28], Z in [9, 21])
-    for vx in [-12.0, 0.0, 12.0]:
-        top_slot = m3d.Manifold.cube([6.0, 7.0, 12.0], center=False).translate([vx - 3.0, 21.0, 9.0])
+    # Top edge perimeter exhaust vents (5 vertical slots at X = -14, -7, 0, 7, 14; Z in [8, 21])
+    for vx in [-14.0, -7.0, 0.0, 7.0, 14.0]:
+        top_slot = m3d.Manifold.cube([3.0, 10.0, 13.0], center=False).translate([vx - 1.5, 20.0, 8.0])
         vent_cuts = vent_cuts + top_slot
 
     cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts
