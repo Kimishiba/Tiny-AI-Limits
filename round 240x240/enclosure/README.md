@@ -3,29 +3,28 @@
 3D printable enclosure files, slicer settings, hardware BOM, and assembly instructions for the **Tiny AI Limits Round Cyberdeck Desk Console** (reengineered directly from the concept 3D renders [`gc9a01_3d_enclosure_render.jpg`](../assets/gc9a01_3d_enclosure_render.jpg) and [`gc9a01_enclosure_rear_view.jpg`](../assets/gc9a01_enclosure_rear_view.jpg)).
 
 > [!IMPORTANT]
-> **v2 Thermal Aeration Vents & Anti-Movement Board Lock:**
-> * **Convective Aeration Vents:** Dual-zone horizontal chimney slots on the rear backplate and exhaust slots on the top edge allow passive thermal airflow (cool air intake from bottom DuPont trench, exhaust through rear & top).
-> * **Anti-Movement ESP32-C3 Retention:** Reinforced rear thrust bulkhead ($+X$), USB-C collar pull stop ($-X$), and side guide walls with snap-fit retention lips ($\pm Y, +Z$) prevent any board movement when inserting/unplugging the USB-C cable.
-> * **Bottom Wire Drop Trench ($26\text{mm} \times 5\text{mm}$):** Positioned directly beneath the GC9A01 7-pin header, allowing DuPont connectors to plug in and drop directly into the desk stand channel with zero vertical pinch.
+> **Bottom DuPont Wire Drop Trench + Slim 26mm Depth:**
+> * **Bottom Wire Drop Trench ($20\text{mm} \times 12\text{mm}$):** Positioned directly beneath the GC9A01 7-pin header ($Y = -24.74\text{mm}$), allowing DuPont connectors to plug in and drop directly into the desk stand's $20\text{mm}$ cable channel with zero vertical pinch.
 > * **Direct Screen Bolting:** 2 $\times$ M2 threaded pilot holes on the front bezel matching the GC9A01 bottom tab mounting holes ($19.26\text{mm}$ pitch).
-> * **Sculpted Two-Tier Pedestal Stand:** $22^\circ$ ergonomic V-saddle cradle with tapered body, rear cable channel, and optional standalone accent base plate.
+> * **Self-Locking Pin Standoffs:** 16 pin-registration blind holes ($2.54\text{mm}$ pitch) + rear thrust stop to lock the ESP32-C3 against insertion force.
+> * **Sculpted Two-Tier Pedestal Stand:** $22^\circ$ ergonomic V-saddle cradle with tapered body, $20\text{mm}$ rear cable channel, and optional standalone accent base plate.
 
 ---
 
 ## 📁 Included CAD & STL Files
 
-All models are located in [`round 240x240/enclosure/`](./):
+All models are located in [`round 240x240/enclosure/`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/):
 
 | File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
-| **[`gc9a01_front_bezel.stl`](./gc9a01_front_bezel.stl)** | Front bezel plate with $\varnothing 33.0\text{mm}$ conical anti-shadow window, clean $\varnothing 39.0\text{mm}$ screen pocket, 2 blind M2 pilot holes, and 4 M3 counterbored corner pockets | $54 \times 54 \times 7.0\text{mm}$ | ~25 mins |
-| **[`gc9a01_mid_clamp.stl`](./gc9a01_mid_clamp.stl)** | Sandwich mid clamp diagonal X-brace with $7.0\text{mm}$ cross arms, forward compression pads, $\varnothing 14.0\text{mm}$ center component-relief hole, and open wiring quadrants | $54 \times 54 \times 2.6\text{mm}$ | ~10 mins |
-| **[`gc9a01_main_housing.stl`](./gc9a01_main_housing.stl)** | Support-free $27.5\text{mm}$ deep main housing with rear/top aeration vents, rigid snap-fit ESP32-C3 lock cradle, bottom DuPont trench, and flared USB-C entry | $54 \times 54 \times 27.5\text{mm}$ | ~45 mins |
-| **[`gc9a01_desk_stand.stl`](./gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & slide-in pod channel | $64 \times 68 \times 29.0\text{mm}$ | ~45 mins |
-| **[`gc9a01_stand_tier1_base.stl`](./gc9a01_stand_tier1_base.stl)** | Standalone Tier-1 bottom plate with 4 alignment pillars for wood PLA or dual-material printing | $64 \times 68 \times 8.5\text{mm}$ | ~20 mins |
-| **[`gc9a01_stand_tier2_trunk.stl`](./gc9a01_stand_tier2_trunk.stl)** | Tier-2 cradle trunk with alignment sockets and $22^\circ$ V-saddle | $62 \times 66 \times 24.0\text{mm}$ | ~40 mins |
-| **[`gc9a01_cyberdeck_enclosure.scad`](./gc9a01_cyberdeck_enclosure.scad)** | Fully parametric OpenSCAD source file | — | — |
-| **[`generate_stl.py`](./generate_stl.py)** | Standalone Boolean CSG mesh generator script generating 100% watertight binary STLs | — | — |
+| **[`gc9a01_front_bezel.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_front_bezel.stl)** | Front bezel plate with $\varnothing 33.0\text{mm}$ conical anti-shadow window, clean $\varnothing 39.0\text{mm}$ screen pocket, 2 blind M2 pilot holes, and 4 M3 counterbored corner pockets | $54 \times 54 \times 7.0\text{mm}$ | ~25 mins |
+| **[`gc9a01_mid_clamp.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_mid_clamp.stl)** | Sandwich mid clamp diagonal X-brace with $7.0\text{mm}$ cross arms, forward compression pads, $\varnothing 14.0\text{mm}$ center component-relief hole, and open wiring quadrants | $54 \times 54 \times 2.6\text{mm}$ | ~10 mins |
+| **[`gc9a01_main_housing.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_main_housing.stl)** | Support-free $27.5\text{mm}$ deep main housing with bottom DuPont wire trench, pin-locking standoffs, and flared USB-C entry | $54 \times 54 \times 27.5\text{mm}$ | ~45 mins |
+| **[`gc9a01_desk_stand.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_desk_stand.stl)** | Sculpted two-tier pedestal cradle stand with $22^\circ$ V-saddle & slide-in pod channel | $64 \times 68 \times 29.0\text{mm}$ | ~45 mins |
+| **[`gc9a01_stand_tier1_base.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_tier1_base.stl)** | Standalone Tier-1 bottom plate with 4 alignment pillars for wood PLA or dual-material printing | $64 \times 68 \times 8.5\text{mm}$ | ~20 mins |
+| **[`gc9a01_stand_tier2_trunk.stl`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_stand_tier2_trunk.stl)** | Tier-2 cradle trunk with alignment sockets and $22^\circ$ V-saddle | $62 \times 66 \times 24.0\text{mm}$ | ~40 mins |
+| **[`gc9a01_cyberdeck_enclosure.scad`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/gc9a01_cyberdeck_enclosure.scad)** | Fully parametric OpenSCAD source file | — | — |
+| **[`generate_stl.py`](file:///c:/Users/Alex/Documents/Antigravity/Tiny%20AI%20Limits/round%20240x240/enclosure/generate_stl.py)** | Standalone Boolean CSG mesh generator script generating 100% watertight binary STLs | — | — |
 
 ---
 

@@ -16,8 +16,8 @@ V4 ZERO SUSPENDED PARTS & 100% SUPPORT-FREE FDM ARCHITECTURE:
   * Continuous Vertical Guide & Retention Ribs with 45° top entry chamfers (Zero suspended tabs)
   * 4.2mm wide continuous pin clearance rail channels bounded inside ledges (Zero ceiling undercuts)
   * Slimmed 3.0mm outer walls and 2.0mm floor
-  * Contour-following 1.05mm horizontal rear aeration slits
-  * 45° peaked roof top vertical aeration exhaust slits
+  * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
+  * 45° peaked roof top vertical aeration exhaust slits (7 slots)
   * Embossed "CYBER-DECK UNIT 01" branding
 - Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
@@ -656,7 +656,6 @@ def main():
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
-    # V4 Main Housing Pod (Refined Zero Suspended Parts)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod (V4 Refined Zero Suspended Parts)")
