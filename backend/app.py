@@ -1916,8 +1916,8 @@ if __name__ == '__main__':
         print("[OK] Tiny AI Limits lifecycle hooks uninstalled from ~/.claude/settings.json")
         sys.exit(0)
 
-    if len(sys.argv) > 1 and sys.argv[1] == "--server-only":
-        print(f"[INFO] Running in server-only mode at http://localhost:{PORT}")
+    if "--server-only" in sys.argv or "--headless" in sys.argv:
+        print(f"[INFO] Running in headless server-only mode at http://localhost:{PORT}")
         start_flask()
     else:
         # Start Flask server in background thread
