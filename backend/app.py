@@ -570,11 +570,228 @@ def caller_is_paired():
     return request.args.get("pair_id", "") == get_pair_id(config)
 
 
+def check_antigravity_status(brain_dirs=None, now_ts=None):
+    if brain_dirs is None:
+        brain_dirs = _antigravity_brain_dirs()
+    if now_ts is None:
+        now_ts = time.time()
+
+    waiting_for_input = False
+    work_completed = False
+    prompt_text = "INPUT REQ"
+
+    for brain_dir in brain_dirs:
+        if waiting_for_input:
+            break
+        for root, dirs, files in os.walk(brain_dir):
+            if "transcript.jsonl" not in files:
+                continue
+            fp = os.path.join(root, "transcript.jsonl")
+            try:
+                mtime = os.path.getmtime(fp)
+            except Exception:
+                continue
+
+            # 30 minutes of slack accounts for realistic human reaction time
+            if now_ts - mtime >= 1800:
+                continue
+
+            try:
+                with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                    lines = [l for l in f.readlines() if l.strip()]
+            except Exception:
+                continue
+            if not lines:
+                continue
+
+            # Find index of last user input to define the current turn
+            last_user_idx = -1
+            for idx in range(len(lines) - 1, -1, -1):
+                try:
+                    entry = json.loads(lines[idx])
+                    if entry.get("type") == "USER_INPUT" or entry.get("source") == "USER_EXPLICIT":
+                        last_user_idx = idx
+                        break
+                except Exception:
+                    pass
+
+            turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
+            if not turn_lines:
+                continue
+
+            last_step_entry = {}
+            try:
+                last_step_entry = json.loads(turn_lines[-1])
+            except Exception:
+                pass
+
+            found_pending = False
+            turn_pending_prompt = "INPUT REQ"
+
+            step_type = last_step_entry.get("type")
+            if step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
+                found_pending = True
+                turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
+            elif step_type == "PLANNER_RESPONSE":
+                for tc in last_step_entry.get("tool_calls", []) or []:
+                    name = tc.get("name")
+                    args = tc.get("args", {}) or {}
+                    if name in ("ask_question", "ask_permission"):
+                        found_pending = True
+                        turn_pending_prompt = "ANSWER Q" if name == "ask_question" else "GRANT PERM"
+                        break
+
+                    meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                    if isinstance(meta_raw, str):
+                        try: meta = json.loads(meta_raw)
+                        except Exception: meta = {}
+                    elif isinstance(meta_raw, dict):
+                        meta = meta_raw
+                    else:
+                        meta = {}
+
+                    if meta.get("RequestFeedback") is True:
+                        found_pending = True
+                        turn_pending_prompt = "APPROVE PLAN"
+                        break
+
+            if found_pending:
+                waiting_for_input = True
+                prompt_text = turn_pending_prompt
+                break
+            elif (now_ts - mtime) < config.get("completion_duration_seconds", 10):
+                work_completed = True
+
+    return {
+        "waiting_for_input": waiting_for_input,
+        "work_completed": work_completed,
+        "prompt_text": prompt_text,
+        "source": "antigravity"
+    }
+
+def check_claude_status(claude_dirs=None, now_ts=None):
+    if claude_dirs is None:
+        claude_dirs = get_claude_dirs()
+    if now_ts is None:
+        now_ts = time.time()
+
+    waiting_for_input = False
+    work_completed = False
+    prompt_text = "CLAUDE PROMPT"
+
+    for c_dir in claude_dirs:
+        if waiting_for_input:
+            break
+        pattern = os.path.join(c_dir, "**", "*.jsonl")
+        for fp in glob.glob(pattern, recursive=True):
+            try:
+                mtime = os.path.getmtime(fp)
+            except Exception:
+                continue
+
+            if now_ts - mtime >= 1800:
+                continue
+
+            try:
+                with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                    lines = [l.strip() for l in f if l.strip()]
+            except Exception:
+                continue
+            if not lines:
+                continue
+
+            # Find index of last user prompt to delineate the turn
+            last_user_idx = -1
+            for idx in range(len(lines) - 1, -1, -1):
+                try:
+                    entry = json.loads(lines[idx])
+                    if entry.get("type") == "user":
+                        # Ensure it's a real user prompt, not just a tool_result response
+                        msg = entry.get("message", {})
+                        content = msg.get("content")
+                        if isinstance(content, str):
+                            last_user_idx = idx
+                            break
+                        elif isinstance(content, list):
+                            has_text = any(isinstance(c, dict) and c.get("type") == "text" for c in content)
+                            if has_text:
+                                last_user_idx = idx
+                                break
+                except Exception:
+                    pass
+
+            turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
+            if not turn_lines:
+                continue
+
+            last_entry = {}
+            try:
+                last_entry = json.loads(turn_lines[-1])
+            except Exception:
+                pass
+
+            found_pending = False
+            turn_pending_prompt = "CLAUDE PROMPT"
+
+            # Check if last turn entry is assistant requesting tool_use AskUserQuestion or command permission
+            if last_entry.get("type") == "assistant":
+                msg = last_entry.get("message", {})
+                content = msg.get("content", [])
+                if isinstance(content, list):
+                    for item in content:
+                        if isinstance(item, dict) and item.get("type") == "tool_use":
+                            t_name = item.get("name", "")
+                            if t_name == "AskUserQuestion":
+                                found_pending = True
+                                turn_pending_prompt = "ANSWER Q"
+                                break
+                            elif "permission" in t_name.lower():
+                                found_pending = True
+                                turn_pending_prompt = "GRANT PERM"
+                                break
+                            else:
+                                found_pending = True
+                                turn_pending_prompt = "CLAUDE PERM"
+
+            if found_pending:
+                waiting_for_input = True
+                prompt_text = turn_pending_prompt
+                break
+            elif (now_ts - mtime) < config.get("completion_duration_seconds", 10):
+                work_completed = True
+
+    return {
+        "waiting_for_input": waiting_for_input,
+        "work_completed": work_completed,
+        "prompt_text": prompt_text,
+        "source": "claude"
+    }
+
+def check_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None):
+    ag_status = check_antigravity_status(antigravity_dirs, now_ts)
+    if ag_status["waiting_for_input"]:
+        return ag_status
+
+    cl_status = check_claude_status(claude_dirs, now_ts)
+    if cl_status["waiting_for_input"]:
+        return cl_status
+
+    if ag_status["work_completed"]:
+        return ag_status
+    if cl_status["work_completed"]:
+        return cl_status
+
+    return {
+        "waiting_for_input": False,
+        "work_completed": False,
+        "prompt_text": "INPUT REQ",
+        "source": "none"
+    }
+
+
 @app.route('/data', methods=['GET'])
 def get_data():
     if not caller_is_paired():
-        # 403 rather than 404: the board should surface "not paired with this
-        # companion", not retry as though the endpoint were missing.
         return jsonify({
             "error": "not_paired",
             "message": "This board is not paired with this companion app. "
@@ -599,99 +816,25 @@ def get_data():
     work_completed = False
     prompt_text = "INPUT REQ"
     completion_text = "WORK COMPLETE"
+    source = "none"
 
     if test_alert_override:
         waiting_for_input = True
         prompt_text = test_alert_prompt
+        source = "test"
     elif test_complete_override:
         work_completed = True
         completion_text = test_complete_prompt
+        source = "test"
     else:
         try:
-            # Multiple Antigravity sessions -- including across different
-            # products (GUI app, CLI, IDE extension) -- can run concurrently.
-            now_ts = time.time()
-            for brain_dir in _antigravity_brain_dirs():
-                if waiting_for_input:
-                    break
-                for root, dirs, files in os.walk(brain_dir):
-                    if "transcript.jsonl" not in files:
-                        continue
-                    fp = os.path.join(root, "transcript.jsonl")
-                    mtime = os.path.getmtime(fp)
-
-                    # 30 minutes of slack accounts for realistic human reaction time
-                    if now_ts - mtime >= 1800:
-                        continue
-
-                    try:
-                        with open(fp, "r", encoding="utf-8", errors="ignore") as f:
-                            lines = [l for l in f.readlines() if l.strip()]
-                    except Exception:
-                        continue
-                    if not lines:
-                        continue
-
-                    # Find index of last user input to define the current turn
-                    last_user_idx = -1
-                    for idx in range(len(lines) - 1, -1, -1):
-                        try:
-                            entry = json.loads(lines[idx])
-                            if entry.get("type") == "USER_INPUT" or entry.get("source") == "USER_EXPLICIT":
-                                last_user_idx = idx
-                                break
-                        except Exception:
-                            pass
-
-                    # Steps in current turn (after last USER_INPUT)
-                    turn_lines = lines[last_user_idx + 1:] if last_user_idx != -1 else lines
-                    if not turn_lines:
-                        continue
-
-                    # The agent is ONLY waiting for input if the final step of the turn is requesting input/feedback
-                    last_step_entry = {}
-                    try:
-                        last_step_entry = json.loads(turn_lines[-1])
-                    except Exception:
-                        pass
-
-                    found_pending = False
-                    turn_pending_prompt = "INPUT REQ"
-
-                    if last_step_entry.get("type") == "PLANNER_RESPONSE":
-                        for tc in last_step_entry.get("tool_calls", []) or []:
-                            name = tc.get("name")
-                            args = tc.get("args", {}) or {}
-                            if name in ("ask_question", "ask_permission"):
-                                found_pending = True
-                                turn_pending_prompt = "ANSWER Q" if name == "ask_question" else "GRANT PERM"
-                                break
-
-                            meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                            if isinstance(meta_raw, str):
-                                try: meta = json.loads(meta_raw)
-                                except Exception: meta = {}
-                            elif isinstance(meta_raw, dict):
-                                meta = meta_raw
-                            else:
-                                meta = {}
-
-                            if meta.get("RequestFeedback") is True:
-                                found_pending = True
-                                turn_pending_prompt = "APPROVE PLAN"
-                                break
-
-                    if found_pending:
-                        waiting_for_input = True
-                        prompt_text = turn_pending_prompt
-                        break
-                    elif (now_ts - mtime) < config.get("completion_duration_seconds", 10):
-                        # Turn finished recently without requiring feedback -> Work Completed!
-                        work_completed = True
-                        completion_text = "WORK COMPLETE"
+            status = check_agent_status()
+            waiting_for_input = status["waiting_for_input"]
+            work_completed = status["work_completed"]
+            prompt_text = status["prompt_text"]
+            source = status["source"]
         except Exception as e:
             print(f"Agent check error: {e}")
-
 
     now = datetime.now()
     agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
@@ -712,7 +855,8 @@ def get_data():
             "completion_flash": work_completed,
             "state": agent_state,
             "prompt_text": prompt_text,
-            "completion_text": completion_text
+            "completion_text": completion_text,
+            "source": source
         }
     })
 
