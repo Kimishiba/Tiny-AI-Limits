@@ -28,12 +28,17 @@ It brings your AI developer environment to life with physical desktop hardware �
 An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 IPS Color Display (GC9A01 SPI)** resting at an ergonomic $18^\circ$ backward tilt on a two-tier modular pedestal.
 
 ### ✨ Features:
-* **2×2 Split-Flap Flip Clock:** Mechanical split-card matrix animating hour and minute transitions.
+* **Multi-Agent Status Monitor:** Dynamically replaces the central split-flap clock with a real-time HUD showing live agent activity across Claude Code CLI and Google Antigravity sessions (`WAITING 🟡`, `WORKING 🔵`, `COMPLETE 🟢`).
+* **2×2 Split-Flap Flip Clock:** Mechanical split-card matrix animating hour and minute transitions when all agents are idle.
 * **Dual Circular Radial Telemetry Arcs:** Continuous $0\% \to 100\%$ gauges tracking Claude Code (Electric Cyan, left arc) and Antigravity CLI (Safety Orange, right arc).
-* **Curved Inside Telemetry Labels:** Dynamic curved text (`CLD 68%`, `AGY 42%`) positioned inside the active gauge sweeps.
+* **Curved Inside Telemetry Labels:** Dynamic curved text (`CLD 84%`, `AGY 72%`) positioned inside the active gauge sweeps.
 * **Top Crown Rain Forecast:** Live countdown and rain status (`Rain in 3h`, `Rain Now`, `Clear`).
-* **Stacked Bottom Sub-HUD:** Day & Date, live temperature with weather condition icons, and real-time **Agent Attention Alert** banner overrides.
+* **Stacked Bottom Sub-HUD:** Day & Date, live temperature with weather condition icons, and real-time **Agent Attention Alert** banner overrides (`AGENT ALERT: ALLOW BASH`, `ANSWER Q`, `APPROVE PLAN`).
 * **Enclosure Architecture:** Support-free 3D-printable pod with $4\times$ counterbored brass M3 socket head cap screws, raised decorative ring, and a two-tier pedestal stand (Dark Walnut wood base plate with 4 alignment pillars + matte dark truncated trapezoidal cradle trunk).
+
+<p align="center">
+  <img src="./img/multi_agent_display.jpg" alt="Multi-Agent Status Monitor on GC9A01 Display" width="460">
+</p>
 
 ---
 
@@ -44,8 +49,9 @@ An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 I
 | **Display Type** | 1.28" Round Color IPS (240×240) |
 | **Interface** | High-Speed SPI |
 | **Primary Theme** | Cyberdeck Split-Flap Clock & Dual Radial HUD |
+| **Multi-Agent HUD** | Real-Time 3-Row Agent State Matrix (`WAITING`, `WORKING`, `COMPLETE`) |
 | **Claude & Antigravity Gauges** | Dual Continuous $180^\circ$ Radial Arcs |
-| **Agent Approval Warning** | High-Contrast Yellow/Orange Sub-HUD Alert |
+| **Agent Approval Warning** | High-Contrast Yellow/Orange Sub-HUD Alert + Kinetic Amber Hazard Ring |
 | **Weather & Rain Forecast** | Top Crown Indicator + Temperature Sub-HUD |
 | **Desk Stand** | Modular Two-Tier Pedestal (Walnut + Cradle) |
 
