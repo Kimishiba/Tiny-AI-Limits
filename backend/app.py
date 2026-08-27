@@ -767,6 +767,31 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             })
     return sessions
 
+def check_antigravity_status(brain_dirs=None, now_ts=None):
+    sessions = scan_antigravity_sessions(brain_dirs, now_ts)
+    waiting = next((s for s in sessions if s["state"] == "WAITING"), None)
+    if waiting:
+        return {
+            "waiting_for_input": True,
+            "work_completed": False,
+            "prompt_text": waiting["detail"],
+            "source": "antigravity"
+        }
+    complete = next((s for s in sessions if s["state"] == "COMPLETE"), None)
+    if complete:
+        return {
+            "waiting_for_input": False,
+            "work_completed": True,
+            "prompt_text": "INPUT REQ",
+            "source": "antigravity"
+        }
+    return {
+        "waiting_for_input": False,
+        "work_completed": False,
+        "prompt_text": "INPUT REQ",
+        "source": "antigravity"
+    }
+
 def scan_claude_sessions(claude_dirs=None, now_ts=None):
     if claude_dirs is None:
         claude_dirs = get_claude_dirs()
@@ -906,6 +931,31 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 "mtime": mtime
             })
     return sessions
+
+def check_claude_status(claude_dirs=None, now_ts=None):
+    sessions = scan_claude_sessions(claude_dirs, now_ts)
+    waiting = next((s for s in sessions if s["state"] == "WAITING"), None)
+    if waiting:
+        return {
+            "waiting_for_input": True,
+            "work_completed": False,
+            "prompt_text": waiting["detail"],
+            "source": "claude"
+        }
+    complete = next((s for s in sessions if s["state"] == "COMPLETE"), None)
+    if complete:
+        return {
+            "waiting_for_input": False,
+            "work_completed": True,
+            "prompt_text": "INPUT REQ",
+            "source": "claude"
+        }
+    return {
+        "waiting_for_input": False,
+        "work_completed": False,
+        "prompt_text": "INPUT REQ",
+        "source": "claude"
+    }
 
 def get_multi_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None):
     if now_ts is None:

@@ -5,7 +5,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from app import check_agent_status, scan_antigravity_sessions, scan_claude_sessions, get_multi_agent_status
+from app import check_agent_status, check_antigravity_status, check_claude_status, scan_antigravity_sessions, scan_claude_sessions, get_multi_agent_status
 
 class TestAgentStatus(unittest.TestCase):
     def test_antigravity_ask_question(self):
@@ -81,6 +81,82 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(status["prompt_text"], "APPROVE PLAN")
             self.assertEqual(status["source"], "antigravity")
 
+    def test_antigravity_ask_permission_pending(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            session_dir = os.path.join(brain_dir, "session1", ".system_generated", "logs")
+            os.makedirs(session_dir, exist_ok=True)
+            transcript_file = os.path.join(session_dir, "transcript.jsonl")
+            
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-08-27T10:00:00Z",
+                    "tool_calls": [
+                        {
+                            "name": "ask_permission",
+                            "args": {"permission": "Execute deployment"}
+                        }
+                    ]
+                }) + "\n")
+            
+            status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(status["waiting_for_input"])
+            self.assertEqual(status["prompt_text"], "GRANT PERM")
+            self.assertEqual(status["source"], "antigravity")
+
+    def test_antigravity_autonomous_tool_does_not_alert(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            session_dir = os.path.join(brain_dir, "session1", ".system_generated", "logs")
+            os.makedirs(session_dir, exist_ok=True)
+            transcript_file = os.path.join(session_dir, "transcript.jsonl")
+            
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-08-27T10:00:00Z",
+                    "tool_calls": [
+                        {
+                            "name": "run_command",
+                            "args": {"CommandLine": "ls -la"}
+                        }
+                    ]
+                }) + "\n")
+            
+            status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(status["waiting_for_input"])
+            self.assertEqual(status["prompt_text"], "ALLOW CMD")
+
+    def test_claude_permission_prompt(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            projects_dir = os.path.join(tmp_dir, "projects", "project1")
+            os.makedirs(projects_dir, exist_ok=True)
+            session_file = os.path.join(projects_dir, "session1.jsonl")
+            
+            with open(session_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "assistant",
+                    "timestamp": "2026-08-27T10:00:00Z",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "request_permission",
+                                "input": {"action": "sudo rm"}
+                            }
+                        ]
+                    }
+                }) + "\n")
+            
+            status = check_agent_status(antigravity_dirs=[], claude_dirs=[tmp_dir], now_ts=time.time())
+            self.assertTrue(status["waiting_for_input"])
+            self.assertEqual(status["prompt_text"], "GRANT PERM")
+            self.assertEqual(status["source"], "claude")
+
     def test_priority_waiting_for_input_over_completed(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -90,7 +166,7 @@ class TestAgentStatus(unittest.TestCase):
             ag_file = os.path.join(ag_session, "transcript.jsonl")
             # Finished turn recently
             with open(ag_file, "w") as f:
-                f.write(json.dumps({"type": "PLANNER_RESPONSE", "tool_calls": []}) + "\n")
+                f.write(json.dumps({"type": "PLANNER_RESPONSE", "content": "Done!"}) + "\n")
 
             cl_dir = os.path.join(tmp_dir, "claude")
             cl_project = os.path.join(cl_dir, "proj")
@@ -110,7 +186,6 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(status["source"], "claude")
 
     def test_multi_agent_status_aggregation(self):
-        from app import get_multi_agent_status
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             brain_dir = os.path.join(tmp_dir, "brain")
@@ -189,5 +264,6 @@ class TestAgentStatus(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
