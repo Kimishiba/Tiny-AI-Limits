@@ -387,24 +387,24 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // 2. Fused Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs (5.0mm Bulkhead)
-    guide_t = 1.8;
-    guide_h = esp_standoff_h + 4.0;
+    // 2. Fused Internal ESP32-C3 SuperMini Seamless Blended U-Cradle (Tall Rear Wall + Blended Side Walls)
     wall_t  = 5.0;
-    wall_w  = esp_w + 3.0;
+    wall_w  = esp_w + 4.0;
     wall_h  = 12.0;
+    x_front = esp_center_x - esp_l / 2;
+    x_rear  = esp_center_x + esp_l / 2;
 
     difference() {
         union() {
-            translate([esp_center_x, 0, floor_t]) {
-                // Standoff support rails (wider base to support channel)
-                translate([-esp_l/2, 7.62 - 2.4, 0])
+            translate([0, 0, floor_t]) {
+                // Standoff support rails
+                translate([esp_center_x - esp_l/2, 7.62 - 2.4, 0])
                     cube([esp_l, 4.8, esp_standoff_h]);
-                translate([-esp_l/2, -7.62 - 2.4, 0])
+                translate([esp_center_x - esp_l/2, -7.62 - 2.4, 0])
                     cube([esp_l, 4.8, esp_standoff_h]);
                 
-                // Heavy Duty Rounded Rear Thrust Bulkhead (+X Stop opposite of USB-C port)
-                translate([esp_l/2, 0, 0]) {
+                // Solid Tall Rounded Rear Thrust Wall (No shelf - clean tall vertical stop)
+                translate([x_rear, 0, 0]) {
                     hull() {
                         translate([2.0, -wall_w/2 + 2.0, 0])
                             cylinder(r = 2.0, h = wall_h - 2.0);
@@ -415,28 +415,38 @@ module main_housing() {
                         translate([wall_t - 2.0, wall_w/2 - 2.0, 0])
                             cylinder(r = 2.0, h = wall_h - 2.0);
                     }
-                    // Overhang forward locking lip over top rear edge of PCB (+X stop + Z hold)
-                    translate([-0.75 - 0.75, -esp_w/2, esp_standoff_h + 1.4])
-                        cube([1.5, esp_w, 1.5]);
+                }
+
+                // Seamless Blended Side Guide Walls (transitioning smoothly from front to tall rear bulkhead)
+                // Top side wall
+                hull() {
+                    translate([x_front + 1.0, wall_w/2 - 1.0, 0])
+                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
+                    translate([x_rear, wall_w/2 - 1.0, 0])
+                        cylinder(r = 1.0, h = wall_h - 1.0);
+                    translate([x_front + 1.0, esp_w/2 + 0.1, 0])
+                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
+                    translate([x_rear, esp_w/2 + 0.1, 0])
+                        cylinder(r = 1.0, h = wall_h - 1.0);
+                }
+                
+                // Bottom side wall
+                hull() {
+                    translate([x_front + 1.0, -wall_w/2 + 1.0, 0])
+                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
+                    translate([x_rear, -wall_w/2 + 1.0, 0])
+                        cylinder(r = 1.0, h = wall_h - 1.0);
+                    translate([x_front + 1.0, -esp_w/2 - 0.1, 0])
+                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
+                    translate([x_rear, -esp_w/2 - 0.1, 0])
+                        cylinder(r = 1.0, h = wall_h - 1.0);
                 }
 
                 // Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
-                translate([-esp_l/2 - 2.0, 7.45 - 1.75, 0])
+                translate([x_front - 2.0, 7.45 - 1.75, 0])
                     cube([2.0, 3.5, esp_standoff_h + 4.5]);
-                translate([-esp_l/2 - 2.0, -7.45 - 1.75, 0])
+                translate([x_front - 2.0, -7.45 - 1.75, 0])
                     cube([2.0, 3.5, esp_standoff_h + 4.5]);
-
-                // Lateral Guide Walls (+/-Y Lock)
-                translate([-esp_l/2, esp_w/2, 0])
-                    cube([esp_l, guide_t, guide_h]);
-                translate([-esp_l/2, -esp_w/2 - guide_t, 0])
-                    cube([esp_l, guide_t, guide_h]);
-
-                // Inward Snap-Fit Retention Overhang Lips (+Z Lock)
-                translate([-esp_l/2, esp_w/2 - 0.7, esp_standoff_h + 1.4])
-                    cube([esp_l, 0.7, 0.9]);
-                translate([-esp_l/2, -esp_w/2, esp_standoff_h + 1.4])
-                    cube([esp_l, 0.7, 0.9]);
             }
         }
         

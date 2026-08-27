@@ -373,60 +373,54 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs (Elevated + Heavy Duty 5mm Thrust Bulkhead)
+    # 8. Internal ESP32-C3 SuperMini Rigid Seamless Blended U-Cradle (Tall Rear Wall + Blended Side Walls + Wide Pin Rails)
     rail_h = 3.2
     rail_z_top = floor_t + rail_h
     esp_l, esp_w = 23.0, 18.4
     esp_center_x = -10.0
     
-    # Standoff support rails with wide continuous pin clearance channels
+    # Standoff support rails
     rail_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
     rail_bot = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
     
-    # Heavy Duty Rounded Rear Thrust Bulkhead (5.0mm thick x 12.0mm tall x rounded corners)
+    x_front = esp_center_x - esp_l / 2.0
+    x_rear_inner = esp_center_x + esp_l / 2.0
     wall_t = 5.0
-    wall_w = esp_w + 3.0
+    x_rear_outer = x_rear_inner + wall_t
+    y_outer = esp_w / 2.0 + 2.0
     wall_h = 12.0
-    c_r1 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([2.0, -wall_w / 2.0 + 2.0, floor_t])
-    c_r2 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([wall_t - 2.0, -wall_w / 2.0 + 2.0, floor_t])
-    c_r3 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([2.0, wall_w / 2.0 - 2.0, floor_t])
-    c_r4 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([wall_t - 2.0, wall_w / 2.0 - 2.0, floor_t])
-    rear_wall_rounded = m3d.Manifold.hull(c_r1 + c_r2 + c_r3 + c_r4).translate([esp_center_x + esp_l / 2.0, 0, 0])
+    r_blend = 2.5
     
-    # Positive overhang forward locking lip over the top rear edge of the PCB (+X stop + Z hold)
-    rear_lip = m3d.Manifold.cube([1.5, esp_w, 1.5], center=True).translate([
-        esp_center_x + esp_l / 2.0 - 0.75, 0, floor_t + rail_h + 1.4 + 0.75
-    ])
-    rear_stop = rear_wall_rounded + rear_lip
+    # Tall Solid Rear Thrust Wall (No shelf - clean tall vertical stop with rounded top corners)
+    c_r1 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_outer - r_blend, -y_outer + r_blend, floor_t])
+    c_r2 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_outer - r_blend,  y_outer - r_blend, floor_t])
+    c_r3 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_inner + r_blend, -y_outer + r_blend, floor_t])
+    c_r4 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_inner + r_blend,  y_outer - r_blend, floor_t])
+    rear_block = m3d.Manifold.hull(c_r1 + c_r2 + c_r3 + c_r4)
+    
+    # Seamless blended side walls (smoothly transitioning from front to tall rear bulkhead)
+    side_h_front = rail_h + 4.0
+    c_s_top_f = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, y_outer - 1.0, floor_t])
+    c_s_top_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, y_outer - 1.0, floor_t])
+    c_s_top_in = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, esp_w / 2.0 + 0.1, floor_t])
+    c_s_top_in_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, esp_w / 2.0 + 0.1, floor_t])
+    side_wall_top = m3d.Manifold.hull(c_s_top_f + c_s_top_r + c_s_top_in + c_s_top_in_r)
+    
+    c_s_bot_f = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, -y_outer + 1.0, floor_t])
+    c_s_bot_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, -y_outer + 1.0, floor_t])
+    c_s_bot_in = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, -esp_w / 2.0 - 0.1, floor_t])
+    c_s_bot_in_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, -esp_w / 2.0 - 0.1, floor_t])
+    side_wall_bot = m3d.Manifold.hull(c_s_bot_f + c_s_bot_r + c_s_bot_in + c_s_bot_in_r)
     
     # Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
     front_stop_top = m3d.Manifold.cube([2.0, 3.5, rail_h + 4.5], center=True).translate([
-        esp_center_x - esp_l / 2.0 - 1.0, 7.45, floor_t + (rail_h + 4.5) / 2.0
+        x_front - 1.0, 7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
     front_stop_bot = m3d.Manifold.cube([2.0, 3.5, rail_h + 4.5], center=True).translate([
-        esp_center_x - esp_l / 2.0 - 1.0, -7.45, floor_t + (rail_h + 4.5) / 2.0
+        x_front - 1.0, -7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
     
-    # Lateral Guide Walls with Snap-Fit Positive Overhang Retention Lips (+/-Y & +Z Lock)
-    guide_t = 1.8
-    guide_h = rail_h + 4.0
-    guide_wall_top = m3d.Manifold.cube([esp_l, guide_t, guide_h], center=True).translate([
-        esp_center_x, esp_w / 2.0 + guide_t / 2.0, floor_t + guide_h / 2.0
-    ])
-    guide_wall_bot = m3d.Manifold.cube([esp_l, guide_t, guide_h], center=True).translate([
-        esp_center_x, -esp_w / 2.0 - guide_t / 2.0, floor_t + guide_h / 2.0
-    ])
-    
-    # Inward snap-fit retention overhang lips (0.7mm shelf at top of PCB Z)
-    snap_z_center = floor_t + rail_h + 1.4 + 0.4
-    snap_lip_top = m3d.Manifold.cube([esp_l, 0.7, 0.9], center=True).translate([
-        esp_center_x, esp_w / 2.0 - 0.35, snap_z_center
-    ])
-    snap_lip_bot = m3d.Manifold.cube([esp_l, 0.7, 0.9], center=True).translate([
-        esp_center_x, -esp_w / 2.0 + 0.35, snap_z_center
-    ])
-    
-    standoffs = rail_top + rail_bot + rear_stop + front_stop_top + front_stop_bot + guide_wall_top + guide_wall_bot + snap_lip_top + snap_lip_bot
+    u_cradle = rear_block + side_wall_top + side_wall_bot + front_stop_top + front_stop_bot + rail_top + rail_bot
 
     # Wide continuous pin clearance rail channels (accommodates soldered header pins with generous clearance)
     channel_w = 4.2
@@ -440,7 +434,7 @@ def generate_main_housing():
     ])
     pin_cuts = chan_top + chan_bot
         
-    standoffs_locked = standoffs - pin_cuts
+    standoffs_locked = u_cradle - pin_cuts
     
     return (housing_hollow + standoffs_locked) - usbc_port
 
