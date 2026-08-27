@@ -362,10 +362,15 @@ def generate_main_housing():
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    # Top edge perimeter slim slits (7 slim slits: 1.2mm width, 8.0mm length)
+    # Top edge perimeter slim slits with 45-degree peaked roofs (100% self-supporting FDM printability)
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
-        top_slot = m3d.Manifold.cube([1.2, 10.0, 8.0], center=True).translate([vx, 25.0, 15.0])
-        vent_cuts = vent_cuts + top_slot
+        pts_slot = [
+            [-0.6, 11.0], [0.6, 11.0],
+            [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]
+        ]
+        poly_slot = m3d.CrossSection([pts_slot])
+        slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).translate([vx, 30.0, 0])
+        vent_cuts = vent_cuts + slot_solid
 
     # 7. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
     text_deboss = make_text_emboss("CYBER-DECK", "UNIT 01", depth=0.45).translate([0, 0, -0.05])
@@ -373,7 +378,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock
+    # 8. Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock (45° Self-Supporting Overhangs)
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
@@ -399,14 +404,27 @@ def generate_main_housing():
         x_front, -(esp_w / 2.0 + side_thick), floor_t
     ])
     
-    # 3. Inward Snap-Fit Retention Clips on side walls to hold PCB down
-    snap_z = floor_t + rail_h + 1.4 + 0.3
-    snap_lip_top = m3d.Manifold.cube([esp_l * 0.6, 0.5, 0.7], center=True).translate([
-        esp_center_x, esp_w / 2.0 - 0.25, snap_z
-    ])
-    snap_lip_bot = m3d.Manifold.cube([esp_l * 0.6, 0.5, 0.7], center=True).translate([
-        esp_center_x, -esp_w / 2.0 + 0.25, snap_z
-    ])
+    # 3. 45-Degree Self-Supporting Inward Snap-Fit Retention Clips (Triangular chamfered profile with 45° underside slope)
+    snap_z_center = floor_t + rail_h + 1.4 + 0.3
+    clip_l = esp_l * 0.6
+    clip_w = 0.55
+    clip_h = 0.55
+
+    pts_top_ccw = [
+        [esp_w/2.0 + 0.1, snap_z_center - clip_h],
+        [esp_w/2.0 + 0.1, snap_z_center + clip_h],
+        [esp_w/2.0 - clip_w, snap_z_center]
+    ]
+    poly_top = m3d.CrossSection([pts_top_ccw])
+    snap_lip_top = m3d.Manifold.extrude(poly_top, clip_l).rotate([0, 90, 0]).translate([esp_center_x - clip_l/2.0, 0, 0])
+
+    pts_bot_ccw = [
+        [-esp_w/2.0 - 0.1, snap_z_center - clip_h],
+        [-esp_w/2.0 + clip_w, snap_z_center],
+        [-esp_w/2.0 - 0.1, snap_z_center + clip_h]
+    ]
+    poly_bot = m3d.CrossSection([pts_bot_ccw])
+    snap_lip_bot = m3d.Manifold.extrude(poly_bot, clip_l).rotate([0, 90, 0]).translate([esp_center_x - clip_l/2.0, 0, 0])
     
     # 4. Support Standoff Ledges (solid to floor_t)
     ledge_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])

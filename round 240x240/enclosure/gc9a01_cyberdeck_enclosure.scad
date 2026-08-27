@@ -372,10 +372,15 @@ module main_housing() {
         translate([0.0,   -21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
         translate([9.0,   -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
         
-        // Top edge perimeter slim slits (7 slim slits: 1.2mm width, 8.0mm length)
+        // Top edge perimeter slim slits with 45-degree peaked roofs (100% self-supporting FDM printability)
         for (vx = [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]) {
-            translate([vx, 25.0, 15.0])
-                cube([1.2, 10.0, 8.0], center=true);
+            translate([vx, 25.0, 0])
+                rotate([90, 0, 0])
+                    linear_extrude(height = 10.0, center = true)
+                        polygon(points = [
+                            [-0.6, 11.0], [0.6, 11.0],
+                            [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]
+                        ]);
         }
         
         // 6. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
@@ -387,13 +392,14 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // 2. Fused Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock
+    // 2. Fused Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock (45° Self-Supporting Overhangs)
     wall_thick  = 4.0;
     side_thick  = 1.8;
     tall_wall_h = 13.0; // Tall solid back thrust wall opposite USB-C
     side_wall_h = esp_standoff_h + 3.0; // Low-profile side clip walls
     x_front     = esp_center_x - esp_l / 2;
     x_rear      = esp_center_x + esp_l / 2;
+    snap_z      = floor_t + esp_standoff_h + 1.4 + 0.3;
 
     difference() {
         union() {
@@ -408,11 +414,18 @@ module main_housing() {
                 translate([x_front, -(esp_w / 2 + side_thick), 0])
                     cube([esp_l, side_thick, side_wall_h]);
 
-                // 3. Inward Snap-Fit Retention Clips on side walls to hold PCB down
-                translate([esp_center_x, esp_w / 2 - 0.25, esp_standoff_h + 1.4 + 0.3])
-                    cube([esp_l * 0.6, 0.5, 0.7], center=true);
-                translate([esp_center_x, -esp_w / 2 + 0.25, esp_standoff_h + 1.4 + 0.3])
-                    cube([esp_l * 0.6, 0.5, 0.7], center=true);
+                // 3. 45-Degree Self-Supporting Inward Snap-Fit Retention Clips
+                // Top clip (45° underside slope and 45° top slope)
+                translate([esp_center_x, esp_w / 2, snap_z - floor_t])
+                    rotate([0, 90, 0])
+                        linear_extrude(height = esp_l * 0.6, center = true)
+                            polygon(points = [[0.1, -0.55], [0.1, 0.55], [-0.55, 0]]);
+                
+                // Bottom clip (45° underside slope and 45° top slope)
+                translate([esp_center_x, -esp_w / 2, snap_z - floor_t])
+                    rotate([0, 90, 0])
+                        linear_extrude(height = esp_l * 0.6, center = true)
+                            polygon(points = [[-0.1, -0.55], [0.55, 0], [-0.1, 0.55]]);
 
                 // 4. Standoff Support Ledges (solid to floor_t)
                 translate([esp_center_x - esp_l/2, 7.62 - 2.4, 0])
