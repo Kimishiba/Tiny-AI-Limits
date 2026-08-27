@@ -715,13 +715,20 @@ void drawGC9A01RoundFlipUI() {
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
     static bool wasShowingAgents = false;
+    static String lastAgentNames[4] = {"", "", "", ""};
+    static String lastAgentDetails[4] = {"", "", "", ""};
+    static uint16_t lastAgentColors[4] = {0, 0, 0, 0};
+    static int lastAgentRowCount = -1;
+
     bool showAgents = agentData.has_active_agents && (agentData.active_agent_count > 0);
 
     if (showAgents) {
+        bool forceRedrawAll = false;
         if (!wasShowingAgents) {
             // First transition into agent view: clear central safe corridor
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
             wasShowingAgents = true;
+            forceRedrawAll = true;
             // Invalidate clock flip caches for clean return
             for (int i = 0; i < 4; i++) {
                 oldDigits[i] = -1;
@@ -733,9 +740,28 @@ void drawGC9A01RoundFlipUI() {
         int startY = cy - 65; // y = 55
         int visibleRows = min(agentData.active_agent_count, 3);
 
+        if (visibleRows != lastAgentRowCount) {
+            forceRedrawAll = true;
+            lastAgentRowCount = visibleRows;
+            // Clear entire area if row count decreased
+            gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
+        }
+
         for (int i = 0; i < visibleRows; i++) {
             int rowY = startY + (i * 44);
             SingleAgentInfo &ag = agentData.active_agents[i];
+
+            // Differential check: only redraw row if changed or forced
+            if (!forceRedrawAll &&
+                lastAgentNames[i] == ag.name &&
+                lastAgentDetails[i] == ag.detail &&
+                lastAgentColors[i] == ag.color) {
+                continue;
+            }
+
+            lastAgentNames[i] = ag.name;
+            lastAgentDetails[i] = ag.detail;
+            lastAgentColors[i] = ag.color;
 
             // Card container background
             gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BOT);
@@ -765,9 +791,13 @@ void drawGC9A01RoundFlipUI() {
             // Clear center corridor when switching back to clock
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
             wasShowingAgents = false;
+            lastAgentRowCount = -1;
             for (int i = 0; i < 4; i++) {
                 oldDigits[i] = -1;
                 prevTarget[i] = -1;
+                lastAgentNames[i] = "";
+                lastAgentDetails[i] = "";
+                lastAgentColors[i] = 0;
             }
         }
 
