@@ -753,6 +753,9 @@
           <button class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: var(--accent-orange);" onclick="triggerApprovalAlert('APPROVE PLAN')">
             📋 Plan Review Alert
           </button>
+          <button class="neo-btn" style="background: #e0f2fe; font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: #0284c7; color: #0369a1; grid-column: span 2;" onclick="triggerOTASimulation()">
+            🚀 Simulate OTA Firmware Update (v0.4 ➔ v0.5)
+          </button>
         </div>
 
         <div class="ctrl-row" style="margin-top: 0.75rem;">
@@ -1641,8 +1644,72 @@
       }
     }
 
+    let isOTAUpdating = false;
+    let otaPercent = 0;
+    let otaTimer = null;
+
+    function triggerOTASimulation() {
+      if (isOTAUpdating) return;
+      isOTAUpdating = true;
+      otaPercent = 0;
+      if (otaTimer) clearInterval(otaTimer);
+      otaTimer = setInterval(() => {
+        otaPercent += 2;
+        if (otaPercent >= 100) {
+          clearInterval(otaTimer);
+          setTimeout(() => {
+            isOTAUpdating = false;
+            otaPercent = 0;
+          }, 2000);
+        }
+      }, 70);
+    }
+
+    function drawGC9A01OTAScreen(c) {
+      const cx = 120, cy = 120;
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(0, 0, 240, 240);
+
+      // Outer dark track
+      c.strokeStyle = KINETIC_DARK_SLATE;
+      c.lineWidth = 4;
+      c.beginPath();
+      c.arc(cx, cy, 114, 0, Math.PI * 2);
+      c.stroke();
+
+      // Progress Arc
+      c.strokeStyle = KINETIC_AMBER;
+      c.lineWidth = 4;
+      c.beginPath();
+      const maxRad = (otaPercent / 100) * Math.PI * 2;
+      c.arc(cx, cy, 114, -Math.PI / 2, -Math.PI / 2 + maxRad);
+      c.stroke();
+
+      c.textAlign = "center";
+      c.fillStyle = QBIT_CYAN;
+      c.font = "bold 10px monospace";
+      c.fillText("FIRMWARE OTA", cx, cy - 40);
+
+      c.fillStyle = "#94A3B8";
+      c.font = "9px monospace";
+      c.fillText("v0.4 -> v0.5", cx, cy - 25);
+
+      c.fillStyle = "#FFFFFF";
+      c.font = "bold 26px monospace";
+      c.fillText(otaPercent + "%", cx, cy + 8);
+
+      c.fillStyle = KINETIC_AMBER;
+      c.font = "bold 9px monospace";
+      c.fillText(otaPercent >= 100 ? "REBOOTING..." : "FLASHING...", cx, cy + 30);
+
+      c.fillStyle = "#64748B";
+      c.font = "8px monospace";
+      c.fillText("DO NOT UNPLUG", cx, cy + 45);
+    }
+
     function renderScreenState(screenId, ctxTarget) {
-      if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
+      if (isOTAUpdating) drawGC9A01OTAScreen(ctxTarget);
+      else if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
       else drawGC9A01RoundFlipUI(ctxTarget);
     }
 

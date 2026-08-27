@@ -45,7 +45,62 @@ def save_config(cfg):
     except Exception as e:
         print(f"Error saving config: {e}")
 
-COMPANION_VERSION = "0.4.0"
+COMPANION_VERSION = "0.5.0"
+FIRMWARE_CACHE_DIR = os.path.join(CONFIG_DIR, "firmware_cache")
+os.makedirs(FIRMWARE_CACHE_DIR, exist_ok=True)
+_ota_trigger_lock = threading.Lock()
+_ota_trigger_requested = False
+_firmware_cache = {"version": "0.5", "tag": "firmware-v0.5", "path": None, "size": 0, "checked_at": 0}
+
+def get_latest_firmware(force_check=False):
+    global _firmware_cache
+    now = time.time()
+    if not force_check and _firmware_cache.get("path") and os.path.exists(_firmware_cache["path"]) and (now - _firmware_cache.get("checked_at", 0) < 600):
+        return _firmware_cache
+
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    local_bin = os.path.join(repo_root, ".pio", "build", "esp32c3", "firmware.bin")
+
+    try:
+        res = requests.get("https://api.github.com/repos/Kimishiba/Tiny-AI-Limits/releases", timeout=5)
+        if res.status_code == 200:
+            releases = res.json()
+            for r in releases:
+                tag = r.get("tag_name", "")
+                if tag.startswith("firmware-v") or tag.startswith("v"):
+                    ver_clean = tag.replace("firmware-v", "").replace("v", "")
+                    for asset in r.get("assets", []):
+                        if asset.get("name") == "firmware.bin":
+                            download_url = asset.get("browser_download_url")
+                            dest_path = os.path.join(FIRMWARE_CACHE_DIR, f"firmware_{tag}.bin")
+                            if not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
+                                d_res = requests.get(download_url, timeout=30)
+                                if d_res.status_code == 200:
+                                    with open(dest_path, "wb") as f:
+                                        f.write(d_res.content)
+                            if os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
+                                _firmware_cache = {
+                                    "version": ver_clean,
+                                    "tag": tag,
+                                    "path": dest_path,
+                                    "size": os.path.getsize(dest_path),
+                                    "checked_at": now
+                                }
+                                return _firmware_cache
+    except Exception as e:
+        print(f"GitHub release check warning: {e}")
+
+    if os.path.exists(local_bin) and os.path.getsize(local_bin) > 0:
+        _firmware_cache = {
+            "version": "0.5",
+            "tag": "firmware-v0.5",
+            "path": local_bin,
+            "size": os.path.getsize(local_bin),
+            "checked_at": now
+        }
+        return _firmware_cache
+
+    return _firmware_cache
 
 def get_pair_id(cfg):
     """Stable per-install identifier used to pair a board to *this* companion.
@@ -1397,6 +1452,20 @@ def get_data():
         active_agents_payload = multi_status["active_agents"]
         has_active = multi_status["has_active_agents"]
 
+    global _ota_trigger_requested
+    with _ota_trigger_lock:
+        trigger_ota = _ota_trigger_requested
+        _ota_trigger_requested = False
+
+    fw_info = get_latest_firmware()
+    ota_payload = {
+        "available": bool(fw_info.get("path") and fw_info.get("size", 0) > 0),
+        "version": fw_info.get("version", "0.5"),
+        "tag": fw_info.get("tag", "firmware-v0.5"),
+        "trigger": trigger_ota,
+        "url": "/firmware/latest.bin"
+    }
+
     return jsonify({
         "claude": claude_data,
         "antigravity": antigravity_data,
@@ -1417,12 +1486,51 @@ def get_data():
             "source": source,
             "has_active_agents": has_active,
             "active_agents": active_agents_payload
-        }
+        },
+        "ota": ota_payload
     })
 
 @app.route('/api/agents', methods=['GET'])
 def get_agents():
     return jsonify(get_multi_agent_status())
+
+@app.route('/firmware/version', methods=['GET'])
+def get_firmware_version():
+    force = request.args.get("refresh", "0") == "1"
+    fw_info = get_latest_firmware(force_check=force)
+    return jsonify({
+        "version": fw_info.get("version", "0.5"),
+        "tag": fw_info.get("tag", "firmware-v0.5"),
+        "available": bool(fw_info.get("path") and fw_info.get("size", 0) > 0),
+        "size": fw_info.get("size", 0),
+        "companion_version": COMPANION_VERSION
+    })
+
+@app.route('/firmware/latest.bin', methods=['GET'])
+def download_latest_firmware():
+    fw_info = get_latest_firmware()
+    fw_path = fw_info.get("path")
+    if not fw_path or not os.path.exists(fw_path):
+        return jsonify({"error": "firmware_not_found", "message": "No firmware binary available"}), 404
+    return send_file(
+        fw_path,
+        mimetype="application/octet-stream",
+        as_attachment=True,
+        download_name="firmware.bin"
+    )
+
+@app.route('/api/ota/trigger', methods=['POST'])
+def trigger_ota():
+    global _ota_trigger_requested
+    with _ota_trigger_lock:
+        _ota_trigger_requested = True
+    fw_info = get_latest_firmware(force_check=True)
+    return jsonify({
+        "status": "ok",
+        "message": "OTA update trigger armed for connected device",
+        "target_version": fw_info.get("version", "0.5"),
+        "target_tag": fw_info.get("tag", "firmware-v0.5")
+    })
 
 @app.route('/config', methods=['GET', 'POST'])
 def handle_config():
@@ -1584,17 +1692,21 @@ def create_gui_window():
 
     def check_firmware_updates():
         try:
-            res = requests.get("https://api.github.com/repos/YOUR_GITHUB_USERNAME/Desktop-Tiny-Screen/releases/latest", timeout=5)
-            if res.status_code == 200:
-                data = res.json()
-                tag = data.get("tag_name", "Unknown")
-                messagebox.showinfo("GitHub Firmware Update", f"Latest Release Tag on GitHub: {tag}\n\nYour ESP32 will auto-update on next boot if a new tag is available!")
+            fw = get_latest_firmware(force_check=True)
+            if fw.get("path") and fw.get("size", 0) > 0:
+                tag = fw.get("tag", "Unknown")
+                size_kb = fw.get("size", 0) // 1024
+                if messagebox.askyesno("Firmware Update", f"Latest Release: {tag} ({size_kb} KB)\n\nDo you want to flash this firmware to your ESP32 over-the-air now?"):
+                    global _ota_trigger_requested
+                    with _ota_trigger_lock:
+                        _ota_trigger_requested = True
+                    messagebox.showinfo("OTA Triggered", "OTA Update trigger sent to device!\nYour screen will show the update progress ring shortly.")
             else:
-                messagebox.showwarning("Update Check", "No GitHub release tags found or repository is private.")
+                messagebox.showwarning("Update Check", "No firmware release found on GitHub or repository is private.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to check GitHub updates: {e}")
 
-    ota_btn = tk.Button(ota_frame, text="Check for ESP32 Firmware Updates", command=check_firmware_updates, bg="#a6e3a1", fg="#11111b", activebackground="#94e2d5", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
+    ota_btn = tk.Button(ota_frame, text="⚡ Flash Latest Firmware (OTA)", command=check_firmware_updates, bg="#a6e3a1", fg="#11111b", activebackground="#94e2d5", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
     ota_btn.pack(fill="x", padx=10, pady=8)
 
     # --- Emulator Section ---
@@ -1721,15 +1833,26 @@ class TinyScreenMacStatusBarApp(object):
                         else:
                             rumps.alert("Location Error", f"Could not find coordinates for city: '{city}'")
 
-            @rumps.clicked("🔄 Check Firmware Updates")
+            @rumps.clicked("⚡ Flash Latest Firmware (OTA)")
             def check_updates(self, _):
                 try:
-                    res = requests.get("https://api.github.com/repos/YOUR_GITHUB_USERNAME/Desktop-Tiny-Screen/releases/latest", timeout=5)
-                    if res.status_code == 200:
-                        tag = res.json().get("tag_name", "Unknown")
-                        rumps.alert("Firmware Updates", f"Latest Release Tag on GitHub: {tag}\n\nYour ESP32 will auto-update on next boot if a new tag is available!")
+                    fw = get_latest_firmware(force_check=True)
+                    if fw.get("path") and fw.get("size", 0) > 0:
+                        tag = fw.get("tag", "Unknown")
+                        size_kb = fw.get("size", 0) // 1024
+                        response = rumps.alert(
+                            title="Firmware OTA Update",
+                            message=f"Latest Release: {tag} ({size_kb} KB)\n\nFlash this firmware over-the-air to your ESP32 companion device now?",
+                            ok="Flash Device (OTA)",
+                            cancel="Cancel"
+                        )
+                        if response == 1:
+                            global _ota_trigger_requested
+                            with _ota_trigger_lock:
+                                _ota_trigger_requested = True
+                            rumps.alert("OTA Triggered", "OTA Update signal sent to device!\nYour screen will begin flashing shortly.")
                     else:
-                        rumps.alert("Firmware Updates", "No GitHub releases found or repository is private.")
+                        rumps.alert("Firmware Updates", "No firmware release found on GitHub or repository is private.")
                 except Exception as e:
                     rumps.alert("Update Check Failed", f"Error: {e}")
 
