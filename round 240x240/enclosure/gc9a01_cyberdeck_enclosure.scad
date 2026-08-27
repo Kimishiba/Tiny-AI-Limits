@@ -320,22 +320,36 @@ module main_housing() {
             }
         }
         
-        // 5. Prominent Aeration Vent Slots (Rear Backplate Grille & Top Edge Exhaust)
-        // Rear backplate upper zone wide slots (Y = 11.0, 14.5, 18.0, 21.5, X in [-15, 15])
-        for (vy = [11.0, 14.5, 18.0, 21.5]) {
-            translate([-15.0, vy - 1.1, -1.0])
-                cube([30.0, 2.2, floor_t + 2.0]);
+        // 5. Small Aeration Vent Slots (3 columns Top & 3 columns Bottom matching 3D concept render)
+        // Rear backplate TOP small openings (3 columns at X = -11, 0, 11; 4 rows at Y = 11.5, 14.5, 17.5, 20.5)
+        for (col_x = [-11.0, 0.0, 11.0]) {
+            for (row_y = [11.5, 14.5, 17.5, 20.5]) {
+                translate([col_x - 4.0, row_y - 0.8, -1.0])
+                    cube([8.0, 1.6, floor_t + 2.0]);
+            }
         }
-        // Rear backplate lower/middle zone slots (Y = -6.0, -9.5, -13.0, X in [3, 17])
-        for (vy = [-6.0, -9.5, -13.0]) {
-            translate([3.0, vy - 1.1, -1.0])
-                cube([14.0, 2.2, floor_t + 2.0]);
+        
+        // Rear backplate BOTTOM small openings (3 columns at X = -11, 0, 11; 4 rows at Y = -20.5, -17.5, -14.5, -11.5)
+        for (col_x = [-11.0, 0.0, 11.0]) {
+            for (row_y = [-20.5, -17.5, -14.5, -11.5]) {
+                translate([col_x - 4.0, row_y - 0.8, -1.0])
+                    cube([8.0, 1.6, floor_t + 2.0]);
+            }
         }
+        
         // Top edge perimeter exhaust vents (5 vertical slots at X = -14, -7, 0, 7, 14; Z in [8, 21])
         for (vx = [-14.0, -7.0, 0.0, 7.0, 14.0]) {
-            translate([vx - 1.5, 20.0, 8.0])
-                cube([3.0, 10.0, 13.0]);
+            translate([vx - 1.25, 20.0, 8.0])
+                cube([2.5, 10.0, 13.0]);
         }
+        
+        // 6. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
+        translate([0, 2.0, -0.05])
+            linear_extrude(height = 0.5)
+                text("CYBER-DECK", size = 3.2, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+        translate([0, -2.0, -0.05])
+            linear_extrude(height = 0.5)
+                text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
     // Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs

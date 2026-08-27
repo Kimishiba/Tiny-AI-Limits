@@ -268,6 +268,27 @@ def generate_mid_clamp():
 
 
 
+import matplotlib.font_manager as fm
+from matplotlib.textpath import TextPath
+
+def make_text_emboss(text1="CYBER-DECK", text2="UNIT 01", depth=0.6):
+    tp1 = TextPath((0, 0), text1, size=3.2, prop=fm.FontProperties(family='sans-serif', weight='bold'))
+    polys1 = tp1.to_polygons()
+    all1 = np.vstack(polys1)
+    cx1 = (all1[:, 0].min() + all1[:, 0].max()) / 2.0
+    cy1 = (all1[:, 1].min() + all1[:, 1].max()) / 2.0
+    polys1_c = [(p - [cx1, cy1] + [0.0, 2.0]).tolist() for p in polys1]
+    
+    tp2 = TextPath((0, 0), text2, size=2.5, prop=fm.FontProperties(family='sans-serif', weight='bold'))
+    polys2 = tp2.to_polygons()
+    all2 = np.vstack(polys2)
+    cx2 = (all2[:, 0].min() + all2[:, 0].max()) / 2.0
+    cy2 = (all2[:, 1].min() + all2[:, 1].max()) / 2.0
+    polys2_c = [(p - [cx2, cy2] + [0.0, -2.0]).tolist() for p in polys2]
+    
+    cs = m3d.CrossSection(polys1_c + polys2_c, m3d.FillRule.EvenOdd)
+    return m3d.Manifold.extrude(cs, depth)
+
 def generate_main_housing():
     w = 54.0
     c = 6.0
@@ -315,22 +336,29 @@ def generate_main_housing():
             pilot_m3 = m3d.Manifold.cylinder(15.2, 1.4, 1.4, 32).translate([sx, sy, depth - 15.0])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3
             
-    # 6. Prominent Aeration Vent Slots (Rear Backplate Grille & Top Edge Exhaust)
+    # 6. Small Aeration Vent Slots (3 columns Top & 3 columns Bottom matching 3D concept render)
     vent_cuts = m3d.Manifold()
-    # Rear backplate upper zone wide slots (Y = 11.0, 14.5, 18.0, 21.5, X in [-15, 15])
-    for vy in [11.0, 14.5, 18.0, 21.5]:
-        slot = m3d.Manifold.cube([30.0, 2.2, floor_t + 2.0], center=False).translate([-15.0, vy - 1.1, -1.0])
-        vent_cuts = vent_cuts + slot
-    # Rear backplate lower/middle zone slots (Y = -6.0, -9.5, -13.0, X in [3, 17])
-    for vy in [-6.0, -9.5, -13.0]:
-        slot = m3d.Manifold.cube([14.0, 2.2, floor_t + 2.0], center=False).translate([3.0, vy - 1.1, -1.0])
-        vent_cuts = vent_cuts + slot
+    # Rear backplate TOP small openings (3 columns at X = -11, 0, 11; 4 rows at Y = 11.5, 14.5, 17.5, 20.5)
+    for col_x in [-11.0, 0.0, 11.0]:
+        for row_y in [11.5, 14.5, 17.5, 20.5]:
+            slot = m3d.Manifold.cube([8.0, 1.6, floor_t + 2.0], center=False).translate([col_x - 4.0, row_y - 0.8, -1.0])
+            vent_cuts = vent_cuts + slot
+            
+    # Rear backplate BOTTOM small openings (3 columns at X = -11, 0, 11; 4 rows at Y = -20.5, -17.5, -14.5, -11.5)
+    for col_x in [-11.0, 0.0, 11.0]:
+        for row_y in [-20.5, -17.5, -14.5, -11.5]:
+            slot = m3d.Manifold.cube([8.0, 1.6, floor_t + 2.0], center=False).translate([col_x - 4.0, row_y - 0.8, -1.0])
+            vent_cuts = vent_cuts + slot
+            
     # Top edge perimeter exhaust vents (5 vertical slots at X = -14, -7, 0, 7, 14; Z in [8, 21])
     for vx in [-14.0, -7.0, 0.0, 7.0, 14.0]:
-        top_slot = m3d.Manifold.cube([3.0, 10.0, 13.0], center=False).translate([vx - 1.5, 20.0, 8.0])
+        top_slot = m3d.Manifold.cube([2.5, 10.0, 13.0], center=False).translate([vx - 1.25, 20.0, 8.0])
         vent_cuts = vent_cuts + top_slot
 
-    cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts
+    # 7. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
+    text_deboss = make_text_emboss("CYBER-DECK", "UNIT 01", depth=0.5).translate([0, 0, -0.05])
+
+    cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_body = chassis - cuts
     
     # 7. Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs
