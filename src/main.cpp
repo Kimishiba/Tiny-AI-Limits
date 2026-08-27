@@ -533,7 +533,7 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
         float rad = deg * 0.0174533f;
         float cosR = cosf(rad);
         float sinR = sinf(rad);
-        for (int r = 102; r <= 106; r++) {
+        for (int r = 101; r <= 107; r++) {
             gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), arcCol);
         }
     }
@@ -1347,7 +1347,7 @@ void fetchBackendData() {
                         if (colStr.equalsIgnoreCase("#FFB800")) agentData.active_agents[count].color = GC_COLOR_AMBER;
                         else if (colStr.equalsIgnoreCase("#00FF88")) agentData.active_agents[count].color = gcGfx->color565(0, 255, 136);
                         else if (colStr.equalsIgnoreCase("#00E5FF")) agentData.active_agents[count].color = GC_COLOR_CYAN;
-                        else if (colStr.equalsIgnoreCase("#FF7A00")) agentData.active_agents[count].color = colOrange;
+                        else if (colStr.equalsIgnoreCase("#FF7A00")) agentData.active_agents[count].color = GC_COLOR_ORANGE;
                         else agentData.active_agents[count].color = GC_COLOR_SLATE_GRAY;
                         count++;
                     }
@@ -1387,14 +1387,15 @@ bool connectToWifi(const char* ssid, const char* password) {
     WiFi.disconnect(true, true);
     delay(150);
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
     WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm); // Tuned for KPN router RF sensitivity & ESP32-C3 LDO stability
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
 
     wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
     esp_wifi_set_country(&country);
     delay(50);
 
-    Serial.printf("\n[WiFi] Connecting to '%s' (TX: 8.5dBm)...\n", ssid);
+    Serial.printf("\n[WiFi] Connecting to '%s' (TX: 19.5dBm)...\n", ssid);
     WiFi.begin(ssid, password);
 
     unsigned long connectStart = millis();
@@ -1733,11 +1734,6 @@ void loop() {
         lastFrameTime = now;
 
         // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-        static bool initialCleared = false;
-        if (!initialCleared) {
-            initialCleared = true;
-            gcGfx->fillScreen(GC_COLOR_BLACK);
-        }
         // Keeps the blink/gaze state live for drawGC9A01RoundFaceUI(), which
         // is wired up but not currently selected by the loop.
         updateFacePhysics(now);
