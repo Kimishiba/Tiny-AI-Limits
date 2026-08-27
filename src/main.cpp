@@ -804,17 +804,23 @@ void drawGC9A01RoundFlipUI() {
             lastAgentDetails[i] = ag.detail;
             lastAgentColors[i] = ag.color;
 
-            // Card container background
-            gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BOT);
-            gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BORDER);
+            // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
+            bool isAGY = (ag.name.startsWith("AGY") || ag.name.indexOf("AGY") >= 0);
+            uint16_t brandCol = isAGY ? colOrange : colCyan;
+            uint16_t cardBorderCol = isAGY ? gcGfx->color565(80, 40, 0) : gcGfx->color565(0, 60, 75);
+            uint16_t cardBgCol = isAGY ? gcGfx->color565(22, 14, 8) : gcGfx->color565(10, 18, 24);
 
-            // Left status bar
-            gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, ag.color);
+            // Card container background
+            gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, cardBgCol);
+            gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, cardBorderCol);
+
+            // Left brand accent bar (Orange for AGY, Teal for Claude)
+            gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, brandCol);
 
             // Row 1: Agent Label & State Indicator
             gcGfx->setTextSize(1);
             gcGfx->setCursor(cx - 42, rowY + 6);
-            gcGfx->setTextColor(GC_COLOR_WHITE);
+            gcGfx->setTextColor(brandCol);
             gcGfx->print(ag.name);
 
             // Status Badge Dot
@@ -936,12 +942,10 @@ void drawGC9A01RoundFaceUI() {
         gcGfx->drawCircle(cx, cy, 117, colBezel);
     }
 
-    // 2. Top Crown: Connection Status LED & Rain Indicator
+    // 2. Top Crown: Connection Status Arc & Rain Indicator
     // Amber means connected but unpaired -- see STATUS_UNPAIRED_NOTE.
-    uint16_t dotCol = !wifiConnected            ? gcGfx->color565(239, 68, 68)
-                    : (pairedHost.length() > 0) ? gcGfx->color565(34, 197, 94)
-                                                : gcGfx->color565(245, 158, 11);
-    gcGfx->fillCircle(cx, cy - 105, 3, dotCol);
+    int curFaceLedState = !wifiConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    drawGC9A01TopConnectionArc(cx, cy, curFaceLedState);
 
     char rainStr[24];
     if (weatherData.hours_until_rain < 0) {

@@ -640,17 +640,18 @@ def get_stable_agent_label(source, session_key):
         _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
     return _session_registry[reg_key]
 
-def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None):
+def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None, source="claude"):
     """Deterministic state resolution: WAITING > WORKING > COMPLETE > IDLE."""
     completion_duration = (cfg.get("completion_duration_seconds", 10) if isinstance(cfg, dict) else 10) if cfg else 10
+    working_color = "#FF7A00" if source == "antigravity" else "#00E5FF"
     if found_pending:
         return "WAITING", "waiting_approval", turn_pending_prompt, "#FFB800"
     elif has_in_flight_tools or (age < IN_FLIGHT_TIMEOUT_SECONDS and not is_final_turn_response):
-        return "WORKING", "working", "EXECUTING...", "#00E5FF"
+        return "WORKING", "working", "EXECUTING...", working_color
     elif is_final_turn_response and age < completion_duration:
         return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
     elif age < IN_FLIGHT_TIMEOUT_SECONDS:
-        return "WORKING", "working", "EXECUTING...", "#00E5FF"
+        return "WORKING", "working", "EXECUTING...", working_color
     else:
         return "IDLE", "idle", "IDLE", "#94A3B8"
 
@@ -1025,7 +1026,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
             label = get_stable_agent_label("antigravity", session_id)
             state, code, detail, color = resolve_session_state(
-                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config
+                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config, source="antigravity"
             )
 
             sessions.append({
@@ -1168,7 +1169,7 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                     is_final_turn_response = True
 
             state, code, detail, color = resolve_session_state(
-                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config
+                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config, source="claude"
             )
 
             sessions.append({

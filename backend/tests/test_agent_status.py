@@ -252,7 +252,7 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(len(sessions), 1)
             self.assertEqual(sessions[0]["state"], "WORKING")
             self.assertEqual(sessions[0]["detail"], "EXECUTING...")
-            self.assertEqual(sessions[0]["color"], "#00E5FF")
+            self.assertEqual(sessions[0]["color"], "#FF7A00")
 
     def test_claude_bash_working(self):
         import tempfile
