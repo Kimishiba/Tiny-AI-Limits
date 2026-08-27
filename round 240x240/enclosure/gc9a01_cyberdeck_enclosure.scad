@@ -48,14 +48,14 @@ screw_head_dia     = 6.2;  // M3 socket cap head counterbore (mm)
 screw_head_depth   = 3.2;  // Counterbore pocket depth (mm)
 screw_pilot_dia    = 2.8;  // M3 pilot / self-tapping / heat-set insert hole (mm)
 
-// Internal Cavity & ESP32-C3 SuperMini Mounting (Elevated)
-cavity_w           = 46.0; // 46mm wide internal bay (mm)
-cavity_chamfer     = 13.0; // 13.0mm corner chamfers leaving massive corner screw pillars (mm)
-floor_t            = 2.5;  // Rear wall thickness (mm)
+// Internal Cavity & ESP32-C3 SuperMini Mounting (Slimmed Enclosure Profile)
+cavity_w           = 48.0; // 48mm wide internal bay (3mm slimmed perimeter walls) (mm)
+cavity_chamfer     = 12.0; // 12.0mm corner chamfers (mm)
+floor_t            = 2.0;  // 2.0mm slimmed rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
-esp_standoff_h     = 3.5;  // ESP32 standoff rail height (mm)
-usbc_center_z      = 9.75; // Elevated USB-C port centerline with ample clearance (mm)
+esp_standoff_h     = 3.2;  // ESP32 standoff rail height (mm)
+usbc_center_z      = 9.50; // Elevated USB-C port centerline with ample clearance (mm)
 
 
 // Stand Parameters (Exact Concept Render Proportions)
@@ -320,44 +320,79 @@ module main_housing() {
             }
         }
         
-        // 5. Small Aeration Vent Slots (3 columns Top & 3 columns Bottom matching 3D concept render)
-        // Rear backplate TOP small openings (3 columns at X = -11, 0, 11; 4 rows at Y = 11.5, 14.5, 17.5, 20.5)
-        for (col_x = [-11.0, 0.0, 11.0]) {
-            for (row_y = [11.5, 14.5, 17.5, 20.5]) {
-                translate([col_x - 4.0, row_y - 0.8, -1.0])
-                    cube([8.0, 1.6, floor_t + 2.0]);
-            }
-        }
+        // 5. Sleek Contour-Following Aeration Slits (Slimmed to match concept render and contour corner chamfers)
+        // Top & Bottom rows: (Y, Left_W, Left_CX, Center_W, Center_CX, Right_W, Right_CX)
+        // Upper zone
+        translate([-11.0, 10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   10.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([11.0,  10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
         
-        // Rear backplate BOTTOM small openings (3 columns at X = -11, 0, 11; 4 rows at Y = -20.5, -17.5, -14.5, -11.5)
-        for (col_x = [-11.0, 0.0, 11.0]) {
-            for (row_y = [-20.5, -17.5, -14.5, -11.5]) {
-                translate([col_x - 4.0, row_y - 0.8, -1.0])
-                    cube([8.0, 1.6, floor_t + 2.0]);
-            }
-        }
+        translate([-11.0, 12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   12.7, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([11.0,  12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-11.0, 14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   14.9, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([11.0,  14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-10.5, 17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   17.1, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([10.5,  17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-10.0, 19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   19.3, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([10.0,  19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-9.0,  21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([9.0,   21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
+
+        // Lower zone (mirror)
+        translate([-11.0, -10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   -10.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([11.0,  -10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
         
-        // Top edge perimeter exhaust vents (5 vertical slots at X = -14, -7, 0, 7, 14; Z in [8, 21])
-        for (vx = [-14.0, -7.0, 0.0, 7.0, 14.0]) {
-            translate([vx - 1.25, 20.0, 8.0])
-                cube([2.5, 10.0, 13.0]);
+        translate([-11.0, -12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   -12.7, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([11.0,  -12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-11.0, -14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   -14.9, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([11.0,  -14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-10.5, -17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   -17.1, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([10.5,  -17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-10.0, -19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   -19.3, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([10.0,  -19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
+
+        translate([-9.0,  -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
+        translate([0.0,   -21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
+        translate([9.0,   -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
+        
+        // Top edge perimeter slim slits (7 slim slits: 1.2mm width, 8.0mm length)
+        for (vx = [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]) {
+            translate([vx, 25.0, 15.0])
+                cube([1.2, 10.0, 8.0], center=true);
         }
         
         // 6. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
         translate([0, 2.0, -0.05])
-            linear_extrude(height = 0.5)
+            linear_extrude(height = 0.45)
                 text("CYBER-DECK", size = 3.2, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
         translate([0, -2.0, -0.05])
-            linear_extrude(height = 0.5)
+            linear_extrude(height = 0.45)
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
     // Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs (Elevated + Heavy Duty Rounded Bulkhead)
     guide_t = 1.8;
-    guide_h = esp_standoff_h + 3.5;
-    wall_t  = 4.5;
+    guide_h = esp_standoff_h + 3.2;
+    wall_t  = 4.0;
     wall_w  = esp_w + 3.0;
-    wall_h  = 11.0;
+    wall_h  = 10.5;
 
     difference() {
         union() {
@@ -371,14 +406,14 @@ module main_housing() {
                 // Heavy Duty Rounded Rear Thrust Bulkhead (+X Stop opposite of USB-C port)
                 translate([esp_l/2, 0, 0]) {
                     hull() {
-                        translate([0, -wall_w/2 + 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                        translate([wall_t - 2.0, -wall_w/2 + 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                        translate([0, wall_w/2 - 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                        translate([wall_t - 2.0, wall_w/2 - 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
+                        translate([1.8, -wall_w/2 + 1.8, 0])
+                            cylinder(r = 1.8, h = wall_h - 1.8);
+                        translate([wall_t - 1.8, -wall_w/2 + 1.8, 0])
+                            cylinder(r = 1.8, h = wall_h - 1.8);
+                        translate([1.8, wall_w/2 - 1.8, 0])
+                            cylinder(r = 1.8, h = wall_h - 1.8);
+                        translate([wall_t - 1.8, wall_w/2 - 1.8, 0])
+                            cylinder(r = 1.8, h = wall_h - 1.8);
                     }
                     // Overhang forward locking lip over top rear edge of PCB
                     translate([-0.6 - 0.6, -esp_w/2, esp_standoff_h + 1.4])
@@ -387,9 +422,9 @@ module main_housing() {
 
                 // Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
                 translate([-esp_l/2 - 2.0, 7.45 - 1.75, 0])
-                    cube([2.0, 3.5, esp_standoff_h + 4.5]);
+                    cube([2.0, 3.5, esp_standoff_h + 4.0]);
                 translate([-esp_l/2 - 2.0, -7.45 - 1.75, 0])
-                    cube([2.0, 3.5, esp_standoff_h + 4.5]);
+                    cube([2.0, 3.5, esp_standoff_h + 4.0]);
 
                 // Lateral Guide Walls (+/-Y Lock)
                 translate([-esp_l/2, esp_w/2, 0])
