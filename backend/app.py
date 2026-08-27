@@ -640,12 +640,47 @@ test_alert_override = False
 test_alert_prompt = "APPROVE PLAN"
 test_complete_override = False
 test_complete_prompt = "WORK COMPLETE"
+test_idle_override = False
+test_agents_override = None
+
+@app.route('/api/test_agents', methods=['GET', 'POST'])
+def handle_test_agents():
+    global test_agents_override, test_idle_override, test_alert_override, test_complete_override
+    data = request.json or request.args or {}
+    if "clear" in data or data.get("active") is False or data.get("agents") is None:
+        test_agents_override = None
+    elif "agents" in data:
+        test_agents_override = data["agents"]
+        test_idle_override = False
+        test_alert_override = False
+        test_complete_override = False
+    return jsonify({"status": "ok", "test_agents_override": test_agents_override})
+
+@app.route('/api/test_idle', methods=['GET', 'POST'])
+def handle_test_idle():
+    global test_idle_override, test_alert_override, test_complete_override, test_agents_override
+    data = request.json or request.args or {}
+    val = data.get("idle") if "idle" in data else data.get("active")
+    if val is not None:
+        test_idle_override = str(val).lower() in ["true", "1", "yes", "active", "on"]
+    else:
+        test_idle_override = not test_idle_override
+    if test_idle_override:
+        test_alert_override = False
+        test_complete_override = False
+        test_agents_override = None
+    return jsonify({"status": "ok", "test_idle_active": test_idle_override})
 
 @app.route('/api/test_alert', methods=['GET', 'POST'])
+@app.route('/api/test_complete', methods=['GET', 'POST'])
 def handle_test_alert():
-    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt
+    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt, test_idle_override, test_agents_override
+    test_idle_override = False
+    test_agents_override = None
     data = request.json or request.args or {}
     mode = data.get("mode") or data.get("type") or ""
+    if request.path == '/api/test_complete':
+        mode = "complete"
     
     if mode == "complete" or "complete" in data or "completed" in data:
         val = data.get("complete") if "complete" in data else data.get("completed")
@@ -827,7 +862,7 @@ def handle_hook_event(data, now_ts=None):
                 code = "waiting_approval"
                 detail = "ANSWER Q"
                 color = "#FFB800"
-            elif tool_name in ("bash", "edit", "write", "multiedit", "notebookedit", "fileedit") or "permission" in tool_name or "confirm" in tool_name or not tool_name:
+            elif tool_name in ("ask_permission", "request_permission") or "permission" in tool_name or "confirm" in tool_name:
                 state = "WAITING"
                 code = "waiting_approval"
                 detail = "GRANT PERM"
@@ -1108,16 +1143,12 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                             found_pending = True
                             turn_pending_prompt = "ANSWER Q"
                             break
-                        elif name_lower in (
-                            "ask_permission", "request_permission", "run_command",
-                            "write_to_file", "replace_file_content", "multi_replace_file_content",
-                            "call_mcp_tool"
-                        ) or "permission" in name_lower or "confirm" in name_lower:
+                        elif name_lower in ("ask_permission", "request_permission") or "permission" in name_lower or "confirm" in name_lower:
                             found_pending = True
                             turn_pending_prompt = "GRANT PERM"
                             break
                         else:
-                            # Autonomous tool execution (view_file, grep_search, etc.)
+                            # Autonomous tool execution (run_command, write_to_file, replace_file_content, etc.)
                             has_in_flight_tools = True
                 elif last_step_entry.get("content"):
                     # Final text response delivered to user
@@ -1265,15 +1296,12 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                                 found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif t_name in (
-                                "bash", "edit", "write", "multiedit",
-                                "notebookedit", "fileedit", "ask_permission",
-                                "request_permission"
-                            ) or "permission" in t_name or "confirm" in t_name:
+                            elif t_name in ("ask_permission", "request_permission") or "permission" in t_name or "confirm" in t_name:
                                 found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
                                 break
                             else:
+                                # Autonomous tools (bash, edit, write, fileedit, etc.)
                                 has_in_flight_tools = True
                     if not found_pending and not has_in_flight_tools:
                         is_final_turn_response = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
@@ -1403,7 +1431,23 @@ def get_data():
     completion_text = "WORK COMPLETE"
     source = "none"
 
-    if test_alert_override:
+    if test_idle_override:
+        waiting_for_input = False
+        work_completed = False
+        active_agents_payload = []
+        has_active = False
+        agent_state = "idle"
+        source = "none"
+    elif test_agents_override is not None:
+        active_agents_payload = test_agents_override
+        has_active = len(test_agents_override) > 0
+        waiting_for_input = any(a.get("state") == "WAITING" for a in test_agents_override)
+        work_completed = any(a.get("state") == "COMPLETE" for a in test_agents_override) and not waiting_for_input
+        prompt_text = next((a.get("detail") for a in test_agents_override if a.get("state") == "WAITING"), "INPUT REQ")
+        completion_text = next((a.get("detail") for a in test_agents_override if a.get("state") == "COMPLETE"), "WORK COMPLETE")
+        agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "working" if has_active else "idle")
+        source = "test"
+    elif test_alert_override:
         waiting_for_input = True
         prompt_text = test_alert_prompt
         source = "test"
@@ -1422,35 +1466,36 @@ def get_data():
             print(f"Agent check error: {e}")
 
     now = datetime.now()
-    agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
-    multi_status = get_multi_agent_status()
+    if not test_idle_override and test_agents_override is None:
+        agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
+        multi_status = get_multi_agent_status()
 
-    # If test overrides are active, synthesize an active agent entry
-    if test_alert_override:
-        active_agents_payload = [{
-            "id": "test-alert",
-            "name": "Claude 1",
-            "source": "claude",
-            "state": "WAITING",
-            "code": "waiting_approval",
-            "detail": test_alert_prompt,
-            "color": "#FFB800"
-        }]
-        has_active = True
-    elif test_complete_override:
-        active_agents_payload = [{
-            "id": "test-complete",
-            "name": "AGY 1",
-            "source": "antigravity",
-            "state": "COMPLETE",
-            "code": "work_complete",
-            "detail": test_complete_prompt,
-            "color": "#00FF88"
-        }]
-        has_active = True
-    else:
-        active_agents_payload = multi_status["active_agents"]
-        has_active = multi_status["has_active_agents"]
+        # If test overrides are active, synthesize an active agent entry
+        if test_alert_override:
+            active_agents_payload = [{
+                "id": "test-alert",
+                "name": "Claude 1",
+                "source": "claude",
+                "state": "WAITING",
+                "code": "waiting_approval",
+                "detail": test_alert_prompt,
+                "color": "#FFB800"
+            }]
+            has_active = True
+        elif test_complete_override:
+            active_agents_payload = [{
+                "id": "test-complete",
+                "name": "AGY 1",
+                "source": "antigravity",
+                "state": "COMPLETE",
+                "code": "work_complete",
+                "detail": test_complete_prompt,
+                "color": "#00FF88"
+            }]
+            has_active = True
+        else:
+            active_agents_payload = multi_status["active_agents"]
+            has_active = multi_status["has_active_agents"]
 
     global _ota_trigger_requested
     with _ota_trigger_lock:
