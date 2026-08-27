@@ -580,7 +580,7 @@ def get_stable_agent_label(source, session_key):
     if reg_key not in _session_registry:
         _session_counters[source] = _session_counters.get(source, 0) + 1
         prefix = "Claude" if source == "claude" else "AGY"
-        _session_registry[reg_key] = f"{prefix} {repr(_session_counters[source]).strip()}" if False else f"{prefix} {_session_counters[source]}"
+        _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
     return _session_registry[reg_key]
 
 def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
@@ -641,34 +641,47 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 found_pending = True
                 turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
             elif step_type == "PLANNER_RESPONSE":
-                for tc in last_step_entry.get("tool_calls", []) or []:
-                    name = tc.get("name")
-                    args = tc.get("args", {}) or {}
-                    if name in ("ask_question", "ask_permission"):
-                        found_pending = True
-                        turn_pending_prompt = "ANSWER Q" if name == "ask_question" else "GRANT PERM"
-                        break
+                tool_calls = last_step_entry.get("tool_calls", []) or []
+                if tool_calls:
+                    found_pending = True
+                    turn_pending_prompt = "GRANT PERM"
+                    for tc in tool_calls:
+                        name = tc.get("name")
+                        args = tc.get("args", {}) or {}
 
-                    meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                    if isinstance(meta_raw, str):
-                        try: meta = json.loads(meta_raw)
-                        except Exception: meta = {}
-                    elif isinstance(meta_raw, dict):
-                        meta = meta_raw
-                    else:
-                        meta = {}
+                        meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                        if isinstance(meta_raw, str):
+                            try: meta = json.loads(meta_raw)
+                            except Exception: meta = {}
+                        elif isinstance(meta_raw, dict):
+                            meta = meta_raw
+                        else:
+                            meta = {}
 
-                    if meta.get("RequestFeedback") is True:
-                        found_pending = True
-                        turn_pending_prompt = "APPROVE PLAN"
-                        break
-
-            # Check if this turn is currently executing tool calls
-            has_unresolved_tools = False
-            if last_step_entry.get("type") == "PLANNER_RESPONSE":
-                tcs = last_step_entry.get("tool_calls", []) or []
-                if tcs and not found_pending:
-                    has_unresolved_tools = True
+                        if meta.get("RequestFeedback") is True:
+                            turn_pending_prompt = "APPROVE PLAN"
+                            break
+                        elif name == "ask_question":
+                            turn_pending_prompt = "ANSWER Q"
+                            break
+                        elif name == "ask_permission":
+                            turn_pending_prompt = "GRANT PERM"
+                            break
+                        elif name == "run_command":
+                            turn_pending_prompt = "ALLOW CMD"
+                            break
+                        elif name == "write_to_file":
+                            turn_pending_prompt = "ALLOW WRITE"
+                            break
+                        elif name == "replace_file_content":
+                            turn_pending_prompt = "ALLOW EDIT"
+                            break
+                        elif name == "invoke_subagent":
+                            turn_pending_prompt = "SPAWN AGENT"
+                            break
+                        elif name == "call_mcp_tool":
+                            turn_pending_prompt = "ALLOW MCP"
+                            break
 
             # Session identification (parent folder of .system_generated)
             parts = os.path.normpath(fp).split(os.sep)
@@ -680,11 +693,6 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
-            elif has_unresolved_tools or (age < 30 and last_step_entry.get("type") in ("PLANNER_RESPONSE", "GENERIC") and tcs):
-                state = "WORKING"
-                code = "working"
-                detail = "EXECUTING..."
-                color = "#00E5FF"
             elif age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
@@ -693,7 +701,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             elif age < 45:
                 state = "WORKING"
                 code = "working"
-                detail = "THINKING..."
+                detail = "EXECUTING..."
                 color = "#00E5FF"
             else:
                 state = "IDLE"
@@ -779,27 +787,30 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                     for item in content:
                         if isinstance(item, dict) and item.get("type") == "tool_use":
                             t_name = item.get("name", "")
-                            if t_name == "AskUserQuestion":
-                                found_pending = True
+                            found_pending = True
+                            if t_name == "AskUserQuestion" or t_name == "ask_user_question":
                                 turn_pending_prompt = "ANSWER Q"
                                 break
+                            elif t_name == "Bash":
+                                turn_pending_prompt = "ALLOW BASH"
+                                break
+                            elif t_name in ("FileEdit", "Edit", "NotebookEditCell"):
+                                turn_pending_prompt = "ALLOW EDIT"
+                                break
+                            elif t_name in ("FileWrite", "Write"):
+                                turn_pending_prompt = "ALLOW WRITE"
+                                break
                             elif "permission" in t_name.lower():
-                                found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
                                 break
+                            elif "mcp" in t_name.lower():
+                                turn_pending_prompt = "ALLOW MCP"
+                                break
                             else:
-                                found_pending = True
-                                turn_pending_prompt = "CLAUDE PERM"
+                                turn_pending_prompt = "GRANT PERM"
 
             session_id = os.path.splitext(os.path.basename(fp))[0]
             label = get_stable_agent_label("claude", session_id)
-
-            has_active_tool = False
-            if last_entry.get("type") == "assistant":
-                msg = last_entry.get("message", {})
-                content = msg.get("content", [])
-                if isinstance(content, list) and any(isinstance(i, dict) and i.get("type") == "tool_use" for i in content):
-                    has_active_tool = True
 
             if found_pending:
                 state = "WAITING"

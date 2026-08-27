@@ -1,7 +1,10 @@
 import os
+import sys
 import json
 import time
 import unittest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from app import check_agent_status, scan_antigravity_sessions, scan_claude_sessions, get_multi_agent_status
 
 class TestAgentStatus(unittest.TestCase):
@@ -130,9 +133,59 @@ class TestAgentStatus(unittest.TestCase):
             self.assertTrue(res["waiting_for_input"])
             self.assertTrue(res["has_active_agents"])
             self.assertEqual(len(res["active_agents"]), 2)
-            # The waiting AGY agent must be sorted first
             self.assertEqual(res["active_agents"][0]["state"], "WAITING")
-            self.assertEqual(res["active_agents"][0]["source"], "antigravity")
+
+    def test_antigravity_run_command_pending(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            session_dir = os.path.join(brain_dir, "session1", ".system_generated", "logs")
+            os.makedirs(session_dir, exist_ok=True)
+            transcript_file = os.path.join(session_dir, "transcript.jsonl")
+            
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-08-27T10:00:00Z",
+                    "tool_calls": [
+                        {
+                            "name": "run_command",
+                            "args": {"CommandLine": "curl -s http://127.0.0.1:5000/whoami"}
+                        }
+                    ]
+                }) + "\n")
+            
+            sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "ALLOW CMD")
+
+    def test_claude_bash_pending(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            projects_dir = os.path.join(tmp_dir, "projects", "project1")
+            os.makedirs(projects_dir, exist_ok=True)
+            session_file = os.path.join(projects_dir, "session1.jsonl")
+            
+            with open(session_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "assistant",
+                    "timestamp": "2026-08-27T10:00:00Z",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "Bash",
+                                "input": {"command": "git push"}
+                            }
+                        ]
+                    }
+                }) + "\n")
+            
+            sessions = scan_claude_sessions(claude_dirs=[tmp_dir], now_ts=time.time())
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "ALLOW BASH")
 
 if __name__ == "__main__":
     unittest.main()
