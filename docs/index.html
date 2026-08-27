@@ -1310,8 +1310,8 @@
               <svg viewBox="0 0 400 130" width="100%" height="auto" style="display: block; overflow: visible;">
                 <!-- Display Circle on Left -->
                 <circle cx="60" cy="65" r="42" fill="#0d1017" stroke="#384156" stroke-width="3"/>
-                <circle cx="60" cy="65" r="35" fill="#131722" stroke="#FF5F1F" stroke-width="2"/>
-                <text x="60" y="62" fill="#00d2d3" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">GC9A01</text>
+                <circle cx="60" cy="65" r="35" fill="#131722" stroke="#00D2FF" stroke-width="2"/>
+                <text x="60" y="62" fill="#00D2FF" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="900" text-anchor="middle">GC9A01</text>
                 <text x="60" y="74" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">240x240</text>
                 <rect x="98" y="45" width="8" height="40" rx="2" fill="#334155"/>
 
@@ -1321,58 +1321,58 @@
                 <text x="327" y="62" fill="#fde047" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">ESP32-C3</text>
                 <rect x="365" y="50" width="12" height="28" rx="3" fill="#cbd5e1" stroke="#000" stroke-width="1"/>
 
-                <!-- 8 Color Coded Wires (Clean routed around components) -->
+                <!-- 8 Color Coded 90-Degree Orthogonal Manhattan Wires -->
+                <!-- GND (White) -> Left Header Pin 2 -->
+                <path d="M 106 48 H 125 V 18 H 275 V 35 H 290" fill="none" stroke="#ffffff" stroke-width="2"/>
                 <!-- VCC (Red) -> Left Header Pin 3 -->
-                <path d="M 106 48 C 180 32, 230 36, 290 42" fill="none" stroke="#ef4444" stroke-width="2.5"/>
-                <!-- GND (Black/Slate) -> Left Header Pin 2 -->
-                <path d="M 106 53 C 180 38, 230 42, 290 35" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
+                <path d="M 106 53 H 135 V 24 H 265 V 42 H 290" fill="none" stroke="#FF2A2A" stroke-width="2"/>
                 <!-- BLK (Pink) -> Left Header Pin 4 -->
-                <path d="M 106 83 C 180 88, 230 65, 290 49" fill="none" stroke="#ec4899" stroke-width="2.5"/>
-                <!-- RES (Orange) -> Left Header Pin 5 -->
-                <path d="M 106 78 C 180 82, 230 72, 290 56" fill="none" stroke="#f97316" stroke-width="2.5"/>
+                <path d="M 106 83 H 145 V 30 H 255 V 49 H 290" fill="none" stroke="#FF1493" stroke-width="2"/>
+                <!-- RST (Orange) -> Left Header Pin 5 -->
+                <path d="M 106 78 H 155 V 56 H 290" fill="none" stroke="#FF6B00" stroke-width="2"/>
                 <!-- SCL (Yellow) -> Left Header Pin 8 -->
-                <path d="M 106 58 C 180 58, 230 82, 290 77" fill="none" stroke="#eab308" stroke-width="2.5"/>
+                <path d="M 106 58 H 165 V 77 H 290" fill="none" stroke="#FFE600" stroke-width="2"/>
                 <!-- CS (Purple) -> Left Header Pin 9 -->
-                <path d="M 106 68 C 180 72, 230 92, 290 84" fill="none" stroke="#a855f7" stroke-width="2.5"/>
-                <!-- SDA (Cyan) -> Right Header Pin 16 (Loops cleanly over the top) -->
-                <path d="M 106 63 C 170 20, 310 12, 380 38" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
-                <!-- DC (Green) -> Right Header Pin 15 (Loops cleanly under the bottom) -->
-                <path d="M 106 73 C 170 115, 310 118, 380 46" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                <path d="M 106 68 H 175 V 84 H 290" fill="none" stroke="#D000FF" stroke-width="2"/>
+                <!-- SDA (Cyan) -> Right Header Pin 16 -->
+                <path d="M 106 63 H 185 V 12 H 392 V 38 H 380" fill="none" stroke="#00D2FF" stroke-width="2"/>
+                <!-- DC (Green) -> Right Header Pin 15 -->
+                <path d="M 106 73 H 195 V 118 H 392 V 46 H 380" fill="none" stroke="#00FF88" stroke-width="2"/>
               </svg>
 
               <!-- Exact Pin Chips Grid -->
               <div class="wiring-chips-grid">
                 <div class="pin-chip">
                   <span>🔴 <strong>VCC</strong> ➔ 3V3</span>
-                  <span class="pin-wire" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Left Pin 3</span>
+                  <span class="pin-wire" style="background: rgba(255, 42, 42, 0.2); color: #FF2A2A;">Left Pin 3</span>
                 </div>
                 <div class="pin-chip">
-                  <span>⚫ <strong>GND</strong> ➔ GND</span>
-                  <span class="pin-wire" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1;">Left Pin 2</span>
+                  <span>⚪ <strong>GND</strong> ➔ GND</span>
+                  <span class="pin-wire" style="background: rgba(255, 255, 255, 0.2); color: #ffffff;">Left Pin 2</span>
                 </div>
                 <div class="pin-chip">
                   <span>🟡 <strong>SCL</strong> ➔ GPIO 4</span>
-                  <span class="pin-wire" style="background: rgba(234, 179, 8, 0.2); color: #eab308;">Left Pin 8</span>
+                  <span class="pin-wire" style="background: rgba(255, 230, 0, 0.2); color: #FFE600;">Left Pin 8</span>
                 </div>
                 <div class="pin-chip">
                   <span>🔵 <strong>SDA</strong> ➔ GPIO 6</span>
-                  <span class="pin-wire" style="background: rgba(6, 182, 212, 0.2); color: #06b6d4;">Right Pin 16</span>
-                </div>
-                <div class="pin-chip">
-                  <span>🟣 <strong>CS</strong> ➔ GPIO 5</span>
-                  <span class="pin-wire" style="background: rgba(168, 85, 247, 0.2); color: #a855f7;">Left Pin 9</span>
+                  <span class="pin-wire" style="background: rgba(0, 210, 255, 0.2); color: #00D2FF;">Right Pin 16</span>
                 </div>
                 <div class="pin-chip">
                   <span>🟢 <strong>DC</strong> ➔ GPIO 7</span>
-                  <span class="pin-wire" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">Right Pin 15</span>
+                  <span class="pin-wire" style="background: rgba(0, 255, 136, 0.2); color: #00FF88;">Right Pin 15</span>
                 </div>
                 <div class="pin-chip">
-                  <span>🟠 <strong>RES</strong> ➔ GPIO 1</span>
-                  <span class="pin-wire" style="background: rgba(249, 115, 22, 0.2); color: #f97316;">Left Pin 5</span>
+                  <span>🟣 <strong>CS</strong> ➔ GPIO 5</span>
+                  <span class="pin-wire" style="background: rgba(208, 0, 255, 0.2); color: #D000FF;">Left Pin 9</span>
+                </div>
+                <div class="pin-chip">
+                  <span>🟠 <strong>RST</strong> ➔ GPIO 1</span>
+                  <span class="pin-wire" style="background: rgba(255, 107, 0, 0.2); color: #FF6B00;">Left Pin 5</span>
                 </div>
                 <div class="pin-chip">
                   <span>🌸 <strong>BLK</strong> ➔ GPIO 0</span>
-                  <span class="pin-wire" style="background: rgba(236, 72, 153, 0.2); color: #ec4899;">Left Pin 4</span>
+                  <span class="pin-wire" style="background: rgba(255, 20, 147, 0.2); color: #FF1493;">Left Pin 4</span>
                 </div>
               </div>
 
@@ -1577,7 +1577,7 @@
 
       <!-- SVG Diagram Container -->
       <div class="neo-box" style="padding: 1rem; background: #0f1218; margin-bottom: 1.75rem; overflow: hidden;">
-        <img id="wiringSvgImg" src="./assets/img/wiring_gc9a01_round.svg?v=2" alt="GC9A01 1.28 Round Display SPI Wiring Diagram" style="width: 100%; height: auto; display: block; border-radius: 8px;">
+        <img id="wiringSvgImg" src="./assets/img/wiring_gc9a01_round.svg?v=3" alt="ESP32-C3 SuperMini to GC9A01 Round IPS Display SPI Wiring Diagram" style="width: 100%; height: auto; display: block; border-radius: 12px;">
       </div>
 
       <!-- Pinout Table Reference -->
