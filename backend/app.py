@@ -658,14 +658,16 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             turn_pending_prompt = "INPUT REQ"
 
             step_type = last_step_entry.get("type")
+            is_final_turn_response = False
+            has_in_flight_tools = False
+
             if step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
                 found_pending = True
                 turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
             elif step_type == "PLANNER_RESPONSE":
                 tool_calls = last_step_entry.get("tool_calls", []) or []
                 if tool_calls:
-                    found_pending = True
-                    turn_pending_prompt = "GRANT PERM"
+                    # Tool call generated: check if it's a modal waiting on user
                     for tc in tool_calls:
                         name = tc.get("name")
                         args = tc.get("args", {}) or {}
@@ -680,37 +682,46 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                             meta = {}
 
                         if meta.get("RequestFeedback") is True:
+                            found_pending = True
                             turn_pending_prompt = "APPROVE PLAN"
                             break
                         elif name == "ask_question":
+                            found_pending = True
                             turn_pending_prompt = "ANSWER Q"
                             break
                         elif name == "ask_permission":
+                            found_pending = True
                             turn_pending_prompt = "GRANT PERM"
                             break
                         elif name == "run_command":
+                            found_pending = True
                             turn_pending_prompt = "ALLOW CMD"
                             break
                         elif name == "write_to_file":
+                            found_pending = True
                             turn_pending_prompt = "ALLOW WRITE"
                             break
                         elif name == "replace_file_content":
+                            found_pending = True
                             turn_pending_prompt = "ALLOW EDIT"
                             break
                         elif name == "invoke_subagent":
+                            found_pending = True
                             turn_pending_prompt = "SPAWN AGENT"
                             break
                         elif name == "call_mcp_tool":
+                            found_pending = True
                             turn_pending_prompt = "ALLOW MCP"
                             break
-
-            # Check if this turn is currently executing tool calls
-            has_unresolved_tools = False
-            tcs = []
-            if last_step_entry.get("type") == "PLANNER_RESPONSE":
-                tcs = last_step_entry.get("tool_calls", []) or []
-                if tcs and not found_pending:
-                    has_unresolved_tools = True
+                elif last_step_entry.get("content"):
+                    # Final text response delivered to user
+                    is_final_turn_response = True
+                else:
+                    # Thinking or reasoning step with no tools and no text content yet
+                    has_in_flight_tools = True
+            elif step_type == "GENERIC":
+                # Intermediate tool output step: turn is still executing
+                has_in_flight_tools = True
 
             # Session identification (parent folder of .system_generated)
             parts = os.path.normpath(fp).split(os.sep)
@@ -722,7 +733,12 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
-            elif age < config.get("completion_duration_seconds", 10):
+            elif has_in_flight_tools or (age < 45 and not is_final_turn_response):
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+            elif is_final_turn_response and age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
                 detail = "WORK COMPLETE"
@@ -730,7 +746,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             elif age < 45:
                 state = "WORKING"
                 code = "working"
-                detail = "EXECUTING..."
+                detail = "THINKING..."
                 color = "#00E5FF"
             else:
                 state = "IDLE"
