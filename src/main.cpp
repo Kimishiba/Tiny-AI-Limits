@@ -848,8 +848,8 @@ void drawGC9A01RoundFlipUI() {
             // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
             bool isAGY = (ag.name.startsWith("AGY") || ag.name.indexOf("AGY") >= 0);
             uint16_t brandCol = isAGY ? colOrange : colCyan;
-            uint16_t cardBorderCol = isAGY ? gcGfx->color565(120, 60, 0) : gcGfx->color565(0, 100, 120);
-            uint16_t cardBgCol = isAGY ? gcGfx->color565(32, 18, 10) : gcGfx->color565(12, 24, 32);
+            uint16_t cardBorderCol = isAGY ? gcGfx->color565(160, 80, 0) : gcGfx->color565(0, 140, 160);
+            uint16_t cardBgCol = isAGY ? gcGfx->color565(36, 20, 10) : gcGfx->color565(14, 26, 36);
 
             bool textChanged = forceRedrawAll ||
                 (lastAgentNames[i] != ag.name) ||
@@ -870,13 +870,13 @@ void drawGC9A01RoundFlipUI() {
 
                 // Row 1: Agent Label
                 gcGfx->setTextSize(1);
+                gcGfx->setTextColor(brandCol, cardBgCol);
                 gcGfx->setCursor(cx - 42, rowY + 6);
-                gcGfx->setTextColor(brandCol);
                 gcGfx->print(ag.name);
 
                 // Row 2: Detail / Action
+                gcGfx->setTextColor(ag.color, cardBgCol);
                 gcGfx->setCursor(cx - 42, rowY + 22);
-                gcGfx->setTextColor(ag.color);
                 String det = ag.detail;
                 if (det.length() > 14) det = det.substring(0, 13) + ".";
                 gcGfx->print(det);
@@ -1578,32 +1578,34 @@ void fetchBackendData() {
                 }
             }
             if (doc.containsKey("agent")) {
-                agentData.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
-                agentData.work_completed = doc["agent"]["work_completed"] | (doc["agent"]["completion_flash"] | false);
-                agentData.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
-                agentData.completion_text = doc["agent"]["completion_text"] | "WORK COMPLETE";
-                agentData.has_active_agents = doc["agent"]["has_active_agents"] | (agentData.waiting_for_input || agentData.work_completed);
+                AgentStatus tempAgent;
+                tempAgent.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
+                tempAgent.work_completed = doc["agent"]["work_completed"] | (doc["agent"]["completion_flash"] | false);
+                tempAgent.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
+                tempAgent.completion_text = doc["agent"]["completion_text"] | "WORK COMPLETE";
+                tempAgent.has_active_agents = doc["agent"]["has_active_agents"] | (tempAgent.waiting_for_input || tempAgent.work_completed);
                 
                 JsonArray arr = doc["agent"]["active_agents"].as<JsonArray>();
                 if (!arr.isNull()) {
                     int count = 0;
                     for (JsonObject obj : arr) {
                         if (count >= 4) break;
-                        agentData.active_agents[count].name = obj["name"] | "Agent";
-                        agentData.active_agents[count].state = obj["state"] | "IDLE";
-                        agentData.active_agents[count].detail = obj["detail"] | "";
+                        tempAgent.active_agents[count].name = obj["name"] | "Agent";
+                        tempAgent.active_agents[count].state = obj["state"] | "IDLE";
+                        tempAgent.active_agents[count].detail = obj["detail"] | "";
                         String colStr = obj["color"] | "#94A3B8";
-                        if (colStr.equalsIgnoreCase("#FFB800")) agentData.active_agents[count].color = GC_COLOR_AMBER;
-                        else if (colStr.equalsIgnoreCase("#00FF88")) agentData.active_agents[count].color = gcGfx->color565(0, 255, 136);
-                        else if (colStr.equalsIgnoreCase("#00E5FF")) agentData.active_agents[count].color = GC_COLOR_CYAN;
-                        else if (colStr.equalsIgnoreCase("#FF7A00")) agentData.active_agents[count].color = GC_COLOR_ORANGE;
-                        else agentData.active_agents[count].color = GC_COLOR_SLATE_GRAY;
+                        if (colStr.equalsIgnoreCase("#FFB800")) tempAgent.active_agents[count].color = GC_COLOR_AMBER;
+                        else if (colStr.equalsIgnoreCase("#00FF88")) tempAgent.active_agents[count].color = gcGfx->color565(0, 255, 136);
+                        else if (colStr.equalsIgnoreCase("#00E5FF")) tempAgent.active_agents[count].color = GC_COLOR_CYAN;
+                        else if (colStr.equalsIgnoreCase("#FF7A00")) tempAgent.active_agents[count].color = GC_COLOR_ORANGE;
+                        else tempAgent.active_agents[count].color = GC_COLOR_SLATE_GRAY;
                         count++;
                     }
-                    agentData.active_agent_count = count;
+                    tempAgent.active_agent_count = count;
                 } else {
-                    agentData.active_agent_count = 0;
+                    tempAgent.active_agent_count = 0;
                 }
+                agentData = tempAgent;
             }
             if (doc.containsKey("time")) {
                 timeData.hours = constrain((int)(doc["time"]["hours"] | 12), 0, 23);

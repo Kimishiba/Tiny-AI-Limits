@@ -640,11 +640,27 @@ test_alert_override = False
 test_alert_prompt = "APPROVE PLAN"
 test_complete_override = False
 test_complete_prompt = "WORK COMPLETE"
+test_idle_override = False
+
+@app.route('/api/test_idle', methods=['GET', 'POST'])
+def handle_test_idle():
+    global test_idle_override, test_alert_override, test_complete_override
+    data = request.json or request.args or {}
+    val = data.get("idle") if "idle" in data else data.get("active")
+    if val is not None:
+        test_idle_override = str(val).lower() in ["true", "1", "yes", "active", "on"]
+    else:
+        test_idle_override = not test_idle_override
+    if test_idle_override:
+        test_alert_override = False
+        test_complete_override = False
+    return jsonify({"status": "ok", "test_idle_active": test_idle_override})
 
 @app.route('/api/test_alert', methods=['GET', 'POST'])
 @app.route('/api/test_complete', methods=['GET', 'POST'])
 def handle_test_alert():
-    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt
+    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt, test_idle_override
+    test_idle_override = False
     data = request.json or request.args or {}
     mode = data.get("mode") or data.get("type") or ""
     if request.path == '/api/test_complete':
@@ -1399,7 +1415,14 @@ def get_data():
     completion_text = "WORK COMPLETE"
     source = "none"
 
-    if test_alert_override:
+    if test_idle_override:
+        waiting_for_input = False
+        work_completed = False
+        active_agents_payload = []
+        has_active = False
+        agent_state = "idle"
+        source = "none"
+    elif test_alert_override:
         waiting_for_input = True
         prompt_text = test_alert_prompt
         source = "test"
@@ -1418,35 +1441,36 @@ def get_data():
             print(f"Agent check error: {e}")
 
     now = datetime.now()
-    agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
-    multi_status = get_multi_agent_status()
+    if not test_idle_override:
+        agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
+        multi_status = get_multi_agent_status()
 
-    # If test overrides are active, synthesize an active agent entry
-    if test_alert_override:
-        active_agents_payload = [{
-            "id": "test-alert",
-            "name": "Claude 1",
-            "source": "claude",
-            "state": "WAITING",
-            "code": "waiting_approval",
-            "detail": test_alert_prompt,
-            "color": "#FFB800"
-        }]
-        has_active = True
-    elif test_complete_override:
-        active_agents_payload = [{
-            "id": "test-complete",
-            "name": "AGY 1",
-            "source": "antigravity",
-            "state": "COMPLETE",
-            "code": "work_complete",
-            "detail": test_complete_prompt,
-            "color": "#00FF88"
-        }]
-        has_active = True
-    else:
-        active_agents_payload = multi_status["active_agents"]
-        has_active = multi_status["has_active_agents"]
+        # If test overrides are active, synthesize an active agent entry
+        if test_alert_override:
+            active_agents_payload = [{
+                "id": "test-alert",
+                "name": "Claude 1",
+                "source": "claude",
+                "state": "WAITING",
+                "code": "waiting_approval",
+                "detail": test_alert_prompt,
+                "color": "#FFB800"
+            }]
+            has_active = True
+        elif test_complete_override:
+            active_agents_payload = [{
+                "id": "test-complete",
+                "name": "AGY 1",
+                "source": "antigravity",
+                "state": "COMPLETE",
+                "code": "work_complete",
+                "detail": test_complete_prompt,
+                "color": "#00FF88"
+            }]
+            has_active = True
+        else:
+            active_agents_payload = multi_status["active_agents"]
+            has_active = multi_status["has_active_agents"]
 
     global _ota_trigger_requested
     with _ota_trigger_lock:
