@@ -663,6 +663,13 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                         turn_pending_prompt = "APPROVE PLAN"
                         break
 
+            # Check if this turn is currently executing tool calls
+            has_unresolved_tools = False
+            if last_step_entry.get("type") == "PLANNER_RESPONSE":
+                tcs = last_step_entry.get("tool_calls", []) or []
+                if tcs and not found_pending:
+                    has_unresolved_tools = True
+
             # Session identification (parent folder of .system_generated)
             parts = os.path.normpath(fp).split(os.sep)
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
@@ -673,6 +680,11 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
+            elif has_unresolved_tools or (age < 30 and last_step_entry.get("type") in ("PLANNER_RESPONSE", "GENERIC") and tcs):
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
             elif age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
@@ -681,7 +693,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             elif age < 45:
                 state = "WORKING"
                 code = "working"
-                detail = "EXECUTING..."
+                detail = "THINKING..."
                 color = "#00E5FF"
             else:
                 state = "IDLE"
@@ -782,11 +794,23 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
             session_id = os.path.splitext(os.path.basename(fp))[0]
             label = get_stable_agent_label("claude", session_id)
 
+            has_active_tool = False
+            if last_entry.get("type") == "assistant":
+                msg = last_entry.get("message", {})
+                content = msg.get("content", [])
+                if isinstance(content, list) and any(isinstance(i, dict) and i.get("type") == "tool_use" for i in content):
+                    has_active_tool = True
+
             if found_pending:
                 state = "WAITING"
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
+            elif has_active_tool:
+                state = "WORKING"
+                code = "working"
+                detail = "RUNNING TOOL..."
+                color = "#00E5FF"
             elif age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
