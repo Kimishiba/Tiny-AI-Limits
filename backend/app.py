@@ -592,8 +592,8 @@ def check_antigravity_status(brain_dirs=None, now_ts=None):
             except Exception:
                 continue
 
-            # 30 minutes of slack accounts for realistic human reaction time
-            if now_ts - mtime >= 1800:
+            alert_timeout = config.get("alert_timeout_seconds", 120)
+            if now_ts - mtime >= alert_timeout:
                 continue
 
             try:
@@ -633,47 +633,31 @@ def check_antigravity_status(brain_dirs=None, now_ts=None):
                 found_pending = True
                 turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
             elif step_type == "PLANNER_RESPONSE":
-                tool_calls = last_step_entry.get("tool_calls", []) or []
-                if tool_calls:
-                    found_pending = True
-                    turn_pending_prompt = "GRANT PERM"
-                    for tc in tool_calls:
-                        name = tc.get("name")
-                        args = tc.get("args", {}) or {}
+                for tc in last_step_entry.get("tool_calls", []) or []:
+                    name = tc.get("name")
+                    args = tc.get("args", {}) or {}
 
-                        meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
-                        if isinstance(meta_raw, str):
-                            try: meta = json.loads(meta_raw)
-                            except Exception: meta = {}
-                        elif isinstance(meta_raw, dict):
-                            meta = meta_raw
-                        else:
-                            meta = {}
+                    meta_raw = args.get("ArtifactMetadata") if isinstance(args, dict) else None
+                    if isinstance(meta_raw, str):
+                        try: meta = json.loads(meta_raw)
+                        except Exception: meta = {}
+                    elif isinstance(meta_raw, dict):
+                        meta = meta_raw
+                    else:
+                        meta = {}
 
-                        if meta.get("RequestFeedback") is True:
-                            turn_pending_prompt = "APPROVE PLAN"
-                            break
-                        elif name == "ask_question":
-                            turn_pending_prompt = "ANSWER Q"
-                            break
-                        elif name == "ask_permission":
-                            turn_pending_prompt = "GRANT PERM"
-                            break
-                        elif name == "run_command":
-                            turn_pending_prompt = "ALLOW CMD"
-                            break
-                        elif name == "write_to_file":
-                            turn_pending_prompt = "ALLOW WRITE"
-                            break
-                        elif name == "replace_file_content":
-                            turn_pending_prompt = "ALLOW EDIT"
-                            break
-                        elif name == "invoke_subagent":
-                            turn_pending_prompt = "SPAWN AGENT"
-                            break
-                        elif name == "call_mcp_tool":
-                            turn_pending_prompt = "ALLOW MCP"
-                            break
+                    if meta.get("RequestFeedback") is True:
+                        found_pending = True
+                        turn_pending_prompt = "APPROVE PLAN"
+                        break
+                    elif name == "ask_question":
+                        found_pending = True
+                        turn_pending_prompt = "ANSWER Q"
+                        break
+                    elif name == "ask_permission":
+                        found_pending = True
+                        turn_pending_prompt = "GRANT PERM"
+                        break
 
             if found_pending:
                 waiting_for_input = True
@@ -709,7 +693,8 @@ def check_claude_status(claude_dirs=None, now_ts=None):
             except Exception:
                 continue
 
-            if now_ts - mtime >= 1800:
+            alert_timeout = config.get("alert_timeout_seconds", 120)
+            if now_ts - mtime >= alert_timeout:
                 continue
 
             try:
@@ -765,29 +750,10 @@ def check_claude_status(claude_dirs=None, now_ts=None):
                                 found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif t_name == "Bash":
-                                found_pending = True
-                                turn_pending_prompt = "ALLOW BASH"
-                                break
-                            elif t_name in ("FileEdit", "Edit", "NotebookEditCell"):
-                                found_pending = True
-                                turn_pending_prompt = "ALLOW EDIT"
-                                break
-                            elif t_name in ("FileWrite", "Write"):
-                                found_pending = True
-                                turn_pending_prompt = "ALLOW WRITE"
-                                break
-                            elif "permission" in t_name.lower():
+                            elif "permission" in t_name.lower() or "prompt" in t_name.lower():
                                 found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
                                 break
-                            elif "mcp" in t_name.lower():
-                                found_pending = True
-                                turn_pending_prompt = "ALLOW MCP"
-                                break
-                            else:
-                                found_pending = True
-                                turn_pending_prompt = "GRANT PERM"
 
             if found_pending:
                 waiting_for_input = True
