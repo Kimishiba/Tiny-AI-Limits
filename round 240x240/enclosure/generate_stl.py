@@ -363,13 +363,10 @@ def generate_main_housing():
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
     # Top edge perimeter slim slits with 45-degree peaked roofs (100% self-supporting FDM printability)
+    pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
+    poly_slot = m3d.CrossSection([pts_slot_ccw])
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
-        pts_slot = [
-            [-0.6, 11.0], [0.6, 11.0],
-            [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]
-        ]
-        poly_slot = m3d.CrossSection([pts_slot])
-        slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).translate([vx, 30.0, 0])
+        slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
     # 7. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
@@ -410,21 +407,15 @@ def generate_main_housing():
     clip_w = 0.55
     clip_h = 0.55
 
-    pts_top_ccw = [
-        [esp_w/2.0 + 0.1, snap_z_center - clip_h],
-        [esp_w/2.0 + 0.1, snap_z_center + clip_h],
-        [esp_w/2.0 - clip_w, snap_z_center]
-    ]
-    poly_top = m3d.CrossSection([pts_top_ccw])
-    snap_lip_top = m3d.Manifold.extrude(poly_top, clip_l).rotate([0, 90, 0]).translate([esp_center_x - clip_l/2.0, 0, 0])
+    pts_top_2d = [[0.1, -clip_h], [0.1, clip_h], [-clip_w, 0.0]]
+    snap_lip_top = m3d.Manifold.extrude(m3d.CrossSection([pts_top_2d]), clip_l).rotate([90, 0, 90]).translate([
+        esp_center_x - clip_l / 2.0, esp_w / 2.0, snap_z_center
+    ])
 
-    pts_bot_ccw = [
-        [-esp_w/2.0 - 0.1, snap_z_center - clip_h],
-        [-esp_w/2.0 + clip_w, snap_z_center],
-        [-esp_w/2.0 - 0.1, snap_z_center + clip_h]
-    ]
-    poly_bot = m3d.CrossSection([pts_bot_ccw])
-    snap_lip_bot = m3d.Manifold.extrude(poly_bot, clip_l).rotate([0, 90, 0]).translate([esp_center_x - clip_l/2.0, 0, 0])
+    pts_bot_2d = [[-0.1, -clip_h], [clip_w, 0.0], [-0.1, clip_h]]
+    snap_lip_bot = m3d.Manifold.extrude(m3d.CrossSection([pts_bot_2d]), clip_l).rotate([90, 0, 90]).translate([
+        esp_center_x - clip_l / 2.0, -esp_w / 2.0, snap_z_center
+    ])
     
     # 4. Support Standoff Ledges (solid to floor_t)
     ledge_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
