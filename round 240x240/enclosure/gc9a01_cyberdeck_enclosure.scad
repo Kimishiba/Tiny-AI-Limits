@@ -40,7 +40,7 @@ screen_bolt_dia    = 1.75;  // Blind pilot holes (mm)
 screen_bolt_depth  = 3.2;   // Blind depth from rear pocket (mm)
 
 // Bezel Corner Screws (M3 Socket Cap Screws)
-screw_bolt_circle  = 39.0; // 39mm center-to-center square (x=+/-19.50, y=+/-19.50)
+screw_bolt_circle  = 41.0; // 41mm center-to-center square (x=+/-20.50, y=+/-20.50)
 screw_hole_dia     = 3.4;  // M3 clearance through-hole (mm)
 screw_head_dia     = 6.2;  // M3 socket cap head counterbore (mm)
 screw_head_depth   = 3.2;  // Counterbore pocket depth (mm)

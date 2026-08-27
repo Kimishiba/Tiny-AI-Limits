@@ -7,7 +7,7 @@ V4 ZERO SUSPENDED PARTS & 100% SUPPORT-FREE FDM ARCHITECTURE:
 - Front Bezel: Precision display carrier with:
   * Sleek 1.2mm x 45° outer perimeter edge chamfers
   * 45° conical chamfer on raised circular trim ring (dia 44.0mm -> dia 41.0mm)
-  * 4x M3 Socket Head Cap Screw holes balanced at (+/-19.50mm, +/-19.50mm)
+  * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing (V4 Zero Suspended Parts):
@@ -140,7 +140,7 @@ def generate_front_bezel():
     t = 5.5
     ring_h = 1.5
     oal_t = t + ring_h
-    screw_dist = 19.50
+    screw_dist = 20.50
     chamfer_outer = 1.2
     
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
@@ -180,7 +180,7 @@ def generate_mid_clamp():
     arm_w = 7.0
     center_hole_d = 14.0
     outer_dia = 38.6
-    screw_dist = 19.50
+    screw_dist = 20.50
     total_h = t + lip_h
 
     hw = w / 2.0
@@ -345,7 +345,7 @@ def generate_main_housing():
     floor_t = 2.0
 
     cavity_depth = depth - floor_t
-    screw_dist = 19.50
+    screw_dist = 20.50
     chamfer_outer = 1.2
     
     # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 27.5)
