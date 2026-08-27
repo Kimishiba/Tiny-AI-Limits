@@ -814,10 +814,13 @@ void drawGC9A01RoundFlipUI() {
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
             wasShowingAgents = true;
             forceRedrawAll = true;
-            // Invalidate clock flip caches for clean return
-            for (int i = 0; i < 4; i++) {
-                oldDigits[i] = -1;
-                prevTarget[i] = -1;
+            for (int j = 0; j < 4; j++) {
+                lastAgentNames[j] = "";
+                lastAgentDetails[j] = "";
+                lastAgentColors[j] = 0;
+                lastAgentDotPulses[j] = -1;
+                oldDigits[j] = -1;
+                prevTarget[j] = -1;
             }
         }
 
@@ -828,8 +831,14 @@ void drawGC9A01RoundFlipUI() {
         if (visibleRows != lastAgentRowCount) {
             forceRedrawAll = true;
             lastAgentRowCount = visibleRows;
-            // Clear entire area if row count decreased
+            // Clear entire area if row count changed
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
+            for (int j = 0; j < 4; j++) {
+                lastAgentNames[j] = "";
+                lastAgentDetails[j] = "";
+                lastAgentColors[j] = 0;
+                lastAgentDotPulses[j] = -1;
+            }
         }
 
         for (int i = 0; i < visibleRows; i++) {
@@ -839,8 +848,8 @@ void drawGC9A01RoundFlipUI() {
             // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
             bool isAGY = (ag.name.startsWith("AGY") || ag.name.indexOf("AGY") >= 0);
             uint16_t brandCol = isAGY ? colOrange : colCyan;
-            uint16_t cardBorderCol = isAGY ? gcGfx->color565(80, 40, 0) : gcGfx->color565(0, 60, 75);
-            uint16_t cardBgCol = isAGY ? gcGfx->color565(22, 14, 8) : gcGfx->color565(10, 18, 24);
+            uint16_t cardBorderCol = isAGY ? gcGfx->color565(120, 60, 0) : gcGfx->color565(0, 100, 120);
+            uint16_t cardBgCol = isAGY ? gcGfx->color565(32, 18, 10) : gcGfx->color565(12, 24, 32);
 
             bool textChanged = forceRedrawAll ||
                 (lastAgentNames[i] != ag.name) ||
