@@ -79,6 +79,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install flask requests zeroconf pyinstaller
 
+      - name: Run Backend Unit Tests
+        run: |
+          cd backend
+          python -m unittest discover tests
+
       - name: Package Companion App with PyInstaller
         run: |
           cd backend
