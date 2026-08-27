@@ -298,22 +298,22 @@ class TestAgentStatus(unittest.TestCase):
         now_ts = float(int(now_dt.timestamp()))
         
         # 2h 15m in future
-        f2 = datetime.fromtimestamp(now_ts + 8100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        secs2, s2 = format_reset_time(f2, now_ts=now_ts)
-        self.assertEqual(secs2, 8100)
-        self.assertEqual(s2, "2h 15m")
+        future_iso_2h = datetime.fromtimestamp(now_ts + 8100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs_2h, reset_str_2h = format_reset_time(future_iso_2h, now_ts=now_ts)
+        self.assertEqual(secs_2h, 8100)
+        self.assertEqual(reset_str_2h, "2h 15m")
         
         # 42 mins in future
-        f3 = datetime.fromtimestamp(now_ts + 2520, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        secs3, s3 = format_reset_time(f3, now_ts=now_ts)
-        self.assertEqual(secs3, 2520)
-        self.assertEqual(s3, "42m")
+        future_iso_42m = datetime.fromtimestamp(now_ts + 2520, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs_42m, reset_str_42m = format_reset_time(future_iso_42m, now_ts=now_ts)
+        self.assertEqual(secs_42m, 2520)
+        self.assertEqual(reset_str_42m, "42m")
         
         # Past timestamp
-        past = datetime.fromtimestamp(now_ts - 100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        secs4, s4 = format_reset_time(past, now_ts=now_ts)
-        self.assertEqual(secs4, 0)
-        self.assertEqual(s4, "READY")
+        past_iso = datetime.fromtimestamp(now_ts - 100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs_past, reset_str_past = format_reset_time(past_iso, now_ts=now_ts)
+        self.assertEqual(secs_past, 0)
+        self.assertEqual(reset_str_past, "READY")
 
     def test_get_antigravity_quota_fields(self):
         from app import get_antigravity_quota

@@ -324,13 +324,15 @@ def scan_antigravity_5h_limits(quota_limit=None):
                 pass
 
     remaining = max(0, quota_limit - total_steps)
-    reset_time = None
-    reset_in_seconds = None
-    reset_str = ""
     if earliest_step_ts is not None:
         reset_ts = earliest_step_ts + (5 * 3600)
-        reset_time = datetime.fromtimestamp(reset_ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+        from datetime import timezone
+        reset_time = datetime.fromtimestamp(reset_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         reset_in_seconds, reset_str = format_reset_time(reset_time, now)
+    else:
+        reset_time = None
+        reset_in_seconds = 0
+        reset_str = "READY"
 
     return {
         "limit": quota_limit,

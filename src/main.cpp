@@ -516,6 +516,31 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
     gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
 }
 
+void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
+    uint16_t arcCol;
+    if (ledState == 1) {
+        // Smooth sine wave pulsing emerald green (~1.8s cycle)
+        float pulse = (sinf(millis() * 0.0035f) + 1.0f) * 0.5f;
+        uint8_t r = (uint8_t)(0 + 34 * pulse);
+        uint8_t g = (uint8_t)(60 + 195 * pulse);
+        uint8_t b = (uint8_t)(20 + 90 * pulse);
+        arcCol = gcGfx->color565(r, g, b);
+    } else if (ledState == 2) {
+        arcCol = gcGfx->color565(245, 158, 11); // #F59E0B Amber Unpaired
+    } else {
+        arcCol = gcGfx->color565(239, 68, 68);  // #EF4444 Crimson Disconnected
+    }
+
+    for (int deg = 246; deg <= 294; deg++) {
+        float rad = deg * 0.0174533f;
+        float cosR = cosf(rad);
+        float sinR = sinf(rad);
+        for (int r = 102; r <= 106; r++) {
+            gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), arcCol);
+        }
+    }
+}
+
 void drawGC9A01RoundFlipUI() {
     int cx = 120, cy = 120, rScreen = 114;
 
@@ -535,6 +560,7 @@ void drawGC9A01RoundFlipUI() {
     // Component redraw state cache
     static int lastHoursUntilRain = -999;
     static int lastLedState = -1;
+    static int lastPulseLevel = -1;
     static int lastClaudePct = -1;
     static int lastAntiPct = -1;
     static float lastTemp = -999.0f;
@@ -604,6 +630,7 @@ void drawGC9A01RoundFlipUI() {
             // Reset cache state variables to force 100% fresh re-render of all display components
             lastHoursUntilRain = -999;
             lastLedState = -1;
+            lastPulseLevel = -1;
             lastClaudePct = -1;
             lastAntiPct = -1;
             lastTemp = -999.0f;
@@ -618,30 +645,26 @@ void drawGC9A01RoundFlipUI() {
         }
     }
 
-    // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
+    // 2. Top Crown: Backend Connection Status Pulsing Arc & Weather / Rain Indicator
     // 0 = no backend, 1 = paired, 2 = connected but unpaired (amber): the
     // board is reading from whichever companion answered mDNS first, which on
     // a shared network may not be this user's. See STATUS_UNPAIRED_NOTE.
     int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    int curPulseLevel = (curLedState == 1) ? (int)(((sinf(millis() * 0.0035f) + 1.0f) * 0.5f) * 15.0f) : curLedState;
 
-    if (weatherData.hours_until_rain != lastHoursUntilRain || curLedState != lastLedState) {
-        lastHoursUntilRain = weatherData.hours_until_rain;
+    if (curPulseLevel != lastPulseLevel || curLedState != lastLedState) {
+        lastPulseLevel = curPulseLevel;
         lastLedState = curLedState;
+        drawGC9A01TopConnectionArc(cx, cy, curLedState);
+    }
 
-        // Clear Top Crown Area
-        gcGfx->fillRect(cx - 50, cy - 110, 100, 28, GC_COLOR_BLACK);
+    if (weatherData.hours_until_rain != lastHoursUntilRain) {
+        lastHoursUntilRain = weatherData.hours_until_rain;
 
-        // LED Indicator Dot (Centered at cx=120, y=cy-105=15)
-        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :   // #22C55E Emerald Paired
-                          (curLedState == 2) ? gcGfx->color565(245, 158, 11) :  // #F59E0B Amber Unpaired
-                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Disconnected
+        // Clear weather text area (Centered at cx=120, y=cy-93=27)
+        gcGfx->fillRect(cx - 50, cy - 98, 100, 12, GC_COLOR_BLACK);
 
-        // LED Housing Bezel
-        gcGfx->drawCircle(cx, cy - 105, 4, colBezel);
-        // LED Core Dot (Radius 3 for clear visibility)
-        gcGfx->fillCircle(cx, cy - 105, 3, colLed);
-
-        // Weather text (Centered at cx=120, y=cy-93=27)
+        // Weather text
         gcGfx->setTextSize(1);
         if (weatherData.hours_until_rain == -1) {
             gcPrintCentered("NO RAIN", cx, cy - 93, colGray);
@@ -1294,8 +1317,8 @@ void fetchBackendData() {
                 if (doc["claude"].containsKey("remaining")) claudeData.remaining = doc["claude"]["remaining"] | 100;
             }
             if (doc.containsKey("antigravity")) {
-                agData.limit = doc["antigravity"]["limit"] | 100;
-                agData.remaining = doc["antigravity"]["remaining"] | 100;
+                agData.limit = doc["antigravity"]["limit"] | 200;
+                agData.remaining = doc["antigravity"]["remaining"] | 200;
                 agData.used = doc["antigravity"]["used"] | 0;
                 agData.period = doc["antigravity"]["period"] | "5h";
                 agData.reset_time = doc["antigravity"]["reset_time"] | "";
