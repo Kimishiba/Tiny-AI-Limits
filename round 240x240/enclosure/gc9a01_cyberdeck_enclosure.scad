@@ -387,33 +387,40 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // 2. Fused Internal ESP32-C3 SuperMini Clean Straight Rectangular U-Dock (Straight Walls, Solid to Floor, No Curves)
-    wall_thick = 4.0;
-    side_thick = 2.0;
-    wall_h     = 10.5;
-    x_front    = esp_center_x - esp_l / 2;
-    x_rear     = esp_center_x + esp_l / 2;
+    // 2. Fused Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock
+    wall_thick  = 4.0;
+    side_thick  = 1.8;
+    tall_wall_h = 13.0; // Tall solid back thrust wall opposite USB-C
+    side_wall_h = esp_standoff_h + 3.0; // Low-profile side clip walls
+    x_front     = esp_center_x - esp_l / 2;
+    x_rear      = esp_center_x + esp_l / 2;
 
     difference() {
         union() {
             translate([0, 0, floor_t]) {
-                // 1. Straight Rear Thrust Wall (solid all the way to floor_t, straight flat top)
+                // 1. Tall Solid Rear Thrust Wall (opposite of USB-C port, solid all the way to floor)
                 translate([x_rear, -(esp_w / 2 + side_thick), 0])
-                    cube([wall_thick, esp_w + 2 * side_thick, wall_h]);
+                    cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
 
-                // 2. Straight Side Guide Walls (solid all the way to floor_t, straight flat top)
+                // 2. Sleek Low-Profile Side Clip Guide Walls (solid all the way to floor)
                 translate([x_front, esp_w / 2, 0])
-                    cube([esp_l, side_thick, wall_h]);
+                    cube([esp_l, side_thick, side_wall_h]);
                 translate([x_front, -(esp_w / 2 + side_thick), 0])
-                    cube([esp_l, side_thick, wall_h]);
+                    cube([esp_l, side_thick, side_wall_h]);
 
-                // 3. Standoff Support Ledges (solid to floor_t)
+                // 3. Inward Snap-Fit Retention Clips on side walls to hold PCB down
+                translate([esp_center_x, esp_w / 2 - 0.25, esp_standoff_h + 1.4 + 0.3])
+                    cube([esp_l * 0.6, 0.5, 0.7], center=true);
+                translate([esp_center_x, -esp_w / 2 + 0.25, esp_standoff_h + 1.4 + 0.3])
+                    cube([esp_l * 0.6, 0.5, 0.7], center=true);
+
+                // 4. Standoff Support Ledges (solid to floor_t)
                 translate([esp_center_x - esp_l/2, 7.62 - 2.4, 0])
                     cube([esp_l, 4.8, esp_standoff_h]);
                 translate([esp_center_x - esp_l/2, -7.62 - 2.4, 0])
                     cube([esp_l, 4.8, esp_standoff_h]);
 
-                // 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
+                // 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
                 translate([x_front - 2.0, 7.45 - 1.75, 0])
                     cube([2.0, 3.5, esp_standoff_h + 4.5]);
                 translate([x_front - 2.0, -7.45 - 1.75, 0])
@@ -421,7 +428,7 @@ module main_housing() {
             }
         }
         
-        // 5. Wide Continuous Pin Clearance Rail Channels (accommodates soldered pin headers)
+        // 6. Wide Continuous Pin Clearance Rail Channels (accommodates soldered pin headers)
         translate([esp_center_x, 7.62, floor_t + esp_standoff_h - 1.3])
             cube([esp_l + 1.0, 4.2, 2.7], center=true);
         translate([esp_center_x, -7.62, floor_t + esp_standoff_h - 1.3])

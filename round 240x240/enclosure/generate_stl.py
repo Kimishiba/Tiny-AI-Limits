@@ -373,36 +373,46 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Internal ESP32-C3 SuperMini Clean Straight Rectangular U-Dock (Straight Walls, Solid to Floor, No Curves)
+    # 8. Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
     rail_h = 3.2
     
-    x_front = esp_center_x - esp_l / 2.0  # -21.5
-    x_rear = esp_center_x + esp_l / 2.0   # +1.5
+    x_front = esp_center_x - esp_l / 2.0  # -21.5 (USB-C port end)
+    x_rear = esp_center_x + esp_l / 2.0   # +1.5  (Opposite end behind antenna)
     wall_thick = 4.0
-    side_thick = 2.0
-    wall_h = 10.5  # straight uniform wall height from floor_t (Z = 2.0 to 12.5)
+    side_thick = 1.8
+    tall_wall_h = 13.0  # Tall solid back thrust wall opposite USB-C (Z = 2.0 to 15.0)
+    side_wall_h = rail_h + 3.0  # Sleek low-profile side snap clip walls (Z = 2.0 to 8.2)
     
-    # 1. Straight Rear Thrust Wall (solid all the way to floor_t, straight flat top)
-    rear_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, wall_h], center=False).translate([
+    # 1. Tall Solid Rear Thrust Wall (Positioned directly opposite of USB-C port, solid all the way to floor)
+    rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
         x_rear, -(esp_w / 2.0 + side_thick), floor_t
     ])
     
-    # 2. Straight Side Guide Walls (solid all the way to floor_t, straight flat top)
-    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, wall_h], center=False).translate([
+    # 2. Sleek Low-Profile Side Clip Guide Walls (solid all the way to floor)
+    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, esp_w / 2.0, floor_t
     ])
-    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, wall_h], center=False).translate([
+    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, -(esp_w / 2.0 + side_thick), floor_t
     ])
     
-    # 3. Straight Standoff Support Ledges (solid from floor_t to floor_t + rail_h)
+    # 3. Inward Snap-Fit Retention Clips on side walls to hold PCB down
+    snap_z = floor_t + rail_h + 1.4 + 0.3
+    snap_lip_top = m3d.Manifold.cube([esp_l * 0.6, 0.5, 0.7], center=True).translate([
+        esp_center_x, esp_w / 2.0 - 0.25, snap_z
+    ])
+    snap_lip_bot = m3d.Manifold.cube([esp_l * 0.6, 0.5, 0.7], center=True).translate([
+        esp_center_x, -esp_w / 2.0 + 0.25, snap_z
+    ])
+    
+    # 4. Support Standoff Ledges (solid to floor_t)
     ledge_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
     ledge_bot = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
     
-    # 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
+    # 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
     front_stop_top = m3d.Manifold.cube([2.0, 3.5, rail_h + 4.5], center=True).translate([
         x_front - 1.0, 7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
@@ -410,9 +420,9 @@ def generate_main_housing():
         x_front - 1.0, -7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
     
-    u_cradle = rear_wall + side_wall_top + side_wall_bot + ledge_top + ledge_bot + front_stop_top + front_stop_bot
+    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + snap_lip_top + snap_lip_bot + ledge_top + ledge_bot + front_stop_top + front_stop_bot
 
-    # 5. Wide continuous pin clearance rail channels (accommodates soldered header pins)
+    # 6. Wide continuous pin clearance rail channels (accommodates soldered header pins)
     channel_w = 4.2
     channel_l = esp_l + 1.0
     channel_depth = 2.6
@@ -424,9 +434,9 @@ def generate_main_housing():
     ])
     pin_cuts = chan_top + chan_bot
         
-    standoffs_locked = u_cradle - pin_cuts
+    dock_solid = carrier_solid - pin_cuts
     
-    return (housing_hollow + standoffs_locked) - usbc_port
+    return (housing_hollow + dock_solid) - usbc_port
 
 
 
