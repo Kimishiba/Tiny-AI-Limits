@@ -827,7 +827,7 @@ def handle_hook_event(data, now_ts=None):
                 code = "waiting_approval"
                 detail = "ANSWER Q"
                 color = "#FFB800"
-            elif tool_name in ("bash", "edit", "write", "multiedit", "notebookedit", "fileedit") or "permission" in tool_name or "confirm" in tool_name or not tool_name:
+            elif tool_name in ("ask_permission", "request_permission") or "permission" in tool_name or "confirm" in tool_name:
                 state = "WAITING"
                 code = "waiting_approval"
                 detail = "GRANT PERM"
@@ -1108,16 +1108,12 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                             found_pending = True
                             turn_pending_prompt = "ANSWER Q"
                             break
-                        elif name_lower in (
-                            "ask_permission", "request_permission", "run_command",
-                            "write_to_file", "replace_file_content", "multi_replace_file_content",
-                            "call_mcp_tool"
-                        ) or "permission" in name_lower or "confirm" in name_lower:
+                        elif name_lower in ("ask_permission", "request_permission") or "permission" in name_lower or "confirm" in name_lower:
                             found_pending = True
                             turn_pending_prompt = "GRANT PERM"
                             break
                         else:
-                            # Autonomous tool execution (view_file, grep_search, etc.)
+                            # Autonomous tool execution (run_command, write_to_file, replace_file_content, etc.)
                             has_in_flight_tools = True
                 elif last_step_entry.get("content"):
                     # Final text response delivered to user
@@ -1265,15 +1261,12 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                                 found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif t_name in (
-                                "bash", "edit", "write", "multiedit",
-                                "notebookedit", "fileedit", "ask_permission",
-                                "request_permission"
-                            ) or "permission" in t_name or "confirm" in t_name:
+                            elif t_name in ("ask_permission", "request_permission") or "permission" in t_name or "confirm" in t_name:
                                 found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
                                 break
                             else:
+                                # Autonomous tools (bash, edit, write, fileedit, etc.)
                                 has_in_flight_tools = True
                     if not found_pending and not has_in_flight_tools:
                         is_final_turn_response = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
