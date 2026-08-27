@@ -139,14 +139,38 @@ class TestAgentStatus(unittest.TestCase):
                     "created_at": "2026-08-27T10:00:00Z",
                     "tool_calls": [
                         {
-                            "name": "run_command",
-                            "args": {"CommandLine": "ls -la"}
+                            "name": "view_file",
+                            "args": {"AbsolutePath": "/path/to/file.py"}
                         }
                     ]
                 }) + "\n")
             
             status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
             self.assertFalse(status["waiting_for_input"])
+
+    def test_antigravity_run_command_pending_permission(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            session_dir = os.path.join(brain_dir, "session1", ".system_generated", "logs")
+            os.makedirs(session_dir, exist_ok=True)
+            transcript_file = os.path.join(session_dir, "transcript.jsonl")
+            
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-08-27T10:00:00Z",
+                    "tool_calls": [
+                        {
+                            "name": "run_command",
+                            "args": {"CommandLine": "swift test"}
+                        }
+                    ]
+                }) + "\n")
+            
+            status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(status["waiting_for_input"])
+            self.assertEqual(status["prompt_text"], "GRANT PERM")
 
     def test_claude_permission_prompt(self):
         import tempfile
@@ -228,7 +252,7 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(len(res["active_agents"]), 2)
             self.assertEqual(res["active_agents"][0]["state"], "WAITING")
 
-    def test_antigravity_run_command_working(self):
+    def test_antigravity_run_command_waiting(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             brain_dir = os.path.join(tmp_dir, "brain")
@@ -250,11 +274,11 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WORKING")
-            self.assertEqual(sessions[0]["detail"], "EXECUTING...")
-            self.assertEqual(sessions[0]["color"], "#00E5FF")
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
+            self.assertEqual(sessions[0]["color"], "#FFB800")
 
-    def test_claude_bash_working(self):
+    def test_claude_bash_waiting(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             projects_dir = os.path.join(tmp_dir, "projects", "project1")
@@ -278,9 +302,63 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_claude_sessions(claude_dirs=[tmp_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WORKING")
-            self.assertEqual(sessions[0]["detail"], "EXECUTING...")
-            self.assertEqual(sessions[0]["color"], "#00E5FF")
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
+            self.assertEqual(sessions[0]["color"], "#FFB800")
+
+    def test_format_reset_time_variations(self):
+        from app import format_reset_time
+        now = 1787830000.0
+        
+        # 3h 12m in future
+        future_iso = "2026-08-27T14:40:00Z"
+        # 11520 seconds = 3h 12m
+        secs, s = format_reset_time(future_iso, now_ts=1787800000.0)
+        self.assertIsNotNone(secs)
+        
+        # Exact calculation test
+        from datetime import datetime, timezone
+        now_dt = datetime.now(timezone.utc)
+        now_ts = float(int(now_dt.timestamp()))
+        
+        # 2h 15m in future
+        future_iso_2h = datetime.fromtimestamp(now_ts + 8100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs_2h, reset_str_2h = format_reset_time(future_iso_2h, now_ts=now_ts)
+        self.assertEqual(secs_2h, 8100)
+        self.assertEqual(reset_str_2h, "2h 15m")
+        
+        # 42 mins in future
+        future_iso_42m = datetime.fromtimestamp(now_ts + 2520, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs_42m, reset_str_42m = format_reset_time(future_iso_42m, now_ts=now_ts)
+        self.assertEqual(secs_42m, 2520)
+        self.assertEqual(reset_str_42m, "42m")
+        
+        # Past timestamp
+        past_iso = datetime.fromtimestamp(now_ts - 100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs_past, reset_str_past = format_reset_time(past_iso, now_ts=now_ts)
+        self.assertEqual(secs_past, 0)
+        self.assertEqual(reset_str_past, "READY")
+
+    def test_get_antigravity_quota_fields(self):
+        from app import get_antigravity_quota
+        quota = get_antigravity_quota()
+        self.assertIn("limit", quota)
+        self.assertIn("used", quota)
+        self.assertIn("remaining", quota)
+        self.assertIn("period", quota)
+        self.assertIn("reset_time", quota)
+        self.assertIn("reset_in_seconds", quota)
+        self.assertIn("reset_str", quota)
+
+    def test_scan_claude_usage_fields(self):
+        from app import scan_claude_usage
+        usage = scan_claude_usage()
+        self.assertIn("tokens_today", usage)
+        self.assertIn("limit", usage)
+        self.assertIn("remaining", usage)
+        self.assertIn("reset_time", usage)
+        self.assertIn("reset_in_seconds", usage)
+        self.assertIn("reset_str", usage)
 
 if __name__ == "__main__":
     unittest.main()

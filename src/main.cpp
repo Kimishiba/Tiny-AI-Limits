@@ -45,6 +45,9 @@ struct ClaudeLimits {
     long tokensToday = 0;
     int limit = 100;
     int remaining = 100;
+    String reset_time = "";
+    int reset_in_seconds = -1;
+    String reset_str = "";
 };
 const long claudeHeavyUsageThreshold = 2500000;
 
@@ -53,6 +56,9 @@ struct AntigravityLimits {
     int remaining = 200;
     int used = 0;
     String period = "5h";
+    String reset_time = "";
+    int reset_in_seconds = -1;
+    String reset_str = "";
 };
 
 struct WeatherInfo {
@@ -513,6 +519,26 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
     gcGfx->drawFastHLine(posX + cardW - 1, midY, 2, colPin);
 }
 
+void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
+    uint16_t arcCol;
+    if (ledState == 1) {
+        arcCol = gcGfx->color565(0, 255, 136); // #00FF88 Constant Solid Neon Emerald Green
+    } else if (ledState == 2) {
+        arcCol = gcGfx->color565(245, 158, 11); // #F59E0B Amber Unpaired
+    } else {
+        arcCol = gcGfx->color565(239, 68, 68);  // #EF4444 Crimson Disconnected
+    }
+
+    for (int deg = 246; deg <= 294; deg++) {
+        float rad = deg * 0.0174533f;
+        float cosR = cosf(rad);
+        float sinR = sinf(rad);
+        for (int r = 101; r <= 107; r++) {
+            gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), arcCol);
+        }
+    }
+}
+
 void drawGC9A01RoundFlipUI() {
     int cx = 120, cy = 120, rScreen = 114;
 
@@ -532,6 +558,7 @@ void drawGC9A01RoundFlipUI() {
     // Component redraw state cache
     static int lastHoursUntilRain = -999;
     static int lastLedState = -1;
+    static int lastPulseLevel = -1;
     static int lastClaudePct = -1;
     static int lastAntiPct = -1;
     static float lastTemp = -999.0f;
@@ -601,6 +628,7 @@ void drawGC9A01RoundFlipUI() {
             // Reset cache state variables to force 100% fresh re-render of all display components
             lastHoursUntilRain = -999;
             lastLedState = -1;
+            lastPulseLevel = -1;
             lastClaudePct = -1;
             lastAntiPct = -1;
             lastTemp = -999.0f;
@@ -615,30 +643,22 @@ void drawGC9A01RoundFlipUI() {
         }
     }
 
-    // 2. Top Crown: Backend Connection Status LED & Weather / Rain Indicator (Redraw on change)
-    // 0 = no backend, 1 = paired, 2 = connected but unpaired (amber): the
-    // board is reading from whichever companion answered mDNS first, which on
-    // a shared network may not be this user's. See STATUS_UNPAIRED_NOTE.
+    // 2. Top Crown: Backend Connection Status Indicator Arc & Weather / Rain Indicator
+    // 0 = no backend (red), 1 = paired (solid green), 2 = connected but unpaired (amber)
     int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
 
-    if (weatherData.hours_until_rain != lastHoursUntilRain || curLedState != lastLedState) {
-        lastHoursUntilRain = weatherData.hours_until_rain;
+    if (curLedState != lastLedState) {
         lastLedState = curLedState;
+        drawGC9A01TopConnectionArc(cx, cy, curLedState);
+    }
 
-        // Clear Top Crown Area
-        gcGfx->fillRect(cx - 50, cy - 110, 100, 28, GC_COLOR_BLACK);
+    if (weatherData.hours_until_rain != lastHoursUntilRain) {
+        lastHoursUntilRain = weatherData.hours_until_rain;
 
-        // LED Indicator Dot (Centered at cx=120, y=cy-105=15)
-        uint16_t colLed = (curLedState == 1) ? gcGfx->color565(34, 197, 94) :   // #22C55E Emerald Paired
-                          (curLedState == 2) ? gcGfx->color565(245, 158, 11) :  // #F59E0B Amber Unpaired
-                                               gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Disconnected
+        // Clear weather text area (Centered at cx=120, y=cy-93=27)
+        gcGfx->fillRect(cx - 50, cy - 98, 100, 12, GC_COLOR_BLACK);
 
-        // LED Housing Bezel
-        gcGfx->drawCircle(cx, cy - 105, 4, colBezel);
-        // LED Core Dot (Radius 3 for clear visibility)
-        gcGfx->fillCircle(cx, cy - 105, 3, colLed);
-
-        // Weather text (Centered at cx=120, y=cy-93=27)
+        // Weather text
         gcGfx->setTextSize(1);
         if (weatherData.hours_until_rain == -1) {
             gcPrintCentered("NO RAIN", cx, cy - 93, colGray);
@@ -763,17 +783,23 @@ void drawGC9A01RoundFlipUI() {
             lastAgentDetails[i] = ag.detail;
             lastAgentColors[i] = ag.color;
 
-            // Card container background
-            gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BOT);
-            gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, GC_COLOR_CARD_BORDER);
+            // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
+            bool isAGY = (ag.name.startsWith("AGY") || ag.name.indexOf("AGY") >= 0);
+            uint16_t brandCol = isAGY ? colOrange : colCyan;
+            uint16_t cardBorderCol = isAGY ? gcGfx->color565(80, 40, 0) : gcGfx->color565(0, 60, 75);
+            uint16_t cardBgCol = isAGY ? gcGfx->color565(22, 14, 8) : gcGfx->color565(10, 18, 24);
 
-            // Left status bar
-            gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, ag.color);
+            // Card container background
+            gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, cardBgCol);
+            gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, cardBorderCol);
+
+            // Left brand accent bar (Orange for AGY, Teal for Claude)
+            gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, brandCol);
 
             // Row 1: Agent Label & State Indicator
             gcGfx->setTextSize(1);
             gcGfx->setCursor(cx - 42, rowY + 6);
-            gcGfx->setTextColor(GC_COLOR_WHITE);
+            gcGfx->setTextColor(brandCol);
             gcGfx->print(ag.name);
 
             // Status Badge Dot
@@ -864,16 +890,25 @@ void drawGC9A01RoundFlipUI() {
             gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
     } else {
-        if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate) {
+        static String lastCldResetStr = "";
+        static String lastAgyResetStr = "";
+
+        if (lastWaiting || claudeData.reset_str != lastCldResetStr || agData.reset_str != lastAgyResetStr) {
             lastWaiting = false;
-            lastTemp = weatherData.temp;
-            lastDate = timeData.date_str;
-            gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
+            lastCldResetStr = claudeData.reset_str;
+            lastAgyResetStr = agData.reset_str;
+
+            // Clear bottom sub-HUD area (Centered at cx=120, y=cy+74..cy+106)
+            gcGfx->fillRect(cx - 55, cy + 74, 110, 32, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
-            gcPrintCentered(timeData.date_str.c_str(), cx, cy + 80, colGray);
-            char tempBuf[16];
-            sprintf(tempBuf, "%.1f C", weatherData.temp);
-            gcPrintCentered(tempBuf, cx, cy + 94, GC_COLOR_WHITE);
+
+            // Line 1: Claude Reset Countdown (Teal #00E5FF)
+            String cldStr = "CLD: " + (claudeData.reset_str.length() > 0 ? claudeData.reset_str : "READY");
+            gcPrintCentered(cldStr.c_str(), cx, cy + 80, colCyan);
+
+            // Line 2: Antigravity Reset Countdown (Orange #FF7A00)
+            String agyStr = "AGY: " + (agData.reset_str.length() > 0 ? agData.reset_str : "READY");
+            gcPrintCentered(agyStr.c_str(), cx, cy + 94, colOrange);
         }
     }
 }
@@ -895,12 +930,10 @@ void drawGC9A01RoundFaceUI() {
         gcGfx->drawCircle(cx, cy, 117, colBezel);
     }
 
-    // 2. Top Crown: Connection Status LED & Rain Indicator
+    // 2. Top Crown: Connection Status Arc & Rain Indicator
     // Amber means connected but unpaired -- see STATUS_UNPAIRED_NOTE.
-    uint16_t dotCol = !wifiConnected            ? gcGfx->color565(239, 68, 68)
-                    : (pairedHost.length() > 0) ? gcGfx->color565(34, 197, 94)
-                                                : gcGfx->color565(245, 158, 11);
-    gcGfx->fillCircle(cx, cy - 105, 3, dotCol);
+    int curFaceLedState = !wifiConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    drawGC9A01TopConnectionArc(cx, cy, curFaceLedState);
 
     char rainStr[24];
     if (weatherData.hours_until_rain < 0) {
@@ -1274,12 +1307,18 @@ void fetchBackendData() {
                 claudeData.tokensToday = doc["claude"]["tokens_today"] | 0;
                 if (doc["claude"].containsKey("limit")) claudeData.limit = doc["claude"]["limit"] | 100;
                 if (doc["claude"].containsKey("remaining")) claudeData.remaining = doc["claude"]["remaining"] | 100;
+                claudeData.reset_time = doc["claude"]["reset_time"] | "";
+                claudeData.reset_in_seconds = doc["claude"]["reset_in_seconds"] | -1;
+                claudeData.reset_str = doc["claude"]["reset_str"] | "";
             }
             if (doc.containsKey("antigravity")) {
                 agData.limit = doc["antigravity"]["limit"] | 200;
                 agData.remaining = doc["antigravity"]["remaining"] | 200;
                 agData.used = doc["antigravity"]["used"] | 0;
                 agData.period = doc["antigravity"]["period"] | "5h";
+                agData.reset_time = doc["antigravity"]["reset_time"] | "";
+                agData.reset_in_seconds = doc["antigravity"]["reset_in_seconds"] | -1;
+                agData.reset_str = doc["antigravity"]["reset_str"] | "";
             }
             if (doc.containsKey("weather")) {
                 weatherData.temp = doc["weather"]["temp"] | 23.5;
@@ -1308,6 +1347,7 @@ void fetchBackendData() {
                         if (colStr.equalsIgnoreCase("#FFB800")) agentData.active_agents[count].color = GC_COLOR_AMBER;
                         else if (colStr.equalsIgnoreCase("#00FF88")) agentData.active_agents[count].color = gcGfx->color565(0, 255, 136);
                         else if (colStr.equalsIgnoreCase("#00E5FF")) agentData.active_agents[count].color = GC_COLOR_CYAN;
+                        else if (colStr.equalsIgnoreCase("#FF7A00")) agentData.active_agents[count].color = GC_COLOR_ORANGE;
                         else agentData.active_agents[count].color = GC_COLOR_SLATE_GRAY;
                         count++;
                     }
@@ -1347,14 +1387,15 @@ bool connectToWifi(const char* ssid, const char* password) {
     WiFi.disconnect(true, true);
     delay(150);
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
     WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_8_5dBm); // Tuned for KPN router RF sensitivity & ESP32-C3 LDO stability
+    WiFi.setTxPower(WIFI_POWER_19_5dBm);
 
     wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
     esp_wifi_set_country(&country);
     delay(50);
 
-    Serial.printf("\n[WiFi] Connecting to '%s' (TX: 8.5dBm)...\n", ssid);
+    Serial.printf("\n[WiFi] Connecting to '%s' (TX: 19.5dBm)...\n", ssid);
     WiFi.begin(ssid, password);
 
     unsigned long connectStart = millis();
@@ -1693,11 +1734,6 @@ void loop() {
         lastFrameTime = now;
 
         // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-        static bool initialCleared = false;
-        if (!initialCleared) {
-            initialCleared = true;
-            gcGfx->fillScreen(GC_COLOR_BLACK);
-        }
         // Keeps the blink/gaze state live for drawGC9A01RoundFaceUI(), which
         // is wired up but not currently selected by the loop.
         updateFacePhysics(now);

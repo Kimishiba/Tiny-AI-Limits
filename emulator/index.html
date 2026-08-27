@@ -823,8 +823,10 @@
     // Data State (mirrors backend GET /data)
     let claude_limit = 500000;
     let claude_remaining = 425000;
+    let claude_reset_str = "";
     let antigravity_limit = 100;
     let antigravity_remaining = 60;
+    let antigravity_reset_str = "";
     let current_temperature = 23.5;
     let hours_until_rain = 2;
     let date_string = "THU 06 AUG";
@@ -966,6 +968,40 @@
       }
     }
 
+    function drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn) {
+      const startAngle = (-90 - 24) * Math.PI / 180;
+      const endAngle = (-90 + 24) * Math.PI / 180;
+      const arcRadius = 104;
+      const now = performance.now();
+      const pulse = (Math.sin(now * 0.0035) + 1) / 2; // 0..1
+
+      c.save();
+      c.beginPath();
+      c.arc(cx, cy, arcRadius, startAngle, endAngle);
+      c.lineWidth = 4.5;
+      c.lineCap = "round";
+
+      if (isBackendConn) {
+        // Pulsing Emerald Green Arc
+        const alpha = 0.35 + 0.65 * pulse;
+        c.strokeStyle = `rgba(34, 197, 94, ${alpha})`;
+        c.shadowColor = `rgba(34, 197, 94, ${0.4 + 0.5 * pulse})`;
+        c.shadowBlur = 4 + 8 * pulse;
+      } else if (isWifiConn) {
+        // Amber Searching / Unpaired
+        c.strokeStyle = "#f59e0b";
+        c.shadowColor = "rgba(245, 158, 11, 0.5)";
+        c.shadowBlur = 6;
+      } else {
+        // Offline Red
+        c.strokeStyle = "#ef4444";
+        c.shadowColor = "rgba(239, 68, 68, 0.4)";
+        c.shadowBlur = 4;
+      }
+      c.stroke();
+      c.restore();
+    }
+
     function drawGC9A01RoundFlipUI(c) {
       const now = getNowTime();
       const cx = 160, cy = 120, rScreen = 114;
@@ -1034,40 +1070,13 @@
       // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
       drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
 
-      // 4. Top Crown: Backend Connection Status LED & Rain Indicator
-      const ledY = cy - 105;
+      // 4. Top Crown: Backend Connection Status Arc & Rain Indicator
       const wifiLedEl = document.getElementById("wifiLed");
       const backendStatusEl = document.getElementById("backendStatus");
       const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
       const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
 
-      let dotCol = "#ef4444"; // Offline Red
-      let glowCol = "rgba(239, 68, 68, 0.4)";
-      if (isBackendConn) {
-        dotCol = "#22c55e"; // Emerald Connected
-        glowCol = "rgba(34, 197, 94, 0.6)";
-      } else if (isWifiConn) {
-        dotCol = "#f59e0b"; // Amber Searching
-        glowCol = "rgba(245, 158, 11, 0.5)";
-      }
-
-      // LED Housing & Glow
-      c.save();
-      c.fillStyle = "#12151f";
-      c.beginPath();
-      c.arc(cx, ledY, 3.5, 0, Math.PI * 2);
-      c.fill();
-      c.strokeStyle = "#2b3042";
-      c.lineWidth = 1;
-      c.stroke();
-
-      c.fillStyle = dotCol;
-      c.shadowColor = glowCol;
-      c.shadowBlur = 6;
-      c.beginPath();
-      c.arc(cx, ledY, 2.2, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
+      drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn);
 
       c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
       c.textAlign = "center";
@@ -1424,17 +1433,23 @@
           const cardW = 98, cardH = 38;
           const cardX = cx - cardW / 2;
 
+          // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
+          const isAGY = (ag.source === "antigravity" || (ag.name && ag.name.startsWith("AGY")));
+          const brandCol = isAGY ? "#FF7A00" : "#00E5FF";
+          const cardBg = isAGY ? "#18120C" : "#0C161D";
+          const cardBorder = isAGY ? "#5A2E05" : "#0A3D4D";
+
           // Card Background
-          c.fillStyle = "#12141C";
+          c.fillStyle = cardBg;
           c.beginPath();
           c.roundRect(cardX, rowY, cardW, cardH, 4);
           c.fill();
-          c.strokeStyle = "#2B3042";
+          c.strokeStyle = cardBorder;
           c.lineWidth = 1;
           c.stroke();
 
-          // Left Status Indicator Bar
-          c.fillStyle = ag.color || "#94A3B8";
+          // Left Status Indicator Bar (Orange for AGY, Teal for Claude)
+          c.fillStyle = brandCol;
           c.beginPath();
           c.roundRect(cardX, rowY, 3, cardH, [4, 0, 0, 4]);
           c.fill();
@@ -1443,18 +1458,18 @@
           c.textAlign = "left";
           c.textBaseline = "middle";
           c.font = "bold 10px 'JetBrains Mono', monospace";
-          c.fillStyle = "#ffffff";
+          c.fillStyle = brandCol;
           c.fillText(ag.name || "Agent", cardX + 8, rowY + 11);
 
           // Status Dot
-          c.fillStyle = ag.color || "#94A3B8";
+          c.fillStyle = ag.color || brandCol;
           c.beginPath();
           c.arc(cardX + cardW - 10, rowY + 11, 3.5, 0, Math.PI * 2);
           c.fill();
 
           // Row 2: Detail / Action Text
           c.font = "9px 'JetBrains Mono', monospace";
-          c.fillStyle = ag.color || "#94A3B8";
+          c.fillStyle = ag.color || brandCol;
           let det = ag.detail || "";
           if (det.length > 14) det = det.substring(0, 13) + "…";
           c.fillText(det, cardX + 8, rowY + 26);
@@ -1488,16 +1503,17 @@
         c.fillStyle = "#ffffff";
         c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
-        // Line 1: Day & Date
+        // Line 1: Claude Reset Countdown in Teal #00E5FF
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = "#94a3b8";
-        c.fillText(date_string.toUpperCase(), cx, cy + 81);
+        c.fillStyle = "#00E5FF";
+        const cldStr = "CLD: " + (claude_reset_str || "READY");
+        c.fillText(cldStr, cx, cy + 81);
 
-        // Line 2: Temperature & Weather Icon
-        c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
-        c.fillStyle = "#ffffff";
-        const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
-        c.fillText(tempFormatted + "°C ☀️", cx, cy + 95);
+        // Line 2: Antigravity Reset Countdown in Orange #FF7A00
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#FF7A00";
+        const agyStr = "AGY: " + (antigravity_reset_str || "READY");
+        c.fillText(agyStr, cx, cy + 95);
       }
     }
 
@@ -1518,39 +1534,13 @@
       c.arc(cx, cy, rScreen, 0, Math.PI * 2);
       c.fill();
 
-      // 2. Top Crown: Backend Connection Status LED & Rain Indicator
-      const ledY = cy - 105;
+      // 2. Top Crown: Backend Connection Status Arc & Rain Indicator
       const wifiLedEl = document.getElementById("wifiLed");
       const backendStatusEl = document.getElementById("backendStatus");
       const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
       const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
 
-      let dotCol = "#ef4444";
-      let glowCol = "rgba(239, 68, 68, 0.4)";
-      if (isBackendConn) {
-        dotCol = "#22c55e";
-        glowCol = "rgba(34, 197, 94, 0.6)";
-      } else if (isWifiConn) {
-        dotCol = "#f59e0b";
-        glowCol = "rgba(245, 158, 11, 0.5)";
-      }
-
-      c.save();
-      c.fillStyle = "#12151f";
-      c.beginPath();
-      c.arc(cx, ledY, 3.5, 0, Math.PI * 2);
-      c.fill();
-      c.strokeStyle = "#2b3042";
-      c.lineWidth = 1;
-      c.stroke();
-
-      c.fillStyle = dotCol;
-      c.shadowColor = glowCol;
-      c.shadowBlur = 6;
-      c.beginPath();
-      c.arc(cx, ledY, 2.2, 0, Math.PI * 2);
-      c.fill();
-      c.restore();
+      drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn);
 
       c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
       c.textAlign = "center";
@@ -1835,12 +1825,14 @@
           if (data.claude) {
             claude_limit = data.claude.limit || 500000;
             claude_remaining = data.claude.remaining || 500000;
+            claude_reset_str = data.claude.reset_str || "";
             document.getElementById("claudeSlider").value = Math.round((claude_remaining/claude_limit)*100);
             document.getElementById("claudeVal").innerText = Math.round((claude_remaining/claude_limit)*100) + "%";
           }
           if (data.antigravity) {
             antigravity_limit = data.antigravity.limit || 200;
             antigravity_remaining = data.antigravity.remaining !== undefined ? data.antigravity.remaining : 200;
+            antigravity_reset_str = data.antigravity.reset_str || "";
             document.getElementById("antiSlider").value = Math.round((antigravity_remaining/antigravity_limit)*100);
             document.getElementById("antiVal").innerText = Math.round((antigravity_remaining/antigravity_limit)*100) + "%";
           }

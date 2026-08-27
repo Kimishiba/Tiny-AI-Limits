@@ -223,13 +223,19 @@ def get_claude_dirs():
 # replay tens of millions of cheap cached-context tokens per turn, which
 # swamps the number with something proportional to turn count rather than
 # real new work (input + output + freshly-cached context).
-def scan_claude_tokens_today():
+def scan_claude_usage(now_ts=None):
+    """Scan Claude transcript logs for today's tokens and 5h rolling reset window."""
+    if now_ts is None:
+        now_ts = time.time()
+    five_hours_ago = now_ts - (5 * 3600)
+    earliest_step_ts = None
     total_tokens = 0
     today_local = datetime.now().date()
+
     for c_dir in get_claude_dirs():
         for filepath in glob.glob(os.path.join(c_dir, "**", "*.jsonl"), recursive=True):
             try:
-                if os.path.getmtime(filepath) < (time.time() - 2 * 86400):
+                if os.path.getmtime(filepath) < five_hours_ago:
                     continue
                 with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
@@ -246,18 +252,42 @@ def scan_claude_tokens_today():
                         if not ts:
                             continue
                         try:
-                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
+                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                            step_ts = dt.timestamp()
+                            if step_ts >= five_hours_ago:
+                                if earliest_step_ts is None or step_ts < earliest_step_ts:
+                                    earliest_step_ts = step_ts
+                            if dt.astimezone().date() == today_local:
+                                usage = (entry.get("message") or {}).get("usage") or {}
+                                total_tokens += usage.get("input_tokens", 0) or 0
+                                total_tokens += usage.get("output_tokens", 0) or 0
+                                total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
                         except Exception:
                             continue
-                        if dt.date() != today_local:
-                            continue
-                        usage = (entry.get("message") or {}).get("usage") or {}
-                        total_tokens += usage.get("input_tokens", 0) or 0
-                        total_tokens += usage.get("output_tokens", 0) or 0
-                        total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
             except Exception:
                 pass
-    return total_tokens
+
+    if earliest_step_ts is not None:
+        from datetime import timezone
+        reset_ts = earliest_step_ts + (5 * 3600)
+        reset_time = datetime.fromtimestamp(reset_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        reset_in_seconds, reset_str = format_reset_time(reset_time, now_ts)
+    else:
+        reset_time = None
+        reset_in_seconds = 0
+        reset_str = "READY"
+
+    return {
+        "tokens_today": total_tokens,
+        "limit": 100,
+        "remaining": 100,
+        "reset_time": reset_time,
+        "reset_in_seconds": reset_in_seconds,
+        "reset_str": reset_str
+    }
+
+def scan_claude_tokens_today():
+    return scan_claude_usage()["tokens_today"]
 
 # Antigravity ships as several separate products -- the standalone GUI app,
 # the CLI ("agy"), and the IDE extension -- each running its own process with
@@ -293,6 +323,7 @@ def scan_antigravity_5h_limits(quota_limit=None):
     # fixed cycle anchored to first use (reset sharply every 5h); that was
     # based on a wrong assumption and has been reverted.
     five_hours_ago = now - (5 * 3600)
+    earliest_step_ts = None
 
     for brain_dir in _antigravity_brain_dirs():
         pattern = os.path.join(brain_dir, "*", ".system_generated", "logs", "transcript.jsonl")
@@ -312,19 +343,35 @@ def scan_antigravity_5h_limits(quota_limit=None):
                             # Convert ISO string e.g. 2026-08-07T14:50:00Z to epoch time
                             try:
                                 dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                                if dt.timestamp() >= five_hours_ago:
+                                step_ts = dt.timestamp()
+                                if step_ts >= five_hours_ago:
                                     total_steps += 1
+                                    if earliest_step_ts is None or step_ts < earliest_step_ts:
+                                        earliest_step_ts = step_ts
                             except Exception:
                                 pass
             except Exception:
                 pass
 
     remaining = max(0, quota_limit - total_steps)
+    if earliest_step_ts is not None:
+        reset_ts = earliest_step_ts + (5 * 3600)
+        from datetime import timezone
+        reset_time = datetime.fromtimestamp(reset_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        reset_in_seconds, reset_str = format_reset_time(reset_time, now)
+    else:
+        reset_time = None
+        reset_in_seconds = 0
+        reset_str = "READY"
+
     return {
         "limit": quota_limit,
         "used": total_steps,
         "remaining": remaining,
-        "period": "5h"
+        "period": "5h",
+        "reset_time": reset_time,
+        "reset_in_seconds": reset_in_seconds,
+        "reset_str": reset_str
     }
 
 # --- Real Antigravity Quota (via local Connect RPC) ---
@@ -484,6 +531,30 @@ def get_antigravity_accounts(use_cache=True):
     _antigravity_accounts_cache["timestamp"] = now
     return accounts
 
+def format_reset_time(reset_time_str, now_ts=None):
+    """Compute countdown seconds and human-readable string (e.g. '3h 12m', '45m') from ISO timestamp."""
+    if not reset_time_str:
+        return None, ""
+    if now_ts is None:
+        now_ts = time.time()
+    try:
+        dt = datetime.fromisoformat(reset_time_str.replace("Z", "+00:00"))
+        reset_ts = dt.timestamp()
+        secs_left = max(0, int(round(reset_ts - now_ts)))
+        hours = secs_left // 3600
+        mins = (secs_left % 3600) // 60
+        if hours > 0:
+            reset_str = f"{hours}h {mins:02d}m"
+        elif mins > 0:
+            reset_str = f"{mins}m"
+        elif secs_left > 0:
+            reset_str = f"{secs_left}s"
+        else:
+            reset_str = "READY"
+        return secs_left, reset_str
+    except Exception:
+        return None, ""
+
 def get_antigravity_quota():
     """Real quota when Antigravity is running locally (any signed-in
     account); falls back to the local-log heuristic otherwise."""
@@ -496,13 +567,17 @@ def get_antigravity_quota():
 
     remaining_pct = round((account.get("remaining_fraction") or 1.0) * 100)
     remaining_pct = max(0, min(100, remaining_pct))
+    reset_time = account.get("reset_time")
+    reset_in_seconds, reset_str = format_reset_time(reset_time)
     return {
         "limit": 100,
         "used": 100 - remaining_pct,
         "remaining": remaining_pct,
         "period": "5h",
         "email": account.get("email"),
-        "reset_time": account.get("reset_time"),
+        "reset_time": reset_time,
+        "reset_in_seconds": reset_in_seconds,
+        "reset_str": reset_str,
     }
 
 # --- Flask Endpoints ---
@@ -595,17 +670,18 @@ def get_stable_agent_label(source, session_key):
         _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
     return _session_registry[reg_key]
 
-def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None):
+def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None, source="claude"):
     """Deterministic state resolution: WAITING > WORKING > COMPLETE > IDLE."""
     completion_duration = (cfg.get("completion_duration_seconds", 10) if isinstance(cfg, dict) else 10) if cfg else 10
+    working_color = "#FF7A00" if source == "antigravity" else "#00E5FF"
     if found_pending:
         return "WAITING", "waiting_approval", turn_pending_prompt, "#FFB800"
     elif has_in_flight_tools or (age < IN_FLIGHT_TIMEOUT_SECONDS and not is_final_turn_response):
-        return "WORKING", "working", "EXECUTING...", "#00E5FF"
+        return "WORKING", "working", "EXECUTING...", working_color
     elif is_final_turn_response and age < completion_duration:
         return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
     elif age < IN_FLIGHT_TIMEOUT_SECONDS:
-        return "WORKING", "working", "EXECUTING...", "#00E5FF"
+        return "WORKING", "working", "EXECUTING...", working_color
     else:
         return "IDLE", "idle", "IDLE", "#94A3B8"
 
@@ -689,7 +765,24 @@ def handle_hook_event(data, now_ts=None):
             code = "waiting_approval"
             detail = "GRANT PERM"
             color = "#FFB800"
-        elif hook_event in ("SessionStart", "UserPromptSubmit", "PreToolUse", "working", "resumed"):
+        elif hook_event == "PreToolUse":
+            tool_name = (data.get("tool_name") or "").lower()
+            if tool_name in ("askuserquestion", "ask_user_question"):
+                state = "WAITING"
+                code = "waiting_approval"
+                detail = "ANSWER Q"
+                color = "#FFB800"
+            elif tool_name in ("bash", "edit", "write", "multiedit", "notebookedit", "fileedit") or "permission" in tool_name or "confirm" in tool_name or not tool_name:
+                state = "WAITING"
+                code = "waiting_approval"
+                detail = "GRANT PERM"
+                color = "#FFB800"
+            else:
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+        elif hook_event in ("SessionStart", "UserPromptSubmit", "working", "resumed"):
             state = "WORKING"
             code = "working"
             detail = "EXECUTING..."
@@ -950,20 +1043,26 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                         else:
                             meta = {}
 
+                        name_str = (name or "")
+                        name_lower = name_str.lower()
                         if meta.get("RequestFeedback") is True:
                             found_pending = True
                             turn_pending_prompt = "APPROVE PLAN"
                             break
-                        elif name in ("ask_question", "ask_user_question"):
+                        elif name_lower in ("ask_question", "ask_user_question"):
                             found_pending = True
                             turn_pending_prompt = "ANSWER Q"
                             break
-                        elif name in ("ask_permission", "request_permission"):
+                        elif name_lower in (
+                            "ask_permission", "request_permission", "run_command",
+                            "write_to_file", "replace_file_content", "multi_replace_file_content",
+                            "call_mcp_tool"
+                        ) or "permission" in name_lower or "confirm" in name_lower:
                             found_pending = True
                             turn_pending_prompt = "GRANT PERM"
                             break
                         else:
-                            # Autonomous tool execution (run_command, file edits, MCP tools)
+                            # Autonomous tool execution (view_file, grep_search, etc.)
                             has_in_flight_tools = True
                 elif last_step_entry.get("content"):
                     # Final text response delivered to user
@@ -980,7 +1079,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
             label = get_stable_agent_label("antigravity", session_id)
             state, code, detail, color = resolve_session_state(
-                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config
+                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config, source="antigravity"
             )
 
             sessions.append({
@@ -1106,12 +1205,16 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 if isinstance(content, list):
                     for item in content:
                         if isinstance(item, dict) and item.get("type") == "tool_use":
-                            t_name = item.get("name", "")
-                            if t_name in ("AskUserQuestion", "ask_user_question"):
+                            t_name = (item.get("name") or "").lower()
+                            if t_name in ("askuserquestion", "ask_user_question"):
                                 found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif "permission" in t_name.lower() or "confirm" in t_name.lower():
+                            elif t_name in (
+                                "bash", "edit", "write", "multiedit",
+                                "notebookedit", "fileedit", "ask_permission",
+                                "request_permission"
+                            ) or "permission" in t_name or "confirm" in t_name:
                                 found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
                                 break
@@ -1123,7 +1226,7 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                     is_final_turn_response = True
 
             state, code, detail, color = resolve_session_state(
-                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config
+                found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config, source="claude"
             )
 
             sessions.append({
@@ -1232,10 +1335,10 @@ def get_data():
         antigravity_data = {"limit": 200, "used": 0, "remaining": 200, "period": "5h"}
     
     try:
-        claude_data = {"tokens_today": scan_claude_tokens_today()}
+        claude_data = scan_claude_usage()
     except Exception as e:
         print(f"Claude token scan error: {e}")
-        claude_data = {"tokens_today": 0}
+        claude_data = {"tokens_today": 0, "limit": 100, "remaining": 100, "reset_str": "READY"}
         
     weather_data = get_weather()
     
