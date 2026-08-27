@@ -641,10 +641,24 @@ test_alert_prompt = "APPROVE PLAN"
 test_complete_override = False
 test_complete_prompt = "WORK COMPLETE"
 test_idle_override = False
+test_agents_override = None
+
+@app.route('/api/test_agents', methods=['GET', 'POST'])
+def handle_test_agents():
+    global test_agents_override, test_idle_override, test_alert_override, test_complete_override
+    data = request.json or request.args or {}
+    if "clear" in data or data.get("active") is False or data.get("agents") is None:
+        test_agents_override = None
+    elif "agents" in data:
+        test_agents_override = data["agents"]
+        test_idle_override = False
+        test_alert_override = False
+        test_complete_override = False
+    return jsonify({"status": "ok", "test_agents_override": test_agents_override})
 
 @app.route('/api/test_idle', methods=['GET', 'POST'])
 def handle_test_idle():
-    global test_idle_override, test_alert_override, test_complete_override
+    global test_idle_override, test_alert_override, test_complete_override, test_agents_override
     data = request.json or request.args or {}
     val = data.get("idle") if "idle" in data else data.get("active")
     if val is not None:
@@ -654,13 +668,15 @@ def handle_test_idle():
     if test_idle_override:
         test_alert_override = False
         test_complete_override = False
+        test_agents_override = None
     return jsonify({"status": "ok", "test_idle_active": test_idle_override})
 
 @app.route('/api/test_alert', methods=['GET', 'POST'])
 @app.route('/api/test_complete', methods=['GET', 'POST'])
 def handle_test_alert():
-    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt, test_idle_override
+    global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt, test_idle_override, test_agents_override
     test_idle_override = False
+    test_agents_override = None
     data = request.json or request.args or {}
     mode = data.get("mode") or data.get("type") or ""
     if request.path == '/api/test_complete':
@@ -1422,6 +1438,15 @@ def get_data():
         has_active = False
         agent_state = "idle"
         source = "none"
+    elif test_agents_override is not None:
+        active_agents_payload = test_agents_override
+        has_active = len(test_agents_override) > 0
+        waiting_for_input = any(a.get("state") == "WAITING" for a in test_agents_override)
+        work_completed = any(a.get("state") == "COMPLETE" for a in test_agents_override) and not waiting_for_input
+        prompt_text = next((a.get("detail") for a in test_agents_override if a.get("state") == "WAITING"), "INPUT REQ")
+        completion_text = next((a.get("detail") for a in test_agents_override if a.get("state") == "COMPLETE"), "WORK COMPLETE")
+        agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "working" if has_active else "idle")
+        source = "test"
     elif test_alert_override:
         waiting_for_input = True
         prompt_text = test_alert_prompt
@@ -1441,7 +1466,7 @@ def get_data():
             print(f"Agent check error: {e}")
 
     now = datetime.now()
-    if not test_idle_override:
+    if not test_idle_override and test_agents_override is None:
         agent_state = "waiting_approval" if waiting_for_input else ("completed" if work_completed else "idle")
         multi_status = get_multi_agent_status()
 
