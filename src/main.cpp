@@ -554,7 +554,8 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
     }
 
     // ledState == 1: Backend Connected (Concept A: Telemetry Packet Ping)
-    unsigned long elapsed = millis() - lastBackendPollSuccessMs;
+    bool hasAlert = agentData.waiting_for_input || agentData.work_completed;
+    unsigned long elapsed = hasAlert ? 9999 : (millis() - lastBackendPollSuccessMs);
     uint16_t colDim = gcGfx->color565(0, 68, 34);         // #004422 Dim resting emerald
     uint16_t colBright = gcGfx->color565(0, 255, 136);    // #00FF88 Neon emerald
     uint16_t colCore = gcGfx->color565(190, 255, 225);     // White-hot highlight core
@@ -705,7 +706,8 @@ void drawGC9A01RoundFlipUI() {
     // 2. Top Crown: Backend Connection Status Indicator Arc & Weather / Rain Indicator
     // 0 = no backend (red), 1 = paired (solid green / telemetry ping), 2 = connected but unpaired (amber)
     int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
-    bool isPinging = (curLedState == 1) && ((millis() - lastBackendPollSuccessMs) < 600);
+    bool hasAlert = agentData.waiting_for_input || agentData.work_completed;
+    bool isPinging = (curLedState == 1) && !hasAlert && ((millis() - lastBackendPollSuccessMs) < 600);
     static bool wasPinging = false;
 
     if (curLedState != lastLedState || isPinging || wasPinging) {

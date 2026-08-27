@@ -991,13 +991,14 @@
         c.shadowBlur = 0;
         c.stroke();
 
-        // 2. 3.0s simulated telemetry poll cycle (600ms ping window)
+        // 2. 3.0s simulated telemetry poll cycle (600ms ping window, suppressed during active agent alert)
         const now = performance.now();
         const cycleMs = 3000;
         const pingDurationMs = 600;
         const timeInCycle = now % cycleMs;
+        const hasAlert = Boolean(waiting_for_input || work_completed);
 
-        if (timeInCycle < pingDurationMs) {
+        if (!hasAlert && timeInCycle < pingDurationMs) {
           const progress = timeInCycle / pingDurationMs; // 0.0 -> 1.0
           const waveDeg = progress * (spanDeg + 3);
 
