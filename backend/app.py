@@ -658,30 +658,46 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                         else:
                             meta = {}
 
-                        if meta.get("RequestFeedback") is True:
-                            turn_pending_prompt = "APPROVE PLAN"
-                            break
-                        elif name == "ask_question":
-                            turn_pending_prompt = "ANSWER Q"
-                            break
-                        elif name == "ask_permission":
-                            turn_pending_prompt = "GRANT PERM"
-                            break
-                        elif name == "run_command":
-                            turn_pending_prompt = "ALLOW CMD"
-                            break
-                        elif name == "write_to_file":
-                            turn_pending_prompt = "ALLOW WRITE"
-                            break
-                        elif name == "replace_file_content":
-                            turn_pending_prompt = "ALLOW EDIT"
-                            break
-                        elif name == "invoke_subagent":
-                            turn_pending_prompt = "SPAWN AGENT"
-                            break
-                        elif name == "call_mcp_tool":
-                            turn_pending_prompt = "ALLOW MCP"
-                            break
+                    if meta.get("RequestFeedback") is True:
+                        found_pending = True
+                        turn_pending_prompt = "APPROVE PLAN"
+                        break
+                    elif name == "ask_question":
+                        found_pending = True
+                        turn_pending_prompt = "ANSWER Q"
+                        break
+                    elif name == "ask_permission":
+                        found_pending = True
+                        turn_pending_prompt = "GRANT PERM"
+                        break
+                    elif name == "run_command":
+                        found_pending = True
+                        turn_pending_prompt = "ALLOW CMD"
+                        break
+                    elif name == "write_to_file":
+                        found_pending = True
+                        turn_pending_prompt = "ALLOW WRITE"
+                        break
+                    elif name == "replace_file_content":
+                        found_pending = True
+                        turn_pending_prompt = "ALLOW EDIT"
+                        break
+                    elif name == "invoke_subagent":
+                        found_pending = True
+                        turn_pending_prompt = "SPAWN AGENT"
+                        break
+                    elif name == "call_mcp_tool":
+                        found_pending = True
+                        turn_pending_prompt = "ALLOW MCP"
+                        break
+
+            # Check if this turn is currently executing tool calls
+            has_unresolved_tools = False
+            tcs = []
+            if last_step_entry.get("type") == "PLANNER_RESPONSE":
+                tcs = last_step_entry.get("tool_calls", []) or []
+                if tcs and not found_pending:
+                    has_unresolved_tools = True
 
             # Session identification (parent folder of .system_generated)
             parts = os.path.normpath(fp).split(os.sep)
@@ -693,6 +709,14 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
+<<<<<<< HEAD
+=======
+            elif has_unresolved_tools or (age < 30 and last_step_entry.get("type") in ("PLANNER_RESPONSE", "GENERIC") and len(tcs) > 0):
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+>>>>>>> 4ae62bb (fix(firmware): debounce backend connection indicator and filter idle agents (#44))
             elif age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
@@ -863,7 +887,7 @@ def get_multi_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None)
     priority_map = {"WAITING": 0, "WORKING": 1, "COMPLETE": 2, "IDLE": 3}
     all_sessions.sort(key=lambda s: (priority_map.get(s["state"], 4), s["age_seconds"]))
 
-    # Filter out pure IDLE sessions if there are active ones
+    # Only show active sessions (WAITING, WORKING, COMPLETE). If none are active, active_agents is empty.
     active = [s for s in all_sessions if s["state"] in ("WAITING", "WORKING", "COMPLETE")]
 
     waiting_session = next((s for s in all_sessions if s["state"] == "WAITING"), None)
@@ -881,7 +905,7 @@ def get_multi_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None)
         "prompt_text": prompt_text,
         "completion_text": completion_text,
         "source": source,
-        "active_agents": all_sessions[:4],
+        "active_agents": active[:3],
         "has_active_agents": len(active) > 0
     }
 

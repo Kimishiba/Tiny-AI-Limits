@@ -1324,20 +1324,10 @@ void fetchBackendData() {
         }
     } else {
         Serial.printf("[Backend] GET %s failed: %s (%d)\n", backendUrl.c_str(), http.errorToString(httpCode).c_str(), httpCode);
-        backendConnected = false;
         if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
-        if (httpCode == HTTP_CODE_FORBIDDEN) {
-            // Reached a companion, but it does not recognise our pair_id --
-            // someone else's app, or ours after its identity was reset.
-            // Distinct from a network fault, so say so rather than retrying
-            // silently and looking offline.
-            Serial.println("[Pair] Companion refused us (403): not paired with this app. Re-pair from the setup page.");
+        if (consecutiveBackendFailures >= 2) {
+            backendConnected = false;
         }
-        // Previously this cleared backendUrl on *any* failure, so a single
-        // dropped packet sent the board back to mDNS discovery -- and, before
-        // pairing existed, potentially onto a different user's companion.
-        // A board that has never been paired still has nothing better to fall
-        // back on; one that has been paired keeps retrying its own host.
         if (!everPaired && pairedHost.length() == 0 &&
             consecutiveBackendFailures >= maxBackendFailures) {
             backendUrl = "";
