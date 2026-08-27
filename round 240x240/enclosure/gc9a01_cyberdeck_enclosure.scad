@@ -387,62 +387,33 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // 2. Fused Internal ESP32-C3 SuperMini Seamless Blended U-Cradle (Tall Rear Wall + Blended Side Walls)
-    wall_t  = 5.0;
-    wall_w  = esp_w + 4.0;
-    wall_h  = 12.0;
-    x_front = esp_center_x - esp_l / 2;
-    x_rear  = esp_center_x + esp_l / 2;
+    // 2. Fused Internal ESP32-C3 SuperMini Clean Straight Rectangular U-Dock (Straight Walls, Solid to Floor, No Curves)
+    wall_thick = 4.0;
+    side_thick = 2.0;
+    wall_h     = 10.5;
+    x_front    = esp_center_x - esp_l / 2;
+    x_rear     = esp_center_x + esp_l / 2;
 
     difference() {
         union() {
             translate([0, 0, floor_t]) {
-                // Standoff support rails
+                // 1. Straight Rear Thrust Wall (solid all the way to floor_t, straight flat top)
+                translate([x_rear, -(esp_w / 2 + side_thick), 0])
+                    cube([wall_thick, esp_w + 2 * side_thick, wall_h]);
+
+                // 2. Straight Side Guide Walls (solid all the way to floor_t, straight flat top)
+                translate([x_front, esp_w / 2, 0])
+                    cube([esp_l, side_thick, wall_h]);
+                translate([x_front, -(esp_w / 2 + side_thick), 0])
+                    cube([esp_l, side_thick, wall_h]);
+
+                // 3. Standoff Support Ledges (solid to floor_t)
                 translate([esp_center_x - esp_l/2, 7.62 - 2.4, 0])
                     cube([esp_l, 4.8, esp_standoff_h]);
                 translate([esp_center_x - esp_l/2, -7.62 - 2.4, 0])
                     cube([esp_l, 4.8, esp_standoff_h]);
-                
-                // Solid Tall Rounded Rear Thrust Wall (No shelf - clean tall vertical stop)
-                translate([x_rear, 0, 0]) {
-                    hull() {
-                        translate([2.0, -wall_w/2 + 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                        translate([wall_t - 2.0, -wall_w/2 + 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                        translate([2.0, wall_w/2 - 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                        translate([wall_t - 2.0, wall_w/2 - 2.0, 0])
-                            cylinder(r = 2.0, h = wall_h - 2.0);
-                    }
-                }
 
-                // Seamless Blended Side Guide Walls (transitioning smoothly from front to tall rear bulkhead)
-                // Top side wall
-                hull() {
-                    translate([x_front + 1.0, wall_w/2 - 1.0, 0])
-                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
-                    translate([x_rear, wall_w/2 - 1.0, 0])
-                        cylinder(r = 1.0, h = wall_h - 1.0);
-                    translate([x_front + 1.0, esp_w/2 + 0.1, 0])
-                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
-                    translate([x_rear, esp_w/2 + 0.1, 0])
-                        cylinder(r = 1.0, h = wall_h - 1.0);
-                }
-                
-                // Bottom side wall
-                hull() {
-                    translate([x_front + 1.0, -wall_w/2 + 1.0, 0])
-                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
-                    translate([x_rear, -wall_w/2 + 1.0, 0])
-                        cylinder(r = 1.0, h = wall_h - 1.0);
-                    translate([x_front + 1.0, -esp_w/2 - 0.1, 0])
-                        cylinder(r = 1.0, h = esp_standoff_h + 3.0);
-                    translate([x_rear, -esp_w/2 - 0.1, 0])
-                        cylinder(r = 1.0, h = wall_h - 1.0);
-                }
-
-                // Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
+                // 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
                 translate([x_front - 2.0, 7.45 - 1.75, 0])
                     cube([2.0, 3.5, esp_standoff_h + 4.5]);
                 translate([x_front - 2.0, -7.45 - 1.75, 0])
@@ -450,7 +421,7 @@ module main_housing() {
             }
         }
         
-        // Wide Continuous Pin Clearance Rail Channels (accommodates soldered pin headers)
+        // 5. Wide Continuous Pin Clearance Rail Channels (accommodates soldered pin headers)
         translate([esp_center_x, 7.62, floor_t + esp_standoff_h - 1.3])
             cube([esp_l + 1.0, 4.2, 2.7], center=true);
         translate([esp_center_x, -7.62, floor_t + esp_standoff_h - 1.3])

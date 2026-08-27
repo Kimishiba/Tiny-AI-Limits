@@ -373,46 +373,36 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Internal ESP32-C3 SuperMini Rigid Seamless Blended U-Cradle (Tall Rear Wall + Blended Side Walls + Wide Pin Rails)
-    rail_h = 3.2
-    rail_z_top = floor_t + rail_h
-    esp_l, esp_w = 23.0, 18.4
+    # 8. Internal ESP32-C3 SuperMini Clean Straight Rectangular U-Dock (Straight Walls, Solid to Floor, No Curves)
+    esp_l = 23.0
+    esp_w = 18.4
     esp_center_x = -10.0
+    rail_h = 3.2
     
-    # Standoff support rails
-    rail_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
-    rail_bot = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
+    x_front = esp_center_x - esp_l / 2.0  # -21.5
+    x_rear = esp_center_x + esp_l / 2.0   # +1.5
+    wall_thick = 4.0
+    side_thick = 2.0
+    wall_h = 10.5  # straight uniform wall height from floor_t (Z = 2.0 to 12.5)
     
-    x_front = esp_center_x - esp_l / 2.0
-    x_rear_inner = esp_center_x + esp_l / 2.0
-    wall_t = 5.0
-    x_rear_outer = x_rear_inner + wall_t
-    y_outer = esp_w / 2.0 + 2.0
-    wall_h = 12.0
-    r_blend = 2.5
+    # 1. Straight Rear Thrust Wall (solid all the way to floor_t, straight flat top)
+    rear_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, wall_h], center=False).translate([
+        x_rear, -(esp_w / 2.0 + side_thick), floor_t
+    ])
     
-    # Tall Solid Rear Thrust Wall (No shelf - clean tall vertical stop with rounded top corners)
-    c_r1 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_outer - r_blend, -y_outer + r_blend, floor_t])
-    c_r2 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_outer - r_blend,  y_outer - r_blend, floor_t])
-    c_r3 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_inner + r_blend, -y_outer + r_blend, floor_t])
-    c_r4 = m3d.Manifold.cylinder(wall_h - r_blend, r_blend, r_blend, 16).translate([x_rear_inner + r_blend,  y_outer - r_blend, floor_t])
-    rear_block = m3d.Manifold.hull(c_r1 + c_r2 + c_r3 + c_r4)
+    # 2. Straight Side Guide Walls (solid all the way to floor_t, straight flat top)
+    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, wall_h], center=False).translate([
+        x_front, esp_w / 2.0, floor_t
+    ])
+    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, wall_h], center=False).translate([
+        x_front, -(esp_w / 2.0 + side_thick), floor_t
+    ])
     
-    # Seamless blended side walls (smoothly transitioning from front to tall rear bulkhead)
-    side_h_front = rail_h + 4.0
-    c_s_top_f = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, y_outer - 1.0, floor_t])
-    c_s_top_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, y_outer - 1.0, floor_t])
-    c_s_top_in = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, esp_w / 2.0 + 0.1, floor_t])
-    c_s_top_in_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, esp_w / 2.0 + 0.1, floor_t])
-    side_wall_top = m3d.Manifold.hull(c_s_top_f + c_s_top_r + c_s_top_in + c_s_top_in_r)
+    # 3. Straight Standoff Support Ledges (solid from floor_t to floor_t + rail_h)
+    ledge_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
+    ledge_bot = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
     
-    c_s_bot_f = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, -y_outer + 1.0, floor_t])
-    c_s_bot_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, -y_outer + 1.0, floor_t])
-    c_s_bot_in = m3d.Manifold.cylinder(side_h_front - 1.0, 1.0, 1.0, 16).translate([x_front + 1.0, -esp_w / 2.0 - 0.1, floor_t])
-    c_s_bot_in_r = m3d.Manifold.cylinder(wall_h - 1.0, 1.0, 1.0, 16).translate([x_rear_inner, -esp_w / 2.0 - 0.1, floor_t])
-    side_wall_bot = m3d.Manifold.hull(c_s_bot_f + c_s_bot_r + c_s_bot_in + c_s_bot_in_r)
-    
-    # Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
+    # 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
     front_stop_top = m3d.Manifold.cube([2.0, 3.5, rail_h + 4.5], center=True).translate([
         x_front - 1.0, 7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
@@ -420,17 +410,17 @@ def generate_main_housing():
         x_front - 1.0, -7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
     
-    u_cradle = rear_block + side_wall_top + side_wall_bot + front_stop_top + front_stop_bot + rail_top + rail_bot
+    u_cradle = rear_wall + side_wall_top + side_wall_bot + ledge_top + ledge_bot + front_stop_top + front_stop_bot
 
-    # Wide continuous pin clearance rail channels (accommodates soldered header pins with generous clearance)
+    # 5. Wide continuous pin clearance rail channels (accommodates soldered header pins)
     channel_w = 4.2
     channel_l = esp_l + 1.0
     channel_depth = 2.6
     chan_top = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
-        esp_center_x, 7.62, rail_z_top - channel_depth / 2.0
+        esp_center_x, 7.62, floor_t + rail_h - channel_depth / 2.0
     ])
     chan_bot = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
-        esp_center_x, -7.62, rail_z_top - channel_depth / 2.0
+        esp_center_x, -7.62, floor_t + rail_h - channel_depth / 2.0
     ])
     pin_cuts = chan_top + chan_bot
         
