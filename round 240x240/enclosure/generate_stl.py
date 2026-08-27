@@ -315,14 +315,14 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Elevated Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 8.25mm):
-    usbc_z = 8.25
-    c1 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
-    c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
+    # 3. Elevated Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Elevated to Z = 9.75mm):
+    usbc_z = 9.75
+    c1 = m3d.Manifold.cylinder(16.0, 2.85, 2.85, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
+    c2 = m3d.Manifold.cylinder(16.0, 2.85, 2.85, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
     usbc_tunnel = m3d.Manifold.hull(c1 + c2)
     
-    cone1 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
-    cone2 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
+    cone1 = m3d.Manifold.cylinder(3.5, 4.5, 2.85, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
+    cone2 = m3d.Manifold.cylinder(3.5, 4.5, 2.85, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
     usbc_flare = m3d.Manifold.hull(cone1 + cone2)
     usbc_port = usbc_tunnel + usbc_flare
     
@@ -359,10 +359,9 @@ def generate_main_housing():
     text_deboss = make_text_emboss("CYBER-DECK", "UNIT 01", depth=0.5).translate([0, 0, -0.05])
 
     cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
-    housing_body = chassis - cuts
     
-    # 7. Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs
-    rail_h = 2.5
+    # 8. Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs (Elevated Standoffs + Heavy Duty Rounded Bulkhead)
+    rail_h = 3.5
     rail_z_top = floor_t + rail_h
     esp_l, esp_w = 23.0, 18.4
     esp_center_x = -10.0
@@ -370,22 +369,33 @@ def generate_main_housing():
     rail_top = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
     rail_bot = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
     
-    # Reinforced Rear Thrust Bulkhead (+X Stop absorbing 100% USB-C cable insertion force)
-    rear_stop = m3d.Manifold.cube([2.5, 18.4, rail_h + 3.5], center=True).translate([
-        esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.5) / 2.0
+    # Thick, Tall, Rounded Rear Thrust Bulkhead (Opposite side of USB-C port: 4.5mm thick x 11.0mm tall x rounded corners)
+    wall_t = 4.5
+    wall_w = esp_w + 3.0
+    wall_h = 11.0
+    c_r1 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([2.0, -wall_w/2.0 + 2.0, floor_t])
+    c_r2 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([wall_t - 2.0, -wall_w/2.0 + 2.0, floor_t])
+    c_r3 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([2.0, wall_w/2.0 - 2.0, floor_t])
+    c_r4 = m3d.Manifold.cylinder(wall_h - 2.0, 2.0, 2.0, 16).translate([wall_t - 2.0, wall_w/2.0 - 2.0, floor_t])
+    rear_wall_rounded = m3d.Manifold.hull(c_r1 + c_r2 + c_r3 + c_r4).translate([esp_center_x + esp_l/2.0, 0, 0])
+    
+    # Overhang forward locking lip over the top rear edge of the PCB
+    rear_lip = m3d.Manifold.cube([1.2, esp_w, 1.2], center=True).translate([
+        esp_center_x + esp_l / 2.0 - 0.6, 0, floor_t + rail_h + 1.4 + 0.6
     ])
+    rear_stop = rear_wall_rounded + rear_lip
     
     # Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
-    front_stop_top = m3d.Manifold.cube([2.0, 3.5, rail_h + 3.5], center=True).translate([
-        esp_center_x - esp_l / 2.0 - 1.0, 7.45, floor_t + (rail_h + 3.5) / 2.0
+    front_stop_top = m3d.Manifold.cube([2.0, 3.5, rail_h + 4.5], center=True).translate([
+        esp_center_x - esp_l / 2.0 - 1.0, 7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
-    front_stop_bot = m3d.Manifold.cube([2.0, 3.5, rail_h + 3.5], center=True).translate([
-        esp_center_x - esp_l / 2.0 - 1.0, -7.45, floor_t + (rail_h + 3.5) / 2.0
+    front_stop_bot = m3d.Manifold.cube([2.0, 3.5, rail_h + 4.5], center=True).translate([
+        esp_center_x - esp_l / 2.0 - 1.0, -7.45, floor_t + (rail_h + 4.5) / 2.0
     ])
     
     # Lateral Guide Walls with Snap-Fit Positive Overhang Retention Lips (+/-Y & +Z Lock)
-    guide_t = 1.6
-    guide_h = rail_h + 2.8
+    guide_t = 1.8
+    guide_h = rail_h + 3.5
     guide_wall_top = m3d.Manifold.cube([esp_l, guide_t, guide_h], center=True).translate([
         esp_center_x, esp_w / 2.0 + guide_t / 2.0, floor_t + guide_h / 2.0
     ])
@@ -393,7 +403,7 @@ def generate_main_housing():
         esp_center_x, -esp_w / 2.0 - guide_t / 2.0, floor_t + guide_h / 2.0
     ])
     
-    # Inward snap-fit retention overhang lips (0.5mm shelf at top of PCB Z)
+    # Inward snap-fit retention overhang lips (0.6mm shelf at top of PCB Z)
     snap_z_center = floor_t + rail_h + 1.4 + 0.4
     snap_lip_top = m3d.Manifold.cube([esp_l, 0.6, 0.8], center=True).translate([
         esp_center_x, esp_w / 2.0 - 0.3, snap_z_center
@@ -408,13 +418,13 @@ def generate_main_housing():
     x0 = -18.3
     for k in range(8):
         px = x0 + k * 2.54
-        hole_top = m3d.Manifold.cylinder(2.2, 0.75, 0.75, 16).translate([px, 7.62, rail_z_top - 2.0])
-        hole_bot = m3d.Manifold.cylinder(2.2, 0.75, 0.75, 16).translate([px, -7.62, rail_z_top - 2.0])
+        hole_top = m3d.Manifold.cylinder(2.5, 0.75, 0.75, 16).translate([px, 7.62, rail_z_top - 2.2])
+        hole_bot = m3d.Manifold.cylinder(2.5, 0.75, 0.75, 16).translate([px, -7.62, rail_z_top - 2.2])
         pin_cuts = pin_cuts + hole_top + hole_bot
         
     standoffs_locked = standoffs - pin_cuts
     
-    return housing_body + standoffs_locked
+    return (chassis + standoffs_locked) - cuts
 
 
 

@@ -48,14 +48,14 @@ screw_head_dia     = 6.2;  // M3 socket cap head counterbore (mm)
 screw_head_depth   = 3.2;  // Counterbore pocket depth (mm)
 screw_pilot_dia    = 2.8;  // M3 pilot / self-tapping / heat-set insert hole (mm)
 
-// Internal Cavity & ESP32-C3 SuperMini Mounting (Lowered)
+// Internal Cavity & ESP32-C3 SuperMini Mounting (Elevated)
 cavity_w           = 46.0; // 46mm wide internal bay (mm)
 cavity_chamfer     = 13.0; // 13.0mm corner chamfers leaving massive corner screw pillars (mm)
 floor_t            = 2.5;  // Rear wall thickness (mm)
 esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
-esp_standoff_h     = 2.5;  // ESP32 standoff rail height (mm)
-usbc_center_z      = 8.25; // Elevated USB-C port centerline with ample clearance (mm)
+esp_standoff_h     = 3.5;  // ESP32 standoff rail height (mm)
+usbc_center_z      = 9.75; // Elevated USB-C port centerline with ample clearance (mm)
 
 
 // Stand Parameters (Exact Concept Render Proportions)
@@ -352,10 +352,12 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs
-    guide_t = 1.6;
-    guide_h = esp_standoff_h + 2.8;
-    snap_z = floor_t + esp_standoff_h + 1.4;
+    // Internal ESP32-C3 SuperMini Rigid Anti-Movement Mounting Standoffs (Elevated + Heavy Duty Rounded Bulkhead)
+    guide_t = 1.8;
+    guide_h = esp_standoff_h + 3.5;
+    wall_t  = 4.5;
+    wall_w  = esp_w + 3.0;
+    wall_h  = 11.0;
 
     difference() {
         union() {
@@ -366,15 +368,28 @@ module main_housing() {
                 translate([-esp_l/2, -7.62 - 1.7, 0])
                     cube([esp_l, 3.4, esp_standoff_h]);
                 
-                // Reinforced Rear Thrust Bulkhead (+X Stop absorbing 100% USB-C cable insertion force)
-                translate([esp_l/2, -esp_w/2, 0])
-                    cube([2.5, esp_w, esp_standoff_h + 3.5]);
+                // Heavy Duty Rounded Rear Thrust Bulkhead (+X Stop opposite of USB-C port)
+                translate([esp_l/2, 0, 0]) {
+                    hull() {
+                        translate([0, -wall_w/2 + 2.0, 0])
+                            cylinder(r = 2.0, h = wall_h - 2.0);
+                        translate([wall_t - 2.0, -wall_w/2 + 2.0, 0])
+                            cylinder(r = 2.0, h = wall_h - 2.0);
+                        translate([0, wall_w/2 - 2.0, 0])
+                            cylinder(r = 2.0, h = wall_h - 2.0);
+                        translate([wall_t - 2.0, wall_w/2 - 2.0, 0])
+                            cylinder(r = 2.0, h = wall_h - 2.0);
+                    }
+                    // Overhang forward locking lip over top rear edge of PCB
+                    translate([-0.6 - 0.6, -esp_w/2, esp_standoff_h + 1.4])
+                        cube([1.2, esp_w, 1.2]);
+                }
 
                 // Front USB-C Receptacle Collar Pull-Stop Shoulders (-X Stop absorbing extraction pull)
                 translate([-esp_l/2 - 2.0, 7.45 - 1.75, 0])
-                    cube([2.0, 3.5, esp_standoff_h + 3.5]);
+                    cube([2.0, 3.5, esp_standoff_h + 4.5]);
                 translate([-esp_l/2 - 2.0, -7.45 - 1.75, 0])
-                    cube([2.0, 3.5, esp_standoff_h + 3.5]);
+                    cube([2.0, 3.5, esp_standoff_h + 4.5]);
 
                 // Lateral Guide Walls (+/-Y Lock)
                 translate([-esp_l/2, esp_w/2, 0])
@@ -392,10 +407,10 @@ module main_housing() {
         
         for (k = [0:7]) {
             px = -18.3 + k * 2.54;
-            translate([px, 7.62, floor_t + esp_standoff_h - 2.0])
-                cylinder(d = 1.5, h = 2.1);
-            translate([px, -7.62, floor_t + esp_standoff_h - 2.0])
-                cylinder(d = 1.5, h = 2.1);
+            translate([px, 7.62, floor_t + esp_standoff_h - 2.2])
+                cylinder(d = 1.5, h = 2.5);
+            translate([px, -7.62, floor_t + esp_standoff_h - 2.2])
+                cylinder(d = 1.5, h = 2.5);
         }
     }
 }
