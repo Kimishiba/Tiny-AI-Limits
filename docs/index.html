@@ -1321,23 +1321,23 @@
                 <text x="327" y="62" fill="#fde047" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="800" text-anchor="middle">ESP32-C3</text>
                 <rect x="365" y="50" width="12" height="28" rx="3" fill="#cbd5e1" stroke="#000" stroke-width="1"/>
 
-                <!-- 8 Color Coded Wires -->
-                <!-- VCC (Red) -->
-                <path d="M 106 48 C 180 30, 220 32, 290 40" fill="none" stroke="#ef4444" stroke-width="2.5"/>
-                <!-- GND (Black/Slate) -->
-                <path d="M 106 53 C 180 38, 220 38, 290 47" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
-                <!-- SCL (Yellow) -->
-                <path d="M 106 58 C 180 48, 220 65, 290 76" fill="none" stroke="#eab308" stroke-width="2.5"/>
-                <!-- SDA (Cyan) -->
-                <path d="M 106 63 C 180 58, 220 95, 380 40" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
-                <!-- CS (Purple) -->
-                <path d="M 106 68 C 180 72, 220 85, 290 84" fill="none" stroke="#a855f7" stroke-width="2.5"/>
-                <!-- DC (Green) -->
-                <path d="M 106 73 C 180 82, 220 90, 380 48" fill="none" stroke="#10b981" stroke-width="2.5"/>
-                <!-- RES (Orange) -->
-                <path d="M 106 78 C 180 92, 220 60, 290 60" fill="none" stroke="#f97316" stroke-width="2.5"/>
-                <!-- BLK (Pink) -->
-                <path d="M 106 83 C 180 100, 220 52, 290 53" fill="none" stroke="#ec4899" stroke-width="2.5"/>
+                <!-- 8 Color Coded Wires (Clean routed around components) -->
+                <!-- VCC (Red) -> Left Header Pin 3 -->
+                <path d="M 106 48 C 180 32, 230 36, 290 42" fill="none" stroke="#ef4444" stroke-width="2.5"/>
+                <!-- GND (Black/Slate) -> Left Header Pin 2 -->
+                <path d="M 106 53 C 180 38, 230 42, 290 35" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
+                <!-- BLK (Pink) -> Left Header Pin 4 -->
+                <path d="M 106 83 C 180 88, 230 65, 290 49" fill="none" stroke="#ec4899" stroke-width="2.5"/>
+                <!-- RES (Orange) -> Left Header Pin 5 -->
+                <path d="M 106 78 C 180 82, 230 72, 290 56" fill="none" stroke="#f97316" stroke-width="2.5"/>
+                <!-- SCL (Yellow) -> Left Header Pin 8 -->
+                <path d="M 106 58 C 180 58, 230 82, 290 77" fill="none" stroke="#eab308" stroke-width="2.5"/>
+                <!-- CS (Purple) -> Left Header Pin 9 -->
+                <path d="M 106 68 C 180 72, 230 92, 290 84" fill="none" stroke="#a855f7" stroke-width="2.5"/>
+                <!-- SDA (Cyan) -> Right Header Pin 16 (Loops cleanly over the top) -->
+                <path d="M 106 63 C 170 20, 310 12, 380 38" fill="none" stroke="#06b6d4" stroke-width="2.5"/>
+                <!-- DC (Green) -> Right Header Pin 15 (Loops cleanly under the bottom) -->
+                <path d="M 106 73 C 170 115, 310 118, 380 46" fill="none" stroke="#10b981" stroke-width="2.5"/>
               </svg>
 
               <!-- Exact Pin Chips Grid -->
