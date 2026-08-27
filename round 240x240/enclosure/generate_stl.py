@@ -379,8 +379,9 @@ def generate_main_housing():
     esp_l, esp_w = 23.0, 18.4
     esp_center_x = -10.0
     
-    rail_top = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
-    rail_bot = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
+    # Standoff support rails with wide continuous pin clearance channels
+    rail_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
+    rail_bot = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
     
     # Heavy Duty Rounded Rear Thrust Bulkhead (5.0mm thick x 12.0mm tall x rounded corners)
     wall_t = 5.0
@@ -427,13 +428,17 @@ def generate_main_housing():
     
     standoffs = rail_top + rail_bot + rear_stop + front_stop_top + front_stop_bot + guide_wall_top + guide_wall_bot + snap_lip_top + snap_lip_bot
 
-    pin_cuts = m3d.Manifold()
-    x0 = -18.3
-    for k in range(8):
-        px = x0 + k * 2.54
-        hole_top = m3d.Manifold.cylinder(2.5, 0.75, 0.75, 16).translate([px, 7.62, rail_z_top - 2.2])
-        hole_bot = m3d.Manifold.cylinder(2.5, 0.75, 0.75, 16).translate([px, -7.62, rail_z_top - 2.2])
-        pin_cuts = pin_cuts + hole_top + hole_bot
+    # Wide continuous pin clearance rail channels (accommodates soldered header pins with generous clearance)
+    channel_w = 4.2
+    channel_l = esp_l + 1.0
+    channel_depth = 2.6
+    chan_top = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
+        esp_center_x, 7.62, rail_z_top - channel_depth / 2.0
+    ])
+    chan_bot = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
+        esp_center_x, -7.62, rail_z_top - channel_depth / 2.0
+    ])
+    pin_cuts = chan_top + chan_bot
         
     standoffs_locked = standoffs - pin_cuts
     

@@ -397,11 +397,11 @@ module main_housing() {
     difference() {
         union() {
             translate([esp_center_x, 0, floor_t]) {
-                // Standoff rails
-                translate([-esp_l/2, 7.62 - 1.7, 0])
-                    cube([esp_l, 3.4, esp_standoff_h]);
-                translate([-esp_l/2, -7.62 - 1.7, 0])
-                    cube([esp_l, 3.4, esp_standoff_h]);
+                // Standoff support rails (wider base to support channel)
+                translate([-esp_l/2, 7.62 - 2.4, 0])
+                    cube([esp_l, 4.8, esp_standoff_h]);
+                translate([-esp_l/2, -7.62 - 2.4, 0])
+                    cube([esp_l, 4.8, esp_standoff_h]);
                 
                 // Heavy Duty Rounded Rear Thrust Bulkhead (+X Stop opposite of USB-C port)
                 translate([esp_l/2, 0, 0]) {
@@ -440,13 +440,11 @@ module main_housing() {
             }
         }
         
-        for (k = [0:7]) {
-            px = -18.3 + k * 2.54;
-            translate([px, 7.62, floor_t + esp_standoff_h - 2.2])
-                cylinder(d = 1.5, h = 2.5);
-            translate([px, -7.62, floor_t + esp_standoff_h - 2.2])
-                cylinder(d = 1.5, h = 2.5);
-        }
+        // Wide Continuous Pin Clearance Rail Channels (accommodates soldered pin headers)
+        translate([esp_center_x, 7.62, floor_t + esp_standoff_h - 1.3])
+            cube([esp_l + 1.0, 4.2, 2.7], center=true);
+        translate([esp_center_x, -7.62, floor_t + esp_standoff_h - 1.3])
+            cube([esp_l + 1.0, 4.2, 2.7], center=true);
     }
 }
 
