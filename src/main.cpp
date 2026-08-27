@@ -519,12 +519,7 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
 void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
     uint16_t arcCol;
     if (ledState == 1) {
-        // Smooth sine wave pulsing emerald green (~1.8s cycle)
-        float pulse = (sinf(millis() * 0.0035f) + 1.0f) * 0.5f;
-        uint8_t r = (uint8_t)(0 + 34 * pulse);
-        uint8_t g = (uint8_t)(60 + 195 * pulse);
-        uint8_t b = (uint8_t)(20 + 90 * pulse);
-        arcCol = gcGfx->color565(r, g, b);
+        arcCol = gcGfx->color565(0, 255, 136); // #00FF88 Constant Solid Neon Emerald Green
     } else if (ledState == 2) {
         arcCol = gcGfx->color565(245, 158, 11); // #F59E0B Amber Unpaired
     } else {
@@ -645,15 +640,11 @@ void drawGC9A01RoundFlipUI() {
         }
     }
 
-    // 2. Top Crown: Backend Connection Status Pulsing Arc & Weather / Rain Indicator
-    // 0 = no backend, 1 = paired, 2 = connected but unpaired (amber): the
-    // board is reading from whichever companion answered mDNS first, which on
-    // a shared network may not be this user's. See STATUS_UNPAIRED_NOTE.
+    // 2. Top Crown: Backend Connection Status Indicator Arc & Weather / Rain Indicator
+    // 0 = no backend (red), 1 = paired (solid green), 2 = connected but unpaired (amber)
     int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
-    int curPulseLevel = (curLedState == 1) ? (int)(((sinf(millis() * 0.0035f) + 1.0f) * 0.5f) * 15.0f) : curLedState;
 
-    if (curPulseLevel != lastPulseLevel || curLedState != lastLedState) {
-        lastPulseLevel = curPulseLevel;
+    if (curLedState != lastLedState) {
         lastLedState = curLedState;
         drawGC9A01TopConnectionArc(cx, cy, curLedState);
     }
@@ -680,53 +671,44 @@ void drawGC9A01RoundFlipUI() {
     // 3. Solid Continuous Dual Radial Arcs & Micro-HUD Badges (Redraw on change)
     int claudePct = 100;
     int antiPct = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
-    static String lastAntiResetStr = "";
-    static bool lastShowReset = false;
 
-    bool showReset = (agData.reset_str.length() > 0) && ((millis() / 3500) % 2 == 1);
-
-    if (claudePct != lastClaudePct || antiPct != lastAntiPct || agData.reset_str != lastAntiResetStr || showReset != lastShowReset) {
-        bool arcsNeedRedraw = (claudePct != lastClaudePct || antiPct != lastAntiPct);
+    if (claudePct != lastClaudePct || antiPct != lastAntiPct) {
         lastClaudePct = claudePct;
         lastAntiPct = antiPct;
-        lastAntiResetStr = agData.reset_str;
-        lastShowReset = showReset;
 
-        if (arcsNeedRedraw) {
-            // Left Arc: Claude Cyan (126 deg at bottom to 234 deg at top)
-            for (int deg = 126; deg <= 234; deg++) {
-                float rad = deg * 0.0174533f;
-                float cosR = cos(rad);
-                float sinR = sin(rad);
+        // Left Arc: Claude Cyan (126 deg at bottom to 234 deg at top)
+        for (int deg = 126; deg <= 234; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cos(rad);
+            float sinR = sin(rad);
 
-                bool active = (deg <= 126 + (claudePct * 108 / 100));
-                uint16_t mainCol = active ? colCyan : colCyanDim;
-                uint16_t thinCol = active ? colCyan : colCyanDim;
+            bool active = (deg <= 126 + (claudePct * 108 / 100));
+            uint16_t mainCol = active ? colCyan : colCyanDim;
+            uint16_t thinCol = active ? colCyan : colCyanDim;
 
-                for (int r = 101; r <= 107; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
-                }
-                for (int r = 94; r <= 95; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
-                }
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
             }
+            for (int r = 94; r <= 95; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
+            }
+        }
 
-            // Right Arc: Antigravity Orange (54 deg at bottom to -54 deg at top)
-            for (int deg = 54; deg >= -54; deg--) {
-                float rad = deg * 0.0174533f;
-                float cosR = cos(rad);
-                float sinR = sin(rad);
+        // Right Arc: Antigravity Orange (54 deg at bottom to -54 deg at top)
+        for (int deg = 54; deg >= -54; deg--) {
+            float rad = deg * 0.0174533f;
+            float cosR = cos(rad);
+            float sinR = sin(rad);
 
-                bool active = (deg >= 54 - (antiPct * 108 / 100));
-                uint16_t mainCol = active ? colOrange : colOrangeDim;
-                uint16_t thinCol = active ? colOrange : colOrangeDim;
+            bool active = (deg >= 54 - (antiPct * 108 / 100));
+            uint16_t mainCol = active ? colOrange : colOrangeDim;
+            uint16_t thinCol = active ? colOrange : colOrangeDim;
 
-                for (int r = 101; r <= 107; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
-                }
-                for (int r = 94; r <= 95; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
-                }
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
+            }
+            for (int r = 94; r <= 95; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
             }
         }
 
@@ -743,15 +725,9 @@ void drawGC9A01RoundFlipUI() {
         gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
         gcGfx->drawRoundRect(177, 108, 32, 24, 3, gcGfx->color565(120, 60, 0));
         gcPrintCentered("AGY", 193, 111, colOrange);
-        if (showReset) {
-            String shortReset = agData.reset_str;
-            shortReset.replace(" ", "");
-            gcPrintCentered(shortReset.c_str(), 193, 121, colOrange);
-        } else {
-            char agyPctStr[8];
-            sprintf(agyPctStr, "%d%%", antiPct);
-            gcPrintCentered(agyPctStr, 193, 121, colOrange);
-        }
+        char agyPctStr[8];
+        sprintf(agyPctStr, "%d%%", antiPct);
+        gcPrintCentered(agyPctStr, 193, 121, colOrange);
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
@@ -911,13 +887,26 @@ void drawGC9A01RoundFlipUI() {
             gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
     } else {
-        if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate) {
+        static bool lastShowResetBottom = false;
+        static String lastResetStr = "";
+        bool hasReset = (agData.reset_str.length() > 0);
+        bool showResetBottom = hasReset && ((millis() / 4000) % 2 == 1);
+
+        if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate || showResetBottom != lastShowResetBottom || agData.reset_str != lastResetStr) {
             lastWaiting = false;
             lastTemp = weatherData.temp;
             lastDate = timeData.date_str;
-            gcGfx->fillRect(cx - 50, cy + 74, 100, 32, GC_COLOR_BLACK);
+            lastShowResetBottom = showResetBottom;
+            lastResetStr = agData.reset_str;
+
+            gcGfx->fillRect(cx - 55, cy + 74, 110, 32, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
-            gcPrintCentered(timeData.date_str.c_str(), cx, cy + 80, colGray);
+            if (showResetBottom) {
+                String resetLabel = "RST IN " + agData.reset_str;
+                gcPrintCentered(resetLabel.c_str(), cx, cy + 80, colOrange);
+            } else {
+                gcPrintCentered(timeData.date_str.c_str(), cx, cy + 80, colGray);
+            }
             char tempBuf[16];
             sprintf(tempBuf, "%.1f C", weatherData.temp);
             gcPrintCentered(tempBuf, cx, cy + 94, GC_COLOR_WHITE);
@@ -1356,6 +1345,7 @@ void fetchBackendData() {
                         if (colStr.equalsIgnoreCase("#FFB800")) agentData.active_agents[count].color = GC_COLOR_AMBER;
                         else if (colStr.equalsIgnoreCase("#00FF88")) agentData.active_agents[count].color = gcGfx->color565(0, 255, 136);
                         else if (colStr.equalsIgnoreCase("#00E5FF")) agentData.active_agents[count].color = GC_COLOR_CYAN;
+                        else if (colStr.equalsIgnoreCase("#FF7A00")) agentData.active_agents[count].color = colOrange;
                         else agentData.active_agents[count].color = GC_COLOR_SLATE_GRAY;
                         count++;
                     }

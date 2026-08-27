@@ -1067,11 +1067,7 @@
       drawCurvedTextClockwise(c, "CLAUDE " + claudePct + "%", cx, cy, textRadius, -Math.PI / 2, "#00E5FF", badgeFont);
 
       // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
-      let agyCurvedLabel = "ANTIGRAVITY " + antiPct + "%";
-      if (antigravity_reset_str && Math.floor(Date.now() / 3500) % 2 === 1) {
-        agyCurvedLabel = "AGY RST " + antigravity_reset_str;
-      }
-      drawCurvedTextClockwise(c, agyCurvedLabel, cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
+      drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
 
       // 4. Top Crown: Backend Connection Status Arc & Rain Indicator
       const wifiLedEl = document.getElementById("wifiLed");
@@ -1506,10 +1502,16 @@
         c.fillStyle = "#ffffff";
         c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
-        // Line 1: Day & Date
+        // Line 1: Day & Date OR Reset Countdown
+        const showReset = antigravity_reset_str && (Math.floor(Date.now() / 4000) % 2 === 1);
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = "#94a3b8";
-        c.fillText(date_string.toUpperCase(), cx, cy + 81);
+        if (showReset) {
+          c.fillStyle = "#FF7A00";
+          c.fillText("RST IN " + antigravity_reset_str, cx, cy + 81);
+        } else {
+          c.fillStyle = "#94a3b8";
+          c.fillText(date_string.toUpperCase(), cx, cy + 81);
+        }
 
         // Line 2: Temperature & Weather Icon
         c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
