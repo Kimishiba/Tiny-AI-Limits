@@ -223,13 +223,19 @@ def get_claude_dirs():
 # replay tens of millions of cheap cached-context tokens per turn, which
 # swamps the number with something proportional to turn count rather than
 # real new work (input + output + freshly-cached context).
-def scan_claude_tokens_today():
+def scan_claude_usage(now_ts=None):
+    """Scan Claude transcript logs for today's tokens and 5h rolling reset window."""
+    if now_ts is None:
+        now_ts = time.time()
+    five_hours_ago = now_ts - (5 * 3600)
+    earliest_step_ts = None
     total_tokens = 0
     today_local = datetime.now().date()
+
     for c_dir in get_claude_dirs():
         for filepath in glob.glob(os.path.join(c_dir, "**", "*.jsonl"), recursive=True):
             try:
-                if os.path.getmtime(filepath) < (time.time() - 2 * 86400):
+                if os.path.getmtime(filepath) < five_hours_ago:
                     continue
                 with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
@@ -246,18 +252,42 @@ def scan_claude_tokens_today():
                         if not ts:
                             continue
                         try:
-                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
+                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                            step_ts = dt.timestamp()
+                            if step_ts >= five_hours_ago:
+                                if earliest_step_ts is None or step_ts < earliest_step_ts:
+                                    earliest_step_ts = step_ts
+                            if dt.astimezone().date() == today_local:
+                                usage = (entry.get("message") or {}).get("usage") or {}
+                                total_tokens += usage.get("input_tokens", 0) or 0
+                                total_tokens += usage.get("output_tokens", 0) or 0
+                                total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
                         except Exception:
                             continue
-                        if dt.date() != today_local:
-                            continue
-                        usage = (entry.get("message") or {}).get("usage") or {}
-                        total_tokens += usage.get("input_tokens", 0) or 0
-                        total_tokens += usage.get("output_tokens", 0) or 0
-                        total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
             except Exception:
                 pass
-    return total_tokens
+
+    if earliest_step_ts is not None:
+        from datetime import timezone
+        reset_ts = earliest_step_ts + (5 * 3600)
+        reset_time = datetime.fromtimestamp(reset_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        reset_in_seconds, reset_str = format_reset_time(reset_time, now_ts)
+    else:
+        reset_time = None
+        reset_in_seconds = 0
+        reset_str = "READY"
+
+    return {
+        "tokens_today": total_tokens,
+        "limit": 100,
+        "remaining": 100,
+        "reset_time": reset_time,
+        "reset_in_seconds": reset_in_seconds,
+        "reset_str": reset_str
+    }
+
+def scan_claude_tokens_today():
+    return scan_claude_usage()["tokens_today"]
 
 # Antigravity ships as several separate products -- the standalone GUI app,
 # the CLI ("agy"), and the IDE extension -- each running its own process with
@@ -1278,10 +1308,10 @@ def get_data():
         antigravity_data = {"limit": 200, "used": 0, "remaining": 200, "period": "5h"}
     
     try:
-        claude_data = {"tokens_today": scan_claude_tokens_today()}
+        claude_data = scan_claude_usage()
     except Exception as e:
         print(f"Claude token scan error: {e}")
-        claude_data = {"tokens_today": 0}
+        claude_data = {"tokens_today": 0, "limit": 100, "remaining": 100, "reset_str": "READY"}
         
     weather_data = get_weather()
     

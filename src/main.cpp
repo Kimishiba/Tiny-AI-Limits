@@ -45,6 +45,9 @@ struct ClaudeLimits {
     long tokensToday = 0;
     int limit = 100;
     int remaining = 100;
+    String reset_time = "";
+    int reset_in_seconds = -1;
+    String reset_str = "";
 };
 const long claudeHeavyUsageThreshold = 2500000;
 
@@ -887,29 +890,25 @@ void drawGC9A01RoundFlipUI() {
             gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
     } else {
-        static bool lastShowResetBottom = false;
-        static String lastResetStr = "";
-        bool hasReset = (agData.reset_str.length() > 0);
-        bool showResetBottom = hasReset && ((millis() / 4000) % 2 == 1);
+        static String lastCldResetStr = "";
+        static String lastAgyResetStr = "";
 
-        if (lastWaiting || abs(weatherData.temp - lastTemp) > 0.05f || timeData.date_str != lastDate || showResetBottom != lastShowResetBottom || agData.reset_str != lastResetStr) {
+        if (lastWaiting || claudeData.reset_str != lastCldResetStr || agData.reset_str != lastAgyResetStr) {
             lastWaiting = false;
-            lastTemp = weatherData.temp;
-            lastDate = timeData.date_str;
-            lastShowResetBottom = showResetBottom;
-            lastResetStr = agData.reset_str;
+            lastCldResetStr = claudeData.reset_str;
+            lastAgyResetStr = agData.reset_str;
 
+            // Clear bottom sub-HUD area (Centered at cx=120, y=cy+74..cy+106)
             gcGfx->fillRect(cx - 55, cy + 74, 110, 32, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
-            if (showResetBottom) {
-                String resetLabel = "RST IN " + agData.reset_str;
-                gcPrintCentered(resetLabel.c_str(), cx, cy + 80, colOrange);
-            } else {
-                gcPrintCentered(timeData.date_str.c_str(), cx, cy + 80, colGray);
-            }
-            char tempBuf[16];
-            sprintf(tempBuf, "%.1f C", weatherData.temp);
-            gcPrintCentered(tempBuf, cx, cy + 94, GC_COLOR_WHITE);
+
+            // Line 1: Claude Reset Countdown (Teal #00E5FF)
+            String cldStr = "CLD: " + (claudeData.reset_str.length() > 0 ? claudeData.reset_str : "READY");
+            gcPrintCentered(cldStr.c_str(), cx, cy + 80, colCyan);
+
+            // Line 2: Antigravity Reset Countdown (Orange #FF7A00)
+            String agyStr = "AGY: " + (agData.reset_str.length() > 0 ? agData.reset_str : "READY");
+            gcPrintCentered(agyStr.c_str(), cx, cy + 94, colOrange);
         }
     }
 }
@@ -1308,6 +1307,9 @@ void fetchBackendData() {
                 claudeData.tokensToday = doc["claude"]["tokens_today"] | 0;
                 if (doc["claude"].containsKey("limit")) claudeData.limit = doc["claude"]["limit"] | 100;
                 if (doc["claude"].containsKey("remaining")) claudeData.remaining = doc["claude"]["remaining"] | 100;
+                claudeData.reset_time = doc["claude"]["reset_time"] | "";
+                claudeData.reset_in_seconds = doc["claude"]["reset_in_seconds"] | -1;
+                claudeData.reset_str = doc["claude"]["reset_str"] | "";
             }
             if (doc.containsKey("antigravity")) {
                 agData.limit = doc["antigravity"]["limit"] | 200;

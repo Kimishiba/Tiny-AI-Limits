@@ -823,6 +823,7 @@
     // Data State (mirrors backend GET /data)
     let claude_limit = 500000;
     let claude_remaining = 425000;
+    let claude_reset_str = "";
     let antigravity_limit = 100;
     let antigravity_remaining = 60;
     let antigravity_reset_str = "";
@@ -1502,22 +1503,17 @@
         c.fillStyle = "#ffffff";
         c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
-        // Line 1: Day & Date OR Reset Countdown
-        const showReset = antigravity_reset_str && (Math.floor(Date.now() / 4000) % 2 === 1);
+        // Line 1: Claude Reset Countdown in Teal #00E5FF
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        if (showReset) {
-          c.fillStyle = "#FF7A00";
-          c.fillText("RST IN " + antigravity_reset_str, cx, cy + 81);
-        } else {
-          c.fillStyle = "#94a3b8";
-          c.fillText(date_string.toUpperCase(), cx, cy + 81);
-        }
+        c.fillStyle = "#00E5FF";
+        const cldStr = "CLD: " + (claude_reset_str || "READY");
+        c.fillText(cldStr, cx, cy + 81);
 
-        // Line 2: Temperature & Weather Icon
-        c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
-        c.fillStyle = "#ffffff";
-        const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
-        c.fillText(tempFormatted + "°C ☀️", cx, cy + 95);
+        // Line 2: Antigravity Reset Countdown in Orange #FF7A00
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#FF7A00";
+        const agyStr = "AGY: " + (antigravity_reset_str || "READY");
+        c.fillText(agyStr, cx, cy + 95);
       }
     }
 
@@ -1829,6 +1825,7 @@
           if (data.claude) {
             claude_limit = data.claude.limit || 500000;
             claude_remaining = data.claude.remaining || 500000;
+            claude_reset_str = data.claude.reset_str || "";
             document.getElementById("claudeSlider").value = Math.round((claude_remaining/claude_limit)*100);
             document.getElementById("claudeVal").innerText = Math.round((claude_remaining/claude_limit)*100) + "%";
           }

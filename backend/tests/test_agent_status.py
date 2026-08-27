@@ -326,6 +326,16 @@ class TestAgentStatus(unittest.TestCase):
         self.assertIn("reset_in_seconds", quota)
         self.assertIn("reset_str", quota)
 
+    def test_scan_claude_usage_fields(self):
+        from app import scan_claude_usage
+        usage = scan_claude_usage()
+        self.assertIn("tokens_today", usage)
+        self.assertIn("limit", usage)
+        self.assertIn("remaining", usage)
+        self.assertIn("reset_time", usage)
+        self.assertIn("reset_in_seconds", usage)
+        self.assertIn("reset_str", usage)
+
 if __name__ == "__main__":
     unittest.main()
 
