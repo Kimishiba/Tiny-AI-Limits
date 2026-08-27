@@ -1083,17 +1083,7 @@ def get_local_ip():
     finally:
         s.close()
 
-def find_available_port(preferred_port=5000):
-    for p in [preferred_port, 5001, 5050, 8080]:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('0.0.0.0', p))
-                return p
-        except OSError:
-            continue
-    return preferred_port
-
-PORT = find_available_port(5000)
+PORT = 5000
 
 def get_host_label():
     return socket.gethostname().split('.')[0].replace(' ', '-') or "tinyscreen-host"

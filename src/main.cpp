@@ -1157,14 +1157,18 @@ bool repairViaTxtRecords() {
     int n = MDNS.queryService("tinyscreen", "tcp");
     Serial.printf("[Pair] Re-locating companion %s across %d service(s)\n", pairedId.c_str(), n);
     for (int i = 0; i < n; i++) {
-        if (MDNS.txt(i, "pair_id") != pairedId) continue;
+        String sPairId = "";
+        if (MDNS.hasTxt(i, "pair_id")) {
+            sPairId = MDNS.txt(i, "pair_id");
+        }
+        if (sPairId != pairedId && n > 1) continue;
 
         IPAddress ip = MDNS.IP(i);
         uint16_t port = MDNS.port(i);
         if (ip == IPAddress() || !probeBackend(ip.toString(), port)) {
-            Serial.printf("[Pair] Matched pair_id but %s:%u is unreachable; keeping stored host\n",
+            Serial.printf("[Pair] Candidate %s:%u is unreachable; trying next\n",
                           ip.toString().c_str(), port);
-            return false;
+            continue;
         }
 
         savePairing(ip.toString(), port, pairedId);
@@ -1255,7 +1259,7 @@ void fetchBackendData() {
 
     HTTPClient http;
     http.begin(backendUrl);
-    http.setTimeout(2500);
+    http.setTimeout(3500);
 
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
@@ -1325,7 +1329,7 @@ void fetchBackendData() {
     } else {
         Serial.printf("[Backend] GET %s failed: %s (%d)\n", backendUrl.c_str(), http.errorToString(httpCode).c_str(), httpCode);
         if (consecutiveBackendFailures < maxBackendFailures) consecutiveBackendFailures++;
-        if (consecutiveBackendFailures >= 2) {
+        if (consecutiveBackendFailures >= 4) {
             backendConnected = false;
         }
         if (!everPaired && pairedHost.length() == 0 &&
