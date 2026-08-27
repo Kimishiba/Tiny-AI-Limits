@@ -10,7 +10,10 @@
 #include <esp_wifi.h>
 #include <Preferences.h>
 #include <ImprovWiFiLibrary.h>
+#include <Update.h>
 #include "boot_logo.h"
+
+#define FIRMWARE_VERSION "0.5"
 
 DNSServer dnsServer;
 
@@ -255,6 +258,7 @@ void updateFacePhysics(unsigned long now) {
 #define GC_COLOR_SLATE_GRAY  0x9D37 // Muted Slate (#94A3B8)
 #define GC_COLOR_ICE_BLUE    0x3DFE // Weather Rain Blue (#38BDF8)
 #define GC_COLOR_DARK_AMBER  0x2080
+#define GC_COLOR_RED         0xF800 // Safety Red (#FF0000)
 
 // Digit transition flip states
 int prevDigits[4] = {-1, -1, -1, -1};
@@ -1263,6 +1267,162 @@ bool resolveBackendUrl() {
     return false;
 }
 
+// ==========================================
+// OVER-THE-AIR (OTA) FIRMWARE UPDATE
+// ==========================================
+void drawOTAProgressScreen(int percent, const char* statusMsg, const char* verStr) {
+    if (!gc9a01Initialized) return;
+    int cx = 120, cy = 120;
+
+    // Outer circle
+    if (percent <= 0) {
+        gcGfx->fillScreen(GC_COLOR_BLACK);
+        gcGfx->drawCircle(cx, cy, 118, GC_COLOR_AMBER);
+    }
+
+    // Center card background
+    gcGfx->fillRect(cx - 90, cy - 60, 180, 120, GC_COLOR_BLACK);
+
+    // Dynamic progress arc
+    if (percent >= 0) {
+        float maxDeg = (constrain(percent, 0, 100) / 100.0f) * 360.0f;
+        for (float deg = 0; deg <= maxDeg; deg += 1.5f) {
+            float rad = (deg - 90.0f) * 0.0174532925f;
+            float cosR = cosf(rad);
+            float sinR = sinf(rad);
+            for (int r = 112; r <= 116; r++) {
+                gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_AMBER);
+            }
+        }
+    }
+
+    // Title
+    gcGfx->setTextSize(1);
+    gcPrintCentered("FIRMWARE OTA", cx, cy - 40, GC_COLOR_CYAN);
+
+    // Version jump tag
+    if (verStr && strlen(verStr) > 0) {
+        String verDisplay = "v" + String(FIRMWARE_VERSION) + " -> v" + String(verStr);
+        gcPrintCentered(verDisplay.c_str(), cx, cy - 25, GC_COLOR_SLATE_GRAY);
+    }
+
+    // Main Percentage or Error
+    gcGfx->setTextSize(2);
+    if (percent >= 0) {
+        String pctStr = String(percent) + "%";
+        gcPrintCentered(pctStr.c_str(), cx, cy + 2, GC_COLOR_WHITE);
+    } else {
+        gcPrintCentered("ERROR", cx, cy + 2, GC_COLOR_RED);
+    }
+
+    // Sub-status
+    gcGfx->setTextSize(1);
+    gcPrintCentered(statusMsg, cx, cy + 28, GC_COLOR_AMBER);
+    gcPrintCentered("DO NOT UNPLUG", cx, cy + 45, gcGfx->color565(150, 150, 150));
+}
+
+bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
+    String fullUrl;
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+        fullUrl = pathOrUrl;
+    } else {
+        int idx = backendUrl.indexOf("/data");
+        String baseUrl = (idx != -1) ? backendUrl.substring(0, idx) : backendUrl;
+        fullUrl = baseUrl + pathOrUrl;
+    }
+
+    Serial.printf("[OTA] Starting update from: %s (target ver: %s)\n", fullUrl.c_str(), newVersion);
+    drawOTAProgressScreen(0, "CONNECTING...", newVersion);
+
+    HTTPClient http;
+    WiFiClient client;
+    http.begin(client, fullUrl);
+    http.setTimeout(15000);
+
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK) {
+        Serial.printf("[OTA] HTTP GET failed: %d\n", httpCode);
+        drawOTAProgressScreen(-1, "HTTP ERROR", newVersion);
+        delay(3000);
+        http.end();
+        return false;
+    }
+
+    int contentLength = http.getSize();
+    Serial.printf("[OTA] Image size: %d bytes\n", contentLength);
+    if (contentLength <= 0) {
+        Serial.println("[OTA] Invalid content length");
+        drawOTAProgressScreen(-1, "INVALID SIZE", newVersion);
+        delay(3000);
+        http.end();
+        return false;
+    }
+
+    if (!Update.begin(contentLength, U_FLASH)) {
+        Serial.printf("[OTA] Cannot begin update: error %d\n", Update.getError());
+        drawOTAProgressScreen(-1, "PARTITION FULL", newVersion);
+        delay(3000);
+        http.end();
+        return false;
+    }
+
+    WiFiClient *stream = http.getStreamPtr();
+    size_t written = 0;
+    uint8_t buff[1024];
+    int lastPercent = -1;
+    unsigned long lastActivity = millis();
+
+    while (http.connected() && (written < (size_t)contentLength)) {
+        size_t availableBytes = stream->available();
+        if (availableBytes > 0) {
+            int readBytes = stream->readBytes(buff, min(availableBytes, sizeof(buff)));
+            if (readBytes > 0) {
+                Update.write(buff, readBytes);
+                written += readBytes;
+                lastActivity = millis();
+                int percent = (int)((written * 100) / contentLength);
+                if (percent != lastPercent) {
+                    lastPercent = percent;
+                    drawOTAProgressScreen(percent, "DOWNLOADING...", newVersion);
+                }
+            }
+        } else {
+            if (millis() - lastActivity > 10000) {
+                Serial.println("[OTA] Download timeout");
+                drawOTAProgressScreen(-1, "TIMEOUT", newVersion);
+                delay(3000);
+                Update.abort();
+                http.end();
+                return false;
+            }
+            delay(5);
+        }
+    }
+
+    http.end();
+
+    if (written < (size_t)contentLength) {
+        Serial.printf("[OTA] Incomplete write: %u / %d\n", written, contentLength);
+        drawOTAProgressScreen(-1, "INCOMPLETE", newVersion);
+        delay(3000);
+        Update.abort();
+        return false;
+    }
+
+    if (Update.end(true)) {
+        Serial.println("[OTA] Update successful! Rebooting...");
+        drawOTAProgressScreen(100, "REBOOTING...", newVersion);
+        delay(1500);
+        ESP.restart();
+        return true;
+    } else {
+        Serial.printf("[OTA] Update.end() failed: error %d\n", Update.getError());
+        drawOTAProgressScreen(-1, "FLASH ERROR", newVersion);
+        delay(3000);
+        return false;
+    }
+}
+
 void fetchBackendData() {
     if (WiFi.status() != WL_CONNECTED) {
         wifiConnected = false;
@@ -1363,6 +1523,15 @@ void fetchBackendData() {
                 timeData.time_str = doc["time"]["time_string"] | "12:00:00";
                 if (doc["time"].containsKey("date_string")) {
                     timeData.date_str = doc["time"]["date_string"].as<String>();
+                }
+            }
+            if (doc.containsKey("ota")) {
+                JsonObject otaObj = doc["ota"];
+                bool otaTrigger = otaObj["trigger"] | false;
+                const char* otaVer = otaObj["version"] | "";
+                String otaPath = otaObj["url"] | "/firmware/latest.bin";
+                if (otaTrigger && otaPath.length() > 0) {
+                    performOTAUpdate(otaPath, otaVer);
                 }
             }
         }

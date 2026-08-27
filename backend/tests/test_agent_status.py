@@ -360,6 +360,38 @@ class TestAgentStatus(unittest.TestCase):
         self.assertIn("reset_in_seconds", usage)
         self.assertIn("reset_str", usage)
 
+    def test_firmware_version_endpoint(self):
+        client = app.app.test_client()
+        res = client.get("/firmware/version")
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertIn("version", data)
+        self.assertIn("available", data)
+        self.assertIn("companion_version", data)
+
+    def test_ota_trigger_and_data_payload(self):
+        client = app.app.test_client()
+        # Trigger OTA
+        res = client.post("/api/ota/trigger")
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["status"], "ok")
+
+        # Now get /data with paired query (or allow_unpaired)
+        app.config["allow_unpaired_clients"] = True
+        data_res = client.get("/data")
+        self.assertEqual(data_res.status_code, 200)
+        payload = json.loads(data_res.data.decode("utf-8"))
+        self.assertIn("ota", payload)
+        self.assertTrue(payload["ota"]["trigger"])
+        self.assertIn("url", payload["ota"])
+        self.assertIn("version", payload["ota"])
+
+        # Second get /data should have trigger == False (one-shot consumption)
+        data_res2 = client.get("/data")
+        payload2 = json.loads(data_res2.data.decode("utf-8"))
+        self.assertFalse(payload2["ota"]["trigger"])
+
 if __name__ == "__main__":
     unittest.main()
 
