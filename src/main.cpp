@@ -634,9 +634,9 @@ void drawGC9A01RoundFlipUI() {
                                                gcGfx->color565(239, 68, 68);    // #EF4444 Crimson Disconnected
 
         // LED Housing Bezel
-        gcGfx->drawCircle(cx, cy - 105, 3, colBezel);
-        // LED Core Dot
-        gcGfx->fillCircle(cx, cy - 105, 2, colLed);
+        gcGfx->drawCircle(cx, cy - 105, 4, colBezel);
+        // LED Core Dot (Radius 3 for clear visibility)
+        gcGfx->fillCircle(cx, cy - 105, 3, colLed);
 
         // Weather text (Centered at cx=120, y=cy-93=27)
         gcGfx->setTextSize(1);
