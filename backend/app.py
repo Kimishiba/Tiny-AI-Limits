@@ -642,10 +642,13 @@ test_complete_override = False
 test_complete_prompt = "WORK COMPLETE"
 
 @app.route('/api/test_alert', methods=['GET', 'POST'])
+@app.route('/api/test_complete', methods=['GET', 'POST'])
 def handle_test_alert():
     global test_alert_override, test_alert_prompt, test_complete_override, test_complete_prompt
     data = request.json or request.args or {}
     mode = data.get("mode") or data.get("type") or ""
+    if request.path == '/api/test_complete':
+        mode = "complete"
     
     if mode == "complete" or "complete" in data or "completed" in data:
         val = data.get("complete") if "complete" in data else data.get("completed")
