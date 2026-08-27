@@ -667,7 +667,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             elif step_type == "PLANNER_RESPONSE":
                 tool_calls = last_step_entry.get("tool_calls", []) or []
                 if tool_calls:
-                    # Tool call generated: check if it's a modal waiting on user
+                    # Tool call generated: check if it is an explicit user prompt/approval modal
                     for tc in tool_calls:
                         name = tc.get("name")
                         args = tc.get("args", {}) or {}
@@ -685,34 +685,17 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                             found_pending = True
                             turn_pending_prompt = "APPROVE PLAN"
                             break
-                        elif name == "ask_question":
+                        elif name in ("ask_question", "ask_user_question"):
                             found_pending = True
                             turn_pending_prompt = "ANSWER Q"
                             break
-                        elif name == "ask_permission":
+                        elif name in ("ask_permission", "request_permission"):
                             found_pending = True
                             turn_pending_prompt = "GRANT PERM"
                             break
-                        elif name == "run_command":
-                            found_pending = True
-                            turn_pending_prompt = "ALLOW CMD"
-                            break
-                        elif name == "write_to_file":
-                            found_pending = True
-                            turn_pending_prompt = "ALLOW WRITE"
-                            break
-                        elif name == "replace_file_content":
-                            found_pending = True
-                            turn_pending_prompt = "ALLOW EDIT"
-                            break
-                        elif name == "invoke_subagent":
-                            found_pending = True
-                            turn_pending_prompt = "SPAWN AGENT"
-                            break
-                        elif name == "call_mcp_tool":
-                            found_pending = True
-                            turn_pending_prompt = "ALLOW MCP"
-                            break
+                        else:
+                            # Autonomous tool execution (run_command, file edits, MCP tools)
+                            has_in_flight_tools = True
                 elif last_step_entry.get("content"):
                     # Final text response delivered to user
                     is_final_turn_response = True
@@ -868,6 +851,8 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
 
             found_pending = False
             turn_pending_prompt = "CLAUDE PROMPT"
+            has_in_flight_tools = False
+            is_final_turn_response = False
 
             if last_entry.get("type") == "assistant":
                 msg = last_entry.get("message", {})
@@ -876,34 +861,32 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                     for item in content:
                         if isinstance(item, dict) and item.get("type") == "tool_use":
                             t_name = item.get("name", "")
-                            found_pending = True
-                            if t_name == "AskUserQuestion" or t_name == "ask_user_question":
+                            if t_name in ("AskUserQuestion", "ask_user_question"):
+                                found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif t_name == "Bash":
-                                turn_pending_prompt = "ALLOW BASH"
-                                break
-                            elif t_name in ("FileEdit", "Edit", "NotebookEditCell"):
-                                turn_pending_prompt = "ALLOW EDIT"
-                                break
-                            elif t_name in ("FileWrite", "Write"):
-                                turn_pending_prompt = "ALLOW WRITE"
-                                break
-                            elif "permission" in t_name.lower():
+                            elif "permission" in t_name.lower() or "confirm" in t_name.lower():
+                                found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
-                                break
-                            elif "mcp" in t_name.lower():
-                                turn_pending_prompt = "ALLOW MCP"
                                 break
                             else:
-                                turn_pending_prompt = "GRANT PERM"
+                                has_in_flight_tools = True
+                    if not found_pending and not has_in_flight_tools:
+                        is_final_turn_response = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
+                elif isinstance(content, str) and content.strip():
+                    is_final_turn_response = True
 
             if found_pending:
                 state = "WAITING"
                 code = "waiting_approval"
                 detail = turn_pending_prompt
                 color = "#FFB800"
-            elif age < config.get("completion_duration_seconds", 10):
+            elif has_in_flight_tools or (age < 45 and not is_final_turn_response):
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+            elif is_final_turn_response and age < config.get("completion_duration_seconds", 10):
                 state = "COMPLETE"
                 code = "work_complete"
                 detail = "WORK COMPLETE"

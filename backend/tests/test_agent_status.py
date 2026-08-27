@@ -127,8 +127,7 @@ class TestAgentStatus(unittest.TestCase):
                 }) + "\n")
             
             status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
-            self.assertTrue(status["waiting_for_input"])
-            self.assertEqual(status["prompt_text"], "ALLOW CMD")
+            self.assertFalse(status["waiting_for_input"])
 
     def test_claude_permission_prompt(self):
         import tempfile
@@ -200,7 +199,7 @@ class TestAgentStatus(unittest.TestCase):
             with open(os.path.join(cl_proj, "s1.jsonl"), "w") as f:
                 f.write(json.dumps({
                     "type": "assistant",
-                    "message": {"content": [{"type": "tool_use", "name": "Bash"}]}
+                    "message": {"content": [{"type": "tool_use", "name": "AskUserQuestion"}]}
                 }) + "\n")
 
             now = time.time()
@@ -210,7 +209,7 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(len(res["active_agents"]), 2)
             self.assertEqual(res["active_agents"][0]["state"], "WAITING")
 
-    def test_antigravity_run_command_pending(self):
+    def test_antigravity_run_command_working(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             brain_dir = os.path.join(tmp_dir, "brain")
@@ -232,10 +231,11 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WAITING")
-            self.assertEqual(sessions[0]["detail"], "ALLOW CMD")
+            self.assertEqual(sessions[0]["state"], "WORKING")
+            self.assertEqual(sessions[0]["detail"], "EXECUTING...")
+            self.assertEqual(sessions[0]["color"], "#00E5FF")
 
-    def test_claude_bash_pending(self):
+    def test_claude_bash_working(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             projects_dir = os.path.join(tmp_dir, "projects", "project1")
@@ -251,7 +251,7 @@ class TestAgentStatus(unittest.TestCase):
                             {
                                 "type": "tool_use",
                                 "name": "Bash",
-                                "input": {"command": "git push"}
+                                "input": {"command": "ls -la"}
                             }
                         ]
                     }
@@ -259,8 +259,9 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_claude_sessions(claude_dirs=[tmp_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WAITING")
-            self.assertEqual(sessions[0]["detail"], "ALLOW BASH")
+            self.assertEqual(sessions[0]["state"], "WORKING")
+            self.assertEqual(sessions[0]["detail"], "EXECUTING...")
+            self.assertEqual(sessions[0]["color"], "#00E5FF")
 
 if __name__ == "__main__":
     unittest.main()
