@@ -106,6 +106,7 @@ unsigned long lastTokenActivityMs = 0;
 const unsigned long sleepIdleThresholdMs = 15UL * 60UL * 1000UL;
 
 unsigned long lastBackendPoll = 0;
+unsigned long lastBackendPollSuccessMs = 0;
 const unsigned long backendPollInterval = 3000;
 
 bool wifiConnected = false;
@@ -524,21 +525,75 @@ void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int ol
 }
 
 void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
-    uint16_t arcCol;
-    if (ledState == 1) {
-        arcCol = gcGfx->color565(0, 255, 136); // #00FF88 Constant Solid Neon Emerald Green
-    } else if (ledState == 2) {
-        arcCol = gcGfx->color565(245, 158, 11); // #F59E0B Amber Unpaired
-    } else {
-        arcCol = gcGfx->color565(239, 68, 68);  // #EF4444 Crimson Disconnected
+    if (ledState == 0) {
+        // Red Disconnected
+        uint16_t colRed = gcGfx->color565(239, 68, 68);
+        for (int deg = 246; deg <= 294; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cosf(rad);
+            float sinR = sinf(rad);
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colRed);
+            }
+        }
+        return;
     }
 
-    for (int deg = 246; deg <= 294; deg++) {
-        float rad = deg * 0.0174533f;
-        float cosR = cosf(rad);
-        float sinR = sinf(rad);
-        for (int r = 101; r <= 107; r++) {
-            gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), arcCol);
+    if (ledState == 2) {
+        // Amber Unpaired / Searching
+        uint16_t colAmber = gcGfx->color565(245, 158, 11);
+        for (int deg = 246; deg <= 294; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cosf(rad);
+            float sinR = sinf(rad);
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colAmber);
+            }
+        }
+        return;
+    }
+
+    // ledState == 1: Backend Connected (Concept A: Telemetry Packet Ping)
+    unsigned long elapsed = millis() - lastBackendPollSuccessMs;
+    uint16_t colDim = gcGfx->color565(0, 68, 34);         // #004422 Dim resting emerald
+    uint16_t colBright = gcGfx->color565(0, 255, 136);    // #00FF88 Neon emerald
+    uint16_t colCore = gcGfx->color565(190, 255, 225);     // White-hot highlight core
+
+    if (elapsed >= 600) {
+        // Resting state: Subtle dim emerald green
+        for (int deg = 246; deg <= 294; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cosf(rad);
+            float sinR = sinf(rad);
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colDim);
+            }
+        }
+    } else {
+        // Active Ping Ripple (0..600ms): Expanding wavefront from center 270 deg
+        float progress = (float)elapsed / 600.0f;
+        float waveFront = progress * 28.0f; // 0 to 28 deg away from center (270)
+
+        for (int deg = 246; deg <= 294; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cosf(rad);
+            float sinR = sinf(rad);
+            float dist = fabsf((float)deg - 270.0f);
+            float distToWave = fabsf(dist - waveFront);
+
+            uint16_t pixelCol;
+            if (distToWave < 3.5f) {
+                pixelCol = (distToWave < 1.5f && progress < 0.6f) ? colCore : colBright;
+            } else if (dist < waveFront) {
+                float tailFade = 1.0f - progress;
+                pixelCol = (tailFade > 0.35f) ? colBright : colDim;
+            } else {
+                pixelCol = colDim;
+            }
+
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), pixelCol);
+            }
         }
     }
 }
@@ -648,11 +703,14 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 2. Top Crown: Backend Connection Status Indicator Arc & Weather / Rain Indicator
-    // 0 = no backend (red), 1 = paired (solid green), 2 = connected but unpaired (amber)
+    // 0 = no backend (red), 1 = paired (solid green / telemetry ping), 2 = connected but unpaired (amber)
     int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    bool isPinging = (curLedState == 1) && ((millis() - lastBackendPollSuccessMs) < 600);
+    static bool wasPinging = false;
 
-    if (curLedState != lastLedState) {
+    if (curLedState != lastLedState || isPinging || wasPinging) {
         lastLedState = curLedState;
+        wasPinging = isPinging;
         drawGC9A01TopConnectionArc(cx, cy, curLedState);
     }
 
@@ -936,7 +994,7 @@ void drawGC9A01RoundFaceUI() {
 
     // 2. Top Crown: Connection Status Arc & Rain Indicator
     // Amber means connected but unpaired -- see STATUS_UNPAIRED_NOTE.
-    int curFaceLedState = !wifiConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    int curFaceLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
     drawGC9A01TopConnectionArc(cx, cy, curFaceLedState);
 
     char rainStr[24];
@@ -1457,6 +1515,7 @@ void fetchBackendData() {
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
         backendConnected = true;
+        lastBackendPollSuccessMs = millis();
         consecutiveBackendFailures = 0;
         String payload = http.getString();
         StaticJsonDocument<2560> doc;

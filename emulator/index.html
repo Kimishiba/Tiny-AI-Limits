@@ -972,36 +972,81 @@
     }
 
     function drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn) {
-      const startAngle = (-90 - 24) * Math.PI / 180;
-      const endAngle = (-90 + 24) * Math.PI / 180;
+      const centerAngleDeg = -90;
+      const spanDeg = 24;
+      const startAngle = (centerAngleDeg - spanDeg) * Math.PI / 180;
+      const endAngle = (centerAngleDeg + spanDeg) * Math.PI / 180;
       const arcRadius = 104;
-      const now = performance.now();
-      const pulse = (Math.sin(now * 0.0035) + 1) / 2; // 0..1
 
       c.save();
-      c.beginPath();
-      c.arc(cx, cy, arcRadius, startAngle, endAngle);
-      c.lineWidth = 4.5;
       c.lineCap = "round";
 
       if (isBackendConn) {
-        // Pulsing Emerald Green Arc
-        const alpha = 0.35 + 0.65 * pulse;
-        c.strokeStyle = `rgba(34, 197, 94, ${alpha})`;
-        c.shadowColor = `rgba(34, 197, 94, ${0.4 + 0.5 * pulse})`;
-        c.shadowBlur = 4 + 8 * pulse;
+        // Concept A: Telemetry Packet Ping
+        // 1. Resting dim emerald base arc
+        c.beginPath();
+        c.arc(cx, cy, arcRadius, startAngle, endAngle);
+        c.lineWidth = 4.5;
+        c.strokeStyle = "#004422";
+        c.shadowBlur = 0;
+        c.stroke();
+
+        // 2. 3.0s simulated telemetry poll cycle (600ms ping window)
+        const now = performance.now();
+        const cycleMs = 3000;
+        const pingDurationMs = 600;
+        const timeInCycle = now % cycleMs;
+
+        if (timeInCycle < pingDurationMs) {
+          const progress = timeInCycle / pingDurationMs; // 0.0 -> 1.0
+          const waveDeg = progress * (spanDeg + 3);
+
+          const fade = Math.max(0, 1.0 - progress * 0.7);
+          const alpha = 0.4 + 0.6 * fade;
+
+          const arcStart = Math.max(startAngle, (centerAngleDeg - waveDeg) * Math.PI / 180);
+          const arcEnd = Math.min(endAngle, (centerAngleDeg + waveDeg) * Math.PI / 180);
+
+          // Glowing Expanding Wavefront
+          c.beginPath();
+          c.arc(cx, cy, arcRadius, arcStart, arcEnd);
+          c.lineWidth = 4.5;
+          c.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+          c.shadowColor = `rgba(0, 255, 136, ${0.8 * fade})`;
+          c.shadowBlur = 6 + 10 * fade;
+          c.stroke();
+
+          // Hot-core highlight at wave peak
+          if (progress < 0.6) {
+            const coreAlpha = 0.9 * (1.0 - progress / 0.6);
+            c.beginPath();
+            c.arc(cx, cy, arcRadius, arcStart, arcEnd);
+            c.lineWidth = 2.0;
+            c.strokeStyle = `rgba(210, 255, 235, ${coreAlpha})`;
+            c.shadowColor = "#00ff88";
+            c.shadowBlur = 8;
+            c.stroke();
+          }
+        }
       } else if (isWifiConn) {
         // Amber Searching / Unpaired
+        c.beginPath();
+        c.arc(cx, cy, arcRadius, startAngle, endAngle);
+        c.lineWidth = 4.5;
         c.strokeStyle = "#f59e0b";
         c.shadowColor = "rgba(245, 158, 11, 0.5)";
         c.shadowBlur = 6;
+        c.stroke();
       } else {
         // Offline Red
+        c.beginPath();
+        c.arc(cx, cy, arcRadius, startAngle, endAngle);
+        c.lineWidth = 4.5;
         c.strokeStyle = "#ef4444";
         c.shadowColor = "rgba(239, 68, 68, 0.4)";
         c.shadowBlur = 4;
+        c.stroke();
       }
-      c.stroke();
       c.restore();
     }
 
