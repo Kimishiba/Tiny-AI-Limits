@@ -1961,6 +1961,23 @@ void setup() {
         Serial.println("[WiFi] Ready for setup over USB Serial or Improv Wi-Fi.");
     }
 
+    // 4. Launch Asynchronous FreeRTOS Background Worker for Backend HTTP Polling
+    xTaskCreate(
+        [](void *pvParameters) {
+            for (;;) {
+                if (wifiConnected && !provisioningMode) {
+                    fetchBackendData();
+                }
+                vTaskDelay(pdMS_TO_TICKS(backendPollInterval));
+            }
+        },
+        "backendTask",
+        8192,
+        NULL,
+        1,
+        NULL
+    );
+
 }
 
 // ==========================================
@@ -1978,7 +1995,7 @@ void loop() {
         server.handleClient();
     }
 
-    // 2. Render Active Display
+    // 2. Render Active Display (Uninterrupted ~30 FPS rendering)
     if (now - lastFrameTime >= frameIntervalMs) {
         lastFrameTime = now;
 
@@ -2024,13 +2041,4 @@ void loop() {
             }
         }
     }
-
-    // 5. Backend Polling
-    if (now - lastBackendPoll >= backendPollInterval) {
-        lastBackendPoll = now;
-        fetchBackendData();
-    }
-
-    // The round HUD renders agent alerts inline (see drawGC9A01RoundFlipUI),
-    // so it needs no screen-mode cycler.
 }
