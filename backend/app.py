@@ -765,7 +765,24 @@ def handle_hook_event(data, now_ts=None):
             code = "waiting_approval"
             detail = "GRANT PERM"
             color = "#FFB800"
-        elif hook_event in ("SessionStart", "UserPromptSubmit", "PreToolUse", "working", "resumed"):
+        elif hook_event == "PreToolUse":
+            tool_name = (data.get("tool_name") or "").lower()
+            if tool_name in ("askuserquestion", "ask_user_question"):
+                state = "WAITING"
+                code = "waiting_approval"
+                detail = "ANSWER Q"
+                color = "#FFB800"
+            elif tool_name in ("bash", "edit", "write", "multiedit", "notebookedit", "fileedit") or "permission" in tool_name or "confirm" in tool_name or not tool_name:
+                state = "WAITING"
+                code = "waiting_approval"
+                detail = "GRANT PERM"
+                color = "#FFB800"
+            else:
+                state = "WORKING"
+                code = "working"
+                detail = "EXECUTING..."
+                color = "#00E5FF"
+        elif hook_event in ("SessionStart", "UserPromptSubmit", "working", "resumed"):
             state = "WORKING"
             code = "working"
             detail = "EXECUTING..."
@@ -1026,20 +1043,26 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                         else:
                             meta = {}
 
+                        name_str = (name or "")
+                        name_lower = name_str.lower()
                         if meta.get("RequestFeedback") is True:
                             found_pending = True
                             turn_pending_prompt = "APPROVE PLAN"
                             break
-                        elif name in ("ask_question", "ask_user_question"):
+                        elif name_lower in ("ask_question", "ask_user_question"):
                             found_pending = True
                             turn_pending_prompt = "ANSWER Q"
                             break
-                        elif name in ("ask_permission", "request_permission"):
+                        elif name_lower in (
+                            "ask_permission", "request_permission", "run_command",
+                            "write_to_file", "replace_file_content", "multi_replace_file_content",
+                            "call_mcp_tool"
+                        ) or "permission" in name_lower or "confirm" in name_lower:
                             found_pending = True
                             turn_pending_prompt = "GRANT PERM"
                             break
                         else:
-                            # Autonomous tool execution (run_command, file edits, MCP tools)
+                            # Autonomous tool execution (view_file, grep_search, etc.)
                             has_in_flight_tools = True
                 elif last_step_entry.get("content"):
                     # Final text response delivered to user
@@ -1182,12 +1205,16 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 if isinstance(content, list):
                     for item in content:
                         if isinstance(item, dict) and item.get("type") == "tool_use":
-                            t_name = item.get("name", "")
-                            if t_name in ("AskUserQuestion", "ask_user_question"):
+                            t_name = (item.get("name") or "").lower()
+                            if t_name in ("askuserquestion", "ask_user_question"):
                                 found_pending = True
                                 turn_pending_prompt = "ANSWER Q"
                                 break
-                            elif "permission" in t_name.lower() or "confirm" in t_name.lower():
+                            elif t_name in (
+                                "bash", "edit", "write", "multiedit",
+                                "notebookedit", "fileedit", "ask_permission",
+                                "request_permission"
+                            ) or "permission" in t_name or "confirm" in t_name:
                                 found_pending = True
                                 turn_pending_prompt = "GRANT PERM"
                                 break

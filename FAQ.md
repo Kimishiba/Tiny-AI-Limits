@@ -43,7 +43,7 @@ If you set the board up with the "Connect & Set Up WiFi" button, it is **not** p
 
 ## How can I tell whether my board is paired?
 
-Watch the status dot on the display: green means paired, **amber** means connected but unpaired, and red means no connection.
+Watch the status arc at the top of the display: pulsing green means paired & connected, **amber** means connected but unpaired, and red means no connection.
 
 Unpaired means the board is reading from whichever companion app answered first, so on a shared network the figures may not be yours.
 

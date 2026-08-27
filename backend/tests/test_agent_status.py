@@ -139,14 +139,38 @@ class TestAgentStatus(unittest.TestCase):
                     "created_at": "2026-08-27T10:00:00Z",
                     "tool_calls": [
                         {
-                            "name": "run_command",
-                            "args": {"CommandLine": "ls -la"}
+                            "name": "view_file",
+                            "args": {"AbsolutePath": "/path/to/file.py"}
                         }
                     ]
                 }) + "\n")
             
             status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
             self.assertFalse(status["waiting_for_input"])
+
+    def test_antigravity_run_command_pending_permission(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            session_dir = os.path.join(brain_dir, "session1", ".system_generated", "logs")
+            os.makedirs(session_dir, exist_ok=True)
+            transcript_file = os.path.join(session_dir, "transcript.jsonl")
+            
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-08-27T10:00:00Z",
+                    "tool_calls": [
+                        {
+                            "name": "run_command",
+                            "args": {"CommandLine": "swift test"}
+                        }
+                    ]
+                }) + "\n")
+            
+            status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(status["waiting_for_input"])
+            self.assertEqual(status["prompt_text"], "GRANT PERM")
 
     def test_claude_permission_prompt(self):
         import tempfile
@@ -228,7 +252,7 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(len(res["active_agents"]), 2)
             self.assertEqual(res["active_agents"][0]["state"], "WAITING")
 
-    def test_antigravity_run_command_working(self):
+    def test_antigravity_run_command_waiting(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             brain_dir = os.path.join(tmp_dir, "brain")
@@ -250,11 +274,11 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WORKING")
-            self.assertEqual(sessions[0]["detail"], "EXECUTING...")
-            self.assertEqual(sessions[0]["color"], "#FF7A00")
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
+            self.assertEqual(sessions[0]["color"], "#FFB800")
 
-    def test_claude_bash_working(self):
+    def test_claude_bash_waiting(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             projects_dir = os.path.join(tmp_dir, "projects", "project1")
@@ -278,9 +302,9 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_claude_sessions(claude_dirs=[tmp_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WORKING")
-            self.assertEqual(sessions[0]["detail"], "EXECUTING...")
-            self.assertEqual(sessions[0]["color"], "#00E5FF")
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
+            self.assertEqual(sessions[0]["color"], "#FFB800")
 
     def test_format_reset_time_variations(self):
         from app import format_reset_time

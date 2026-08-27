@@ -152,13 +152,13 @@ If several people run Tiny AI Screen on the same Wi-Fi (a shared office or house
 
 **Pairing is one-way.** Once a board has been paired, it never goes back to picking whichever companion answers first — even if it loses track of its host. It will show no data and wait to be re-paired rather than risk reading someone else's stats.
 
-**The status light tells you which mode a board is in:**
+**The top crown status arc tells you which mode a board is in:**
 
-| Status dot | Meaning |
+| Status Arc | Meaning |
 | --- | --- |
-| Green dot | Paired, reading from your companion app |
-| Amber dot | Connected but **unpaired** — the figures may not be yours |
-| Red dot | No connection |
+| Green arc (pulsing) | Paired & connected, reading from your companion app |
+| Amber arc | Connected but **unpaired** — the figures may not be yours |
+| Red arc | No connection |
 
 Each board also claims a unique mDNS name derived from its MAC — `tinyscreen-F030.local` rather than a shared `tinyscreen.local` — so several boards can coexist on one subnet.
 
