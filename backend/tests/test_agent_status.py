@@ -282,6 +282,50 @@ class TestAgentStatus(unittest.TestCase):
             self.assertEqual(sessions[0]["detail"], "EXECUTING...")
             self.assertEqual(sessions[0]["color"], "#00E5FF")
 
+    def test_format_reset_time_variations(self):
+        from app import format_reset_time
+        now = 1787830000.0
+        
+        # 3h 12m in future
+        future_iso = "2026-08-27T14:40:00Z"
+        # 11520 seconds = 3h 12m
+        secs, s = format_reset_time(future_iso, now_ts=1787800000.0)
+        self.assertIsNotNone(secs)
+        
+        # Exact calculation test
+        from datetime import datetime, timezone
+        now_dt = datetime.now(timezone.utc)
+        now_ts = float(int(now_dt.timestamp()))
+        
+        # 2h 15m in future
+        f2 = datetime.fromtimestamp(now_ts + 8100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs2, s2 = format_reset_time(f2, now_ts=now_ts)
+        self.assertEqual(secs2, 8100)
+        self.assertEqual(s2, "2h 15m")
+        
+        # 42 mins in future
+        f3 = datetime.fromtimestamp(now_ts + 2520, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs3, s3 = format_reset_time(f3, now_ts=now_ts)
+        self.assertEqual(secs3, 2520)
+        self.assertEqual(s3, "42m")
+        
+        # Past timestamp
+        past = datetime.fromtimestamp(now_ts - 100, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        secs4, s4 = format_reset_time(past, now_ts=now_ts)
+        self.assertEqual(secs4, 0)
+        self.assertEqual(s4, "READY")
+
+    def test_get_antigravity_quota_fields(self):
+        from app import get_antigravity_quota
+        quota = get_antigravity_quota()
+        self.assertIn("limit", quota)
+        self.assertIn("used", quota)
+        self.assertIn("remaining", quota)
+        self.assertIn("period", quota)
+        self.assertIn("reset_time", quota)
+        self.assertIn("reset_in_seconds", quota)
+        self.assertIn("reset_str", quota)
+
 if __name__ == "__main__":
     unittest.main()
 

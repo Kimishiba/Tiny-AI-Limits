@@ -293,6 +293,7 @@ def scan_antigravity_5h_limits(quota_limit=None):
     # fixed cycle anchored to first use (reset sharply every 5h); that was
     # based on a wrong assumption and has been reverted.
     five_hours_ago = now - (5 * 3600)
+    earliest_step_ts = None
 
     for brain_dir in _antigravity_brain_dirs():
         pattern = os.path.join(brain_dir, "*", ".system_generated", "logs", "transcript.jsonl")
@@ -312,19 +313,33 @@ def scan_antigravity_5h_limits(quota_limit=None):
                             # Convert ISO string e.g. 2026-08-07T14:50:00Z to epoch time
                             try:
                                 dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-                                if dt.timestamp() >= five_hours_ago:
+                                step_ts = dt.timestamp()
+                                if step_ts >= five_hours_ago:
                                     total_steps += 1
+                                    if earliest_step_ts is None or step_ts < earliest_step_ts:
+                                        earliest_step_ts = step_ts
                             except Exception:
                                 pass
             except Exception:
                 pass
 
     remaining = max(0, quota_limit - total_steps)
+    reset_time = None
+    reset_in_seconds = None
+    reset_str = ""
+    if earliest_step_ts is not None:
+        reset_ts = earliest_step_ts + (5 * 3600)
+        reset_time = datetime.fromtimestamp(reset_ts).strftime("%Y-%m-%dT%H:%M:%SZ")
+        reset_in_seconds, reset_str = format_reset_time(reset_time, now)
+
     return {
         "limit": quota_limit,
         "used": total_steps,
         "remaining": remaining,
-        "period": "5h"
+        "period": "5h",
+        "reset_time": reset_time,
+        "reset_in_seconds": reset_in_seconds,
+        "reset_str": reset_str
     }
 
 # --- Real Antigravity Quota (via local Connect RPC) ---
@@ -484,6 +499,30 @@ def get_antigravity_accounts(use_cache=True):
     _antigravity_accounts_cache["timestamp"] = now
     return accounts
 
+def format_reset_time(reset_time_str, now_ts=None):
+    """Compute countdown seconds and human-readable string (e.g. '3h 12m', '45m') from ISO timestamp."""
+    if not reset_time_str:
+        return None, ""
+    if now_ts is None:
+        now_ts = time.time()
+    try:
+        dt = datetime.fromisoformat(reset_time_str.replace("Z", "+00:00"))
+        reset_ts = dt.timestamp()
+        secs_left = max(0, int(round(reset_ts - now_ts)))
+        hours = secs_left // 3600
+        mins = (secs_left % 3600) // 60
+        if hours > 0:
+            reset_str = f"{hours}h {mins:02d}m"
+        elif mins > 0:
+            reset_str = f"{mins}m"
+        elif secs_left > 0:
+            reset_str = f"{secs_left}s"
+        else:
+            reset_str = "READY"
+        return secs_left, reset_str
+    except Exception:
+        return None, ""
+
 def get_antigravity_quota():
     """Real quota when Antigravity is running locally (any signed-in
     account); falls back to the local-log heuristic otherwise."""
@@ -496,13 +535,17 @@ def get_antigravity_quota():
 
     remaining_pct = round((account.get("remaining_fraction") or 1.0) * 100)
     remaining_pct = max(0, min(100, remaining_pct))
+    reset_time = account.get("reset_time")
+    reset_in_seconds, reset_str = format_reset_time(reset_time)
     return {
         "limit": 100,
         "used": 100 - remaining_pct,
         "remaining": remaining_pct,
         "period": "5h",
         "email": account.get("email"),
-        "reset_time": account.get("reset_time"),
+        "reset_time": reset_time,
+        "reset_in_seconds": reset_in_seconds,
+        "reset_str": reset_str,
     }
 
 # --- Flask Endpoints ---

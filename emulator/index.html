@@ -825,6 +825,7 @@
     let claude_remaining = 425000;
     let antigravity_limit = 100;
     let antigravity_remaining = 60;
+    let antigravity_reset_str = "";
     let current_temperature = 23.5;
     let hours_until_rain = 2;
     let date_string = "THU 06 AUG";
@@ -1032,7 +1033,11 @@
       drawCurvedTextClockwise(c, "CLAUDE " + claudePct + "%", cx, cy, textRadius, -Math.PI / 2, "#00E5FF", badgeFont);
 
       // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
-      drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
+      let agyCurvedLabel = "ANTIGRAVITY " + antiPct + "%";
+      if (antigravity_reset_str && Math.floor(Date.now() / 3500) % 2 === 1) {
+        agyCurvedLabel = "AGY RST " + antigravity_reset_str;
+      }
+      drawCurvedTextClockwise(c, agyCurvedLabel, cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
 
       // 4. Top Crown: Backend Connection Status LED & Rain Indicator
       const ledY = cy - 105;
@@ -1841,6 +1846,7 @@
           if (data.antigravity) {
             antigravity_limit = data.antigravity.limit || 200;
             antigravity_remaining = data.antigravity.remaining !== undefined ? data.antigravity.remaining : 200;
+            antigravity_reset_str = data.antigravity.reset_str || "";
             document.getElementById("antiSlider").value = Math.round((antigravity_remaining/antigravity_limit)*100);
             document.getElementById("antiVal").innerText = Math.round((antigravity_remaining/antigravity_limit)*100) + "%";
           }
