@@ -369,5 +369,73 @@ class TestProviders(unittest.TestCase):
         self.assertIn("cost_usd", data["left_gauge"])
         self.assertIn("daily_budget_usd", data["left_gauge"])
 
+    def test_weather_rain_detection(self):
+        from unittest.mock import patch, MagicMock
+        import app as backend_app
+
+        # Reset cache before tests
+        backend_app._weather_cache = {"data": None, "timestamp": 0}
+
+        # Case 1: Active rain via WMO weathercode
+        mock_resp_active_rain = MagicMock()
+        mock_resp_active_rain.status_code = 200
+        mock_resp_active_rain.json.return_value = {
+            "current_weather": {
+                "temperature": 18.5,
+                "time": "2026-08-28T14:30",
+                "weathercode": 65
+            },
+            "hourly": {
+                "time": ["2026-08-28T14:00", "2026-08-28T15:00"],
+                "precipitation": [0.0, 5.0]
+            }
+        }
+
+        with patch("app.requests.get", return_value=mock_resp_active_rain), patch("app.get_location", return_value=(52.37, 4.89, "AMSTERDAM, NL")):
+            res = backend_app.get_weather()
+            self.assertEqual(res["hours_until_rain"], 0)
+            self.assertEqual(res["temperature"], 18.5)
+
+        # Case 2: Rain in 2 hours with sub-hour current time timestamp
+        backend_app._weather_cache = {"data": None, "timestamp": 0}
+        mock_resp_future_rain = MagicMock()
+        mock_resp_future_rain.status_code = 200
+        mock_resp_future_rain.json.return_value = {
+            "current_weather": {
+                "temperature": 21.0,
+                "time": "2026-08-28T10:15",
+                "weathercode": 2
+            },
+            "hourly": {
+                "time": ["2026-08-28T09:00", "2026-08-28T10:00", "2026-08-28T11:00", "2026-08-28T12:00"],
+                "precipitation": [0.0, 0.0, 0.0, 2.5]
+            }
+        }
+
+        with patch("app.requests.get", return_value=mock_resp_future_rain), patch("app.get_location", return_value=(52.37, 4.89, "AMSTERDAM, NL")):
+            res = backend_app.get_weather()
+            self.assertEqual(res["hours_until_rain"], 2)
+
+        # Case 3: No rain in forecast
+        backend_app._weather_cache = {"data": None, "timestamp": 0}
+        mock_resp_no_rain = MagicMock()
+        mock_resp_no_rain.status_code = 200
+        mock_resp_no_rain.json.return_value = {
+            "current_weather": {
+                "temperature": 25.0,
+                "time": "2026-08-28T10:00",
+                "weathercode": 0
+            },
+            "hourly": {
+                "time": ["2026-08-28T10:00", "2026-08-28T11:00"],
+                "precipitation": [0.0, 0.0]
+            }
+        }
+
+        with patch("app.requests.get", return_value=mock_resp_no_rain), patch("app.get_location", return_value=(52.37, 4.89, "AMSTERDAM, NL")):
+            res = backend_app.get_weather()
+            self.assertEqual(res["hours_until_rain"], -1)
+
 if __name__ == '__main__':
     unittest.main()
+

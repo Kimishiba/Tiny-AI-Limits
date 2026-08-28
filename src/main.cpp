@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
+#include <font/glcdfont.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
@@ -458,6 +459,47 @@ void gcPrintCentered(const char* str, int centerX, int y, uint16_t color) {
     gcGfx->setTextColor(color);
     gcGfx->setCursor(centerX - textW / 2, y);
     gcGfx->print(str);
+}
+
+// Draw individual 5x7 character rotated tangent to a circle (tangent upwards/clockwise, top facing outwards)
+void drawRotatedCurvedChar(char c, int cx, int cy, float radius, float angleDeg, uint16_t color) {
+    if (c < 32 || c > 126) return;
+    int charIdx = (int)c;
+
+    float rad = angleDeg * 0.0174532925f;
+    float charCenterX = (float)cx + cosf(rad) * radius;
+    float charCenterY = (float)cy + sinf(rad) * radius;
+
+    // Tangent vector pointing upwards / clockwise along the left perimeter (angleDeg + 90 deg)
+    float cosT = cosf((angleDeg + 90.0f) * 0.0174532925f);
+    float sinT = sinf((angleDeg + 90.0f) * 0.0174532925f);
+    // Normal vector pointing outwards towards bezel (angleDeg)
+    float cosN = cosf(rad);
+    float sinN = sinf(rad);
+
+    for (int col = 0; col < 5; col++) {
+        uint8_t line = pgm_read_byte(&font[charIdx * 5 + col]);
+        float dx = (float)(col - 2); // along tangent
+        for (int row = 0; row < 7; row++) {
+            if (line & 0x01) {
+                float dy = (float)(row - 3); // along normal: negative = towards bezel (top of char), positive = towards center (bottom)
+                int px = (int)roundf(charCenterX + dx * cosT - dy * cosN);
+                int py = (int)roundf(charCenterY + dx * sinT - dy * sinN);
+                gcGfx->drawPixel(px, py, color);
+            }
+            line >>= 1;
+        }
+    }
+}
+
+// Draw a string curving smoothly along the left circular perimeter starting from the bottom up to the top
+void drawRotatedCurvedString(const char* str, int cx, int cy, float radius, float startDeg, float stepDeg, uint16_t color) {
+    if (!str) return;
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        float charAngle = startDeg + (i * stepDeg);
+        drawRotatedCurvedChar(str[i], cx, cy, radius, charAngle, color);
+    }
 }
 
 void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int oldDigit, int newDigit, float progress) {
@@ -1644,6 +1686,7 @@ void fetchBackendData() {
                 leftGauge.label = "CLD";
                 leftGauge.mode = "standard";
                 leftGauge.cost_str = "$0.00";
+                leftGauge.curved_text = "";
                 leftGauge.percent = 100;
                 leftGauge.color = gcGfx->color565(0, 229, 255);
                 leftGauge.reset_str = claudeData.reset_str;
@@ -1652,12 +1695,18 @@ void fetchBackendData() {
                 rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
                 rightGauge.label = doc["right_gauge"]["label"] | "AGY";
                 rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
+                rightGauge.mode = doc["right_gauge"]["mode"] | "standard";
+                rightGauge.cost_str = doc["right_gauge"]["cost_str"] | "$0.00";
+                rightGauge.curved_text = doc["right_gauge"]["curved_text"] | "";
                 rightGauge.percent = doc["right_gauge"]["percent"] | 100;
                 rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
                 String colStr = doc["right_gauge"]["color"] | "0xFF9100";
                 rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
             } else {
                 rightGauge.label = "AGY";
+                rightGauge.mode = "standard";
+                rightGauge.cost_str = "$0.00";
+                rightGauge.curved_text = "";
                 rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
                 rightGauge.color = gcGfx->color565(255, 122, 0);
                 rightGauge.reset_str = agData.reset_str;

@@ -227,19 +227,35 @@ def get_weather():
             raise Exception(f"HTTP {res.status_code}: {data.get('reason', data)}")
 
         current_temp = data['current_weather']['temperature']
+        weather_code = data['current_weather'].get('weathercode', data['current_weather'].get('weather_code', 0))
+
+        # WMO Weather Codes indicating active rain/drizzle/showers/thunderstorms:
+        # 51, 53, 55: Drizzle (light, moderate, dense)
+        # 56, 57: Freezing Drizzle
+        # 61, 63, 65: Rain (slight, moderate, heavy)
+        # 66, 67: Freezing Rain
+        # 80, 81, 82: Rain showers (slight, moderate, violent)
+        # 95, 96, 99: Thunderstorm with rain/hail
+        rain_codes = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99}
 
         hours_until_rain = -1
-        hourly_precip = data['hourly']['precipitation']
-        current_time = data['current_weather']['time']
+        if weather_code in rain_codes:
+            hours_until_rain = 0
+        else:
+            hourly_precip = data.get('hourly', {}).get('precipitation', [])
+            hourly_times = data.get('hourly', {}).get('time', [])
+            current_time = data['current_weather'].get('time', '')
+            # Match top of the hour: "YYYY-MM-DDTHH:00"
+            current_hour_str = current_time[:13] + ":00" if len(current_time) >= 13 else current_time
 
-        try:
-            current_index = data['hourly']['time'].index(current_time)
-            for i in range(current_index, len(hourly_precip)):
-                if hourly_precip[i] > 0:
-                    hours_until_rain = i - current_index
-                    break
-        except ValueError:
-            pass
+            try:
+                current_index = hourly_times.index(current_hour_str)
+                for i in range(current_index, len(hourly_precip)):
+                    if hourly_precip[i] > 0:
+                        hours_until_rain = i - current_index
+                        break
+            except (ValueError, IndexError):
+                pass
 
         result = {
             "temperature": current_temp,
@@ -298,49 +314,90 @@ def get_claude_dirs():
 # real new work (input + output + freshly-cached context).
 def scan_claude_usage(now_ts=None):
     """Scan Claude transcript logs for 24h tokens, USD cost, and 5h rolling reset window."""
-    from providers.claude import ClaudeProvider
-    detailed = ClaudeProvider().scan_usage_detailed()
-    plan_mode = config.get("claude_plan", "enterprise")
-    daily_budget = float(config.get("claude_daily_budget_usd", 10.0))
+    if now_ts is None:
+        now_ts = time.time()
+    five_hours_ago = now_ts - (5 * 3600)
+    earliest_step_ts = None
+    total_tokens = 0
+    total_cost_usd = 0.0
+    today_local = datetime.now().date()
 
-    cost_today = detailed["cost_today_usd"]
-    cost_str = detailed["cost_str"]
-    tokens_str = detailed["tokens_str"]
+    for c_dir in get_claude_dirs():
+        for filepath in glob.glob(os.path.join(c_dir, "**", "*.jsonl"), recursive=True):
+            try:
+                if os.path.getmtime(filepath) < (now_ts - 86400):
+                    continue
+                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            entry = json.loads(line)
+                        except Exception:
+                            continue
+                        if entry.get("type") != "assistant":
+                            continue
+                        ts = entry.get("timestamp")
+                        if not ts:
+                            continue
+                        try:
+                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                            step_ts = dt.timestamp()
+                            if step_ts >= five_hours_ago:
+                                if earliest_step_ts is None or step_ts < earliest_step_ts:
+                                    earliest_step_ts = step_ts
+                            if dt.astimezone().date() == today_local:
+                                msg = entry.get("message") or {}
+                                usage = msg.get("usage") or {}
+                                in_tok = usage.get("input_tokens", 0) or 0
+                                out_tok = usage.get("output_tokens", 0) or 0
+                                cache_w = usage.get("cache_creation_input_tokens", 0) or 0
+                                cache_r = usage.get("cache_read_input_tokens", 0) or 0
 
-    if plan_mode == "enterprise":
-        pct_used = min(100.0, (cost_today / max(0.01, daily_budget)) * 100.0)
-        pct_left = max(0.0, 100.0 - pct_used)
-        return {
-            "plan": "enterprise",
-            "tokens_today": detailed["tokens_today"],
-            "tokens_24h": detailed["tokens_24h"],
-            "cost_today_usd": cost_today,
-            "cost_24h_usd": detailed["cost_24h_usd"],
-            "cost_str": cost_str,
-            "tokens_str": tokens_str,
-            "limit": round(daily_budget),
-            "remaining": round(pct_left),
-            "percent": round(pct_used),
-            "reset_time": detailed.get("resets_at"),
-            "reset_in_seconds": 0,
-            "reset_str": f"{tokens_str} TOK",
-            "curved_text": f"{cost_str} SPENT"
-        }
+                                total_tokens += (in_tok + out_tok + cache_w)
 
-    # Standard quota mode
-    reset_time = detailed.get("resets_at")
-    reset_in_seconds, reset_str = (0, "READY")
-    if reset_time:
+                                # Model pricing calculation per MTok
+                                model_str = (msg.get("model") or "").lower()
+                                if "haiku" in model_str:
+                                    p_in, p_out, p_cw, p_cr = 0.80, 4.00, 1.00, 0.08
+                                elif "opus" in model_str:
+                                    p_in, p_out, p_cw, p_cr = 15.00, 75.00, 18.75, 1.50
+                                else: # Sonnet default
+                                    p_in, p_out, p_cw, p_cr = 3.00, 15.00, 3.75, 0.30
+
+                                step_cost = (
+                                    (in_tok / 1_000_000.0) * p_in +
+                                    (out_tok / 1_000_000.0) * p_out +
+                                    (cache_w / 1_000_000.0) * p_cw +
+                                    (cache_r / 1_000_000.0) * p_cr
+                                )
+                                total_cost_usd += step_cost
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+
+    if earliest_step_ts is not None:
+        from datetime import timezone
+        reset_ts = earliest_step_ts + (5 * 3600)
+        reset_time = datetime.fromtimestamp(reset_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         reset_in_seconds, reset_str = format_reset_time(reset_time, now_ts)
+    else:
+        reset_time = None
+        reset_in_seconds = 0
+        reset_str = "READY"
+
+    cost_today_usd = round(total_cost_usd, 2)
+    tok_k = f"{total_tokens/1000:.1f}k" if total_tokens >= 1000 else str(total_tokens)
 
     return {
-        "plan": "standard",
-        "tokens_today": detailed["tokens_today"],
-        "tokens_24h": detailed["tokens_24h"],
-        "cost_today_usd": cost_today,
-        "cost_24h_usd": detailed["cost_24h_usd"],
-        "cost_str": cost_str,
-        "tokens_str": tokens_str,
+        "tokens_today": total_tokens,
+        "tokens_24h": total_tokens,
+        "tokens_str": tok_k,
+        "cost_today_usd": cost_today_usd,
+        "cost_24h_usd": cost_today_usd,
+        "cost_str": f"${cost_today_usd:.2f}",
         "limit": 100,
         "remaining": 100,
         "percent": 100,
@@ -1696,91 +1753,99 @@ def get_data():
     left_snap = poller.get_snapshot(left_id)
     right_snap = poller.get_snapshot(right_id)
 
-    # Left gauge properties
-    left_curved = ""
-    left_mode = "standard"
-    if left_id == "claude":
-        plan_mode = config.get("claude_plan", "enterprise")
-        left_label = "CLD"
-        left_name = "Claude"
-        left_color = "0x00E5FF"
-        left_mode = plan_mode
-        if plan_mode == "enterprise":
-            cost_today = claude_data.get("cost_today_usd", 0.0)
-            daily_budget = float(config.get("claude_daily_budget_usd", 10.0))
-            left_pct = int(min(100, round((cost_today / max(0.01, daily_budget)) * 100)))
-            left_reset = claude_data.get("reset_str", f"{claude_data.get('tokens_str', '0')} TOK")
-            left_curved = claude_data.get("curved_text", f"{claude_data.get('cost_str', '$0.00')} SPENT")
-        else:
-            left_pct = claude_data.get("remaining", 100)
-            left_reset = claude_data.get("reset_str", "READY")
-            left_curved = f"{left_label} {left_pct}%"
-    elif left_snap and left_snap.primary_window:
-        left_pct = int(round(left_snap.primary_window.percent_left))
-        left_label = left_snap.badge or left_id[:3].upper()
-        left_name = left_snap.provider_name
-        left_color = left_snap.color
-        if left_snap.primary_window.resets_at:
-            _, left_reset = format_reset_time(left_snap.primary_window.resets_at)
-        else:
-            left_reset = left_snap.primary_window.period_desc or "READY"
-        left_curved = f"{left_label} {left_pct}%"
-    else:
-        left_pct = 100
-        left_label = left_id[:3].upper()
-        left_name = left_id.capitalize()
-        left_color = "0x00E5FF"
-        left_reset = "READY"
-        left_curved = f"{left_label} 100%"
+    def build_gauge_payload(provider_id, snap, custom_data, default_color, default_label, default_name):
+        provider_plans = cfg.get("provider_plans", {})
+        plan = provider_plans.get(provider_id, cfg.get(f"{provider_id}_plan", "standard"))
+        daily_budgets = cfg.get("provider_daily_budgets", {})
+        daily_budget = float(daily_budgets.get(provider_id, cfg.get(f"{provider_id}_daily_budget_usd", 10.0)))
 
-    # Right gauge properties
-    if right_id == "antigravity":
-        lim = max(1, antigravity_data.get("limit", 100))
-        rem = antigravity_data.get("remaining", 100)
-        right_pct = int(round((rem / lim) * 100))
-        right_label = "AGY"
-        right_name = "Antigravity"
-        right_color = "0xFF9100"
-        right_reset = antigravity_data.get("reset_str") or antigravity_data.get("period", "5h")
-    elif right_snap and right_snap.primary_window:
-        right_pct = int(round(right_snap.primary_window.percent_left))
-        right_label = right_snap.badge or right_id[:3].upper()
-        right_name = right_snap.provider_name
-        right_color = right_snap.color
-        if right_snap.primary_window.resets_at:
-            _, right_reset = format_reset_time(right_snap.primary_window.resets_at)
-        else:
-            right_reset = right_snap.primary_window.period_desc or "5h"
-    else:
-        right_pct = 100
-        right_label = right_id[:3].upper()
-        right_name = right_id.capitalize()
-        right_color = "0xFF9100"
-        right_reset = "READY"
+        label = default_label
+        name = default_name
+        color = default_color
+        mode = "enterprise" if plan == "enterprise" else "standard"
+        cost_str = ""
+        tokens_str = ""
+        cost_usd = 0.0
+        percent = 100
+        reset_str = "READY"
 
-    left_gauge = {
-        "id": left_id,
-        "label": left_label,
-        "name": left_name,
-        "mode": left_mode,
-        "percent": left_pct,
-        "color": left_color,
-        "reset_str": left_reset,
-        "curved_text": left_curved,
-        "cost_usd": claude_data.get("cost_today_usd", 0.0) if left_id == "claude" else 0.0,
-        "cost_str": claude_data.get("cost_str", "$0.00") if left_id == "claude" else "$0.00",
-        "tokens_str": claude_data.get("tokens_str", "0") if left_id == "claude" else "0",
-        "daily_budget_usd": float(config.get("claude_daily_budget_usd", 10.0)) if left_id == "claude" else 0.0
-    }
+        if snap and snap.primary_window:
+            label = snap.badge or default_label
+            name = snap.provider_name or default_name
+            color = snap.color or default_color
+            if snap.primary_window.resets_at:
+                _, reset_str = format_reset_time(snap.primary_window.resets_at)
+            else:
+                reset_str = snap.primary_window.period_desc or "READY"
+            percent = int(round(snap.primary_window.percent_left))
 
-    right_gauge = {
-        "id": right_id,
-        "label": right_label,
-        "name": right_name,
-        "percent": right_pct,
-        "color": right_color,
-        "reset_str": right_reset
-    }
+        if custom_data:
+            if "label" in custom_data: label = custom_data["label"]
+            if "name" in custom_data: name = custom_data["name"]
+            if "color" in custom_data: color = custom_data["color"]
+            if "reset_str" in custom_data: reset_str = custom_data["reset_str"]
+            if "percent" in custom_data: percent = custom_data["percent"]
+            elif "remaining" in custom_data and "limit" in custom_data:
+                lim = max(1, custom_data["limit"])
+                rem = custom_data["remaining"]
+                percent = int(round((rem / lim) * 100))
+            if "cost_str" in custom_data: cost_str = custom_data["cost_str"]
+            if "tokens_str" in custom_data: tokens_str = custom_data["tokens_str"]
+            if "cost_today_usd" in custom_data: cost_usd = float(custom_data["cost_today_usd"])
+            elif "cost_usd" in custom_data: cost_usd = float(custom_data["cost_usd"])
+
+        if mode == "enterprise":
+            if not cost_str:
+                if custom_data and "cost_today_usd" in custom_data:
+                    cost_usd = float(custom_data["cost_today_usd"])
+                    cost_str = f"${cost_usd:.2f}"
+                elif snap and hasattr(snap, "metadata") and snap.metadata and "cost_today_usd" in snap.metadata:
+                    cost_usd = float(snap.metadata["cost_today_usd"])
+                    cost_str = f"${cost_usd:.2f}"
+                elif custom_data and "cost_usd" in custom_data:
+                    cost_usd = float(custom_data["cost_usd"])
+                    cost_str = f"${cost_usd:.2f}"
+                else:
+                    cost_str = "$0.00"
+
+            if not tokens_str:
+                if custom_data and "tokens_today" in custom_data:
+                    tok = custom_data["tokens_today"]
+                    tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
+                elif snap and hasattr(snap, "metadata") and snap.metadata and "tokens_today" in snap.metadata:
+                    tok = snap.metadata["tokens_today"]
+                    tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
+                else:
+                    tokens_str = "0"
+
+            if daily_budget > 0:
+                pct_used = min(100, int(round((cost_usd / daily_budget) * 100)))
+                percent = max(1, pct_used)
+            else:
+                percent = 100
+
+            reset_str = f"{tokens_str} TOK"
+
+        return {
+            "id": provider_id,
+            "label": label,
+            "name": name,
+            "color": color,
+            "mode": mode,
+            "cost_str": cost_str,
+            "tokens_str": tokens_str,
+            "cost_usd": cost_usd,
+            "daily_budget_usd": daily_budget,
+            "curved_text": f"{cost_str} SPENT" if cost_str else "",
+            "percent": percent,
+            "reset_str": reset_str
+        }
+
+    left_custom = claude_data if left_id == "claude" else (antigravity_data if left_id == "antigravity" else None)
+    right_custom = antigravity_data if right_id == "antigravity" else (claude_data if right_id == "claude" else None)
+
+    left_gauge = build_gauge_payload(left_id, left_snap, left_custom, "0x00E5FF", "CLD", "Claude")
+    right_gauge = build_gauge_payload(right_id, right_snap, right_custom, "0xFF9100", "AGY", "Antigravity")
 
     return jsonify({
         "left_gauge": left_gauge,
@@ -1907,6 +1972,39 @@ def handle_config():
                 if v:
                     config["provider_keys"][k] = str(v)
                     config[f"{k}_api_key"] = str(v)
+        if "provider_plans" in data and isinstance(data["provider_plans"], dict):
+            config.setdefault("provider_plans", {})
+            for k, v in data["provider_plans"].items():
+                config["provider_plans"][str(k)] = str(v)
+                config[f"{k}_plan"] = str(v)
+        if "claude_plan" in data:
+            config["claude_plan"] = str(data["claude_plan"])
+            config.setdefault("provider_plans", {})["claude"] = str(data["claude_plan"])
+        if "antigravity_plan" in data:
+            config["antigravity_plan"] = str(data["antigravity_plan"])
+            config.setdefault("provider_plans", {})["antigravity"] = str(data["antigravity_plan"])
+
+        if "provider_daily_budgets" in data and isinstance(data["provider_daily_budgets"], dict):
+            config.setdefault("provider_daily_budgets", {})
+            for k, v in data["provider_daily_budgets"].items():
+                try:
+                    config["provider_daily_budgets"][str(k)] = float(v)
+                    config[f"{k}_daily_budget_usd"] = float(v)
+                except (TypeError, ValueError):
+                    pass
+        if "claude_daily_budget_usd" in data:
+            try:
+                config["claude_daily_budget_usd"] = float(data["claude_daily_budget_usd"])
+                config.setdefault("provider_daily_budgets", {})["claude"] = float(data["claude_daily_budget_usd"])
+            except (TypeError, ValueError):
+                pass
+        if "antigravity_daily_budget_usd" in data:
+            try:
+                config["antigravity_daily_budget_usd"] = float(data["antigravity_daily_budget_usd"])
+                config.setdefault("provider_daily_budgets", {})["antigravity"] = float(data["antigravity_daily_budget_usd"])
+            except (TypeError, ValueError):
+                pass
+
         if "city" in data and data["city"]:
             lat, lon, full_name = geocode_city(data["city"])
             if lat and lon:
