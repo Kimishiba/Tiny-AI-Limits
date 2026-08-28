@@ -96,11 +96,141 @@ class TestProviders(unittest.TestCase):
         self.assertEqual(snapshot.badge, "CDX")
         self.assertEqual(snapshot.primary_window.percent_left, 65.0)
 
+    def test_cursor_mock_parsing(self):
+        provider = CursorProvider()
+        mock_resp = {
+            "gpt-4": {"numRequests": 150, "maxRequestUsage": 500},
+            "startOfMonth": "2026-08-01"
+        }
+        provider.request_json = lambda *args, **kwargs: (mock_resp, None)
+        snapshot = provider.fetch_usage({"cursor_token": "mock-cursor-token"})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.provider_id, "cursor")
+        self.assertEqual(snapshot.badge, "CUR")
+        self.assertEqual(snapshot.primary_window.used, 150)
+        self.assertEqual(snapshot.primary_window.remaining, 350)
+        self.assertEqual(snapshot.primary_window.percent_left, 70.0)
+
+    def test_copilot_mock_parsing(self):
+        provider = CopilotProvider()
+        mock_resp = {
+            "copilot_plan": "individual",
+            "login": "octocat"
+        }
+        provider.request_json = lambda *args, **kwargs: (mock_resp, None)
+        snapshot = provider.fetch_usage({"copilot_token": "ghu_mock_token"})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.provider_id, "copilot")
+        self.assertEqual(snapshot.badge, "COP")
+        self.assertEqual(snapshot.plan, "Individual")
+        self.assertEqual(snapshot.account_email, "octocat")
+
+    def test_gemini_mock_parsing(self):
+        provider = GeminiProvider()
+        mock_resp = {
+            "models": [{
+                "modelId": "gemini-2.5-pro",
+                "quotaInfo": {
+                    "remainingFraction": 0.85,
+                    "resetTime": "2026-08-28T23:59:59Z"
+                }
+            }]
+        }
+        provider.request_json = lambda *args, **kwargs: (mock_resp, None)
+        snapshot = provider.fetch_usage({"gemini_api_key": "mock-gemini-key"})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.provider_id, "gemini")
+        self.assertEqual(snapshot.badge, "GEM")
+        self.assertEqual(snapshot.primary_window.percent_left, 85.0)
+
+    def test_mistral_mock_parsing(self):
+        provider = MistralProvider()
+        mock_resp = {"data": [{"id": "codestral-latest"}]}
+        provider.request_json = lambda *args, **kwargs: (mock_resp, None)
+        snapshot = provider.fetch_usage({"mistral_api_key": "mock-mistral-key"})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.provider_id, "mistral")
+        self.assertEqual(snapshot.badge, "MST")
+        self.assertEqual(snapshot.primary_window.percent_left, 100.0)
+
+    def test_groq_mock_parsing(self):
+        provider = GroqProvider()
+        # Mock requests.get with rate limit headers
+        class MockResponse:
+            status_code = 200
+            headers = {
+                "x-ratelimit-remaining-requests": "80",
+                "x-ratelimit-limit-requests": "100",
+                "x-ratelimit-remaining-tokens": "45000",
+                "x-ratelimit-limit-tokens": "50000"
+            }
+        
+        import requests
+        orig_get = requests.get
+        try:
+            requests.get = lambda *args, **kwargs: MockResponse()
+            snapshot = provider.fetch_usage({"groq_api_key": "gsk_mock_key"})
+            self.assertEqual(snapshot.status, "ok")
+            self.assertEqual(snapshot.provider_id, "groq")
+            self.assertEqual(snapshot.badge, "GRQ")
+            self.assertEqual(snapshot.primary_window.percent_left, 80.0)
+        finally:
+            requests.get = orig_get
+
+    def test_claude_mock_oauth_parsing(self):
+        provider = ClaudeProvider()
+        mock_resp = {
+            "subscriptionType": "pro",
+            "five_hour": {
+                "utilization": 0.25,
+                "resets_at": "2026-08-28T14:30:00Z"
+            },
+            "seven_day": {
+                "utilization": 0.40
+            }
+        }
+        provider._read_oauth_token = lambda: {"accessToken": "mock-token"}
+        provider.request_json = lambda *args, **kwargs: (mock_resp, None)
+        snapshot = provider.fetch_usage({})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.provider_id, "claude")
+        self.assertEqual(snapshot.badge, "CLD")
+        self.assertEqual(snapshot.primary_window.percent_left, 75.0)
+        self.assertEqual(snapshot.secondary_window.percent_left, 60.0)
+
+    def test_antigravity_mock_live_rpc(self):
+        provider = AntigravityProvider()
+        mock_live = {
+            "userStatus": {"userEmail": "engineer@deepmind.com"},
+            "models": [{
+                "modelId": "gemini-2.5-pro",
+                "quotaInfo": {
+                    "remainingFraction": 0.92,
+                    "resetTime": "2026-08-28T13:00:00Z"
+                }
+            }]
+        }
+        provider._query_live_rpc = lambda: mock_live
+        snapshot = provider.fetch_usage({})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.provider_id, "antigravity")
+        self.assertEqual(snapshot.badge, "ANT")
+        self.assertEqual(snapshot.primary_window.percent_left, 92.0)
+        self.assertEqual(snapshot.account_email, "engineer@deepmind.com")
+
     def test_poller_cache_and_lifecycle(self):
         test_poller = ProviderPoller()
         test_poller.start(lambda: {})
         self.assertTrue(test_poller._running)
         time.sleep(0.6)
+        summary = test_poller.get_compact_summary()
+        self.assertIsInstance(summary, list)
         test_poller.stop(timeout=2.0)
         self.assertFalse(test_poller._running)
 
@@ -118,7 +248,6 @@ class TestProviders(unittest.TestCase):
         self.assertIn("codex", provider_ids)
 
     def test_config_gauge_selection(self):
-        # Update gauge selection via POST /api/config
         update_payload = {
             "selected_gauges": {
                 "left": "codex",
@@ -140,7 +269,6 @@ class TestProviders(unittest.TestCase):
         self.assertIn("...", post_data["config"]["provider_keys"]["openrouter"])
 
     def test_data_endpoint_dynamic_gauges_and_size_budget(self):
-        # Set pair bypass if needed for testing
         res = self.client.get('/data', headers={"Host": "localhost:5000"})
         self.assertEqual(res.status_code, 200)
         payload_bytes = len(res.data)
