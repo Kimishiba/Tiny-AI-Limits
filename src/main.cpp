@@ -95,8 +95,19 @@ struct TimeInfo {
     String date_str = "FRI AUG 21";
 };
 
+struct GaugeInfo {
+    String id = "claude";
+    String label = "CLD";
+    String name = "Claude";
+    int percent = 100;
+    uint16_t color = 0x07FF; // Cyan
+    String reset_str = "READY";
+};
+
 ClaudeLimits claudeData;
 AntigravityLimits agData;
+GaugeInfo leftGauge;
+GaugeInfo rightGauge;
 WeatherInfo weatherData;
 AgentStatus agentData;
 TimeInfo timeData;
@@ -736,22 +747,25 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 3. Solid Continuous Dual Radial Arcs & Micro-HUD Badges (Redraw on change)
-    int claudePct = 100;
-    int antiPct = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
+    int leftPct = leftGauge.percent;
+    int rightPct = rightGauge.percent;
 
-    if (claudePct != lastClaudePct || antiPct != lastAntiPct) {
-        lastClaudePct = claudePct;
-        lastAntiPct = antiPct;
+    if (leftPct != lastClaudePct || rightPct != lastAntiPct) {
+        lastClaudePct = leftPct;
+        lastAntiPct = rightPct;
 
-        // Left Arc: Claude Cyan (126 deg at bottom to 234 deg at top)
+        uint16_t leftCol = leftGauge.color;
+        uint16_t leftColDim = gcGfx->color565(14, 40, 50);
+
+        // Left Arc (126 deg at bottom to 234 deg at top)
         for (int deg = 126; deg <= 234; deg++) {
             float rad = deg * 0.0174533f;
             float cosR = cos(rad);
             float sinR = sin(rad);
 
-            bool active = (deg <= 126 + (claudePct * 108 / 100));
-            uint16_t mainCol = active ? colCyan : colCyanDim;
-            uint16_t thinCol = active ? colCyan : colCyanDim;
+            bool active = (deg <= 126 + (leftPct * 108 / 100));
+            uint16_t mainCol = active ? leftCol : leftColDim;
+            uint16_t thinCol = active ? leftCol : leftColDim;
 
             for (int r = 101; r <= 107; r++) {
                 gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
@@ -761,15 +775,18 @@ void drawGC9A01RoundFlipUI() {
             }
         }
 
-        // Right Arc: Antigravity Orange (54 deg at bottom to -54 deg at top)
+        uint16_t rightCol = rightGauge.color;
+        uint16_t rightColDim = gcGfx->color565(50, 25, 10);
+
+        // Right Arc (54 deg at bottom to -54 deg at top)
         for (int deg = 54; deg >= -54; deg--) {
             float rad = deg * 0.0174533f;
             float cosR = cos(rad);
             float sinR = sin(rad);
 
-            bool active = (deg >= 54 - (antiPct * 108 / 100));
-            uint16_t mainCol = active ? colOrange : colOrangeDim;
-            uint16_t thinCol = active ? colOrange : colOrangeDim;
+            bool active = (deg >= 54 - (rightPct * 108 / 100));
+            uint16_t mainCol = active ? rightCol : rightColDim;
+            uint16_t thinCol = active ? rightCol : rightColDim;
 
             for (int r = 101; r <= 107; r++) {
                 gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
@@ -782,19 +799,19 @@ void drawGC9A01RoundFlipUI() {
         // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
         // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
         gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
-        gcGfx->drawRoundRect(31, 108, 32, 24, 3, gcGfx->color565(0, 80, 100));
-        gcPrintCentered("CLD", 47, 111, colCyan);
-        char cldPctStr[8];
-        sprintf(cldPctStr, "%d%%", claudePct);
-        gcPrintCentered(cldPctStr, 47, 121, colCyan);
+        gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
+        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
+        char leftPctStr[8];
+        sprintf(leftPctStr, "%d%%", leftPct);
+        gcPrintCentered(leftPctStr, 47, 121, leftCol);
 
         // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
         gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
-        gcGfx->drawRoundRect(177, 108, 32, 24, 3, gcGfx->color565(120, 60, 0));
-        gcPrintCentered("AGY", 193, 111, colOrange);
-        char agyPctStr[8];
-        sprintf(agyPctStr, "%d%%", antiPct);
-        gcPrintCentered(agyPctStr, 193, 121, colOrange);
+        gcGfx->drawRoundRect(177, 108, 32, 24, 3, rightCol);
+        gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
+        char rightPctStr[8];
+        sprintf(rightPctStr, "%d%%", rightPct);
+        gcPrintCentered(rightPctStr, 193, 121, rightCol);
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
@@ -982,25 +999,25 @@ void drawGC9A01RoundFlipUI() {
             gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
     } else {
-        static String lastCldResetStr = "";
-        static String lastAgyResetStr = "";
+        static String lastLeftResetStr = "";
+        static String lastRightResetStr = "";
 
-        if (lastWaiting || claudeData.reset_str != lastCldResetStr || agData.reset_str != lastAgyResetStr) {
+        if (lastWaiting || leftGauge.reset_str != lastLeftResetStr || rightGauge.reset_str != lastRightResetStr) {
             lastWaiting = false;
-            lastCldResetStr = claudeData.reset_str;
-            lastAgyResetStr = agData.reset_str;
+            lastLeftResetStr = leftGauge.reset_str;
+            lastRightResetStr = rightGauge.reset_str;
 
             // Clear bottom sub-HUD area (Centered at cx=120, y=cy+74..cy+106)
             gcGfx->fillRect(cx - 55, cy + 74, 110, 32, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
 
-            // Line 1: Claude Reset Countdown (Teal #00E5FF)
-            String cldStr = "CLD: " + (claudeData.reset_str.length() > 0 ? claudeData.reset_str : "READY");
-            gcPrintCentered(cldStr.c_str(), cx, cy + 80, colCyan);
+            // Line 1: Left Gauge Reset Countdown
+            String leftStr = leftGauge.label + ": " + (leftGauge.reset_str.length() > 0 ? leftGauge.reset_str : "READY");
+            gcPrintCentered(leftStr.c_str(), cx, cy + 80, leftGauge.color);
 
-            // Line 2: Antigravity Reset Countdown (Orange #FF7A00)
-            String agyStr = "AGY: " + (agData.reset_str.length() > 0 ? agData.reset_str : "READY");
-            gcPrintCentered(agyStr.c_str(), cx, cy + 94, colOrange);
+            // Line 2: Right Gauge Reset Countdown
+            String rightStr = rightGauge.label + ": " + (rightGauge.reset_str.length() > 0 ? rightGauge.reset_str : "READY");
+            gcPrintCentered(rightStr.c_str(), cx, cy + 94, rightGauge.color);
         }
     }
 }
@@ -1511,6 +1528,21 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
     }
 }
 
+uint16_t parseHexColor565(const String& hexStr, uint16_t fallback) {
+    if (hexStr.length() == 0) return fallback;
+    const char* s = hexStr.c_str();
+    if (hexStr.startsWith("0x")) s += 2;
+    else if (hexStr.startsWith("#")) s += 1;
+    long val = strtol(s, NULL, 16);
+    if (hexStr.length() > 6 || val > 0xFFFF) {
+        uint8_t r = (val >> 16) & 0xFF;
+        uint8_t g = (val >> 8) & 0xFF;
+        uint8_t b = val & 0xFF;
+        return gcGfx->color565(r, g, b);
+    }
+    return (uint16_t)val;
+}
+
 void fetchBackendData() {
     if (WiFi.status() != WL_CONNECTED) {
         wifiConnected = false;
@@ -1568,6 +1600,34 @@ void fetchBackendData() {
                 agData.reset_time = doc["antigravity"]["reset_time"] | "";
                 agData.reset_in_seconds = doc["antigravity"]["reset_in_seconds"] | -1;
                 agData.reset_str = doc["antigravity"]["reset_str"] | "";
+            }
+            if (doc.containsKey("left_gauge")) {
+                leftGauge.id = doc["left_gauge"]["id"] | "claude";
+                leftGauge.label = doc["left_gauge"]["label"] | "CLD";
+                leftGauge.name = doc["left_gauge"]["name"] | "Claude";
+                leftGauge.percent = doc["left_gauge"]["percent"] | 100;
+                leftGauge.reset_str = doc["left_gauge"]["reset_str"] | "READY";
+                String colStr = doc["left_gauge"]["color"] | "0x00E5FF";
+                leftGauge.color = parseHexColor565(colStr, gcGfx->color565(0, 229, 255));
+            } else {
+                leftGauge.label = "CLD";
+                leftGauge.percent = 100;
+                leftGauge.color = gcGfx->color565(0, 229, 255);
+                leftGauge.reset_str = claudeData.reset_str;
+            }
+            if (doc.containsKey("right_gauge")) {
+                rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
+                rightGauge.label = doc["right_gauge"]["label"] | "ANT";
+                rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
+                rightGauge.percent = doc["right_gauge"]["percent"] | 100;
+                rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
+                String colStr = doc["right_gauge"]["color"] | "0xFF9100";
+                rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
+            } else {
+                rightGauge.label = "ANT";
+                rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
+                rightGauge.color = gcGfx->color565(255, 122, 0);
+                rightGauge.reset_str = agData.reset_str;
             }
             if (doc.containsKey("weather")) {
                 weatherData.temp = doc["weather"]["temp"] | 23.5;

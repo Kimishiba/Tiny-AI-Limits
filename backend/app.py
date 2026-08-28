@@ -15,6 +15,12 @@ from flask import Flask, jsonify, request
 from threading import Thread
 from zeroconf import ServiceInfo, Zeroconf
 
+# Providers and background poller
+try:
+    from providers import poller, ALL_PROVIDERS
+except ImportError:
+    from .providers import poller, ALL_PROVIDERS
+
 # Config file setup
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".tiny_ai_screen")
 os.makedirs(CONFIG_DIR, exist_ok=True)
@@ -27,7 +33,12 @@ def load_config():
         "lat": 52.5200,
         "lon": 13.4050,
         "antigravity_5h_quota": 200,
-        "antigravity_account_email": None
+        "antigravity_account_email": None,
+        "selected_gauges": {
+            "left": "claude",
+            "right": "antigravity"
+        },
+        "provider_keys": {}
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -42,6 +53,10 @@ def save_config(cfg):
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=4)
+        try:
+            os.chmod(CONFIG_FILE, 0o600)
+        except Exception:
+            pass
     except Exception as e:
         print(f"Error saving config: {e}")
 
@@ -1511,7 +1526,79 @@ def get_data():
         "url": "/firmware/latest.bin"
     }
 
+    # Dynamic Gauge Mapping for Left and Right HUD Arcs
+    cfg = config
+    selected = cfg.get("selected_gauges", {"left": "claude", "right": "antigravity"})
+    left_id = selected.get("left", "claude")
+    right_id = selected.get("right", "antigravity")
+
+    # Fast in-memory lookup from background poller (non-blocking)
+    left_snap = poller.get_snapshot(left_id)
+    right_snap = poller.get_snapshot(right_id)
+
+    # Left gauge properties
+    if left_snap and left_snap.primary_window:
+        left_pct = int(round(left_snap.primary_window.percent_left))
+        left_label = left_snap.badge or left_id[:3].upper()
+        left_name = left_snap.provider_name
+        left_color = left_snap.color
+        left_reset = left_snap.primary_window.period_desc or "READY"
+    elif left_id == "claude":
+        left_pct = 100
+        left_label = "CLD"
+        left_name = "Claude"
+        left_color = "0x00E5FF"
+        left_reset = claude_data.get("reset_str", "READY")
+    else:
+        left_pct = 100
+        left_label = left_id[:3].upper()
+        left_name = left_id.capitalize()
+        left_color = "0x00E5FF"
+        left_reset = "READY"
+
+    # Right gauge properties
+    if right_snap and right_snap.primary_window:
+        right_pct = int(round(right_snap.primary_window.percent_left))
+        right_label = right_snap.badge or right_id[:3].upper()
+        right_name = right_snap.provider_name
+        right_color = right_snap.color
+        right_reset = right_snap.primary_window.period_desc or "5h"
+    elif right_id == "antigravity":
+        lim = max(1, antigravity_data.get("limit", 200))
+        rem = antigravity_data.get("remaining", 200)
+        right_pct = int(round((rem / lim) * 100))
+        right_label = "ANT"
+        right_name = "Antigravity"
+        right_color = "0xFF9100"
+        right_reset = antigravity_data.get("period", "5h")
+    else:
+        right_pct = 100
+        right_label = right_id[:3].upper()
+        right_name = right_id.capitalize()
+        right_color = "0xFF9100"
+        right_reset = "READY"
+
+    left_gauge = {
+        "id": left_id,
+        "label": left_label,
+        "name": left_name,
+        "percent": left_pct,
+        "color": left_color,
+        "reset_str": left_reset
+    }
+
+    right_gauge = {
+        "id": right_id,
+        "label": right_label,
+        "name": right_name,
+        "percent": right_pct,
+        "color": right_color,
+        "reset_str": right_reset
+    }
+
     return jsonify({
+        "left_gauge": left_gauge,
+        "right_gauge": right_gauge,
         "claude": claude_data,
         "antigravity": antigravity_data,
         "weather": weather_data,
@@ -1534,6 +1621,35 @@ def get_data():
         },
         "ota": ota_payload
     })
+
+@app.route('/api/providers', methods=['GET'])
+def get_providers_api():
+    cfg = load_config()
+    selected = cfg.get("selected_gauges", {"left": "claude", "right": "antigravity"})
+    providers_data = []
+    for p in poller.providers.values():
+        snap = poller.get_snapshot(p.provider_id)
+        if not snap:
+            try:
+                snap = p.fetch_usage(cfg)
+            except Exception as e:
+                snap = None
+        pct = round(snap.primary_window.percent_left) if (snap and snap.primary_window) else 100
+        providers_data.append({
+            "id": p.provider_id,
+            "name": p.provider_name,
+            "badge": p.badge,
+            "color": p.color,
+            "status": snap.status if snap else "unconfigured",
+            "percent": pct,
+            "reset_str": (snap.primary_window.period_desc if snap and snap.primary_window else ""),
+            "plan": snap.plan if snap else None,
+            "is_selected_left": (selected.get("left") == p.provider_id),
+            "is_selected_right": (selected.get("right") == p.provider_id),
+            "has_key": bool(cfg.get("provider_keys", {}).get(p.provider_id) or cfg.get(f"{p.provider_id}_api_key")),
+            "error_message": snap.error_message if snap else None
+        })
+    return jsonify({"providers": providers_data, "selected_gauges": selected})
 
 @app.route('/api/agents', methods=['GET'])
 def get_agents():
@@ -1578,6 +1694,7 @@ def trigger_ota():
     })
 
 @app.route('/config', methods=['GET', 'POST'])
+@app.route('/api/config', methods=['GET', 'POST'])
 def handle_config():
     global config
     if request.method == 'POST':
@@ -1592,6 +1709,18 @@ def handle_config():
         if "antigravity_account_email" in data:
             # Empty string/null means "auto, use whichever account is found first"
             config["antigravity_account_email"] = data["antigravity_account_email"] or None
+        if "selected_gauges" in data and isinstance(data["selected_gauges"], dict):
+            config.setdefault("selected_gauges", {})
+            if "left" in data["selected_gauges"]:
+                config["selected_gauges"]["left"] = str(data["selected_gauges"]["left"])
+            if "right" in data["selected_gauges"]:
+                config["selected_gauges"]["right"] = str(data["selected_gauges"]["right"])
+        if "provider_keys" in data and isinstance(data["provider_keys"], dict):
+            config.setdefault("provider_keys", {})
+            for k, v in data["provider_keys"].items():
+                if v:
+                    config["provider_keys"][k] = str(v)
+                    config[f"{k}_api_key"] = str(v)
         if "city" in data and data["city"]:
             lat, lon, full_name = geocode_city(data["city"])
             if lat and lon:
@@ -1601,8 +1730,16 @@ def handle_config():
             else:
                 return jsonify({"status": "error", "message": f"Could not find city '{data['city']}'"}), 400
         save_config(config)
-        return jsonify({"status": "ok", "config": config})
+        
+        # Mask sensitive keys in response
+        masked_cfg = dict(config)
+        if "provider_keys" in masked_cfg:
+            masked_cfg["provider_keys"] = {k: (v[:4] + "..." + v[-4:] if len(v) > 8 else "***") for k, v in masked_cfg["provider_keys"].items()}
+        return jsonify({"status": "ok", "config": masked_cfg})
+        
     response = dict(config)
+    if "provider_keys" in response:
+        response["provider_keys"] = {k: (v[:4] + "..." + v[-4:] if len(v) > 8 else "***") for k, v in response["provider_keys"].items()}
     response["available_antigravity_accounts"] = [a["email"] for a in get_antigravity_accounts()]
     return jsonify(response)
 
@@ -1668,6 +1805,7 @@ def register_mdns_service(port=PORT):
         print(f"[mDNS] Failed to register service: {e}")
 
 def start_flask():
+    poller.start(load_config)
     register_mdns_service(port=PORT)
     app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
 
