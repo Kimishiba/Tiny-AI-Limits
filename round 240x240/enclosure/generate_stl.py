@@ -10,17 +10,14 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing Pod (Low-Profile Optimized Monolithic Cyberdeck Enclosure):
-  * Clean, Perfectly Manifold Injection-Grade Cradle Architecture (Zero Mesh Slivers/Artifacts)
+- Main Housing Pod (Low-Profile Optimized Monolithic Cyberdeck Enclosure - Pillar-Free):
+  * 100% Pillar-Free, Rib-Free Clean Prismatic Cradle Architecture (Zero Cylinders/Pillars)
   * Lowered Board Seating (PCB bottom at Z = 3.8mm, USB-C at Z = 7.0mm)
-  * +0.4mm Inside Cradle Tolerances (18.9mm W x 23.6mm L for frictionless seating)
-  * Stepped-Down Outer Rigid Cheeks (Z = 6.8mm) eliminating tall corner obstructions
-  * 45° Self-Centering Entry Lead-In Chamfers along top inner rims of side walls and rear cheeks
-  * 1.2mm Corner Clearance Relief Chamfers on inside rear corners
+  * +0.4mm Inside Cradle Tolerances (18.9mm W x 23.6mm L unobstructed pocket)
+  * Stepped-Down Outer Rigid Cheeks (Z = 6.8mm) with 45° top lead-in chamfers
   * Compliant Cantilever Snap Arm (7.5mm tall, Z = 2.0 to 9.5mm, 6.0mm wide) with clean 1.25mm separation air slits
   * Dynamic 30° Smooth Deflection Ramp on rear snap lip (Z = 7.0mm)
   * 3-Way Snap Retention (Side clips at Z = 5.3mm, Rear lip at Z = 7.0mm)
-  * 2x Heavy-Duty Curved Buttress Ribs (reinforcing cheeks against USB-C insertion forces)
   * Shaved-Depth USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
   * Integrated 1.0mm side edge support ledges (Z = 2.0 to 3.8mm)
@@ -360,7 +357,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. CLEAN INJECTION-GRADE CRADLE ARCHITECTURE:
+    # 8. 100% PILLAR-FREE & RIB-FREE CLEAN PRISMATIC CRADLE:
     esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
     esp_w = 18.9       # Expanded width (+0.5mm clearance for 18.0-18.2mm boards)
     rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
@@ -410,7 +407,7 @@ def generate_main_housing():
     side_top_clean = (side_wall_t + step_t) - ch_wedge_t
     side_bot_clean = (side_wall_b + step_b) - ch_wedge_b
 
-    # 2. Stepped Rear Cheeks (height Z = 2.0 to 6.8mm) with rounded outer corners & 1.2mm relief chamfers:
+    # 2. Stepped Rear Cheeks (Flat rectangular blocks, NO pillars/cylinders/ribs):
     snap_w = 6.0
     slit_w = 1.25
     cheek_y_min = snap_w/2.0 + slit_w # 4.25mm
@@ -418,10 +415,6 @@ def generate_main_housing():
 
     cheek_block_t = m3d.Manifold.cube([wall_thick, cheek_w, side_wall_h], center=False).translate([x_rear, cheek_y_min, floor_t])
     cheek_block_b = m3d.Manifold.cube([wall_thick, cheek_w, side_wall_h], center=False).translate([x_rear, -hw_out, floor_t])
-
-    r_c = 1.4
-    c_t = m3d.Manifold.cylinder(side_wall_h, r_c, r_c, 32).translate([x_rear + wall_thick - r_c, hw_out - r_c, floor_t])
-    c_b = m3d.Manifold.cylinder(side_wall_h, r_c, r_c, 32).translate([x_rear + wall_thick - r_c, -(hw_out - r_c), floor_t])
 
     # Chamfer on top inner edge of cheeks:
     pts_ch_rear_t = [
@@ -450,35 +443,8 @@ def generate_main_housing():
         ch_rear_b = ch_rear_b + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     ch_rear_b = ch_rear_b.hull()
 
-    # 1.2mm corner relief chamfers on inside rear corners:
-    pts_rel_t = [
-        [x_rear - 0.1, hw_in + 1.2, floor_t - 0.1],
-        [x_rear - 0.1, hw_in + 1.2, floor_t + side_wall_h + 0.1],
-        [x_rear + 1.2, hw_in - 0.1, floor_t - 0.1],
-        [x_rear + 1.2, hw_in - 0.1, floor_t + side_wall_h + 0.1],
-        [x_rear - 0.1, hw_in - 0.1, floor_t - 0.1],
-        [x_rear - 0.1, hw_in - 0.1, floor_t + side_wall_h + 0.1]
-    ]
-    rel_t = m3d.Manifold()
-    for p in pts_rel_t:
-        rel_t = rel_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    rel_t = rel_t.hull()
-
-    pts_rel_b = [
-        [x_rear - 0.1, -(hw_in + 1.2), floor_t - 0.1],
-        [x_rear - 0.1, -(hw_in + 1.2), floor_t + side_wall_h + 0.1],
-        [x_rear + 1.2, -(hw_in - 0.1), floor_t - 0.1],
-        [x_rear + 1.2, -(hw_in - 0.1), floor_t + side_wall_h + 0.1],
-        [x_rear - 0.1, -(hw_in - 0.1), floor_t - 0.1],
-        [x_rear - 0.1, -(hw_in - 0.1), floor_t + side_wall_h + 0.1]
-    ]
-    rel_b = m3d.Manifold()
-    for p in pts_rel_b:
-        rel_b = rel_b + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    rel_b = rel_b.hull()
-
-    cheek_top_clean = (cheek_block_t + c_t) - ch_rear_t - rel_t
-    cheek_bot_clean = (cheek_block_b + c_b) - ch_rear_b - rel_b
+    cheek_top_clean = cheek_block_t - ch_rear_t
+    cheek_bot_clean = cheek_block_b - ch_rear_b
 
     # 3. Center Compliant Snap Arm (height Z = 2.0 to 9.5mm, width 6.0mm):
     snap_arm_body = m3d.Manifold.cube([wall_thick, snap_w, rear_wall_h], center=False).translate([x_rear, -snap_w/2.0, floor_t])
@@ -500,22 +466,14 @@ def generate_main_housing():
 
     snap_arm_clean = snap_arm_body + snap_lip
 
-    # 4. Buttress Ribs:
-    r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 3.8, 0.8, floor_t + 0.8])
-    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick - 0.1, 0.8, floor_t + side_wall_h - 0.8])
-    r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick - 0.1, 0, floor_t + 0.05])
-    rib_template = (r_bot_c + r_top_c + r_base_c).hull()
-    rib_t = rib_template.translate([0, esp_w / 2.0 - 1.2, 0])
-    rib_b = rib_template.translate([0, -(esp_w / 2.0 - 1.2), 0])
-
-    # 5. Side Snap Clips:
+    # 4. Side Snap Clips:
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 5.3mm
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
     cradle_solid = (side_top_clean + side_bot_clean + cheek_top_clean + cheek_bot_clean +
-                    snap_arm_clean + rib_t + rib_b + clip_top + clip_bot)
+                    snap_arm_clean + clip_top + clip_bot)
 
     return (housing_hollow + cradle_solid) - usbc_port
 
@@ -683,7 +641,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Low-Profile Optimized, Zero Artifacts)")
+    export_stl(housing, housing_path, "Main Housing Pod (Pillar-Free & Rib-Free Clean Cradle)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
