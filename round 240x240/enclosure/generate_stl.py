@@ -3,22 +3,25 @@
 GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
-100% Support-Free FDM 3D Printable Architecture:
+100% SUPPORT-FREE FDM 3D PRINTABLE ARCHITECTURE:
 - Front Bezel: Precision display carrier with:
   * Sleek 1.2mm x 45° outer perimeter edge chamfers
   * 45° conical chamfer on raised circular trim ring (dia 44.0mm -> dia 41.0mm)
-  * 4x M3 Socket Head Cap Screw holes balanced at (+/-19.50mm, +/-19.50mm)
+  * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
-- Main Housing: Open-tub electronics bucket with:
-  * Lowered USB-C port centerline at Z = 6.80mm (lowered standoff rails to 1.4mm)
-  * Bold, ACCENTUATED 45° outer lead-in chamfer funnel on USB-C port entry (15.0mm x 9.0mm outer flare)
-  * Sleek 1.2mm x 45° outer bottom perimeter chamfer
-  * 4x M3 Corner Pilot Holes (dia = 2.8mm x 15mm deep) at (+/-19.50mm, +/-19.50mm)
-  * 100% solid enclosed outer bottom wall
-  * ESP32-C3 SuperMini pin-locking standoffs (2.54mm pitch) & rear thrust stop
-- Two-Tier Desktop Pedestal Stand (Replicating Concept Render Exactly):
+- Mid Clamp: Sandwich brace with corner pads and cable routing windows
+- Main Housing:
+  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
+  * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
+  * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
+  * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
+  * Slimmed 3.0mm outer walls and 2.0mm floor
+  * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
+  * 45° peaked roof top vertical aeration exhaust slits (7 slots)
+  * Embossed "CYBER-DECK UNIT 01" branding
+- Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
-  * Tier 2 (Cradle Trunk): 60x64mm base tapering to 52x56mm top (16mm H) monolithic truncated trapezoid with a shallow V-saddle cradle notch holding the pod upright at 18.0° backward tilt
+  * Tier 2 (Cradle Trunk): 62x66mm base tapering to 54x58mm top (24mm H) with deep V-saddle cradle
 """
 
 import math
@@ -28,7 +31,6 @@ import trimesh
 import numpy as np
 
 def make_octagonal_prism(w, h, c):
-    """Creates a chamfered octagonal prism with width w, height h, and 45-deg corner chamfer c."""
     hw = w / 2.0
     pts_2d = [
         [-hw + c, -hw], [hw - c, -hw],
@@ -40,9 +42,6 @@ def make_octagonal_prism(w, h, c):
     return m3d.Manifold.extrude(poly, h)
 
 def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
-    """
-    Creates an octagonal base plate with a 45-degree outer edge chamfer on the top or bottom perimeter.
-    """
     hw = w / 2.0
     pts_main = [
         [-hw + c, -hw], [hw - c, -hw],
@@ -72,7 +71,7 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
         for x, y in pts_ch:
             verts.append([x, y, h])
     else:
-        for x, y in pts_ch:
+        for x, y in pts_main:
             verts.append([x, y, 0.0])
         for x, y in pts_main:
             verts.append([x, y, chamfer_outer])
@@ -98,7 +97,6 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
 
 def make_rounded_rect_2d(w, d, r, fn=32):
-    """Generates 2D polygon vertices for a rounded rectangle."""
     hw = w / 2.0 - r
     hd = d / 2.0 - r
     pts = []
@@ -111,27 +109,18 @@ def make_rounded_rect_2d(w, d, r, fn=32):
     return pts
 
 def make_rounded_rect_prism(w, d, h, r, fn=32):
-    """Creates a rounded rectangular base plate with width w, depth d, height h, corner radius r."""
     pts = make_rounded_rect_2d(w, d, r, fn)
     poly = m3d.CrossSection([pts])
     return m3d.Manifold.extrude(poly, h)
 
 def make_gc9a01_pcb_pocket(depth_pocket=3.4):
-    """
-    Creates exact composite shape for GC9A01 PCB:
-    - Upper circular body: 39.4mm dia (38.0mm PCB + 1.4mm tolerance)
-    - Lower connector tab: 24.0mm wide (22.92mm tab + 1.08mm tolerance) extending down to y = -26.6mm
-    - Top extra material relief notch: 24.0mm wide extending to y = +26.0mm (+6.0mm width, +3.0mm height extra clearance)
-    """
     top_circle = m3d.Manifold.cylinder(depth_pocket, 39.4 / 2.0, 39.4 / 2.0, 64)
     tab_w = 24.0
     tab_h = 26.6
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
-    
     top_notch_w = 24.0
     top_notch_h = 26.0
     top_box = m3d.Manifold.cube([top_notch_w, top_notch_h, depth_pocket], center=False).translate([-top_notch_w / 2.0, 0, 0])
-    
     return top_circle + tab_box + top_box
 
 def export_stl(manifold_obj, filepath, name="Model"):
@@ -151,18 +140,13 @@ def generate_front_bezel():
     t = 5.5
     ring_h = 1.5
     oal_t = t + ring_h
-    screw_dist = 19.50
+    screw_dist = 20.50
     chamfer_outer = 1.2
-    pcb_dia = 39.4
     
-    # 1. Base octagonal plate with 45-deg sculpted outer edge chamfers (z = 0 to 5.5)
     base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
-    
-    # 2. Raised circular decorative trim ring with 45-deg outer chamfer matching concept render
     ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.5, 64).translate([0, 0, t])
     bezel_solid = base + ring_chamfered
     
-    # 3. Wide Sloping Inner Conical Bezel Funnel
     r_glass = 16.5
     r_front = 19.4
     funnel_h = oal_t + 2.0
@@ -170,20 +154,15 @@ def generate_front_bezel():
     r_bot = r_glass - dr_dz * (3.4 - (-1.0))
     r_top = r_front + dr_dz * (8.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
-    
-    # 4. Rear Retention Pocket for PCB + Top Relief Notch (Single clean uniform flat pocket)
     pcb_recess = make_gc9a01_pcb_pocket(3.4).translate([0, 0, -0.1])
-    
     cuts = window_funnel + pcb_recess
     
-    # 5. 4 Corner M3 Screw Through-Holes & Recessed Counterbores
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             hole_m3 = m3d.Manifold.cylinder(t + 4.0, 1.7, 1.7, 32).translate([sx, sy, -1.0])
             cb_m3 = m3d.Manifold.cylinder(4.0, 3.1, 3.1, 32).translate([sx, sy, oal_t - 3.2])
             cuts = cuts + hole_m3 + cb_m3
             
-    # 6. 2 Blind M2 Pilot Holes
     screen_holes_x = 9.63
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
@@ -191,19 +170,9 @@ def generate_front_bezel():
         s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
         cuts = cuts + s_hole
             
-    bezel_hollowed = bezel_solid - cuts
-    return bezel_hollowed
+    return bezel_solid - cuts
 
 def generate_mid_clamp():
-    """
-    Sandwich Mid Clamp Continuous-Border X-Brace:
-    - Sits between Front Bezel and Main Housing creating a seamless continuous outer block
-    - Continuous outer 54x54mm octagonal perimeter border matching housing outer walls
-    - 4 corner screw pads at (+/-19.50, +/-19.50) with 3.4mm M3 clearance holes
-    - 7.0mm wide diagonal X-arms meeting at center with 14.0mm center component-relief hole
-    - 0.6mm forward compression pads on diagonal arms (inside dia = 38.6mm) to clamp the screen PCB
-    - 4 large open quadrant windows for DuPont wire routing & internal ventilation
-    """
     w = 54.0
     c = 6.0
     t = 2.0
@@ -211,10 +180,9 @@ def generate_mid_clamp():
     arm_w = 7.0
     center_hole_d = 14.0
     outer_dia = 38.6
-    screw_dist = 19.50
+    screw_dist = 20.50
     total_h = t + lip_h
 
-    # 1. 2D CrossSection of Outer Octagonal Perimeter and Inner Cavity
     hw = w / 2.0
     oct_pts = [
         [-hw + c, -hw], [hw - c, -hw],
@@ -224,7 +192,7 @@ def generate_mid_clamp():
     ]
     oct_outer = m3d.CrossSection([oct_pts])
     
-    cw, cc = 46.0, 13.0
+    cw, cc = 48.0, 12.0
     hcw = cw / 2.0
     cav_pts = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
@@ -233,26 +201,19 @@ def generate_mid_clamp():
         [-hcw, hcw - cc],  [-hcw, -hcw + cc]
     ]
     oct_inner = m3d.CrossSection([cav_pts])
-    
-    # Continuous outer perimeter border
     border_2d = oct_outer - oct_inner
     
-    # Diagonal X-arms
     arm45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(45)
     arm_m45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(-45)
     x_arms = (arm45 + arm_m45) ^ oct_outer
     
-    # Full 2D base: border + X-arms, minus center clearance hole
     base_2d = (border_2d + x_arms) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
     base_3d = m3d.Manifold.extrude(base_2d, t)
     
-    # 2. Forward compression pads on the 4 diagonal arms (0.6mm protrusion inside dia 38.6mm)
     lip_2d = ((arm45 + arm_m45) ^ m3d.CrossSection.circle(outer_dia / 2.0, 64)) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
     pads_3d = m3d.Manifold.extrude(lip_2d, lip_h).translate([0, 0, t])
     
     solid = base_3d + pads_3d
-    
-    # 3. 4 Corner M3 Through-Holes
     cut_h = total_h + 2.0
     cuts = m3d.Manifold()
     for sx in [-screw_dist, screw_dist]:
@@ -261,29 +222,153 @@ def generate_mid_clamp():
             
     return solid - cuts
 
+def make_text_emboss(line1="CYBER-DECK", line2="UNIT 01", depth=0.45):
+    def letter_c(size=2.8):
+        c_outer = m3d.CrossSection.circle(size / 2.0, 32)
+        c_inner = m3d.CrossSection.circle(size / 2.0 - 0.55, 32)
+        c_ring = c_outer - c_inner
+        c_notch = m3d.CrossSection.square([size / 2.0 + 0.1, size * 0.45], center=False).translate([0, -size * 0.225])
+        return c_ring - c_notch
+        
+    def letter_y(size=2.8):
+        stem = m3d.CrossSection.square([0.55, size / 2.0], center=False).translate([-0.275, -size / 2.0])
+        arm_l = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(30).translate([-size * 0.2, size * 0.2])
+        arm_r = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(-30).translate([size * 0.2, size * 0.2])
+        return stem + arm_l + arm_r
 
+    def letter_b(size=2.8):
+        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
+        loop1 = (m3d.CrossSection.circle(size * 0.28, 24) - m3d.CrossSection.circle(size * 0.28 - 0.5, 24)).translate([0, size * 0.22])
+        loop2 = (m3d.CrossSection.circle(size * 0.28, 24) - m3d.CrossSection.circle(size * 0.28 - 0.5, 24)).translate([0, -size * 0.22])
+        mask = m3d.CrossSection.square([size, size * 1.5], center=False).translate([-size * 0.35, -size * 0.75])
+        return back + ((loop1 + loop2) ^ mask)
 
+    def letter_e(size=2.8):
+        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
+        bar_t = m3d.CrossSection.square([size * 0.65, 0.5], center=False).translate([-size * 0.35, size / 2.0 - 0.5])
+        bar_m = m3d.CrossSection.square([size * 0.5, 0.5], center=False).translate([-size * 0.35, -0.25])
+        bar_b = m3d.CrossSection.square([size * 0.65, 0.5], center=False).translate([-size * 0.35, -size / 2.0])
+        return back + bar_t + bar_m + bar_b
 
+    def letter_r(size=2.8):
+        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
+        loop = (m3d.CrossSection.circle(size * 0.3, 24) - m3d.CrossSection.circle(size * 0.3 - 0.5, 24)).translate([0, size * 0.2])
+        mask = m3d.CrossSection.square([size, size], center=False).translate([-size * 0.35, 0])
+        leg = m3d.CrossSection.square([0.55, size * 0.65], center=True).rotate(-35).translate([size * 0.15, -size * 0.22])
+        return back + (loop ^ mask) + leg
 
+    def letter_dash(size=2.8):
+        return m3d.CrossSection.square([size * 0.5, 0.55], center=True)
 
+    def letter_d(size=2.8):
+        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
+        loop = (m3d.CrossSection.circle(size * 0.5, 32) - m3d.CrossSection.circle(size * 0.5 - 0.55, 32)).translate([-size * 0.15, 0])
+        mask = m3d.CrossSection.square([size, size * 1.2], center=False).translate([-size * 0.35, -size * 0.6])
+        return back + (loop ^ mask)
 
+    def letter_k(size=2.8):
+        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
+        arm_t = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(38).translate([size * 0.1, size * 0.2])
+        arm_b = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(-38).translate([size * 0.1, -size * 0.2])
+        return back + arm_t + arm_b
+
+    def letter_u(size=2.2):
+        u_outer = m3d.CrossSection.circle(size * 0.4, 24)
+        u_inner = m3d.CrossSection.circle(size * 0.4 - 0.45, 24)
+        u_bot = (u_outer - u_inner).translate([0, -size * 0.1])
+        mask = m3d.CrossSection.square([size, size], center=False).translate([-size / 2.0, -size / 2.0])
+        arm_l = m3d.CrossSection.square([0.45, size * 0.6], center=False).translate([-size * 0.4, -size * 0.1])
+        arm_r = m3d.CrossSection.square([0.45, size * 0.6], center=False).translate([size * 0.4 - 0.45, -size * 0.1])
+        return (u_bot ^ mask) + arm_l + arm_r
+
+    def letter_n(size=2.2):
+        l1 = m3d.CrossSection.square([0.45, size], center=False).translate([-size * 0.35, -size / 2.0])
+        l2 = m3d.CrossSection.square([0.45, size], center=False).translate([size * 0.35 - 0.45, -size / 2.0])
+        diag = m3d.CrossSection.square([0.45, size * 1.15], center=True).rotate(-32).translate([0, 0])
+        return l1 + l2 + diag
+
+    def letter_i(size=2.2):
+        return m3d.CrossSection.square([0.45, size], center=True)
+
+    def letter_t(size=2.2):
+        stem = m3d.CrossSection.square([0.45, size], center=False).translate([-0.225, -size / 2.0])
+        top_bar = m3d.CrossSection.square([size * 0.8, 0.45], center=False).translate([-size * 0.4, size / 2.0 - 0.45])
+        return stem + top_bar
+
+    def letter_0(size=2.2):
+        o_outer = m3d.CrossSection.circle(size * 0.4, 24)
+        o_inner = m3d.CrossSection.circle(size * 0.4 - 0.45, 24)
+        return o_outer - o_inner
+
+    def letter_1(size=2.2):
+        stem = m3d.CrossSection.square([0.45, size], center=False).translate([-0.225, -size / 2.0])
+        serif = m3d.CrossSection.square([0.45, size * 0.4], center=True).rotate(40).translate([-size * 0.18, size * 0.32])
+        base = m3d.CrossSection.square([size * 0.6, 0.45], center=False).translate([-size * 0.3, -size / 2.0])
+        return stem + serif + base
+
+    spacing_1 = 2.45
+    s1 = 2.7
+    line1_shapes = [
+        letter_c(s1).translate([-4.5 * spacing_1, 2.0]),
+        letter_y(s1).translate([-3.5 * spacing_1, 2.0]),
+        letter_b(s1).translate([-2.5 * spacing_1, 2.0]),
+        letter_e(s1).translate([-1.5 * spacing_1, 2.0]),
+        letter_r(s1).translate([-0.5 * spacing_1, 2.0]),
+        letter_dash(s1).translate([0.5 * spacing_1, 2.0]),
+        letter_d(s1).translate([1.5 * spacing_1, 2.0]),
+        letter_e(s1).translate([2.5 * spacing_1, 2.0]),
+        letter_c(s1).translate([3.5 * spacing_1, 2.0]),
+        letter_k(s1).translate([4.5 * spacing_1, 2.0])
+    ]
+    
+    spacing_2 = 2.3
+    s2 = 2.2
+    line2_shapes = [
+        letter_u(s2).translate([-3.0 * spacing_2, -2.0]),
+        letter_n(s2).translate([-2.0 * spacing_2, -2.0]),
+        letter_i(s2).translate([-1.0 * spacing_2, -2.0]),
+        letter_t(s2).translate([0.0 * spacing_2, -2.0]),
+        letter_0(s2).translate([1.8 * spacing_2, -2.0]),
+        letter_1(s2).translate([2.8 * spacing_2, -2.0])
+    ]
+    
+    combined_2d = m3d.CrossSection()
+    for shape in line1_shapes + line2_shapes:
+        combined_2d = combined_2d + shape
+        
+    return m3d.Manifold.extrude(combined_2d, depth + 0.1)
+
+def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
+    hw_x = length / 2.0
+    hz = height / 2.0
+    if side == '+Y':
+        v_base = [[-hw_x, 0.05, -hz], [hw_x, 0.05, -hz], [hw_x, 0.05, hz], [-hw_x, 0.05, hz]]
+        v_apex = [[-hw_x + 0.55, -width, 0.0], [hw_x - 0.55, -width, 0.0]]
+    else:
+        v_base = [[-hw_x, -0.05, -hz], [hw_x, -0.05, -hz], [hw_x, -0.05, hz], [-hw_x, -0.05, hz]]
+        v_apex = [[-hw_x + 0.55, width, 0.0], [hw_x - 0.55, width, 0.0]]
+    pts = v_base + v_apex
+    combined = m3d.Manifold()
+    for p in pts:
+        combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    return combined.hull()
 
 def generate_main_housing():
     w = 54.0
     c = 6.0
     depth = 27.5
-    floor_t = 2.5
+    floor_t = 2.0
 
     cavity_depth = depth - floor_t
-    screw_dist = 19.50
+    screw_dist = 20.50
     chamfer_outer = 1.2
     
-    # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 24.5)
+    # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 27.5)
     chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False)
     
-    # 2. Main Internal Chamfered Cavity
-    cw = 46.0
-    cc = 13.0
+    # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.0mm perimeter walls)
+    cw = 48.0
+    cc = 12.0
     hcw = cw / 2.0
     pts_cavity = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
@@ -294,15 +379,15 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Elevated Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 8.25mm):
-    usbc_z = 8.25
+    # 3. Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 9.50mm):
+    usbc_z = 9.50
     c1 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
     c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
-    usbc_tunnel = m3d.Manifold.hull(c1 + c2)
+    usbc_tunnel = (c1 + c2).hull()
     
-    cone1 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
-    cone2 = m3d.Manifold.cylinder(3.5, 4.5, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
-    usbc_flare = m3d.Manifold.hull(cone1 + cone2)
+    cone1 = m3d.Manifold.cylinder(3.5, 4.25, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
+    cone2 = m3d.Manifold.cylinder(3.5, 4.25, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
+    usbc_flare = (cone1 + cone2).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
     # 4. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to depth)
@@ -315,44 +400,86 @@ def generate_main_housing():
             pilot_m3 = m3d.Manifold.cylinder(15.2, 1.4, 1.4, 32).translate([sx, sy, depth - 15.0])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3
             
-    cuts = cavity_obj + usbc_port + dupont_trench + screw_pilot_cuts
-    housing_body = chassis - cuts
-    
-    # 6. Internal ESP32-C3 SuperMini Mounting Standoff Rails (2.5mm Height)
-    rail_h = 2.5
-    rail_z_top = floor_t + rail_h
-    esp_l, esp_w = 23.0, 18.4
-    esp_center_x = -10.0
-    
-    rail_top = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
-    rail_bot = m3d.Manifold.cube([esp_l, 3.4, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
-    rear_stop = m3d.Manifold.cube([2.5, 18.4, rail_h + 3.0], center=True).translate([
-        esp_center_x + esp_l / 2.0 + 1.25, 0, floor_t + (rail_h + 3.0) / 2.0
-    ])
-    standoffs = rail_top + rail_bot + rear_stop
+    # 6. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
+    vent_cuts = m3d.Manifold()
+    top_rows = [
+        (10.5, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
+        (12.7, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
+        (14.9, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
+        (17.1, 8.0, -10.5, 7.5, 0.0, 8.0, 10.5),
+        (19.3, 7.0, -10.0, 7.5, 0.0, 7.0, 10.0),
+        (21.5, 5.0, -9.0,  7.5, 0.0, 5.0, 9.0),
+    ]
+    slot_h = 1.05
+    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
+        s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
+        s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
+        s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, ry, floor_t / 2.0])
+        vent_cuts = vent_cuts + s_l + s_c + s_r
 
-    
-    pin_cuts = m3d.Manifold()
-    x0 = -18.3
-    for k in range(8):
-        px = x0 + k * 2.54
-        hole_top = m3d.Manifold.cylinder(2.2, 0.75, 0.75, 16).translate([px, 7.62, rail_z_top - 2.0])
-        hole_bot = m3d.Manifold.cylinder(2.2, 0.75, 0.75, 16).translate([px, -7.62, rail_z_top - 2.0])
-        pin_cuts = pin_cuts + hole_top + hole_bot
+    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
+        s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, -ry, floor_t / 2.0])
+        s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, -ry, floor_t / 2.0])
+        s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
+        vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    standoffs_locked = standoffs - pin_cuts
+    # Top edge perimeter slim slits with 45-degree peaked roofs (100% self-supporting FDM printability)
+    pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
+    poly_slot = m3d.CrossSection([pts_slot_ccw])
+    for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
+        slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
+        vent_cuts = vent_cuts + slot_solid
+
+    # 7. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
+    text_deboss = make_text_emboss("CYBER-DECK", "UNIT 01", depth=0.45).translate([0, 0, -0.05])
+
+    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
+    housing_hollow = chassis - cuts
     
-    return housing_body + standoffs_locked
+    # 8. Open-Front Minimalist U-Cradle (No front pillars):
+    esp_l = 23.0
+    esp_w = 18.4
+    esp_center_x = -10.0
+    rail_h = 3.2
+    
+    x_front = esp_center_x - esp_l / 2.0  # -21.5 (USB-C port end)
+    x_rear = esp_center_x + esp_l / 2.0   # +1.5  (Opposite end behind antenna)
+    wall_thick = 3.0
+    side_thick = 1.6
+    tall_wall_h = 12.0  # Solid vertical rear wall opposite USB-C (Z = 2.0 to 14.0)
+    side_wall_h = 6.2   # Clean vertical side guide wall height (Z = 2.0 to 8.2)
+    
+    # 1. Straight Solid Rear Thrust Wall (solid all the way to floor)
+    rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
+        x_rear, -(esp_w / 2.0 + side_thick), floor_t
+    ])
+    
+    # 2. Straight Vertical Side Guide Walls with integrated 1.0mm edge support steps:
+    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
+        x_front, esp_w / 2.0, floor_t
+    ])
+    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
+        x_front, -(esp_w / 2.0 + side_thick), floor_t
+    ])
 
+    # 1.0mm side edge support steps (flush with inner side wall, Z = 2.0 to 5.2):
+    edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+        x_front, esp_w / 2.0 - 1.0, floor_t
+    ])
+    edge_step_bot = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+        x_front, -esp_w / 2.0, floor_t
+    ])
+    
+    # 3. Discrete 45-Degree Self-Supporting Snap Clips
+    snap_z = floor_t + rail_h + 1.2 + 0.3 # 6.7mm
+    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
+    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
+    
+    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot
 
+    return (housing_hollow + carrier_solid) - usbc_port
 
 def generate_stand_tier1_base():
-    """
-    Tier 1 Base Plate (Walnut Wood / Accent Material):
-    - 64.0mm x 68.0mm x 5.0mm with 6.0mm rounded corners
-    - 4 upward-protruding alignment pillars (dia = 5.0mm x 3.5mm H) with conical lead-in chamfers
-    - 4 underside rubber feet recesses (dia = 8.2mm x 1.4mm deep)
-    """
     base_w = 64.0
     base_d = 68.0
     base_h = 5.0
@@ -376,13 +503,6 @@ def generate_stand_tier1_base():
     return (tier1_solid + pillars) - feet_cuts
 
 def generate_stand_tier2_trunk():
-    """
-    Tier 2 Cradle Trunk (Monolithic Truncated Trapezoidal Pedestal with Deep V-Saddle):
-    - Base: 62.0mm x 66.0mm -> Top: 54.0mm x 58.0mm (24.0mm height, total stand height = 29.0mm)
-    - Solid sloping front chin and continuous draft angles matching 3D concept render
-    - Deep V-saddle cradle slot (54.8mm W x 31.2mm D x 12.0mm seating depth) holding the full 30.0mm pod at 22.0° backward tilt
-    - 4 underside mating socket holes (dia = 5.4mm x 4.1mm deep)
-    """
     base_h = 5.0
     trunk_h = 24.0
     tilt_deg = 22.0
@@ -392,7 +512,6 @@ def generate_stand_tier2_trunk():
     pin_dia = 5.0
     pin_h = 3.5
     
-    # 1. Monolithic Pedestal Body with 4-sided draft angle (62x66 base -> 54x58 top)
     pts_bot = make_rounded_rect_2d(62.0, 66.0, 5.0, fn=32)
     pts_top = make_rounded_rect_2d(54.0, 58.0, 3.5, fn=32)
     n = len(pts_bot)
@@ -417,14 +536,12 @@ def generate_stand_tier2_trunk():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    # 2. 4 Underside Mating Socket Holes
     sockets = m3d.Manifold()
     for px in [-pin_dist_x, pin_dist_x]:
         for py in [-pin_dist_y, pin_dist_y]:
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    # 3. Exact Pod V-Saddle Negative Mold (accommodates full 35.0mm assembled pod with clearance):
     w_c = 54.8
     slot_depth = 36.5
     c_c = 6.0
@@ -438,7 +555,6 @@ def generate_stand_tier2_trunk():
     poly_c = m3d.CrossSection([pts_c])
     pod_cutter_dummy = m3d.Manifold.extrude(poly_c, slot_depth)
     
-    # Position cradle pocket on pedestal (seated 12.0mm into trunk at 22° tilt):
     pod_rot = pod_cutter_dummy.rotate(rot_angles)
     z_min_pod = pod_rot.to_mesh().vert_properties[:, 2].min()
     seat_depth = 12.0
@@ -450,7 +566,6 @@ def generate_stand_tier2_trunk():
     return pedestal_solid - sockets - pod_cutter
 
 def generate_monolithic_desk_stand():
-    """Single-piece unified monolithic stand combining Tier 1 and Tier 2."""
     base_w = 64.0
     base_d = 68.0
     base_h = 5.0
@@ -518,32 +633,26 @@ def main():
 
     print("Generating 100% Support-Free FDM 3D Printable STL Enclosure Models...\n")
     
-    # 1. Front Bezel Plate
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    # 2. Mid Clamp Sandwich Bracket
     mid_clamp = generate_mid_clamp()
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
-    # 3. Main Housing Enclosure (Accentuated USB Chamfer)
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Accentuated USB-C Chamfer)")
+    export_stl(housing, housing_path, "Main Housing Pod")
 
-    # 4. Two-Tier Stand: Tier 1 Base Plate (with 4 Alignment Pillars)
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
     export_stl(tier1, tier1_path, "Stand Tier 1 Base Plate (with 4 Alignment Pillars)")
 
-    # 5. Two-Tier Stand: Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)
     tier2 = generate_stand_tier2_trunk()
     tier2_path = os.path.join(output_dir, "gc9a01_stand_tier2_trunk.stl")
     export_stl(tier2, tier2_path, "Stand Tier 2 Monolithic Pedestal Trunk (Exact Concept Render)")
 
-    # 6. Monolithic Desk Stand (Unified)
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
