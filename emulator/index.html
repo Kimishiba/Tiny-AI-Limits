@@ -835,7 +835,7 @@
     let left_gauge_pct = 85;
     let left_gauge_color = "#00E5FF";
     let left_gauge_reset = "READY";
-    let right_gauge_label = "ANT";
+    let right_gauge_label = "AGY";
     let right_gauge_name = "Antigravity";
     let right_gauge_pct = 60;
     let right_gauge_color = "#FF7A00";
@@ -1974,7 +1974,7 @@
           }
 
           if (data.right_gauge) {
-            right_gauge_label = data.right_gauge.label || "ANT";
+            right_gauge_label = data.right_gauge.label || "AGY";
             right_gauge_name = data.right_gauge.name || "Antigravity";
             right_gauge_pct = data.right_gauge.percent !== undefined ? data.right_gauge.percent : 100;
             right_gauge_reset = data.right_gauge.reset_str || "";

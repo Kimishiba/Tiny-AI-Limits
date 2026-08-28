@@ -417,6 +417,57 @@ class TestAgentStatus(unittest.TestCase):
         payload2 = json.loads(data_res2.data.decode("utf-8"))
         self.assertFalse(payload2["ota"]["trigger"])
 
+    def test_contextual_agent_label_agy_objective(self):
+        lines = [
+            json.dumps({"type": "CHECKPOINT", "content": "{{ CHECKPOINT 0 }}\n# USER Objective:\nMulti-Service Quota Display Ticket\n"})
+        ]
+        label = app.get_stable_agent_label("antigravity", "sess_obj_1", transcript_lines=lines)
+        self.assertEqual(label, "Quota")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_agy_user_request(self):
+        lines = [
+            json.dumps({
+                "type": "USER_INPUT",
+                "source": "USER_EXPLICIT",
+                "content": "<USER_REQUEST>\ncan we design the enclosure CAD model for the device?\n</USER_REQUEST>"
+            })
+        ]
+        label = app.get_stable_agent_label("antigravity", "sess_prompt_1", transcript_lines=lines)
+        self.assertEqual(label, "Design")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_agy_subagent_role(self):
+        label = app.get_stable_agent_label("antigravity", "sess_role_1", role="Thermal CAD Modeler")
+        self.assertEqual(label, "Thermal")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_claude_cwd(self):
+        label = app.get_stable_agent_label("claude", "sess_cl_1", cwd="/Users/dev/Documents/Tiny AI Limits")
+        self.assertEqual(label, "Limits")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_length_limit(self):
+        # Long objective or words must never exceed 12 characters
+        lines = [
+            json.dumps({"type": "CHECKPOINT", "content": "# USER Objective:\nSupercalifragilisticexpialidocious"})
+        ]
+        label = app.get_stable_agent_label("antigravity", "sess_long_1", transcript_lines=lines)
+        self.assertLessEqual(len(label), 12)
+        self.assertEqual(label, "Supercalifra")
+
+    def test_session_name_stability_and_collision(self):
+        # Same session returns same label on subsequent calls
+        lines = [json.dumps({"type": "CHECKPOINT", "content": "# USER Objective:\nFirmware Build\n"})]
+        lbl1 = app.get_stable_agent_label("antigravity", "sess_stable_1", transcript_lines=lines)
+        lbl2 = app.get_stable_agent_label("antigravity", "sess_stable_1", transcript_lines=lines)
+        self.assertEqual(lbl1, lbl2)
+
+        # Another session with identical context gets disambiguated
+        lbl3 = app.get_stable_agent_label("antigravity", "sess_stable_2", transcript_lines=lines)
+        self.assertNotEqual(lbl1, lbl3)
+        self.assertLessEqual(len(lbl3), 12)
+
 if __name__ == "__main__":
     unittest.main()
 

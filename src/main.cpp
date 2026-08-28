@@ -72,6 +72,7 @@ struct WeatherInfo {
 
 struct SingleAgentInfo {
     String name = "";
+    String source = "antigravity"; // antigravity or claude
     String state = "IDLE"; // WAITING, WORKING, COMPLETE, IDLE
     String detail = "";
     uint16_t color = 0x9D37; // default muted slate
@@ -640,6 +641,13 @@ void drawGC9A01RoundFlipUI() {
     static int prevTarget[4] = {-1, -1, -1, -1};
     static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
+    static bool wasShowingAgents = false;
+    static String lastAgentNames[4] = {"", "", "", ""};
+    static String lastAgentDetails[4] = {"", "", "", ""};
+    static uint16_t lastAgentColors[4] = {0, 0, 0, 0};
+    static int lastAgentRowCount = -1;
+    static int lastAgentDotPulses[4] = {-1, -1, -1, -1};
+
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
     uint16_t colEmerald = gcGfx->color565(0, 255, 136);     // #00FF88 Neon Emerald
 
@@ -704,8 +712,14 @@ void drawGC9A01RoundFlipUI() {
             lastAntiPct = -1;
             lastTemp = -999.0f;
             lastDate = "";
+            wasShowingAgents = false;
+            lastAgentRowCount = -1;
             for (int i = 0; i < 4; i++) {
                 oldDigits[i] = -1;
+                lastAgentNames[i] = "";
+                lastAgentDetails[i] = "";
+                lastAgentColors[i] = 0;
+                lastAgentDotPulses[i] = -1;
             }
 
             // Re-render static 2px gunmetal bezel ring (r = 116, 117)
@@ -815,13 +829,6 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
-    static bool wasShowingAgents = false;
-    static String lastAgentNames[4] = {"", "", "", ""};
-    static String lastAgentDetails[4] = {"", "", "", ""};
-    static uint16_t lastAgentColors[4] = {0, 0, 0, 0};
-    static int lastAgentRowCount = -1;
-    static int lastAgentDotPulses[4] = {-1, -1, -1, -1};
-
     bool showAgents = agentData.has_active_agents && (agentData.active_agent_count > 0);
 
     if (showAgents) {
@@ -863,7 +870,7 @@ void drawGC9A01RoundFlipUI() {
             SingleAgentInfo &ag = agentData.active_agents[i];
 
             // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
-            bool isAGY = (ag.name.startsWith("AGY") || ag.name.indexOf("AGY") >= 0);
+            bool isAGY = (ag.source.equalsIgnoreCase("antigravity") || ag.source.indexOf("anti") >= 0 || ag.name.startsWith("AGY"));
             uint16_t brandCol = isAGY ? colOrange : colCyan;
             uint16_t cardBorderCol = isAGY ? gcGfx->color565(160, 80, 0) : gcGfx->color565(0, 140, 160);
             uint16_t cardBgCol = isAGY ? gcGfx->color565(36, 20, 10) : gcGfx->color565(14, 26, 36);
@@ -1617,14 +1624,14 @@ void fetchBackendData() {
             }
             if (doc.containsKey("right_gauge")) {
                 rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
-                rightGauge.label = doc["right_gauge"]["label"] | "ANT";
+                rightGauge.label = doc["right_gauge"]["label"] | "AGY";
                 rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
                 rightGauge.percent = doc["right_gauge"]["percent"] | 100;
                 rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
                 String colStr = doc["right_gauge"]["color"] | "0xFF9100";
                 rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
             } else {
-                rightGauge.label = "ANT";
+                rightGauge.label = "AGY";
                 rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
                 rightGauge.color = gcGfx->color565(255, 122, 0);
                 rightGauge.reset_str = agData.reset_str;
@@ -1651,6 +1658,7 @@ void fetchBackendData() {
                     for (JsonObject obj : arr) {
                         if (count >= 4) break;
                         tempAgent.active_agents[count].name = obj["name"] | "Agent";
+                        tempAgent.active_agents[count].source = obj["source"] | "antigravity";
                         tempAgent.active_agents[count].state = obj["state"] | "IDLE";
                         tempAgent.active_agents[count].detail = obj["detail"] | "";
                         String colStr = obj["color"] | "#94A3B8";

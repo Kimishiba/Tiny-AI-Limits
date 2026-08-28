@@ -237,7 +237,7 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD (Open-Bay U-Cradle Architecture)
+// 3. MAIN HOUSING POD (Open-Bay U-Cradle Architecture with Entry Screw Chamfers)
 module main_housing() {
     cavity_depth = housing_depth - floor_t;
     
@@ -255,11 +255,13 @@ module main_housing() {
         translate([-13.0, -26.0, floor_t])
             cube([26.0, 5.0, cavity_depth + 0.1]);
             
-        // 4. 4 Corner M3 Screw Pilot Holes
+        // 4. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
                 translate([sx, sy, housing_depth - 15.0])
                     cylinder(d = screw_pilot_dia, h = 15.1);
+                translate([sx, sy, housing_depth - 0.99])
+                    cylinder(d1 = screw_pilot_dia, d2 = screw_pilot_dia + 2.0, h = 1.0);
             }
         }
         

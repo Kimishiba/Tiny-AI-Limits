@@ -11,7 +11,7 @@ from .base import BaseProvider, RateWindow, UsageSnapshot, get_home_dir
 class AntigravityProvider(BaseProvider):
     provider_id = "antigravity"
     provider_name = "Google Antigravity"
-    badge = "ANT"
+    badge = "AGY"
     color = "0xFF9100"  # Orange
     ttl_seconds = 30
 

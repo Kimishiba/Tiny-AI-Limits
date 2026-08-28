@@ -11,6 +11,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
+  * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
   * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
   * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
   * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
@@ -393,12 +394,13 @@ def generate_main_housing():
     # 4. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to depth)
     dupont_trench = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
     
-    # 5. 4 Corner M3 Screw Pilot Holes
+    # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
     screw_pilot_cuts = m3d.Manifold()
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
             pilot_m3 = m3d.Manifold.cylinder(15.2, 1.4, 1.4, 32).translate([sx, sy, depth - 15.0])
-            screw_pilot_cuts = screw_pilot_cuts + pilot_m3
+            cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
+            screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
             
     # 6. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
     vent_cuts = m3d.Manifold()

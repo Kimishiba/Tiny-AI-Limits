@@ -1,4 +1,5 @@
 import json
+import re
 import glob
 import getpass
 import os
@@ -760,32 +761,179 @@ def caller_is_paired():
     return request.args.get("pair_id", "") == get_pair_id(config)
 
 
-# Persistent/In-memory Registry for stable agent numbering
+# Persistent/In-memory Registry for stable agent naming
 _session_registry = {}
 _session_counters = {"claude": 0, "antigravity": 0}
 
 IN_FLIGHT_TIMEOUT_SECONDS = 45
 
-def get_stable_agent_label(source, session_key):
-    """Assign stable, clean human-readable names like 'Claude 1', 'AGY 1' to sessions."""
+def _clean_context_word(word, max_len=12):
+    """Clean a keyword to alphanumeric, capitalized, strictly clamped to max_len."""
+    if not word:
+        return ""
+    cleaned = re.sub(r"[^A-Za-z0-9\-]", "", word).strip("-")
+    if not cleaned:
+        return ""
+    if len(cleaned) <= 3:
+        cleaned = cleaned.upper()
+    else:
+        cleaned = cleaned.capitalize()
+    return cleaned[:max_len]
+
+def _extract_antigravity_context(transcript_lines=None, role=None, objective=None):
+    """Extract a concise, meaningful context tag for Antigravity."""
+    generic_words = {
+        "agent", "worker", "specialist", "engineer", "subagent", "reviewer",
+        "tester", "ticket", "task", "user", "objective", "display", "multi",
+        "service", "system", "request", "tool", "call"
+    }
+
+    if role:
+        words = re.findall(r"[A-Za-z0-9]+", role)
+        filtered = [w for w in words if w.lower() not in generic_words]
+        candidate = filtered[0] if filtered else (words[0] if words else "")
+        cleaned = _clean_context_word(candidate, max_len=12)
+        if cleaned:
+            return cleaned
+
+    if objective:
+        words = re.findall(r"[A-Za-z0-9]+", objective)
+        filtered = [w for w in words if w.lower() not in generic_words]
+        candidate = filtered[0] if filtered else (words[0] if words else "")
+        cleaned = _clean_context_word(candidate, max_len=12)
+        if cleaned:
+            return cleaned
+
+    if transcript_lines:
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+
+            if not isinstance(entry, dict):
+                continue
+
+            content = entry.get("content", "")
+            if isinstance(content, str) and "# USER Objective:" in content:
+                m = re.search(r"# USER Objective:\s*([^\n\r]+)", content)
+                if m:
+                    words = re.findall(r"[A-Za-z0-9]+", m.group(1))
+                    filtered = [w for w in words if w.lower() not in generic_words]
+                    candidate = filtered[0] if filtered else (words[0] if words else "")
+                    cleaned = _clean_context_word(candidate, max_len=12)
+                    if cleaned:
+                        return cleaned
+
+            tool_calls = entry.get("tool_calls", [])
+            if isinstance(tool_calls, list):
+                for tc in tool_calls:
+                    args = tc.get("args", {}) if isinstance(tc, dict) else {}
+                    subagents = args.get("Subagents", []) if isinstance(args, dict) else []
+                    if isinstance(subagents, list):
+                        for sa in subagents:
+                            if isinstance(sa, dict) and sa.get("Role"):
+                                words = re.findall(r"[A-Za-z0-9]+", sa["Role"])
+                                filtered = [w for w in words if w.lower() not in generic_words]
+                                candidate = filtered[0] if filtered else (words[0] if words else "")
+                                cleaned = _clean_context_word(candidate, max_len=12)
+                                if cleaned:
+                                    return cleaned
+
+        stop_words = {
+            "can", "we", "the", "a", "an", "to", "for", "in", "of", "and", "is", "it",
+            "you", "i", "me", "my", "our", "have", "has", "do", "does", "did", "please",
+            "make", "write", "create", "update", "fix", "add", "show", "get", "let", "lets",
+            "why", "what", "how", "when", "where", "this", "that", "there", "with", "instead"
+        }
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+
+            if not isinstance(entry, dict):
+                continue
+
+            if entry.get("type") in ("USER_INPUT", "user") or entry.get("source") == "USER_EXPLICIT":
+                raw_content = entry.get("content", "")
+                if isinstance(raw_content, str):
+                    stripped = re.sub(r"<[^>]+>", " ", raw_content)
+                    words = re.findall(r"[A-Za-z0-9]+", stripped)
+                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and len(w) >= 3]
+                    if filtered:
+                        cleaned = _clean_context_word(filtered[0], max_len=12)
+                        if cleaned:
+                            return cleaned
+    return ""
+
+def _extract_claude_context(cwd=None, transcript_lines=None):
+    """Extract a concise context tag for Claude."""
+    if cwd:
+        base = os.path.basename(os.path.normpath(cwd))
+        words = re.findall(r"[A-Za-z0-9]+", base)
+        if words:
+            candidate = words[-1] if len(words) > 1 and len(words[-1]) >= 3 else words[0]
+            cleaned = _clean_context_word(candidate, max_len=12)
+            if cleaned:
+                return cleaned
+    return ""
+
+def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
+    """Assign stable, clean contextual names (e.g. 'Customizing', 'Limits', 'Backend') strictly clamped to <= 12 chars."""
     reg_key = f"{source}:{session_key}"
-    if reg_key not in _session_registry:
-        _session_counters[source] = _session_counters.get(source, 0) + 1
-        prefix = "Claude" if source == "claude" else "AGY"
-        _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
-    return _session_registry[reg_key]
+    if reg_key in _session_registry:
+        return _session_registry[reg_key]
+
+    _session_counters[source] = _session_counters.get(source, 0) + 1
+    seq_num = _session_counters[source]
+
+    label = ""
+    if source == "antigravity":
+        ctx = _extract_antigravity_context(transcript_lines, role=role, objective=objective)
+        if ctx:
+            label = ctx[:12]
+        else:
+            label = f"Agent {seq_num}"[:12]
+    else:  # claude
+        ctx = _extract_claude_context(cwd=cwd, transcript_lines=transcript_lines)
+        if ctx:
+            label = ctx[:12]
+        else:
+            label = f"Claude {seq_num}"[:12]
+
+    # Handle collision with other existing labels in registry
+    assigned_values = set(_session_registry.values())
+    if label in assigned_values:
+        if len(label) <= 10:
+            label = f"{label} {seq_num}"[:12]
+        else:
+            label = f"{label[:10]} {seq_num}"[:12]
+
+    _session_registry[reg_key] = label
+    return label
 
 def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None, source="claude"):
-    """Deterministic state resolution: WAITING > WORKING > COMPLETE > IDLE."""
+    """Deterministic state resolution: WAITING > COMPLETE/IDLE > WORKING > IDLE."""
     completion_duration = (cfg.get("completion_duration_seconds", 10) if isinstance(cfg, dict) else 10) if cfg else 10
     working_color = "#FF7A00" if source == "antigravity" else "#00E5FF"
+
     if found_pending:
         return "WAITING", "waiting_approval", turn_pending_prompt, "#FFB800"
-    elif has_in_flight_tools or (age < IN_FLIGHT_TIMEOUT_SECONDS and not is_final_turn_response):
-        return "WORKING", "working", "EXECUTING...", working_color
-    elif is_final_turn_response and age < completion_duration:
-        return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
-    elif age < IN_FLIGHT_TIMEOUT_SECONDS:
+    elif is_final_turn_response:
+        if age < completion_duration:
+            return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
+        else:
+            return "IDLE", "idle", "IDLE", "#94A3B8"
+    elif has_in_flight_tools or age < IN_FLIGHT_TIMEOUT_SECONDS:
         return "WORKING", "working", "EXECUTING...", working_color
     else:
         return "IDLE", "idle", "IDLE", "#94A3B8"
@@ -901,7 +1049,7 @@ def handle_hook_event(data, now_ts=None):
             return {"status": "ignored", "session_id": session_id}
         
         existing = _hook_sessions.get(session_id, {})
-        label = get_stable_agent_label("claude", session_id)
+        label = get_stable_agent_label("claude", session_id, cwd=cwd or existing.get("cwd", ""))
         
         entry = {
             "id": session_id,
@@ -1093,7 +1241,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             # Session identification (parent folder of .system_generated)
             parts = os.path.normpath(fp).split(os.sep)
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
-            label = get_stable_agent_label("antigravity", session_id)
+            label = get_stable_agent_label("antigravity", session_id, transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
                 # User just sent a prompt; assistant is currently thinking/executing
@@ -1175,10 +1323,6 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 # Intermediate tool output step: turn is still executing
                 has_in_flight_tools = True
 
-            # Session identification (parent folder of .system_generated)
-            parts = os.path.normpath(fp).split(os.sep)
-            session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
-            label = get_stable_agent_label("antigravity", session_id)
             state, code, detail, color = resolve_session_state(
                 found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config, source="antigravity"
             )
@@ -1267,7 +1411,7 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                     pass
 
             session_id = os.path.splitext(os.path.basename(fp))[0]
-            label = get_stable_agent_label("claude", session_id)
+            label = get_stable_agent_label("claude", session_id, cwd=os.path.dirname(fp), transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
                 # User just sent a prompt; Claude is currently thinking/executing
@@ -1567,7 +1711,7 @@ def get_data():
         lim = max(1, antigravity_data.get("limit", 200))
         rem = antigravity_data.get("remaining", 200)
         right_pct = int(round((rem / lim) * 100))
-        right_label = "ANT"
+        right_label = "AGY"
         right_name = "Antigravity"
         right_color = "0xFF9100"
         right_reset = antigravity_data.get("period", "5h")

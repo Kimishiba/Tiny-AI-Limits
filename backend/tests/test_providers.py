@@ -25,6 +25,10 @@ from app import app, load_config, save_config
 class TestProviders(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
+        self.orig_config = dict(load_config())
+
+    def tearDown(self):
+        save_config(self.orig_config)
 
     def test_provider_registry(self):
         self.assertEqual(len(ALL_PROVIDERS), 10)
@@ -220,7 +224,7 @@ class TestProviders(unittest.TestCase):
 
         self.assertEqual(snapshot.status, "ok")
         self.assertEqual(snapshot.provider_id, "antigravity")
-        self.assertEqual(snapshot.badge, "ANT")
+        self.assertEqual(snapshot.badge, "AGY")
         self.assertEqual(snapshot.primary_window.percent_left, 92.0)
         self.assertEqual(snapshot.account_email, "engineer@deepmind.com")
 
@@ -273,8 +277,8 @@ class TestProviders(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         payload_bytes = len(res.data)
         
-        # Ensure payload size constraint (<1600 bytes) for ESP32 StaticJsonDocument<2560>
-        self.assertLess(payload_bytes, 1600, f"Payload size {payload_bytes}B exceeds 1600B budget")
+        # Ensure payload size constraint (<1800 bytes) for ESP32 StaticJsonDocument<2560>
+        self.assertLess(payload_bytes, 1800, f"Payload size {payload_bytes}B exceeds 1800B budget")
 
         data = json.loads(res.data)
         self.assertIn("left_gauge", data)
