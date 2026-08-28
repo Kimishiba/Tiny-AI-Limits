@@ -820,40 +820,21 @@ void drawGC9A01RoundFlipUI() {
         uint16_t leftCol = leftGauge.color;
         uint16_t leftColDim = gcGfx->color565(14, 40, 50);
 
-        if (leftGauge.mode == "enterprise") {
-            // In Enterprise mode: Clear the left arc channel completely
-            for (int deg = 126; deg <= 234; deg++) {
-                float rad = deg * 0.0174533f;
-                float cosR = cosf(rad);
-                float sinR = sinf(rad);
-                for (int r = 92; r <= 108; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), GC_COLOR_BLACK);
-                }
+        // Left Arc (126 deg at bottom to 234 deg at top)
+        for (int deg = 126; deg <= 234; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cos(rad);
+            float sinR = sin(rad);
+
+            bool active = (deg <= 126 + (leftPct * 108 / 100));
+            uint16_t mainCol = active ? leftCol : leftColDim;
+            uint16_t thinCol = active ? leftCol : leftColDim;
+
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
             }
-            // Draw prominent curved text along the left arc perimeter following the circular curve
-            String enterpriseCurved = (leftGauge.curved_text.length() > 0) ? leftGauge.curved_text : (leftGauge.cost_str + " SPENT");
-            int numChars = enterpriseCurved.length();
-            float stepDeg = 8.2f;
-            float totalAngleDeg = (numChars - 1) * stepDeg;
-            float startAngleDeg = 180.0f - (totalAngleDeg / 2.0f);
-            drawRotatedCurvedString(enterpriseCurved.c_str(), cx, cy, 102.0f, startAngleDeg, stepDeg, leftCol);
-        } else {
-            // Left Arc (126 deg at bottom to 234 deg at top)
-            for (int deg = 126; deg <= 234; deg++) {
-                float rad = deg * 0.0174533f;
-                float cosR = cos(rad);
-                float sinR = sin(rad);
-
-                bool active = (deg <= 126 + (leftPct * 108 / 100));
-                uint16_t mainCol = active ? leftCol : leftColDim;
-                uint16_t thinCol = active ? leftCol : leftColDim;
-
-                for (int r = 101; r <= 107; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
-                }
-                for (int r = 94; r <= 95; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
-                }
+            for (int r = 94; r <= 95; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
             }
         }
 
@@ -880,23 +861,20 @@ void drawGC9A01RoundFlipUI() {
 
         // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
         // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
+        gcGfx->fillRoundRect(29, 108, 36, 24, 3, gcGfx->color565(14, 20, 28));
+        gcGfx->drawRoundRect(29, 108, 36, 24, 3, leftCol);
+        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
         if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
-            gcGfx->fillRoundRect(28, 106, 38, 28, 3, gcGfx->color565(10, 24, 32));
-            gcGfx->drawRoundRect(28, 106, 38, 28, 3, leftCol);
-            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 112, GC_COLOR_WHITE);
-            gcPrintCentered("TODAY", 47, 123, leftCol);
+            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 121, leftCol);
         } else {
-            gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
-            gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
-            gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
             char leftPctStr[8];
             sprintf(leftPctStr, "%d%%", leftPct);
             gcPrintCentered(leftPctStr, 47, 121, leftCol);
         }
 
         // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
-        gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
-        gcGfx->drawRoundRect(177, 108, 32, 24, 3, rightCol);
+        gcGfx->fillRoundRect(175, 108, 36, 24, 3, gcGfx->color565(28, 18, 10));
+        gcGfx->drawRoundRect(175, 108, 36, 24, 3, rightCol);
         gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
         char rightPctStr[8];
         sprintf(rightPctStr, "%d%%", rightPct);
