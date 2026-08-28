@@ -1,7 +1,7 @@
 // =========================================================================
 // GC9A01 1.28" Circular IPS Display & ESP32-C3 SuperMini Cyberdeck Enclosure
 // Parametric OpenSCAD Source Model (Replicating the Cyberdeck Unit 01 Desk Concept)
-// 100% Support-Free FDM 3D Printable Architecture (45-Degree Self-Supporting)
+// 100% Support-Free FDM 3D Printable Architecture
 // =========================================================================
 
 $fn = 64; // High resolution curves for 3D printing
@@ -237,7 +237,7 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD (45-Degree Self-Supporting Snap Retaining Architecture)
+// 3. MAIN HOUSING POD
 module main_housing() {
     cavity_depth = housing_depth - floor_t;
     
@@ -334,61 +334,60 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini 45-Degree Self-Supporting Snap Carrier Dock
-    wall_thick  = 4.0;
-    side_thick  = 1.8;
-    tall_wall_h = 13.0; // Tall solid back thrust wall opposite USB-C
-    side_wall_h = 8.5;  // 8.5mm total side retaining wall height
+    // Fused Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock
+    wall_thick  = 3.0;
+    side_thick  = 1.6;
+    tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
+    side_wall_h = 6.2;  // Clean vertical side guide wall height
     x_front     = esp_center_x - esp_l / 2;
     x_rear      = esp_center_x + esp_l / 2;
+    snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
 
     difference() {
         union() {
-            // 1. Tall Solid Rear Thrust Wall (opposite of USB-C port, solid all the way to floor)
+            // 1. Straight Solid Rear Thrust Wall (opposite of USB-C port, solid all the way to floor)
             translate([x_rear, -(esp_w / 2 + side_thick), floor_t])
                 cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
 
-            // 2. 45-Degree Self-Supporting Snap Retaining Side Walls (extruded along X)
-            // Top wall (+Y side)
-            translate([x_rear, 0, 0])
-                rotate([0, -90, 0])
-                    linear_extrude(height = esp_l)
-                        polygon(points = [
-                            [esp_w/2 + side_thick, floor_t],
-                            [esp_w/2 + side_thick, side_wall_h],
-                            [esp_w/2, side_wall_h],
-                            [esp_w/2 - 0.7, 7.1],
-                            [esp_w/2, 6.4],
-                            [esp_w/2, floor_t]
-                        ]);
+            // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
+            translate([x_front, esp_w / 2, floor_t])
+                cube([esp_l, side_thick, side_wall_h]);
+            translate([x_front, -(esp_w / 2 + side_thick), floor_t])
+                cube([esp_l, side_thick, side_wall_h]);
 
-            // Bottom wall (-Y side)
-            translate([x_rear, 0, 0])
-                rotate([0, -90, 0])
-                    linear_extrude(height = esp_l)
-                        polygon(points = [
-                            [-(esp_w/2 + side_thick), floor_t],
-                            [-(esp_w/2), floor_t],
-                            [-(esp_w/2), 6.4],
-                            [-(esp_w/2 - 0.7), 7.1],
-                            [-(esp_w/2), side_wall_h],
-                            [-(esp_w/2 + side_thick), side_wall_h]
-                        ]);
+            // 3. Discrete 45-Degree Self-Supporting Snap Retention Clips
+            // Top clip
+            translate([esp_center_x, esp_w / 2, snap_z])
+                hull() {
+                    translate([-2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                    translate([ 2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                    translate([-1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                    translate([ 1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                }
+            
+            // Bottom clip
+            translate([esp_center_x, -esp_w / 2, snap_z])
+                hull() {
+                    translate([-2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                    translate([ 2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                    translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                    translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                }
 
-            // 3. Standoff Support Ledges (solid to floor_t)
+            // 4. Standoff Support Ledges (solid to floor_t)
             translate([esp_center_x - esp_l/2, 7.62 - 2.4, floor_t])
                 cube([esp_l, 4.8, esp_standoff_h]);
             translate([esp_center_x - esp_l/2, -7.62 - 2.4, floor_t])
                 cube([esp_l, 4.8, esp_standoff_h]);
 
-            // 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
-            translate([x_front - 2.0, 7.45 - 1.75, floor_t])
-                cube([2.0, 3.5, esp_standoff_h + 4.5]);
-            translate([x_front - 2.0, -7.45 - 1.75, floor_t])
-                cube([2.0, 3.5, esp_standoff_h + 4.5]);
+            // 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
+            translate([x_front - 1.8, 7.62 - 1.6, floor_t])
+                cube([1.8, 3.2, esp_standoff_h + 3.0]);
+            translate([x_front - 1.8, -7.62 - 1.6, floor_t])
+                cube([1.8, 3.2, esp_standoff_h + 3.0]);
         }
         
-        // 5. Wide Continuous Pin Clearance Rail Channels (bounded inside ledge)
+        // 6. Wide Continuous Pin Clearance Rail Channels (bounded inside ledge)
         translate([esp_center_x, 7.62, floor_t + esp_standoff_h - 1.3])
             cube([esp_l, 4.2, 2.7], center=true);
         translate([esp_center_x, -7.62, floor_t + esp_standoff_h - 1.3])
