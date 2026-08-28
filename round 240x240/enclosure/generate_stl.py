@@ -11,9 +11,9 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
-  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, no front pillars)
-  * Integrated 1.0mm side edge support ledges along inner base of side walls
-  * Clean discrete 45° self-supporting snap-fit retention clips
+  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
+  * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
+  * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
   * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
@@ -190,14 +190,14 @@ def generate_mid_clamp():
         [hw - c, hw],   [-hw + c, hw],
         [-hw, hw - c],  [-hw, -hw + c]
     ]
-    oct_outer = m3d.CrossSection([pts_oct := oct_pts])
+    oct_outer = m3d.CrossSection([oct_pts])
     
     cw, cc = 48.0, 12.0
     hcw = cw / 2.0
     cav_pts = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
         [hcw, -hcw + cc],  [hcw, hcw - cc],
-        [hcw - cc, hw_c := hcw],   [-hcw + cc, hw_c],
+        [hcw - cc, hcw],   [-hcw + cc, hcw],
         [-hcw, hcw - cc],  [-hcw, -hcw + cc]
     ]
     oct_inner = m3d.CrossSection([cav_pts])
