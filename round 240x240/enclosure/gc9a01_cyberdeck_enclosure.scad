@@ -451,60 +451,59 @@ module desk_stand() {
 
 // 7. MINIMALIST ANGLED CRADLE DESK STAND (Open Triangular A-Frame)
 module minimalist_stand() {
-    m_stand_w = 48.0;
-    m_base_l  = 62.0;
+    m_stand_w = 54.0;
+    m_base_l  = 58.0;
     m_base_t  = 5.0;
-    m_lip_h   = 4.5;
-    m_lip_d   = 4.0;
-    m_back_h  = 42.0;
-    m_spine_t = 5.5;
-    m_pocket_end = 38.0;
+    m_beam_t  = 5.5;
+    m_back_h  = 44.0;
+    m_lip_h   = 5.5;
+    m_lip_t   = 4.0;
+    m_cr_rear = 36.0;
     m_tilt    = stand_tilt_deg; // 22.0 deg
 
+    s_t = sin(m_tilt);
+    c_t = cos(m_tilt);
+
+    y_top_in  = m_cr_rear + s_t * m_back_h;
+    z_top_in  = m_base_t + c_t * m_back_h;
+    y_top_out = y_top_in + c_t * m_beam_t;
+    z_top_out = z_top_in - s_t * m_beam_t;
+
     difference() {
-        union() {
-            // Flat Desk Base Plate
-            translate([-m_stand_w/2, 0, 0])
-                cube([m_stand_w, m_base_l, m_base_t]);
-            
-            // Front Retaining Lip
-            translate([-m_stand_w/2, 2.0, m_base_t])
-                cube([m_stand_w, m_lip_d, m_lip_h]);
-            
-            // Slanted Backrest Spine
-            translate([0, m_pocket_end, m_base_t])
-                rotate([-m_tilt, 0, 0])
-                    translate([-m_stand_w/2, 0, 0])
-                        cube([m_stand_w, m_spine_t, m_back_h]);
-            
-            // Rear Triangular Support Wedge
-            translate([-m_stand_w/2, 0, 0])
-                rotate([0, 90, 0])
-                    linear_extrude(height = m_stand_w)
-                        polygon(points = [
-                            [m_base_t, m_pocket_end + m_spine_t - 0.5],
-                            [m_base_t, m_base_l - 2.5],
-                            [m_base_t + cos(m_tilt)*(m_back_h - 4.0), m_pocket_end + sin(m_tilt)*(m_back_h - 4.0)]
-                        ]);
-        }
-        
+        // Extrude outer 2D profile
+        translate([-m_stand_w/2, 0, 0])
+            rotate([0, 90, 0])
+                linear_extrude(height = m_stand_w)
+                    polygon(points = [
+                        [0.0, 0.0],
+                        [0.0, m_base_l],
+                        [3.5, m_base_l - 2.5],
+                        [z_top_out, y_top_out],
+                        [z_top_in, y_top_in],
+                        [m_base_t, m_cr_rear],
+                        [m_base_t, m_lip_t],
+                        [m_base_t + m_lip_h, m_lip_t],
+                        [m_base_t + m_lip_h, m_lip_t - 2.0],
+                        [m_base_t + m_lip_h - 2.0, 0.0]
+                    ]);
+
         // Open Triangular Side Window Cutout
         translate([-(m_stand_w + 10)/2, 0, 0])
             rotate([0, 90, 0])
                 linear_extrude(height = m_stand_w + 10)
                     polygon(points = [
-                        [m_base_t + 2.0, m_pocket_end + m_spine_t + 2.5],
-                        [m_base_t + 2.0, m_base_l - 8.0],
-                        [m_base_t + cos(m_tilt)*(m_back_h - 8.0) - 4.0, m_pocket_end + sin(m_tilt)*(m_back_h - 8.0) + 1.0]
+                        [m_base_t + 2.0, m_lip_t + 5.0],
+                        [m_base_t + 2.0, m_base_l - 9.0],
+                        [z_top_in - 8.0, y_top_in + 1.0]
                     ]);
-        
+
         // Rear Cable Routing Slot
-        translate([0, m_pocket_end + sin(m_tilt)*18.0 + 3.0, m_base_t + cos(m_tilt)*18.0])
+        translate([0, m_cr_rear + s_t * 18.0 + 3.0, m_base_t + c_t * 18.0])
             rotate([-m_tilt, 0, 0])
-                cube([22.0, 40.0, 22.0], center = true);
-        
+                cube([22.0, 40.0, 24.0], center = true);
+
         // 4x Rubber Feet Recesses (dia 7.6mm x 1.2mm deep)
-        for (fx = [-m_stand_w/2 + 8.0, m_stand_w/2 - 8.0]) {
+        for (fx = [-m_stand_w/2 + 9.0, m_stand_w/2 - 9.0]) {
             for (fy = [5.5, m_base_l - 6.0]) {
                 translate([fx, fy, -0.1])
                     cylinder(d = 7.6, h = 1.3);
@@ -530,7 +529,7 @@ if (part == 1) {
     minimalist_stand();
 } else {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance on Minimalist Stand)
-    translate([0, 38.0 + sin(stand_tilt_deg)*27.0, 5.0 + cos(stand_tilt_deg)*27.0])
+    translate([0, 36.0 + sin(stand_tilt_deg)*27.0, 5.0 + cos(stand_tilt_deg)*27.0])
         rotate([-stand_tilt_deg, 0, 0]) {
             translate([0, 0, housing_depth + mid_clamp_thickness]) color("#22252B") front_bezel();
             translate([0, 0, housing_depth]) color("#D08770") mid_clamp();
