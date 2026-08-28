@@ -2,7 +2,7 @@
 
 ## What is Tiny AI Limits & Desktop Companion?
 
-It is an open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-compact ESP32-C3 SuperMini microcontroller. It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas for Claude Code and Google Antigravity CLI, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
+It is an open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-compact ESP32-C3 SuperMini microcontroller. It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas, **daily USD ($) spend**, and token telemetry across **Anthropic Claude**, **Google Antigravity**, **OpenRouter**, **DeepSeek**, and more, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
 
 ## Which display does the hardware use?
 
