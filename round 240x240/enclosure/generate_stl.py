@@ -145,9 +145,10 @@ def export_stl(manifold_obj, filepath, name="Model"):
 def generate_front_bezel():
     w = 54.0
     c = 6.0
-    t = 5.5
+    ext = 4.0 # Base extended 4.0mm down from original print base
+    t = 5.5 + ext # 9.5mm base thickness
     ring_h = 1.5
-    oal_t = t + ring_h
+    oal_t = t + ring_h # 11.0mm overall thickness
     screw_dist = 20.50
     chamfer_outer = 1.2
     
@@ -157,12 +158,13 @@ def generate_front_bezel():
     
     r_glass = 16.5
     r_front = 19.4
-    funnel_h = oal_t + 2.0
-    dr_dz = (r_front - r_glass) / (oal_t - 3.4)
-    r_bot = r_glass - dr_dz * (3.4 - (-1.0))
-    r_top = r_front + dr_dz * (8.0 - oal_t)
-    window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
-    pcb_recess = make_gc9a01_pcb_pocket(3.4).translate([0, 0, -0.1])
+    shelf_z = 3.4 + ext # Screen seating shelf at Z = 7.4mm (untouched relative to front face)
+    funnel_h = (oal_t - shelf_z) + 2.0
+    dr_dz = (r_front - r_glass) / (oal_t - shelf_z)
+    r_bot = r_glass - dr_dz * (shelf_z - (shelf_z - 1.0))
+    r_top = r_front + dr_dz * (oal_t + 1.0 - oal_t)
+    window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, shelf_z - 1.0])
+    pcb_recess = make_gc9a01_pcb_pocket(shelf_z).translate([0, 0, -0.1])
     cuts = window_funnel + pcb_recess
     
     for sx in [-screw_dist, screw_dist]:
@@ -175,10 +177,51 @@ def generate_front_bezel():
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
     for sx in [-screen_holes_x, screen_holes_x]:
-        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
+        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, shelf_z - 3.3])
         cuts = cuts + s_hole
             
-    return bezel_solid - cuts
+    bezel_hollow = bezel_solid - cuts
+
+    # Screen Retaining Snap Tabs originating at Z = 0 (with 1.5mm support clearance tolerance):
+    tab_w = 5.0
+    tab_arm_h = 4.30 # Arm height from Z = 0 to snap lip apex (7.4mm shelf - 3.1mm gap)
+    lip_overhang = 0.65
+    lip_h = 1.10
+    
+    # Right tab (+X):
+    arm_r = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([19.7 - 0.2, -tab_w/2.0, 0])
+    v_base = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
+    v_apex = [[-lip_overhang, -tab_w/2.0 + 0.5, lip_h], [-lip_overhang, tab_w/2.0 - 0.5, lip_h]]
+    pts_lip = v_base + v_apex
+    lip_r = m3d.Manifold()
+    for p in pts_lip:
+        lip_r = lip_r + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_r = lip_r.hull().translate([19.7 - 0.2, 0, tab_arm_h - lip_h])
+    tab_right = arm_r + lip_r
+
+    # Left tab (-X):
+    arm_l = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([-19.7 - 1.2, -tab_w/2.0, 0])
+    v_base_l = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
+    v_apex_l = [[lip_overhang, -tab_w/2.0 + 0.5, lip_h], [lip_overhang, tab_w/2.0 - 0.5, lip_h]]
+    pts_lip_l = v_base_l + v_apex_l
+    lip_l = m3d.Manifold()
+    for p in pts_lip_l:
+        lip_l = lip_l + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_l = lip_l.hull().translate([-19.7 + 0.2, 0, tab_arm_h - lip_h])
+    tab_left = arm_l + lip_l
+
+    # Top tab (+Y):
+    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 23.8 - 0.2, 0])
+    v_base_t = [[-tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, lip_h], [-tab_w/2.0, 0.0, lip_h]]
+    v_apex_t = [[-tab_w/2.0 + 0.5, -lip_overhang, lip_h], [tab_w/2.0 - 0.5, -lip_overhang, lip_h]]
+    pts_lip_t = v_base_t + v_apex_t
+    lip_t = m3d.Manifold()
+    for p in pts_lip_t:
+        lip_t = lip_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_t = lip_t.hull().translate([0, 23.8 - 0.2, tab_arm_h - lip_h])
+    tab_top = arm_t + lip_t
+
+    return bezel_hollow + tab_right + tab_left + tab_top
 
 def generate_mid_clamp():
     w = 54.0
@@ -322,17 +365,18 @@ def generate_main_housing():
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
             
-    # 6. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
+    # 6. High-Airflow Enlarged Contour-Following Aeration Slits on Backplate (Z = 0)
     vent_cuts = m3d.Manifold()
     top_rows = [
-        (10.5, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (12.7, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (14.9, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (17.1, 8.0, -10.5, 7.5, 0.0, 8.0, 10.5),
-        (19.3, 7.0, -10.0, 7.5, 0.0, 7.0, 10.0),
-        (21.5, 5.0, -9.0,  7.5, 0.0, 5.0, 9.0),
+        # (ry, lw, lcx, cw_v, ccx, rw, rcx)
+        (9.8,  10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
+        (12.3, 10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
+        (14.8, 10.0, -11.0, 9.5, 0.0, 10.0, 11.0),
+        (17.3,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
+        (19.8,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
+        (22.0,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
     ]
-    slot_h = 1.05
+    slot_h = 1.50 # Enlarged aperture height (1.50mm vs 1.05mm, +43% opening for maximum airflow)
     for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
@@ -345,14 +389,25 @@ def generate_main_housing():
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
+    # Enlarged 1.6mm top vertical exhaust vents with 45-degree peaked roof:
+    pts_slot_ccw = [[-0.80, 11.0], [0.80, 11.0], [0.80, 18.2], [0.0, 19.0], [-0.80, 18.2]]
     poly_slot = m3d.CrossSection([pts_slot_ccw])
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Embossed/Debossed Product Name in center area (Z = 0) with True Vector Font Curves
-    text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
+    # 7. Dedicated Under-MCU Aeration Grille (4 rows under ESP32-C3 cradle, X = -21.0 to -3.5mm):
+    for y_pos in [-5.4, -1.8, 1.8, 5.4]:
+        s_mcu1 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-16.6, y_pos, floor_t / 2.0])
+        s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
+        vent_cuts = vent_cuts + s_mcu1 + s_mcu2
+
+    # 8. Embossed/Debossed Product Name on Right Backplate Panel (X = +11.0mm, Z = 0)
+    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.4)
+    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.2)
+    cs_total = cs1.translate([11.0, 1.8]) + cs2.translate([11.0, -1.8])
+    cs_mirrored = cs_total.scale([-1, 1])
+    text_deboss = m3d.Manifold.extrude(cs_mirrored, 0.50 + 0.1).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
