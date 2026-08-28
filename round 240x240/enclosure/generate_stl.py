@@ -145,9 +145,10 @@ def export_stl(manifold_obj, filepath, name="Model"):
 def generate_front_bezel():
     w = 54.0
     c = 6.0
-    t = 5.5
+    ext = 4.0 # Base extended 4.0mm down from original print base
+    t = 5.5 + ext # 9.5mm base thickness
     ring_h = 1.5
-    oal_t = t + ring_h
+    oal_t = t + ring_h # 11.0mm overall thickness
     screw_dist = 20.50
     chamfer_outer = 1.2
     
@@ -157,12 +158,13 @@ def generate_front_bezel():
     
     r_glass = 16.5
     r_front = 19.4
-    funnel_h = oal_t + 2.0
-    dr_dz = (r_front - r_glass) / (oal_t - 3.4)
-    r_bot = r_glass - dr_dz * (3.4 - (-1.0))
-    r_top = r_front + dr_dz * (8.0 - oal_t)
-    window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
-    pcb_recess = make_gc9a01_pcb_pocket(3.4).translate([0, 0, -0.1])
+    shelf_z = 3.4 + ext # Screen seating shelf at Z = 7.4mm (untouched relative to front face)
+    funnel_h = (oal_t - shelf_z) + 2.0
+    dr_dz = (r_front - r_glass) / (oal_t - shelf_z)
+    r_bot = r_glass - dr_dz * (shelf_z - (shelf_z - 1.0))
+    r_top = r_front + dr_dz * (oal_t + 1.0 - oal_t)
+    window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, shelf_z - 1.0])
+    pcb_recess = make_gc9a01_pcb_pocket(shelf_z).translate([0, 0, -0.1])
     cuts = window_funnel + pcb_recess
     
     for sx in [-screw_dist, screw_dist]:
@@ -175,10 +177,51 @@ def generate_front_bezel():
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
     for sx in [-screen_holes_x, screen_holes_x]:
-        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
+        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, shelf_z - 3.3])
         cuts = cuts + s_hole
             
-    return bezel_solid - cuts
+    bezel_hollow = bezel_solid - cuts
+
+    # Screen Retaining Snap Tabs originating at Z = 0 (holding GC9A01 PCB back face at Z = 5.8mm):
+    tab_w = 5.0
+    tab_arm_h = 5.8 # Arm height from Z = 0 to screen PCB rear face
+    lip_overhang = 0.65
+    lip_h = 1.2
+    
+    # Right tab (+X):
+    arm_r = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([19.7 - 0.2, -tab_w/2.0, 0])
+    v_base = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
+    v_apex = [[-lip_overhang, -tab_w/2.0 + 0.5, lip_h], [-lip_overhang, tab_w/2.0 - 0.5, lip_h]]
+    pts_lip = v_base + v_apex
+    lip_r = m3d.Manifold()
+    for p in pts_lip:
+        lip_r = lip_r + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_r = lip_r.hull().translate([19.7 - 0.2, 0, tab_arm_h - lip_h])
+    tab_right = arm_r + lip_r
+
+    # Left tab (-X):
+    arm_l = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([-19.7 - 1.2, -tab_w/2.0, 0])
+    v_base_l = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
+    v_apex_l = [[lip_overhang, -tab_w/2.0 + 0.5, lip_h], [lip_overhang, tab_w/2.0 - 0.5, lip_h]]
+    pts_lip_l = v_base_l + v_apex_l
+    lip_l = m3d.Manifold()
+    for p in pts_lip_l:
+        lip_l = lip_l + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_l = lip_l.hull().translate([-19.7 + 0.2, 0, tab_arm_h - lip_h])
+    tab_left = arm_l + lip_l
+
+    # Top tab (+Y):
+    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 23.8 - 0.2, 0])
+    v_base_t = [[-tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, lip_h], [-tab_w/2.0, 0.0, lip_h]]
+    v_apex_t = [[-tab_w/2.0 + 0.5, -lip_overhang, lip_h], [tab_w/2.0 - 0.5, -lip_overhang, lip_h]]
+    pts_lip_t = v_base_t + v_apex_t
+    lip_t = m3d.Manifold()
+    for p in pts_lip_t:
+        lip_t = lip_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_t = lip_t.hull().translate([0, 23.8 - 0.2, tab_arm_h - lip_h])
+    tab_top = arm_t + lip_t
+
+    return bezel_hollow + tab_right + tab_left + tab_top
 
 def generate_mid_clamp():
     w = 54.0
