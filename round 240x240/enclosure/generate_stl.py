@@ -10,11 +10,14 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing (Aerocam-Style Stepped Perimeter Architecture):
+- Main Housing (Print-In-Place Monolithic Cyberdeck Pod with Integrated U-Kickstand):
+  * 100% Print-In-Place (PIP) Support-Free Architecture (Prints flat on bed as a single monolithic unit)
+  * Captive 45° self-supporting conical hinge pins with 0.35mm calibrated air gap
   * USB-C port situated on the LEFT sidewall (X = -27.0mm)
+  * 22.0mm Arched USB-C Bypass Window on left arm (100% zero interference for cable collars)
   * Stepped Perimeter Track on rear portion (Z = 0.0 to 8.8mm, depth 2.5mm along left, right, and bottom walls up to Y = 14.0mm)
-  * Dual Lateral Snap-Fit Pivot Sockets with 45° lead-in chamfers and 50° hard backstops at (X = +/-24.5mm, Y = 14.0mm, Z = 5.5mm)
   * Dual Stowed 0° Click-Lock Spherical Dimples at (X = +/-24.5mm, Y = -16.0mm, Z = 5.5mm)
+  * 50° Hard Angle-Stop Shoulders resting against housing sockets for rock-solid touchscreen stability
   * Compliant Cantilever Snap Arm Mechanism (Dual 1.2mm vertical flex relief slits allowing center snap arm to bend backwards on board insertion, then snap forward with positive lock)
   * Dual Rigid Outer Cheeks backed by 2x Heavy-Duty Curved Buttress Ribs (absorbing 100% of USB-C cable insertion load)
   * Taller 9.5mm Rear Retaining Wall with Smooth Cylindrical Rounded Corners
@@ -28,13 +31,6 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
   * True Vector Font Bold "TINY AI LIMITS / SENTINEL MK-1" Branding (Correct Left-to-Right Rear Exterior Orientation)
-- Snap-On External U-Bracket Kickstand:
-  * Dedicated separate component printing flat on bed for maximum layer strength and flexibility
-  * Stowed: Nests 100% flush inside the stepped perimeter track with dual spherical click-lock detents
-  * 22.0mm Arched USB-C Bypass Window on left arm (100% zero interference for cable collars)
-  * 50° Hard Angle-Stop Shoulders resting against housing sockets for rock-solid touchscreen stability
-  * Bottom crossbar with centered rounded finger deployment tab
-  * Deployed: Swings backward to form a rigid easel stand propping the screen at an ergonomic 72° reading angle
 - Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
   * Tier 2 (Cradle Trunk): 62x66mm base tapering to 54x58mm top (24mm H) with deep V-saddle cradle
@@ -285,7 +281,56 @@ def make_rear_snap_clip(length=5.5, width=0.60, height=1.4):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def generate_main_housing():
+def generate_u_bracket_kickstand():
+    """
+    Aerocam-Style Pivoting U-Shaped Kickstand (Print-In-Place Pre-nested Component):
+    - USB-C on LEFT sidewall with 22.0mm Arched Bypass Window.
+    - Captive 45° self-supporting conical hinge pins with 0.35mm clearance.
+    - Dual inward spherical click-lock detent pips at Y = -16.0mm.
+    - 50° Hard angle-stop shoulders on pivot knuckles.
+    - Centered bottom finger deployment tab.
+    """
+    arm_t = 2.4
+    arm_w = 5.6
+    w_case = 54.0
+    y_piv = 14.0
+    y_bot = -27.0
+    z_piv = 5.5
+
+    inner_x = w_case - 2 * arm_t # 49.2mm
+    outer_x = w_case            # 54.0mm
+
+    # Left arm with 22mm arched USB-C clearance window (Y = -11.0 to +11.0mm):
+    arm_l_top = m3d.Manifold.cube([arm_t, y_piv - 11.0, arm_w], center=False).translate([-outer_x/2, 11.0, z_piv - arm_w/2])
+    arm_l_bot = m3d.Manifold.cube([arm_t, -11.0 - y_bot, arm_w], center=False).translate([-outer_x/2, y_bot, z_piv - arm_w/2])
+    arm_l_arch = m3d.Manifold.cube([arm_t, 22.0, 1.8], center=False).translate([-outer_x/2, -11.0, z_piv - arm_w/2])
+    arm_l = arm_l_top + arm_l_bot + arm_l_arch
+
+    # Right arm (solid):
+    arm_r = m3d.Manifold.cube([arm_t, y_piv - y_bot, arm_w], center=False).translate([inner_x/2, y_bot, z_piv - arm_w/2])
+
+    # Bottom crossbar with finger tab:
+    cross_bot = m3d.Manifold.cube([outer_x, arm_w, 2.4], center=False).translate([-outer_x/2, y_bot, z_piv - arm_w/2])
+    finger_tab = m3d.Manifold.cylinder(2.4, 3.5, 3.5, 32).translate([0, y_bot - 1.5, z_piv - arm_w/2])
+
+    # Pivot Knuckles:
+    cyl_piv_l = m3d.Manifold.cylinder(arm_t, arm_w/2, arm_w/2, 32).rotate([0, -90, 0]).translate([-inner_x/2, y_piv, z_piv])
+    cyl_piv_r = m3d.Manifold.cylinder(arm_t, arm_w/2, arm_w/2, 32).rotate([0, 90, 0]).translate([inner_x/2, y_piv, z_piv])
+
+    # Captive 45° conical hinge pins (rotating in housing sockets):
+    pin_r_outer = 1.85
+    pin_r_inner = 1.15
+    pin_len = 2.4
+    pin_l = m3d.Manifold.cylinder(pin_len, pin_r_outer, pin_r_inner, 32).rotate([0, 90, 0]).translate([-inner_x/2, y_piv, z_piv])
+    pin_r = m3d.Manifold.cylinder(pin_len, pin_r_outer, pin_r_inner, 32).rotate([0, -90, 0]).translate([inner_x/2, y_piv, z_piv])
+
+    # Dual Spherical Detent Pips (inner face of arms at Y = -16.0mm):
+    det_l = m3d.Manifold.sphere(0.6, 16).translate([-inner_x/2 + 0.1, -16.0, z_piv])
+    det_r = m3d.Manifold.sphere(0.6, 16).translate([inner_x/2 - 0.1, -16.0, z_piv])
+
+    return arm_l + arm_r + cross_bot + finger_tab + cyl_piv_l + cyl_piv_r + pin_l + pin_r + det_l + det_r
+
+def generate_main_housing(include_pip_kickstand=True):
     w = 54.0
     c = 6.0
     depth = 27.5
@@ -343,27 +388,34 @@ def generate_main_housing():
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
 
-    # 6. Stepped Perimeter Track Cuts (Left X=-27, Right X=+27, Bottom Y=-27) up to Y = 14.0mm:
+    # 6. PIP Stepped Perimeter Track Cuts (0.35mm Air Gaps):
+    pip_gap = 0.35
+    arm_t = 2.4
+    arm_w = 5.6
     y_piv = 14.0
     y_bot = -27.0
     z_piv = 5.5
-    arm_w = 5.6
-    track_h = arm_w + 0.4  # 6.0mm height
-    track_d = 2.5          # 2.5mm recessed step depth
 
-    track_l = m3d.Manifold.cube([track_d + 1.0, y_piv - y_bot + 1.0, track_h], center=False).translate([-27.5 - track_d, y_bot - 0.5, z_piv - track_h/2.0])
-    track_r = m3d.Manifold.cube([track_d + 1.0, y_piv - y_bot + 1.0, track_h], center=False).translate([24.5, y_bot - 0.5, z_piv - track_h/2.0])
-    track_b = m3d.Manifold.cube([55.0, track_d + 1.0, track_h], center=False).translate([-27.5, y_bot - 0.5 - track_d, z_piv - track_h/2.0])
+    inner_x = w - 2 * arm_t # 49.2mm
+    outer_x = w            # 54.0mm
 
-    sock_cuts = m3d.Manifold()
-    for sx in [-24.5, 24.5]:
-        dir_x = 1 if sx > 0 else -1
-        sock_cyl = m3d.Manifold.cylinder(3.5, 2.0, 2.0, 32).rotate([0, dir_x * 90, 0]).translate([sx + dir_x * 0.1, y_piv, z_piv])
-        sock_cone = m3d.Manifold.cylinder(1.0, 2.6, 2.0, 32).rotate([0, dir_x * 90, 0]).translate([sx + dir_x * 0.1, y_piv, z_piv])
-        dimple = m3d.Manifold.sphere(0.7, 16).translate([sx, -16.0, z_piv])
-        sock_cuts = sock_cuts + sock_cyl + sock_cone + dimple
+    track_h = arm_w + 2 * pip_gap
+    track_d = arm_t + pip_gap
+    y_len = (y_piv + arm_w/2 + pip_gap + 1.0) - (y_bot - 5.0)
 
-    stepped_track_cuts = track_l + track_r + track_b + sock_cuts
+    cut_l = m3d.Manifold.cube([track_d + 1.0, y_len, track_h], center=False).translate([-outer_x/2 - 0.5, y_bot - 5.0, z_piv - track_h/2.0])
+    cut_r = m3d.Manifold.cube([track_d + 1.0, y_len, track_h], center=False).translate([inner_x/2 - pip_gap, y_bot - 5.0, z_piv - track_h/2.0])
+    cut_b = m3d.Manifold.cube([outer_x + 4.0, arm_w + 2 * pip_gap + 5.0, track_h], center=False).translate([-outer_x/2 - 2.0, y_bot - 5.0, z_piv - track_h/2.0])
+
+    pin_r_outer = 1.85
+    pin_r_inner = 1.15
+    pin_len = 2.4
+    sock_l = m3d.Manifold.cylinder(pin_len + 0.6, pin_r_outer + pip_gap, pin_r_inner + pip_gap, 32).rotate([0, 90, 0]).translate([-inner_x/2, y_piv, z_piv])
+    sock_r = m3d.Manifold.cylinder(pin_len + 0.6, pin_r_outer + pip_gap, pin_r_inner + pip_gap, 32).rotate([0, -90, 0]).translate([inner_x/2, y_piv, z_piv])
+    dimple_l = m3d.Manifold.sphere(0.7, 16).translate([-inner_x/2, -16.0, z_piv])
+    dimple_r = m3d.Manifold.sphere(0.7, 16).translate([inner_x/2, -16.0, z_piv])
+
+    pip_track_cuts = cut_l + cut_r + cut_b + sock_l + sock_r + dimple_l + dimple_r
             
     # 7. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
     vent_cuts = m3d.Manifold()
@@ -397,7 +449,7 @@ def generate_main_housing():
     # 8. Embossed/Debossed Product Name in center area (Z = 0) with True Vector Font Curves
     text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
 
-    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + stepped_track_cuts + vent_cuts + text_deboss
+    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + pip_track_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
     # 9. COMPLIANT CANTILEVER SNAP CRADLE:
@@ -476,53 +528,13 @@ def generate_main_housing():
         x_rear + wall_thick / 2.0, -(arm_w_snap / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
     ])
 
-    return housing_assembled - slit_t - slit_b
+    housing_body = housing_assembled - slit_t - slit_b
 
-def generate_u_bracket_kickstand():
-    """
-    Aerocam-Style Pivoting U-Shaped Kickstand:
-    - Dedicated separate 3D printable part with USB-C on the LEFT sidewall.
-    - 22.0mm Arched bypass window for 100% zero USB-C port interference.
-    - Dual inward spherical click-lock detent pips at Y = -16.0mm.
-    - 50° Hard angle-stop shoulders on pivot knuckles.
-    - Centered bottom finger deployment tab.
-    """
-    arm_t = 2.4
-    arm_w = 5.6
-    w_case = 54.0
-    y_piv = 14.0
-    y_bot = -27.0
-    z_piv = 5.5
-
-    inner_x = w_case - 2 * arm_t # 49.2mm
-    outer_x = w_case            # 54.0mm
-
-    # Left arm with 22mm arched USB-C clearance window (Y = -11.0 to +11.0mm):
-    arm_l_top = m3d.Manifold.cube([arm_t, y_piv - 11.0, arm_w], center=False).translate([-outer_x/2, 11.0, z_piv - arm_w/2])
-    arm_l_bot = m3d.Manifold.cube([arm_t, -11.0 - y_bot, arm_w], center=False).translate([-outer_x/2, y_bot, z_piv - arm_w/2])
-    arm_l_arch = m3d.Manifold.cube([arm_t, 22.0, 1.8], center=False).translate([-outer_x/2, -11.0, z_piv - arm_w/2])
-    arm_l = arm_l_top + arm_l_bot + arm_l_arch
-
-    # Right arm (solid):
-    arm_r = m3d.Manifold.cube([arm_t, y_piv - y_bot, arm_w], center=False).translate([inner_x/2, y_bot, z_piv - arm_w/2])
-
-    # Bottom crossbar with finger tab:
-    cross_bot = m3d.Manifold.cube([outer_x, arm_w, 2.4], center=False).translate([-outer_x/2, y_bot, z_piv - arm_w/2])
-    finger_tab = m3d.Manifold.cylinder(2.4, 3.5, 3.5, 32).translate([0, y_bot - 1.5, z_piv - arm_w/2])
-
-    # Pivot Knuckles:
-    cyl_piv_l = m3d.Manifold.cylinder(arm_t, arm_w/2, arm_w/2, 32).rotate([0, -90, 0]).translate([-inner_x/2, y_piv, z_piv])
-    cyl_piv_r = m3d.Manifold.cylinder(arm_t, arm_w/2, arm_w/2, 32).rotate([0, 90, 0]).translate([inner_x/2, y_piv, z_piv])
-
-    # Inward snap pins:
-    pin_l = m3d.Manifold.cylinder(2.4, 1.85, 1.2, 32).rotate([0, 90, 0]).translate([-inner_x/2 - 0.1, y_piv, z_piv])
-    pin_r = m3d.Manifold.cylinder(2.4, 1.85, 1.2, 32).rotate([0, -90, 0]).translate([inner_x/2 + 0.1, y_piv, z_piv])
-
-    # Dual Spherical Detent Pips (inner face of arms at Y = -16.0mm):
-    det_l = m3d.Manifold.sphere(0.6, 16).translate([-inner_x/2 + 0.1, -16.0, z_piv])
-    det_r = m3d.Manifold.sphere(0.6, 16).translate([inner_x/2 - 0.1, -16.0, z_piv])
-
-    return arm_l + arm_r + cross_bot + finger_tab + cyl_piv_l + cyl_piv_r + pin_l + pin_r + det_l + det_r
+    if include_pip_kickstand:
+        u_bracket = generate_u_bracket_kickstand()
+        return housing_body + u_bracket
+    else:
+        return housing_body
 
 def generate_stand_tier1_base():
     base_w = 64.0
@@ -686,13 +698,13 @@ def main():
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
-    housing = generate_main_housing()
+    housing = generate_main_housing(include_pip_kickstand=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (with Stepped Perimeter Track & Detent Dimples)")
+    export_stl(housing, housing_path, "Main Housing Pod (Print-In-Place with Integrated U-Kickstand)")
 
     ubracket = generate_u_bracket_kickstand()
     ubracket_path = os.path.join(output_dir, "gc9a01_u_bracket_kickstand.stl")
-    export_stl(ubracket, ubracket_path, "Aerocam-Style Flush U-Bracket Kickstand (with Detents & USB-C Arch)")
+    export_stl(ubracket, ubracket_path, "Aerocam-Style Flush U-Bracket Kickstand (Standalone/Multi-material)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
