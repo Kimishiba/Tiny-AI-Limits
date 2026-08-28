@@ -49,7 +49,7 @@ def make_octagonal_prism(w, h, c):
     poly = m3d.CrossSection([pts_2d])
     return m3d.Manifold.extrude(poly, h)
 
-def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
+def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True, chamfer_bottom=False):
     hw = w / 2.0
     pts_main = [
         [-hw + c, -hw], [hw - c, -hw],
@@ -68,38 +68,44 @@ def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True):
         [-hw_ch, hw_ch - c_ch],  [-hw_ch, -hw_ch + c_ch]
     ]
     
-    verts = []
-    faces = []
-    
-    if chamfer_top:
-        for x, y in pts_main:
-            verts.append([x, y, 0.0])
-        for x, y in pts_main:
-            verts.append([x, y, h - chamfer_outer])
-        for x, y in pts_ch:
-            verts.append([x, y, h])
+    layers = []
+    if chamfer_bottom:
+        layers.append((pts_ch, 0.0))
+        layers.append((pts_main, chamfer_outer))
     else:
-        for x, y in pts_main:
-            verts.append([x, y, 0.0])
-        for x, y in pts_main:
-            verts.append([x, y, chamfer_outer])
-        for x, y in pts_main:
-            verts.append([x, y, h])
-            
+        layers.append((pts_main, 0.0))
+        
+    if chamfer_top:
+        layers.append((pts_main, h - chamfer_outer))
+        layers.append((pts_ch, h))
+    else:
+        layers.append((pts_main, h))
+        
+    verts = []
+    for pts, z in layers:
+        for x, y in pts:
+            verts.append([x, y, z])
     verts = np.array(verts, dtype=np.float32)
     
+    faces = []
+    # Bottom cap (CCW viewing towards +Z from -Z)
     for i in range(1, 7):
         faces.append([0, i + 1, i])
-    for i in range(8):
-        i_next = (i + 1) % 8
-        faces.append([i, i_next, i_next + 8])
-        faces.append([i, i_next + 8, i + 8])
-    for i in range(8):
-        i_next = (i + 1) % 8
-        faces.append([i + 8, i_next + 8, i_next + 16])
-        faces.append([i + 8, i_next + 16, i + 16])
+        
+    # Side bands
+    num_layers = len(layers)
+    for layer in range(num_layers - 1):
+        off1 = layer * 8
+        off2 = (layer + 1) * 8
+        for i in range(8):
+            i_next = (i + 1) % 8
+            faces.append([off1 + i, off1 + i_next, off2 + i_next])
+            faces.append([off1 + i, off2 + i_next, off2 + i])
+            
+    # Top cap (CCW viewing towards -Z from +Z)
+    top_off = (num_layers - 1) * 8
     for i in range(1, 7):
-        faces.append([16, 16 + i, 16 + i + 1])
+        faces.append([top_off, top_off + i, top_off + i + 1])
         
     faces = np.array(faces, dtype=np.int32)
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
@@ -321,7 +327,7 @@ def generate_main_housing():
     chamfer_outer = 1.2
     
     # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 27.5)
-    chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False)
+    chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False, chamfer_bottom=True)
     
     # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.0mm perimeter walls)
     cw = 48.0
