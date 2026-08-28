@@ -100,6 +100,9 @@ struct GaugeInfo {
     String id = "claude";
     String label = "CLD";
     String name = "Claude";
+    String mode = "standard"; // "standard" | "enterprise"
+    String cost_str = "$0.00";
+    String curved_text = "";
     int percent = 100;
     uint16_t color = 0x07FF; // Cyan
     String reset_str = "READY";
@@ -633,6 +636,8 @@ void drawGC9A01RoundFlipUI() {
     static int lastPulseLevel = -1;
     static int lastClaudePct = -1;
     static int lastAntiPct = -1;
+    static String lastLeftCostStr = "";
+    static String lastLeftMode = "";
     static float lastTemp = -999.0f;
     static String lastDate = "";
     static bool lastWaiting = false;
@@ -729,8 +734,8 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 2. Top Crown: Backend Connection Status Indicator Arc & Weather / Rain Indicator
-    // 0 = no backend (red), 1 = paired (solid green / telemetry ping), 2 = connected but unpaired (amber)
-    int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    // 0 = no backend (red), 1 = connected (green telemetry ping/pulse)
+    int curLedState = !backendConnected ? 0 : 1;
     bool hasAlert = agentData.waiting_for_input || agentData.work_completed;
     bool isPinging = (curLedState == 1) && !hasAlert && ((millis() - lastBackendPollSuccessMs) < 600);
     static bool wasPinging = false;
@@ -764,28 +769,56 @@ void drawGC9A01RoundFlipUI() {
     int leftPct = leftGauge.percent;
     int rightPct = rightGauge.percent;
 
-    if (leftPct != lastClaudePct || rightPct != lastAntiPct) {
+    if (leftPct != lastClaudePct || rightPct != lastAntiPct || leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode) {
         lastClaudePct = leftPct;
         lastAntiPct = rightPct;
+        lastLeftCostStr = leftGauge.cost_str;
+        lastLeftMode = leftGauge.mode;
 
         uint16_t leftCol = leftGauge.color;
         uint16_t leftColDim = gcGfx->color565(14, 40, 50);
 
-        // Left Arc (126 deg at bottom to 234 deg at top)
-        for (int deg = 126; deg <= 234; deg++) {
-            float rad = deg * 0.0174533f;
-            float cosR = cos(rad);
-            float sinR = sin(rad);
-
-            bool active = (deg <= 126 + (leftPct * 108 / 100));
-            uint16_t mainCol = active ? leftCol : leftColDim;
-            uint16_t thinCol = active ? leftCol : leftColDim;
-
-            for (int r = 101; r <= 107; r++) {
-                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
+        if (leftGauge.mode == "enterprise") {
+            // In Enterprise mode: Clear the left arc channel completely
+            for (int deg = 126; deg <= 234; deg++) {
+                float rad = deg * 0.0174533f;
+                float cosR = cosf(rad);
+                float sinR = sinf(rad);
+                for (int r = 92; r <= 108; r++) {
+                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), GC_COLOR_BLACK);
+                }
             }
-            for (int r = 94; r <= 95; r++) {
-                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
+            // Draw prominent curved text along the left arc perimeter where the gauge was
+            String enterpriseCurved = (leftGauge.curved_text.length() > 0) ? leftGauge.curved_text : (leftGauge.cost_str + " SPENT");
+            int numChars = enterpriseCurved.length();
+            float stepDeg = 7.5f;
+            float totalAngleDeg = (numChars - 1) * stepDeg;
+            float startAngleDeg = 180.0f - (totalAngleDeg / 2.0f);
+            for (int i = 0; i < numChars; i++) {
+                float charDeg = startAngleDeg + (i * stepDeg);
+                float charRad = charDeg * 0.0174533f;
+                int charX = cx + (int)roundf(cosf(charRad) * 102.0f);
+                int charY = cy + (int)roundf(sinf(charRad) * 102.0f);
+                char ch[2] = { enterpriseCurved[i], '\0' };
+                gcPrintCentered(ch, charX, charY, leftCol);
+            }
+        } else {
+            // Left Arc (126 deg at bottom to 234 deg at top)
+            for (int deg = 126; deg <= 234; deg++) {
+                float rad = deg * 0.0174533f;
+                float cosR = cos(rad);
+                float sinR = sin(rad);
+
+                bool active = (deg <= 126 + (leftPct * 108 / 100));
+                uint16_t mainCol = active ? leftCol : leftColDim;
+                uint16_t thinCol = active ? leftCol : leftColDim;
+
+                for (int r = 101; r <= 107; r++) {
+                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
+                }
+                for (int r = 94; r <= 95; r++) {
+                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
+                }
             }
         }
 
@@ -812,12 +845,19 @@ void drawGC9A01RoundFlipUI() {
 
         // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
         // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
-        gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
-        gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
-        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
-        char leftPctStr[8];
-        sprintf(leftPctStr, "%d%%", leftPct);
-        gcPrintCentered(leftPctStr, 47, 121, leftCol);
+        if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
+            gcGfx->fillRoundRect(28, 106, 38, 28, 3, gcGfx->color565(10, 24, 32));
+            gcGfx->drawRoundRect(28, 106, 38, 28, 3, leftCol);
+            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 112, GC_COLOR_WHITE);
+            gcPrintCentered("TODAY", 47, 123, leftCol);
+        } else {
+            gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
+            gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
+            gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
+            char leftPctStr[8];
+            sprintf(leftPctStr, "%d%%", leftPct);
+            gcPrintCentered(leftPctStr, 47, 121, leftCol);
+        }
 
         // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
         gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
@@ -1587,7 +1627,7 @@ void fetchBackendData() {
         lastBackendPollSuccessMs = millis();
         consecutiveBackendFailures = 0;
         String payload = http.getString();
-        StaticJsonDocument<2560> doc;
+        StaticJsonDocument<4096> doc;
         DeserializationError error = deserializeJson(doc, payload);
 
         if (!error) {
@@ -1612,12 +1652,18 @@ void fetchBackendData() {
                 leftGauge.id = doc["left_gauge"]["id"] | "claude";
                 leftGauge.label = doc["left_gauge"]["label"] | "CLD";
                 leftGauge.name = doc["left_gauge"]["name"] | "Claude";
+                leftGauge.mode = doc["left_gauge"]["mode"] | "standard";
+                leftGauge.cost_str = doc["left_gauge"]["cost_str"] | "$0.00";
+                leftGauge.curved_text = doc["left_gauge"]["curved_text"] | "";
                 leftGauge.percent = doc["left_gauge"]["percent"] | 100;
                 leftGauge.reset_str = doc["left_gauge"]["reset_str"] | "READY";
                 String colStr = doc["left_gauge"]["color"] | "0x00E5FF";
                 leftGauge.color = parseHexColor565(colStr, gcGfx->color565(0, 229, 255));
             } else {
                 leftGauge.label = "CLD";
+                leftGauge.mode = "standard";
+                leftGauge.cost_str = "$0.00";
+                leftGauge.curved_text = "";
                 leftGauge.percent = 100;
                 leftGauge.color = gcGfx->color565(0, 229, 255);
                 leftGauge.reset_str = claudeData.reset_str;
