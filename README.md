@@ -30,9 +30,12 @@ An industrial sci-fi desktop pod featuring a vibrant **1.28" Circular 240×240 I
 ### ✨ Features:
 * **Multi-Agent Status Monitor:** Dynamically replaces the central split-flap clock with a real-time HUD showing live agent activity across Claude Code CLI and Google Antigravity sessions (`WAITING 🟡`, `WORKING 🔵`, `COMPLETE 🟢`).
 * **2×2 Split-Flap Flip Clock:** Mechanical split-card matrix animating hour and minute transitions when all agents are idle.
-* **Dual Circular Radial Telemetry Arcs:** Continuous $0\% \to 100\%$ gauges tracking Claude Code (Electric Cyan, left arc) and Antigravity CLI (Safety Orange, right arc).
-* **Curved Inside Telemetry Labels:** Dynamic curved text (`CLD 84%`, `AGY 72%`) positioned inside the active gauge sweeps.
-* **Top Crown Rain Forecast:** Live countdown and rain status (`Rain in 3h`, `Rain Now`, `Clear`).
+* **Universal Multi-Provider Gauges:** Independently assign any AI service to the Left and Right radial arcs (Claude, Google Antigravity, OpenRouter, DeepSeek, Groq, Mistral).
+* **Standard Quota vs Enterprise Spend Modes:**
+  * **Standard Quota Mode:** Real-time percentage remaining ($0\% \to 100\%$) and 5-hour rolling reset countdown timer (e.g. `4h 32m`).
+  * **Enterprise / PAYG Mode:** Live calendar-day expenditure in **USD ($)** (e.g. `$0.13`), 24-hour token volume in the footer (`28.2k TOK`), and radial arc progression against a customizable **Daily Budget ($ USD)**.
+* **Automatic Multi-Model Pricing:** Companion backend automatically scans local transcript turns and calculates exact pricing per model (Sonnet 3.7 / 3.5, Haiku, Opus, cache read/write).
+* **Top Crown Connection & Rain Forecast:** Live telemetry heartbeat pulse and rain status (`Rain in 3h`, `Rain Now`, `No Rain`).
 * **Stacked Bottom Sub-HUD:** Day & Date, live temperature with weather condition icons, and real-time **Agent Attention Alert** banner overrides (`AGENT ALERT: ALLOW BASH`, `ANSWER Q`, `APPROVE PLAN`).
 * **Enclosure Architecture:** Support-free 3D-printable pod with $4\times$ counterbored brass M3 socket head cap screws, raised decorative ring, and a two-tier pedestal stand (Dark Walnut wood base plate with 4 alignment pillars + matte dark truncated trapezoidal cradle trunk).
 
@@ -133,10 +136,14 @@ pip install -r backend/requirements.txt
 python backend/app.py
 ```
 
-### 3. USB WiFi Provisioning (No Recompiling)
-With the device plugged in via USB-C, open **[`http://localhost:5000/setup`](http://localhost:5000/setup)** in Google Chrome or Microsoft Edge (Web Serial API). Use the **Direct Serial Setup** section: select the board's serial port, scan for networks, and enter your Wi-Fi credentials. The device saves them to flash.
-
-The same step also **pairs** the board to this computer, storing your companion app's address so the board reads your stats and nobody else's. See [Multiple boards on one network](#-multiple-boards-on-one-network).
+### 3. USB WiFi Provisioning & Gauge Customization
+With the device plugged in via USB-C, open **[`http://localhost:5000/setup`](http://localhost:5000/setup)** in Google Chrome or Microsoft Edge:
+1. **Wi-Fi Setup:** Select the board's serial port, scan for networks, and enter your credentials. This also pairs the board to your machine.
+2. **Configure Dual HUD Gauges:** Choose which AI service appears on the **Left** and **Right** radial arcs (Anthropic Claude, Google Antigravity, OpenRouter, DeepSeek, Groq, Mistral).
+3. **Select Plan / Usage Mode per Provider:**
+   * **Standard Quota (5h / Hourly Reset Timer):** Ideal for Claude Pro / Antigravity standard plans with 5-hour rolling quotas. Displays $\%$ remaining and time until quota resets (`4h 32m`).
+   * **Enterprise Mode (Spend in $ & 24h Tokens):** Ideal for Enterprise, Team, or Pay-As-You-Go accounts. Displays live spend in **`$`** inside the corridor card (`$0.13`), total 24h token volume in the footer (`28.2k TOK`), and tracks progress against your customizable **Daily Budget ($ USD)**.
+4. **Custom Cloud API Keys:** For cloud LLMs (OpenRouter, DeepSeek, Mistral, Groq), enter your API key in the collapsible accordion.
 
 ---
 
