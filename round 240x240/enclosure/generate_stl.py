@@ -405,11 +405,12 @@ def generate_main_housing():
         s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
         vent_cuts = vent_cuts + s_mcu1 + s_mcu2
 
-    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (X = +11.5mm, Z = 0):
-    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.3)
-    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.1)
-    # Stack lines and translate directly to solid right panel (+X):
-    cs_stacked = cs1.translate([0, 1.8]) + cs2.translate([0, -1.8])
+    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (50% Larger Font, X = +11.5mm, Z = 0):
+    cs_l1, _, _ = text_to_cross_section("TINY AI", size=3.6)
+    cs_l2, _, _ = text_to_cross_section("LIMITS", size=3.6)
+    cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.4)
+    # 3-Line stacked layout with +56% larger font size (size 3.6 vs 2.3):
+    cs_stacked = cs_l1.translate([0, 3.6]) + cs_l2.translate([0, 0.0]) + cs_l3.translate([0, -3.6])
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
