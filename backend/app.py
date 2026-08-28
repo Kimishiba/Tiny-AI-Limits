@@ -301,12 +301,13 @@ def scan_claude_usage(now_ts=None):
     five_hours_ago = now_ts - (5 * 3600)
     earliest_step_ts = None
     total_tokens = 0
+    total_cost_usd = 0.0
     today_local = datetime.now().date()
 
     for c_dir in get_claude_dirs():
         for filepath in glob.glob(os.path.join(c_dir, "**", "*.jsonl"), recursive=True):
             try:
-                if os.path.getmtime(filepath) < five_hours_ago:
+                if os.path.getmtime(filepath) < (now_ts - 86400):
                     continue
                 with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
@@ -329,10 +330,31 @@ def scan_claude_usage(now_ts=None):
                                 if earliest_step_ts is None or step_ts < earliest_step_ts:
                                     earliest_step_ts = step_ts
                             if dt.astimezone().date() == today_local:
-                                usage = (entry.get("message") or {}).get("usage") or {}
-                                total_tokens += usage.get("input_tokens", 0) or 0
-                                total_tokens += usage.get("output_tokens", 0) or 0
-                                total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
+                                msg = entry.get("message") or {}
+                                usage = msg.get("usage") or {}
+                                in_tok = usage.get("input_tokens", 0) or 0
+                                out_tok = usage.get("output_tokens", 0) or 0
+                                cache_w = usage.get("cache_creation_input_tokens", 0) or 0
+                                cache_r = usage.get("cache_read_input_tokens", 0) or 0
+
+                                total_tokens += (in_tok + out_tok + cache_w)
+
+                                # Model pricing calculation per MTok
+                                model_str = (msg.get("model") or "").lower()
+                                if "haiku" in model_str:
+                                    p_in, p_out, p_cw, p_cr = 0.80, 4.00, 1.00, 0.08
+                                elif "opus" in model_str:
+                                    p_in, p_out, p_cw, p_cr = 15.00, 75.00, 18.75, 1.50
+                                else: # Sonnet default
+                                    p_in, p_out, p_cw, p_cr = 3.00, 15.00, 3.75, 0.30
+
+                                step_cost = (
+                                    (in_tok / 1_000_000.0) * p_in +
+                                    (out_tok / 1_000_000.0) * p_out +
+                                    (cache_w / 1_000_000.0) * p_cw +
+                                    (cache_r / 1_000_000.0) * p_cr
+                                )
+                                total_cost_usd += step_cost
                         except Exception:
                             continue
             except Exception:
@@ -348,8 +370,14 @@ def scan_claude_usage(now_ts=None):
         reset_in_seconds = 0
         reset_str = "READY"
 
+    cost_today_usd = round(total_cost_usd, 2)
+    tok_k = f"{total_tokens/1000:.1f}k" if total_tokens >= 1000 else str(total_tokens)
+
     return {
         "tokens_today": total_tokens,
+        "tokens_str": tok_k,
+        "cost_today_usd": cost_today_usd,
+        "cost_str": f"${cost_today_usd:.2f}",
         "limit": 100,
         "remaining": 100,
         "reset_time": reset_time,
