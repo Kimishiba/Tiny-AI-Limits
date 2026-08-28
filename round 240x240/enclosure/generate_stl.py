@@ -11,10 +11,10 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
-  * Compliant Cantilever Snap Arm Mechanism (Dual vertical flex relief slits allowing center snap arm to bend backwards on board insertion, then snap forward with positive lock)
+  * Compliant Cantilever Snap Arm Mechanism (Dual 1.2mm vertical flex relief slits allowing center snap arm to bend backwards on board insertion, then snap forward with positive lock)
   * Dual Rigid Outer Cheeks backed by 2x Heavy-Duty Curved Buttress Ribs (absorbing 100% of USB-C cable insertion load)
   * Taller 9.5mm Rear Retaining Wall with Smooth Cylindrical Rounded Corners
-  * Optimized Height 3-Way Snap-Fit Locking System (Side clips at Z = 7.8mm, Rear retention lip at Z = 8.8mm)
+  * Optimized Height 3-Way Snap-Fit Locking System (Side clips at Z = 6.7mm tight on PCB top, Rear retention lip at Z = 8.8mm)
   * Shaved-Depth High-Clearance USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness at port)
   * Flush Inner Wall Board Seating (ESP32 PCB sits directly flush against inner wall at X = -24.0mm)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
@@ -303,8 +303,6 @@ def generate_main_housing():
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
     # 3. Extra-Wide High-Clearance Oval USB-C Port with Shaved Inner Wall & Accentuated Lead-In Chamfer:
-    # Inner tunnel: 14.5mm wide x 6.5mm tall. Outer lead-in flare: 17.5mm wide x 9.5mm tall.
-    # Shaves 1.2mm off the inside of the enclosure wall (leaving a sleek 1.8mm wall at the port)
     usbc_z = 9.50
     y_span = 4.0
     r_inner = 3.25
@@ -387,7 +385,7 @@ def generate_main_housing():
 
     # Cantilever Arm & Flex Slit parameters:
     arm_w = 6.5
-    slit_w = 1.0
+    slit_w = 1.2
     slit_depth = 6.5
 
     # 1. Back Wall with Cylindrical Rounded Outer Corners:
@@ -404,52 +402,56 @@ def generate_main_housing():
         x_rear + wall_thick - r_corner, -(hw - r_corner), floor_t
     ])
     rounded_back_wall = bw_base + bw_fill + c_top + c_bot
-
-    # Cut Dual Vertical Flex Relief Slits:
-    slit_t = m3d.Manifold.cube([wall_thick + 2.0, slit_w, slit_depth + 1.0], center=True).translate([
-        x_rear + wall_thick / 2.0, arm_w / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
-    ])
-    slit_b = m3d.Manifold.cube([wall_thick + 2.0, slit_w, slit_depth + 1.0], center=True).translate([
-        x_rear + wall_thick / 2.0, -(arm_w / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
-    ])
-    flex_back_wall = rounded_back_wall - slit_t - slit_b
     
-    # 2. Side Walls & Edge Steps:
-    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
+    # 2. Side Walls & Edge Steps (embedded slightly into back wall for manifold fusion):
+    side_wall_top = m3d.Manifold.cube([esp_l + 0.1, side_thick, side_wall_h], center=False).translate([
         x_front, esp_w / 2.0, floor_t
     ])
-    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
+    side_wall_bot = m3d.Manifold.cube([esp_l + 0.1, side_thick, side_wall_h], center=False).translate([
         x_front, -(esp_w / 2.0 + side_thick), floor_t
     ])
-    edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+    edge_step_top = m3d.Manifold.cube([esp_l + 0.1, 1.0, rail_h], center=False).translate([
         x_front, esp_w / 2.0 - 1.0, floor_t
     ])
-    edge_step_bot = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+    edge_step_bot = m3d.Manifold.cube([esp_l + 0.1, 1.0, rail_h], center=False).translate([
         x_front, -esp_w / 2.0, floor_t
     ])
     
     # 3. 2 Heavy-Duty Corner Buttress Ribs (Bracing the rigid outer cheeks):
     r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 4.8, 0.8, floor_t + 0.8])
-    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick, 0.8, floor_t + rear_wall_h - 0.8])
-    r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick, 0, floor_t + 0.05])
+    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick - 0.1, 0.8, floor_t + rear_wall_h - 0.8])
+    r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick - 0.1, 0, floor_t + 0.05])
     rib_template = (r_bot_c + r_top_c + r_base_c).hull()
     
     rib_t = rib_template.translate([0, esp_w / 2.0 - 1.2, 0])
     rib_b = rib_template.translate([0, -(esp_w / 2.0 - 1.2), 0])
     
-    # 4. Elevated 3-Way Snap Retention System:
+    # 4. 3-Way Snap Retention System:
+    # Side clips at Z = 6.7mm (0.3mm clearance over PCB top surface on rails)
+    # Rear clip at Z = 8.8mm (clearing antenna package at 7.8mm, locking board envelope firmly)
     esp_center_x = (x_front + x_rear) / 2.0
-    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 6.7mm (exact fit over PCB top edge)
+    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 6.7mm
     snap_rear_z = floor_t + rail_h + 1.4 + 2.2  # 8.8mm
     
     clip_top = make_snap_clip(5.0, 0.60, 1.4, '+Y').translate([esp_center_x, esp_w / 2.0, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.60, 1.4, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_side_z])
     clip_rear = make_rear_snap_clip(5.5, 0.60, 1.4).translate([x_rear, 0, snap_rear_z])
     
-    cradle = (flex_back_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
-              rib_t + rib_b + clip_top + clip_bot + clip_rear)
+    cradle_solid = (rounded_back_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
+                    rib_t + rib_b + clip_top + clip_bot + clip_rear)
 
-    return (housing_hollow + cradle) - usbc_port
+    # Union into Housing:
+    housing_assembled = (housing_hollow + cradle_solid) - usbc_port
+
+    # Cut Dual Vertical Flex Relief Slits (FINAL CUT on Housing to guarantee slits remain 100% open):
+    slit_t = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
+        x_rear + wall_thick / 2.0, arm_w / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+    ])
+    slit_b = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
+        x_rear + wall_thick / 2.0, -(arm_w / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+    ])
+
+    return housing_assembled - slit_t - slit_b
 
 def generate_stand_tier1_base():
     base_w = 64.0
