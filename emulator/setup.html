@@ -720,36 +720,32 @@
           </div>
         </div>
 
-        <!-- Optional API Keys Accordion -->
-        <details style="margin-top: 1.25rem; background: #fff; border: 2px solid var(--border-dark); padding: 0.75rem 1rem; border-radius: 4px;">
-          <summary style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; user-select: none;">
-            <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">key</span>
-            Custom Provider API Keys (OpenRouter, DeepSeek, Mistral, Groq)
-          </summary>
-          <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
-            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
-              Local CLI tools (Antigravity, Claude, Codex, Cursor, Copilot, Gemini) are automatically discovered without API keys. For cloud services, enter your API key below:
-            </p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
-              <div>
-                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">OpenRouter API Key:</label>
-                <input type="password" id="key-openrouter" placeholder="sk-or-..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+        <!-- Claude Plan & Enterprise Mode Settings -->
+        <div style="margin-top: 1.25rem; background: #f0fdf4; border: 2px solid var(--border-dark); padding: 1rem; border-radius: 4px;">
+          <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; color: #166534;">
+            <span class="material-symbols-outlined" style="color: #00E5FF; font-size: 1.2rem;">account_balance_wallet</span>
+            Anthropic Claude Telemetry & Plan Settings
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 0.75rem;">
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Claude Account Plan:</label>
+              <select id="claude-plan-select" style="width: 100%; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #fff; cursor: pointer;">
+                <option value="enterprise">Enterprise / Team / PAYG ($ Cost & Tokens)</option>
+                <option value="standard">Standard Free / Pro (5h Quota Countdown)</option>
+              </select>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                Enterprise mode displays live USD ($ spent) and 24h token volume on the left HUD gauge.
               </div>
-              <div>
-                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">DeepSeek API Key:</label>
-                <input type="password" id="key-deepseek" placeholder="sk-..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
-              </div>
-              <div>
-                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Mistral / Codestral Key:</label>
-                <input type="password" id="key-mistral" placeholder="API Key..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
-              </div>
-              <div>
-                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Groq API Key:</label>
-                <input type="password" id="key-groq" placeholder="gsk_..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+            </div>
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Daily Spending Budget ($ USD):</label>
+              <input type="number" id="claude-budget-input" step="0.50" min="0.50" max="500.00" value="10.00" style="width: 100%; box-sizing: border-box; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #fff;" />
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                Target budget for the left radial gauge fill ring ($0.00 → $10.00).
               </div>
             </div>
           </div>
-        </details>
+        </div>
 
         <!-- Actions -->
         <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.25rem; flex-wrap: wrap;">
@@ -1265,6 +1261,20 @@
           gaugeRightSelect.appendChild(optRight);
         });
 
+        // Load Claude Plan config
+        try {
+          const cfgRes = await fetch('/api/config');
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json();
+            if (cfg.claude_plan) {
+              document.getElementById('claude-plan-select').value = cfg.claude_plan;
+            }
+            if (cfg.claude_daily_budget_usd) {
+              document.getElementById('claude-budget-input').value = cfg.claude_daily_budget_usd;
+            }
+          }
+        } catch (e) {}
+
         updateGaugeStatusDisplay();
       } catch (err) {
         console.warn("Could not fetch providers:", err);
@@ -1284,6 +1294,8 @@
           left: gaugeLeftSelect.value,
           right: gaugeRightSelect.value
         },
+        claude_plan: document.getElementById('claude-plan-select').value,
+        claude_daily_budget_usd: parseFloat(document.getElementById('claude-budget-input').value) || 10.0,
         provider_keys: {}
       };
 

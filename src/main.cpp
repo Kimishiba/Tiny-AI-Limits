@@ -100,6 +100,9 @@ struct GaugeInfo {
     String id = "claude";
     String label = "CLD";
     String name = "Claude";
+    String mode = "standard"; // "standard" | "enterprise"
+    String cost_str = "$0.00";
+    String curved_text = "";
     int percent = 100;
     uint16_t color = 0x07FF; // Cyan
     String reset_str = "READY";
@@ -814,10 +817,15 @@ void drawGC9A01RoundFlipUI() {
         // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
         gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
         gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
-        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
-        char leftPctStr[8];
-        sprintf(leftPctStr, "%d%%", leftPct);
-        gcPrintCentered(leftPctStr, 47, 121, leftCol);
+        if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
+            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 111, leftCol);
+            gcPrintCentered("SPENT", 47, 121, leftCol);
+        } else {
+            gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
+            char leftPctStr[8];
+            sprintf(leftPctStr, "%d%%", leftPct);
+            gcPrintCentered(leftPctStr, 47, 121, leftCol);
+        }
 
         // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
         gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
@@ -1587,7 +1595,7 @@ void fetchBackendData() {
         lastBackendPollSuccessMs = millis();
         consecutiveBackendFailures = 0;
         String payload = http.getString();
-        StaticJsonDocument<2560> doc;
+        StaticJsonDocument<4096> doc;
         DeserializationError error = deserializeJson(doc, payload);
 
         if (!error) {
@@ -1612,12 +1620,17 @@ void fetchBackendData() {
                 leftGauge.id = doc["left_gauge"]["id"] | "claude";
                 leftGauge.label = doc["left_gauge"]["label"] | "CLD";
                 leftGauge.name = doc["left_gauge"]["name"] | "Claude";
+                leftGauge.mode = doc["left_gauge"]["mode"] | "standard";
+                leftGauge.cost_str = doc["left_gauge"]["cost_str"] | "$0.00";
+                leftGauge.curved_text = doc["left_gauge"]["curved_text"] | "";
                 leftGauge.percent = doc["left_gauge"]["percent"] | 100;
                 leftGauge.reset_str = doc["left_gauge"]["reset_str"] | "READY";
                 String colStr = doc["left_gauge"]["color"] | "0x00E5FF";
                 leftGauge.color = parseHexColor565(colStr, gcGfx->color565(0, 229, 255));
             } else {
                 leftGauge.label = "CLD";
+                leftGauge.mode = "standard";
+                leftGauge.cost_str = "$0.00";
                 leftGauge.percent = 100;
                 leftGauge.color = gcGfx->color565(0, 229, 255);
                 leftGauge.reset_str = claudeData.reset_str;

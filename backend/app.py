@@ -51,7 +51,9 @@ def load_config():
     return default_config
 
 def save_config(cfg):
+    global config
     try:
+        config = cfg
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=4)
         try:
@@ -295,66 +297,57 @@ def get_claude_dirs():
 # swamps the number with something proportional to turn count rather than
 # real new work (input + output + freshly-cached context).
 def scan_claude_usage(now_ts=None):
-    """Scan Claude transcript logs for today's tokens and 5h rolling reset window."""
-    if now_ts is None:
-        now_ts = time.time()
-    five_hours_ago = now_ts - (5 * 3600)
-    earliest_step_ts = None
-    total_tokens = 0
-    today_local = datetime.now().date()
+    """Scan Claude transcript logs for 24h tokens, USD cost, and 5h rolling reset window."""
+    from providers.claude import ClaudeProvider
+    detailed = ClaudeProvider().scan_usage_detailed()
+    plan_mode = config.get("claude_plan", "enterprise")
+    daily_budget = float(config.get("claude_daily_budget_usd", 10.0))
 
-    for c_dir in get_claude_dirs():
-        for filepath in glob.glob(os.path.join(c_dir, "**", "*.jsonl"), recursive=True):
-            try:
-                if os.path.getmtime(filepath) < five_hours_ago:
-                    continue
-                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            entry = json.loads(line)
-                        except Exception:
-                            continue
-                        if entry.get("type") != "assistant":
-                            continue
-                        ts = entry.get("timestamp")
-                        if not ts:
-                            continue
-                        try:
-                            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-                            step_ts = dt.timestamp()
-                            if step_ts >= five_hours_ago:
-                                if earliest_step_ts is None or step_ts < earliest_step_ts:
-                                    earliest_step_ts = step_ts
-                            if dt.astimezone().date() == today_local:
-                                usage = (entry.get("message") or {}).get("usage") or {}
-                                total_tokens += usage.get("input_tokens", 0) or 0
-                                total_tokens += usage.get("output_tokens", 0) or 0
-                                total_tokens += usage.get("cache_creation_input_tokens", 0) or 0
-                        except Exception:
-                            continue
-            except Exception:
-                pass
+    cost_today = detailed["cost_today_usd"]
+    cost_str = detailed["cost_str"]
+    tokens_str = detailed["tokens_str"]
 
-    if earliest_step_ts is not None:
-        from datetime import timezone
-        reset_ts = earliest_step_ts + (5 * 3600)
-        reset_time = datetime.fromtimestamp(reset_ts, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if plan_mode == "enterprise":
+        pct_used = min(100.0, (cost_today / max(0.01, daily_budget)) * 100.0)
+        pct_left = max(0.0, 100.0 - pct_used)
+        return {
+            "plan": "enterprise",
+            "tokens_today": detailed["tokens_today"],
+            "tokens_24h": detailed["tokens_24h"],
+            "cost_today_usd": cost_today,
+            "cost_24h_usd": detailed["cost_24h_usd"],
+            "cost_str": cost_str,
+            "tokens_str": tokens_str,
+            "limit": round(daily_budget),
+            "remaining": round(pct_left),
+            "percent": round(pct_used),
+            "reset_time": detailed.get("resets_at"),
+            "reset_in_seconds": 0,
+            "reset_str": f"{tokens_str} TOK",
+            "curved_text": f"{cost_str} SPENT"
+        }
+
+    # Standard quota mode
+    reset_time = detailed.get("resets_at")
+    reset_in_seconds, reset_str = (0, "READY")
+    if reset_time:
         reset_in_seconds, reset_str = format_reset_time(reset_time, now_ts)
-    else:
-        reset_time = None
-        reset_in_seconds = 0
-        reset_str = "READY"
 
     return {
-        "tokens_today": total_tokens,
+        "plan": "standard",
+        "tokens_today": detailed["tokens_today"],
+        "tokens_24h": detailed["tokens_24h"],
+        "cost_today_usd": cost_today,
+        "cost_24h_usd": detailed["cost_24h_usd"],
+        "cost_str": cost_str,
+        "tokens_str": tokens_str,
         "limit": 100,
         "remaining": 100,
+        "percent": 100,
         "reset_time": reset_time,
         "reset_in_seconds": reset_in_seconds,
-        "reset_str": reset_str
+        "reset_str": reset_str,
+        "curved_text": "CLD 100%"
     }
 
 def scan_claude_tokens_today():
@@ -1704,12 +1697,24 @@ def get_data():
     right_snap = poller.get_snapshot(right_id)
 
     # Left gauge properties
+    left_curved = ""
+    left_mode = "standard"
     if left_id == "claude":
-        left_pct = claude_data.get("remaining", 100)
+        plan_mode = config.get("claude_plan", "enterprise")
         left_label = "CLD"
         left_name = "Claude"
         left_color = "0x00E5FF"
-        left_reset = claude_data.get("reset_str", "READY")
+        left_mode = plan_mode
+        if plan_mode == "enterprise":
+            cost_today = claude_data.get("cost_today_usd", 0.0)
+            daily_budget = float(config.get("claude_daily_budget_usd", 10.0))
+            left_pct = int(min(100, round((cost_today / max(0.01, daily_budget)) * 100)))
+            left_reset = claude_data.get("reset_str", f"{claude_data.get('tokens_str', '0')} TOK")
+            left_curved = claude_data.get("curved_text", f"{claude_data.get('cost_str', '$0.00')} SPENT")
+        else:
+            left_pct = claude_data.get("remaining", 100)
+            left_reset = claude_data.get("reset_str", "READY")
+            left_curved = f"{left_label} {left_pct}%"
     elif left_snap and left_snap.primary_window:
         left_pct = int(round(left_snap.primary_window.percent_left))
         left_label = left_snap.badge or left_id[:3].upper()
@@ -1719,12 +1724,14 @@ def get_data():
             _, left_reset = format_reset_time(left_snap.primary_window.resets_at)
         else:
             left_reset = left_snap.primary_window.period_desc or "READY"
+        left_curved = f"{left_label} {left_pct}%"
     else:
         left_pct = 100
         left_label = left_id[:3].upper()
         left_name = left_id.capitalize()
         left_color = "0x00E5FF"
         left_reset = "READY"
+        left_curved = f"{left_label} 100%"
 
     # Right gauge properties
     if right_id == "antigravity":
@@ -1755,9 +1762,15 @@ def get_data():
         "id": left_id,
         "label": left_label,
         "name": left_name,
+        "mode": left_mode,
         "percent": left_pct,
         "color": left_color,
-        "reset_str": left_reset
+        "reset_str": left_reset,
+        "curved_text": left_curved,
+        "cost_usd": claude_data.get("cost_today_usd", 0.0) if left_id == "claude" else 0.0,
+        "cost_str": claude_data.get("cost_str", "$0.00") if left_id == "claude" else "$0.00",
+        "tokens_str": claude_data.get("tokens_str", "0") if left_id == "claude" else "0",
+        "daily_budget_usd": float(config.get("claude_daily_budget_usd", 10.0)) if left_id == "claude" else 0.0
     }
 
     right_gauge = {

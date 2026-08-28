@@ -63,27 +63,6 @@ Yes. Each board claims a unique mDNS name derived from its MAC address (`tinyscr
 
 The board prints its hostname on the serial console at boot, and the setup page reports it when you connect over serial.
 
-## How do I choose which 2 AI models are displayed on the radial gauges?
-
-You can customize the Left and Right radial arcs through either:
-1. **The macOS Menu Bar App**: Click the `🖥️` icon in your top bar $\to$ `🔌 Set Up New Device (WiFi)` $\to$ **Gauge Mapping & Providers**.
-2. **The Web Setup Page**: Open `http://localhost:5000/setup` and select your providers in the dropdowns.
-3. **The Config File**: Set `"selected_gauges": {"left": "claude", "right": "antigravity"}` in `~/.tiny_ai_screen/config.json`.
-
-Supported providers include Anthropic Claude (`CLD`), Google Antigravity (`AGY`), OpenAI Codex (`COD`), Cursor IDE (`CUR`), GitHub Copilot (`COP`), Gemini (`GEM`), OpenRouter (`ROUT`), DeepSeek (`DSK`), Mistral (`MST`), and Groq (`GRQ`).
-
-## What do the names on the multi-agent cards mean?
-
-When multiple AI agents or subagents are running concurrently, the screen displays a multi-row HUD showing each agent's active task with contextual multi-word names (e.g. `3D Printer`, `Firmware QA`, `AI Limits`, `State Mach`). The background styling and accent bar indicate the provider (Safety Orange for Antigravity, Electric Cyan for Claude), while the pulsating status dot tracks real-time progress (`WORKING 🔵/🟠`, `COMPLETE 🟢`, `WAITING 🟡`).
-
-## What do the reset times below the gauges indicate?
-
-The timers below each gauge (e.g. `3h 22m`, `4h 10m`) indicate the exact remaining time until that provider's 5-hour rolling usage window expires and your quota replenishes.
-
-## How do I run the macOS Top Menu Bar Companion?
-
-Make sure all dependencies are installed with `pip install -r backend/requirements.txt`, then launch `python3 backend/app.py` or double-click `TinyScreen.command`. The `🖥️` icon will appear in your top menu bar with quick access to the Emulator, Setup, Location settings, and OTA updates.
-
 ## Can I test the interface without building the physical hardware?
 
 Yes! The project includes an interactive browser prototype and visualizer where you can preview and interact with all screens, animations, and telemetry states in real time:
