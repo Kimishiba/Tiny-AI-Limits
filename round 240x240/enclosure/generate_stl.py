@@ -10,11 +10,11 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing Pod (Continuous Monolithic U-Cradle Architecture):
+- Main Housing Pod (Clean Monolithic Continuous U-Cradle):
   * Unified Continuous Side & Rear Cheek Walls (Single continuous monolithic U-bracket body on each side)
   * Lowered Board Seating (PCB bottom at Z = 3.8mm, USB-C at Z = 7.0mm)
   * +0.4mm Inside Cradle Tolerances (18.9mm W x 23.6mm L unobstructed pocket)
-  * Continuous 45° Entry Lead-In Chamfer running all the way along side walls and rear cheeks
+  * Clean 2D-Extruded Geometry (Zero Slicing Booleans, Zero Chamfer Artifacts, Zero Mesh Slivers)
   * Compliant Cantilever Snap Arm (7.5mm tall, Z = 2.0 to 9.5mm, 6.0mm wide) with clean 1.25mm separation air slits
   * Dynamic 30° Smooth Deflection Ramp on rear snap lip (Z = 7.0mm)
   * 3-Way Snap Retention (Side clips at Z = 5.3mm, Rear lip at Z = 7.0mm)
@@ -357,7 +357,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE:
+    # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE (100% CLEAN 2D EXTRUSION):
     esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
     esp_w = 18.9       # Expanded width (+0.5mm clearance for 18.0-18.2mm boards)
     rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
@@ -374,7 +374,7 @@ def generate_main_housing():
     slit_w = 1.25
     cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
 
-    # 1. Top Unified Continuous Side+Cheek Wall (Single Continuous Solid, CCW Winding):
+    # 1. Top Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
     pts_wall_t = [
         [x_front, hw_in],
         [x_rear, hw_in],
@@ -386,7 +386,7 @@ def generate_main_housing():
     poly_wall_t = m3d.CrossSection([pts_wall_t])
     wall_top_solid = m3d.Manifold.extrude(poly_wall_t, side_wall_h).translate([0, 0, floor_t])
 
-    # 2. Bottom Unified Continuous Side+Cheek Wall (Single Continuous Solid, CCW Winding):
+    # 2. Bottom Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
     pts_wall_b = [
         [x_front, -hw_out],
         [x_back, -hw_out],
@@ -417,69 +417,7 @@ def generate_main_housing():
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
 
-    # 4. Continuous 45-deg Lead-In Chamfer (Clean Mitered Cutter):
-    pts_ch_x = [
-        [x_front - 1.0, hw_in - 0.1, floor_t + side_wall_h - 1.0],
-        [x_rear - 0.4, hw_in - 0.1, floor_t + side_wall_h - 1.0],
-        [x_front - 1.0, hw_in + 0.9, floor_t + side_wall_h + 0.1],
-        [x_rear - 0.4, hw_in + 0.9, floor_t + side_wall_h + 0.1],
-        [x_front - 1.0, hw_in - 0.1, floor_t + side_wall_h + 0.1],
-        [x_rear - 0.4, hw_in - 0.1, floor_t + side_wall_h + 0.1]
-    ]
-    ch_x_m = m3d.Manifold()
-    for p in pts_ch_x:
-        ch_x_m = ch_x_m + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    ch_x_m = ch_x_m.hull()
-
-    pts_ch_y = [
-        [x_rear - 0.1, cheek_y_min - 0.5, floor_t + side_wall_h - 1.0],
-        [x_rear - 0.1, hw_in - 0.4, floor_t + side_wall_h - 1.0],
-        [x_rear + 0.9, cheek_y_min - 0.5, floor_t + side_wall_h + 0.1],
-        [x_rear + 0.9, hw_in - 0.4, floor_t + side_wall_h + 0.1],
-        [x_rear - 0.1, cheek_y_min - 0.5, floor_t + side_wall_h + 0.1],
-        [x_rear - 0.1, hw_in - 0.4, floor_t + side_wall_h + 0.1]
-    ]
-    ch_y_m = m3d.Manifold()
-    for p in pts_ch_y:
-        ch_y_m = ch_y_m + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    ch_y_m = ch_y_m.hull()
-
-    corner_miter_t = m3d.Manifold.cube([1.5, 1.5, 1.3], center=False).translate([x_rear - 0.45, hw_in - 0.45, floor_t + side_wall_h - 1.0])
-    ch_unified_t = ch_x_m + ch_y_m + corner_miter_t
-
-    pts_ch_x_b = [
-        [x_front - 1.0, -(hw_in - 0.1), floor_t + side_wall_h - 1.0],
-        [x_rear - 0.4, -(hw_in - 0.1), floor_t + side_wall_h - 1.0],
-        [x_front - 1.0, -(hw_in + 0.9), floor_t + side_wall_h + 0.1],
-        [x_rear - 0.4, -(hw_in + 0.9), floor_t + side_wall_h + 0.1],
-        [x_front - 1.0, -(hw_in - 0.1), floor_t + side_wall_h + 0.1],
-        [x_rear - 0.4, -(hw_in - 0.1), floor_t + side_wall_h + 0.1]
-    ]
-    ch_x_m_b = m3d.Manifold()
-    for p in pts_ch_x_b:
-        ch_x_m_b = ch_x_m_b + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    ch_x_m_b = ch_x_m_b.hull()
-
-    pts_ch_y_b = [
-        [x_rear - 0.1, -(cheek_y_min - 0.5), floor_t + side_wall_h - 1.0],
-        [x_rear - 0.1, -(hw_in - 0.4), floor_t + side_wall_h - 1.0],
-        [x_rear + 0.9, -(cheek_y_min - 0.5), floor_t + side_wall_h + 0.1],
-        [x_rear + 0.9, -(hw_in - 0.4), floor_t + side_wall_h + 0.1],
-        [x_rear - 0.1, -(cheek_y_min - 0.5), floor_t + side_wall_h + 0.1],
-        [x_rear - 0.1, -(hw_in - 0.4), floor_t + side_wall_h + 0.1]
-    ]
-    ch_y_m_b = m3d.Manifold()
-    for p in pts_ch_y_b:
-        ch_y_m_b = ch_y_m_b + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    ch_y_m_b = ch_y_m_b.hull()
-
-    corner_miter_b = m3d.Manifold.cube([1.5, 1.5, 1.3], center=False).translate([x_rear - 0.45, -(hw_in + 1.05), floor_t + side_wall_h - 1.0])
-    ch_unified_b = ch_x_m_b + ch_y_m_b + corner_miter_b
-
-    side_top_continuous = (wall_top_solid + ledge_top) - ch_unified_t
-    side_bot_continuous = (wall_bot_solid + ledge_bot) - ch_unified_b
-
-    # 5. Center Compliant Snap Arm (height Z = 2.0 to 9.5mm, width 6.0mm):
+    # 4. Center Compliant Snap Arm (height Z = 2.0 to 9.5mm, width 6.0mm):
     snap_arm_body = m3d.Manifold.cube([wall_thick, snap_w, rear_wall_h], center=False).translate([x_rear, -snap_w/2.0, floor_t])
 
     # Dynamic 30-deg entry ramp on rear snap lip:
@@ -499,13 +437,13 @@ def generate_main_housing():
 
     snap_arm_clean = snap_arm_body + snap_lip
 
-    # 6. Side Snap Clips:
+    # 5. Side Snap Clips:
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 5.3mm
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
-    cradle_solid = (side_top_continuous + side_bot_continuous + snap_arm_clean + clip_top + clip_bot)
+    cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot)
 
     return (housing_hollow + cradle_solid) - usbc_port
 
