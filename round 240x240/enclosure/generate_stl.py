@@ -322,17 +322,18 @@ def generate_main_housing():
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
             
-    # 6. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
+    # 6. High-Airflow Enlarged Contour-Following Aeration Slits on Backplate (Z = 0)
     vent_cuts = m3d.Manifold()
     top_rows = [
-        (10.5, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (12.7, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (14.9, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (17.1, 8.0, -10.5, 7.5, 0.0, 8.0, 10.5),
-        (19.3, 7.0, -10.0, 7.5, 0.0, 7.0, 10.0),
-        (21.5, 5.0, -9.0,  7.5, 0.0, 5.0, 9.0),
+        # (ry, lw, lcx, cw_v, ccx, rw, rcx)
+        (9.8,  10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
+        (12.3, 10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
+        (14.8, 10.0, -11.0, 9.5, 0.0, 10.0, 11.0),
+        (17.3,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
+        (19.8,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
+        (22.0,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
     ]
-    slot_h = 1.05
+    slot_h = 1.50 # Enlarged aperture height (1.50mm vs 1.05mm, +43% opening for maximum airflow)
     for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
@@ -345,7 +346,8 @@ def generate_main_housing():
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
+    # Enlarged 1.6mm top vertical exhaust vents with 45-degree peaked roof:
+    pts_slot_ccw = [[-0.80, 11.0], [0.80, 11.0], [0.80, 18.2], [0.0, 19.0], [-0.80, 18.2]]
     poly_slot = m3d.CrossSection([pts_slot_ccw])
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
