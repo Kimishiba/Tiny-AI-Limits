@@ -748,8 +748,8 @@ def generate_minimalist_stand():
         corner_cuts = corner_cuts + cut
 
     # Debossed text branding on front chamfer
-    branding_cut = create_text_manifold("TINY AI LIMITS v1.0", font_size=2.8, depth=0.8, bold=True)
-    branding_cut = branding_cut.rotate([35, 0, 0]).translate([0, 2.2, base_t - 2.0])
+    text_cs, _, _ = text_to_cross_section("TINY AI LIMITS v1.0", size=2.8)
+    branding_cut = m3d.Manifold.extrude(text_cs, 1.2).rotate([35, 0, 0]).translate([0, 2.2, base_t - 2.0])
     
     # 4x rubber feet
     feet = m3d.Manifold()
