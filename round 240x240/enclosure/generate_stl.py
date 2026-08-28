@@ -664,14 +664,16 @@ def generate_monolithic_desk_stand():
 
 def generate_minimalist_stand():
     """
-    1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787932520699.jpg):
+    1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787933987185.jpg):
     - 54.0mm wide matching pod
-    - 56.0mm base depth on desk
-    - 6.0mm base plate with wide 45° front chamfer
-    - 22.0° angled front lip matching bezel chamfer
-    - 36.0mm backrest height (concealed below top corners of pod)
-    - Wide open triangular side window (A-frame truss)
-    - 24x26mm central cable pass-through slot
+    - 60.0mm base depth on desk
+    - 6.5mm base plate with 35° front chamfer
+    - Debossed "TINY AI LIMITS v1.0" text on front chamfer
+    - Recessed inner base tray behind retaining lip
+    - Full angled rectangular framing backrest (52.0mm H) with top cap & rounded/chamfered corners
+    - Stepped internal seating lip (for pod retention)
+    - Side clearance notches for buttons/screws
+    - Open triangular side window (A-frame truss)
     - 4x rubber feet recess pockets (dia 8.0mm x 1.5mm)
     - 100% support-free FDM 3D printable
     """
@@ -681,49 +683,82 @@ def generate_minimalist_stand():
     s_t = math.sin(tilt_rad)
     c_t = math.cos(tilt_rad)
     
-    base_l = 56.0
-    base_t = 6.0
-    beam_t = 5.5
-    back_h = 36.0
+    base_l = 60.0
+    base_t = 6.5
+    frame_h = 52.0
+    y_cr_rear = 42.0
     
+    # 1. Base footprint
     base = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2.0, 0, 0])
-    chamfer_cut = m3d.Manifold.cube([stand_w + 10.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([0, 0, base_t + 1.5])
     
-    lip_block = m3d.Manifold.cube([stand_w, 4.5, 6.0], center=False).translate([-stand_w/2.0, 0, -0.5])
-    lip_rot = lip_block.rotate([-tilt_deg, 0, 0]).translate([0, 5.0, base_t])
+    # Front 35° chamfer cut
+    chamfer_cut = m3d.Manifold.cube([stand_w + 10.0, 6.0, 6.0], center=True).rotate([35, 0, 0]).translate([0, 0, base_t + 1.2])
     
-    y_cr_rear = 40.0
-    spine = m3d.Manifold.cube([stand_w, beam_t, back_h + 1.0], center=False).translate([-stand_w/2.0, 0, -0.5])
+    # 2. Retaining lip
+    lip_block = m3d.Manifold.cube([stand_w, 5.0, 7.5], center=False).translate([-stand_w/2.0, 0, -0.5])
+    lip_rot = lip_block.rotate([-tilt_deg, 0, 0]).translate([0, 6.0, base_t])
+    
+    # 3. Full rectangular frame backrest
+    spine = m3d.Manifold.cube([stand_w, 6.0, frame_h + 1.0], center=False).translate([-stand_w/2.0, 0, -0.5])
     spine_rot = spine.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t])
     
+    # 4. Triangular A-frame gussets
     tri_pts = [
-        [y_cr_rear + beam_t - 1.0, base_t - 0.5],
+        [y_cr_rear + 5.0, base_t - 0.5],
         [base_l - 2.0, base_t - 0.5],
-        [y_cr_rear + s_t * (back_h - 3.0), base_t + c_t * (back_h - 3.0)]
+        [y_cr_rear + s_t * (frame_h * 0.65), base_t + c_t * (frame_h * 0.65)]
     ]
     tri_poly = m3d.CrossSection([tri_pts])
     tri_solid = m3d.Manifold.extrude(tri_poly, stand_w).translate([-stand_w/2.0, 0, 0])
     
     stand_raw = (base - chamfer_cut) + lip_rot + spine_rot + tri_solid
     
-    window_pts = [
-        [10.0, base_t + 2.0],
+    # Recessed tray in base floor
+    base_tray = m3d.Manifold.cube([stand_w - 10.0, y_cr_rear - 12.0, 4.0], center=False).translate([-(stand_w - 10.0)/2.0, 10.0, base_t - 2.5])
+    
+    # Backrest central window cutout
+    window_back = m3d.Manifold.cube([stand_w - 11.0, 16.0, frame_h - 10.0], center=False).translate([-(stand_w - 11.0)/2.0, -5.0, 0])
+    window_back_rot = window_back.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear - 1.0, base_t + 5.0])
+    
+    # Stepped seating rim in top & sides of backrest
+    step_pocket = m3d.Manifold.cube([stand_w - 6.0, 3.0, frame_h - 15.0], center=False).translate([-(stand_w - 6.0)/2.0, -1.0, 0])
+    step_pocket_rot = step_pocket.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear - 1.0, base_t + 12.0])
+    
+    # Side notches
+    side_notches = m3d.Manifold()
+    for nx in [-stand_w/2.0 - 1.0, stand_w/2.0 - 3.0]:
+        notch = m3d.Manifold.cube([4.0, 10.0, 6.0], center=False).translate([nx, 0, 0])
+        notch_rot = notch.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t + frame_h * 0.45])
+        side_notches = side_notches + notch_rot
+        
+    # Open triangular side windows
+    side_win_pts = [
+        [12.0, base_t + 2.0],
         [base_l - 8.0, base_t + 2.0],
-        [y_cr_rear + s_t * (back_h - 8.0) + 1.0, base_t + c_t * (back_h - 8.0) - 3.0]
+        [y_cr_rear + s_t * (frame_h * 0.65) - 2.0, base_t + c_t * (frame_h * 0.65) - 4.0]
     ]
-    window_poly = m3d.CrossSection([window_pts])
-    window_cutout = m3d.Manifold.extrude(window_poly, stand_w + 20.0).translate([-(stand_w + 20.0)/2.0, 0, 0])
+    side_win_poly = m3d.CrossSection([side_win_pts])
+    side_window_cutout = m3d.Manifold.extrude(side_win_poly, stand_w + 20.0).translate([-(stand_w + 20.0)/2.0, 0, 0])
     
-    cable_slot = m3d.Manifold.cube([26.0, 40.0, 24.0], center=True)
-    cable_slot = cable_slot.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear + s_t * 16.0 + 3.0, base_t + c_t * 16.0])
+    # Top corner chamfers
+    corner_cuts = m3d.Manifold()
+    for cx in [-stand_w/2.0, stand_w/2.0]:
+        cut = m3d.Manifold.cube([6.0, 12.0, 6.0], center=True)
+        cut = cut.rotate([0, 0, (45 if cx < 0 else -45)]).rotate([-tilt_deg, 0, 0]).translate([cx, y_cr_rear + s_t * frame_h, base_t + c_t * frame_h])
+        corner_cuts = corner_cuts + cut
+
+    # Debossed text branding on front chamfer
+    branding_cut = create_text_manifold("TINY AI LIMITS v1.0", font_size=2.8, depth=0.8, bold=True)
+    branding_cut = branding_cut.rotate([35, 0, 0]).translate([0, 2.2, base_t - 2.0])
     
+    # 4x rubber feet
     feet = m3d.Manifold()
     for fx in [-stand_w/2.0 + 8.5, stand_w/2.0 - 8.5]:
-        for fy in [6.5, base_l - 6.5]:
-            foot = m3d.Manifold.cylinder(1.5, 4.0, 4.0, 32).translate([fx, fy, -0.1])
+        for fy in [7.0, base_l - 7.0]:
+            foot = m3d.Manifold.cylinder(1.6, 4.0, 4.0, 32).translate([fx, fy, -0.1])
             feet = feet + foot
             
-    return stand_raw - window_cutout - cable_slot - feet
+    return stand_raw - chamfer_cut - base_tray - window_back_rot - step_pocket_rot - side_notches - side_window_cutout - corner_cuts - branding_cut - feet
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))

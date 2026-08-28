@@ -449,14 +449,13 @@ module desk_stand() {
     }
 }
 
-// 7. MINIMALIST ANGLED CRADLE DESK STAND (Open Triangular A-Frame)
+// 7. MINIMALIST ANGLED CRADLE DESK STAND (1:1 Exact Render Replica)
 module minimalist_stand() {
     m_stand_w = 54.0;
-    m_base_l  = 56.0;
-    m_base_t  = 6.0;
-    m_beam_t  = 5.5;
-    m_back_h  = 36.0;
-    m_cr_rear = 40.0;
+    m_base_l  = 60.0;
+    m_base_t  = 6.5;
+    m_frame_h = 52.0;  // Full framing backrest height
+    m_cr_rear = 42.0;
     m_tilt    = stand_tilt_deg; // 22.0 deg
 
     s_t = sin(m_tilt);
@@ -464,56 +463,88 @@ module minimalist_stand() {
 
     difference() {
         union() {
-            // Base plate
+            // 1. Base Footprint
             translate([-m_stand_w/2, 0, 0])
                 cube([m_stand_w, m_base_l, m_base_t]);
 
-            // Angled front retaining lip
-            translate([0, 5.0, m_base_t])
+            // 2. Angled Front Retaining Lip
+            translate([0, 6.0, m_base_t])
                 rotate([-m_tilt, 0, 0])
                     translate([-m_stand_w/2, 0, 0])
-                        cube([m_stand_w, 4.5, 5.5]);
+                        cube([m_stand_w, 5.0, 7.0]);
 
-            // Slanted backrest spine
+            // 3. Full Angled Rectangular Frame (Backrest)
             translate([0, m_cr_rear, m_base_t])
                 rotate([-m_tilt, 0, 0])
                     translate([-m_stand_w/2, 0, 0])
-                        cube([m_stand_w, m_beam_t, m_back_h]);
+                        cube([m_stand_w, 6.0, m_frame_h]);
 
-            // Rear triangular gussets
+            // 4. Solid Triangular A-Frame Side Gussets
             translate([-m_stand_w/2, 0, 0])
                 rotate([0, 90, 0])
                     linear_extrude(height = m_stand_w)
                         polygon(points = [
-                            [m_base_t, m_cr_rear + m_beam_t - 0.5],
+                            [m_base_t, m_cr_rear + 5.0],
                             [m_base_t, m_base_l - 2.0],
-                            [m_base_t + c_t*(m_back_h - 3.0), m_cr_rear + s_t*(m_back_h - 3.0)]
+                            [m_base_t + c_t*(m_frame_h * 0.65), m_cr_rear + s_t*(m_frame_h * 0.65)]
                         ]);
         }
 
-        // Front 45° chamfer cutter
-        translate([0, 0, m_base_t + 1.5])
-            rotate([45, 0, 0])
-                cube([m_stand_w + 10.0, 5.0, 5.0], center = true);
+        // Front 35° Chamfer Face
+        translate([0, 0, m_base_t + 1.2])
+            rotate([35, 0, 0])
+                cube([m_stand_w + 10.0, 6.0, 6.0], center = true);
 
-        // Open Triangular Side Window Cutout
+        // Front Debossed Branding "TINY AI LIMITS v1.0"
+        translate([0, 2.2, m_base_t - 2.0])
+            rotate([35, 0, 0])
+                linear_extrude(height = 1.0)
+                    text("TINY AI LIMITS v1.0", size = 2.8, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+
+        // Recessed Base Floor Tray (Behind Front Lip)
+        translate([-(m_stand_w - 10.0)/2, 10.0, m_base_t - 2.5])
+            cube([m_stand_w - 10.0, m_cr_rear - 12.0, 4.0]);
+
+        // Large Window Cutout in Backrest Frame (Leaving 5.5mm frame border)
+        translate([0, m_cr_rear - 1.0, m_base_t + 5.0])
+            rotate([-m_tilt, 0, 0])
+                translate([-(m_stand_w - 11.0)/2, -5.0, 0])
+                    cube([m_stand_w - 11.0, 16.0, m_frame_h - 10.0]);
+
+        // Internal Stepped Seat/Lip in Top & Upper Sides of Backrest (for Case Lock-In)
+        translate([0, m_cr_rear - 1.0, m_base_t + 12.0])
+            rotate([-m_tilt, 0, 0])
+                translate([-(m_stand_w - 6.0)/2, -1.0, 0])
+                    cube([m_stand_w - 6.0, 3.0, m_frame_h - 15.0]);
+
+        // Inner Side Clearance Notches (for Side Screws / Buttons)
+        for (nx = [-m_stand_w/2 - 1.0, m_stand_w/2 - 3.0]) {
+            translate([nx, m_cr_rear, m_base_t + m_frame_h * 0.45])
+                rotate([-m_tilt, 0, 0])
+                    cube([4.0, 10.0, 6.0]);
+        }
+
+        // Open Triangular Side Windows (Left & Right A-Frame Cutout)
         translate([-(m_stand_w + 20)/2, 0, 0])
             rotate([0, 90, 0])
                 linear_extrude(height = m_stand_w + 20)
                     polygon(points = [
-                        [m_base_t + 2.0, 10.0],
+                        [m_base_t + 2.0, 12.0],
                         [m_base_t + 2.0, m_base_l - 8.0],
-                        [m_base_t + c_t*(m_back_h - 8.0) - 3.0, m_cr_rear + s_t*(m_back_h - 8.0) + 1.0]
+                        [m_base_t + c_t*(m_frame_h * 0.65) - 4.0, m_cr_rear + s_t*(m_frame_h * 0.65) - 2.0]
                     ]);
 
-        // Rear Cable Routing Slot
-        translate([0, m_cr_rear + s_t * 16.0 + 3.0, m_base_t + c_t * 16.0])
-            rotate([-m_tilt, 0, 0])
-                cube([26.0, 40.0, 24.0], center = true);
+        // Top Frame Outer Corner 45° Chamfers
+        for (cx = [-m_stand_w/2, m_stand_w/2]) {
+            translate([cx, m_cr_rear + s_t * m_frame_h, m_base_t + c_t * m_frame_h])
+                rotate([-m_tilt, 0, 0])
+                    rotate([0, 0, (cx < 0 ? 45 : -45)])
+                        cube([6.0, 12.0, 6.0], center = true);
+        }
 
-        // 4x Rubber Feet Recesses (dia 8.0mm x 1.5mm deep)
+        // 4x Non-Slip Rubber Feet Recesses (dia 8.0mm x 1.5mm deep)
         for (fx = [-m_stand_w/2 + 8.5, m_stand_w/2 - 8.5]) {
-            for (fy = [6.5, m_base_l - 6.5]) {
+            for (fy = [7.0, m_base_l - 7.0]) {
                 translate([fx, fy, -0.1])
                     cylinder(d = 8.0, h = 1.6);
             }
