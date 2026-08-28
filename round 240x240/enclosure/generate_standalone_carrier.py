@@ -1,122 +1,122 @@
 #!/usr/bin/env python3
 """
-Standalone ESP32-S3 / C3 SuperMini Minimalist Snap-In Carrier Cradle
+Standalone ESP32-S3 / C3 SuperMini Cyberdeck Carrier Cradle (Option 1 Concept)
 100% Support-Free FDM 3D Printable Modular Hardware Bracket
 
 Features:
-- Dual Angled Corner Buttresses at the rear to absorb 100% of USB-C insertion load
-- Wide 10.0mm Open Center Gap for unobstructed 2.4GHz Wi-Fi / BLE ceramic antenna radiation
-- Open-Front entry for full USB-C cable and plug overmold clearance
-- Continuous 1.0mm side edge support ledges (Z = 2.0 to 5.2mm)
-- 45° Self-Supporting Snap-Fit retention clips (Z = 6.7mm)
-- Integrated base plate with 2x M3 mounting eyelets for chassis integration
+- Chunky Multi-Faceted Industrial Cyberdeck Geometry matching the Option 1 Concept Art
+- Dual Rear Sculpted Corner Buttresses (9.5mm height) with compound 45° chamfers to absorb 100% of USB-C insertion load
+- Wide 10.0mm Open Center Notch for unobstructed 2.4GHz Wi-Fi / BLE ceramic antenna radiation
+- Open-Front Entry Flare (15.0mm width) for wide USB-C cable overmolds
+- Precision Stepped Internal Shelf (2.4mm height) with 45° snap-fit retention clips
+- 2x Recessed Counterbored M3 Screw Mounting Sockets in the mid-waist
 """
 
 import os
-import math
 import manifold3d as m3d
 import trimesh
 import numpy as np
 
-def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
+def make_snap_clip(length=4.5, width=0.50, height=1.0, side='+Y'):
     hw_x = length / 2.0
     hz = height / 2.0
     if side == '+Y':
         v_base = [[-hw_x, 0.05, -hz], [hw_x, 0.05, -hz], [hw_x, 0.05, hz], [-hw_x, 0.05, hz]]
-        v_apex = [[-hw_x + 0.55, -width, 0.0], [hw_x - 0.55, -width, 0.0]]
+        v_apex = [[-hw_x + 0.5, -width, 0.0], [hw_x - 0.5, -width, 0.0]]
     else:
         v_base = [[-hw_x, -0.05, -hz], [hw_x, -0.05, -hz], [hw_x, -0.05, hz], [-hw_x, -0.05, hz]]
-        v_apex = [[-hw_x + 0.55, width, 0.0], [hw_x - 0.55, width, 0.0]]
+        v_apex = [[-hw_x + 0.5, width, 0.0], [hw_x - 0.5, width, 0.0]]
     pts = v_base + v_apex
     combined = m3d.Manifold()
     for p in pts:
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def make_rounded_rect_2d(w, d, r, fn=32):
-    hw = w / 2.0 - r
-    hd = d / 2.0 - r
-    pts = []
-    corners = [(hw, hd), (-hw, hd), (-hw, -hd), (hw, -hd)]
-    start_angles = [0, math.pi/2, math.pi, 3*math.pi/2]
-    for (cx, cy), sa in zip(corners, start_angles):
-        for i in range(fn // 4 + 1):
-            angle = sa + (math.pi / 2.0) * (i / (fn // 4))
-            pts.append([cx + r * math.cos(angle), cy + r * math.sin(angle)])
-    return pts
-
-def make_rounded_rect_prism(w, d, h, r, fn=32):
-    pts = make_rounded_rect_2d(w, d, r, fn)
-    poly = m3d.CrossSection([pts])
-    return m3d.Manifold.extrude(poly, h)
-
 def generate_standalone_carrier():
-    # ESP32-S3 / C3 SuperMini Dimensions:
-    board_l = 23.5 # Length along X
-    board_w = 18.4 # Width along Y
-    floor_t = 2.0  # Base plate thickness
-    rail_h = 3.2   # PCB support ledge height above floor (Z = 2.0 to 5.2)
-    side_wall_h = 6.2 # Overall wall height above floor (Z = 2.0 to 8.2)
-    side_thick = 1.8
+    board_l = 23.5 # ESP32-S3 PCB length
+    board_w = 18.4 # ESP32-S3 PCB width
+    pcb_t = 1.2
+    shelf_z = 2.4
     
-    # Cradle Bounds along X:
-    x_front = -board_l / 2.0 # -11.75
-    x_rear  =  board_l / 2.0 # +11.75
+    total_l = 30.0 # X from -15.0 to +15.0
+    total_w = 36.0 # Y from -18.0 to +18.0
+    max_h = 9.5
+    floor_t = 2.0
     
-    # 1. Base Mounting Plate (flanged with rounded corners)
-    flange_w = board_w + 2 * side_thick + 12.0 # 34.0mm
-    flange_l = board_l + 6.0 # 29.5mm
-    base_plate = make_rounded_rect_prism(flange_l, flange_w, floor_t, 3.0)
+    # 1. Solid Monolithic Chassis Block:
+    raw_block = m3d.Manifold.cube([total_l, total_w, max_h], center=True).translate([0, 0, max_h / 2.0])
     
-    # 2. Side Guide Walls & 1.0mm Edge Support Steps:
-    poly_wall_top = m3d.CrossSection.square([board_l, side_thick], center=False).translate([x_front, board_w / 2.0])
-    poly_step_top = m3d.CrossSection.square([board_l, 1.0], center=False).translate([x_front, board_w / 2.0 - 1.0])
-
-    poly_wall_bot = m3d.CrossSection.square([board_l, side_thick], center=False).translate([x_front, -(board_w / 2.0 + side_thick)])
-    poly_step_bot = m3d.CrossSection.square([board_l, 1.0], center=False).translate([x_front, -board_w / 2.0])
-
-    wall_top = m3d.Manifold.extrude(poly_wall_top, side_wall_h).translate([0, 0, floor_t])
-    step_top = m3d.Manifold.extrude(poly_step_top, rail_h).translate([0, 0, floor_t])
-
-    wall_bot = m3d.Manifold.extrude(poly_wall_bot, side_wall_h).translate([0, 0, floor_t])
-    step_bot = m3d.Manifold.extrude(poly_step_bot, rail_h).translate([0, 0, floor_t])
-    
-    # 3. Dual Angled Corner Buttresses at the Rear (+X end) with 45° sloped shoulders:
-    pillar_w = 4.8
-    pillar_thick = 3.2
-    pillar_h = 8.2 # Z = 2.0 to 10.2
-    
-    p_top = m3d.Manifold.cube([pillar_thick, pillar_w, pillar_h], center=False).translate([
-        x_rear, board_w / 2.0 + side_thick - pillar_w, floor_t
-    ])
-    p_bot = m3d.Manifold.cube([pillar_thick, pillar_w, pillar_h], center=False).translate([
-        x_rear, -(board_w / 2.0 + side_thick), floor_t
+    # 2. Central PCB Recess (width 18.8mm, length 23.9mm, depth down to shelf_z)
+    pcb_pocket = m3d.Manifold.cube([board_l + 0.4, board_w + 0.4, max_h + 1.0], center=True).translate([
+        0, 0, shelf_z + (max_h + 1.0) / 2.0
     ])
     
-    # 45° chamfers on rear top edges:
-    ch_top = m3d.Manifold.cube([5.0, pillar_w + 1.0, 5.0], center=True).rotate([0, 45, 0]).translate([
-        x_rear + pillar_thick, board_w / 2.0 + side_thick - pillar_w / 2.0, floor_t + pillar_h
+    # 3. Rear Antenna Gap (width 10.0mm, through floor)
+    antenna_gap = m3d.Manifold.cube([12.0, 10.0, max_h + 2.0], center=True).translate([
+        10.0, 0, max_h / 2.0
     ])
-    ch_bot = m3d.Manifold.cube([5.0, pillar_w + 1.0, 5.0], center=True).rotate([0, 45, 0]).translate([
-        x_rear + pillar_thick, -(board_w / 2.0 + side_thick - pillar_w / 2.0), floor_t + pillar_h
+    
+    # 4. Front USB-C Open Channel (width 15.0mm, through floor)
+    usbc_channel = m3d.Manifold.cube([10.0, 15.0, max_h + 2.0], center=True).translate([
+        -11.0, 0, max_h / 2.0
     ])
-    buttresses = (p_top + p_bot) - ch_top - ch_bot
     
-    # 4. Discrete 45° Self-Supporting Snap Retention Clips:
-    snap_z = floor_t + rail_h + 1.2 + 0.3 # 6.7mm
-    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([0.0, board_w / 2.0, snap_z])
-    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([0.0, -board_w / 2.0, snap_z])
+    # 5. Center Under-PCB Ventilation Window
+    center_vent = m3d.Manifold.cube([12.0, 12.0, floor_t + 2.0], center=True).translate([
+        0, 0, floor_t / 2.0
+    ])
     
-    solid = base_plate + wall_top + step_top + wall_bot + step_bot + buttresses + clip_top + clip_bot
+    # 6. Sculpted Waist Cutout (lowering side walls to 5.0mm at mid-section)
+    waist_cut = m3d.Manifold.cube([12.0, total_w + 2.0, max_h], center=True).translate([
+        0, 0, 5.0 + max_h / 2.0
+    ])
+    ramp_rear = m3d.Manifold.cube([6.0, total_w + 2.0, 8.0], center=True).rotate([0, 35, 0]).translate([
+        7.5, 0, 8.0
+    ])
+    ramp_front = m3d.Manifold.cube([6.0, total_w + 2.0, 8.0], center=True).rotate([0, -35, 0]).translate([
+        -7.5, 0, 8.0
+    ])
     
-    # 5. Mounting Screw Holes (2x M3 holes on side flanges, spacing = 28.0mm along Y)
-    hole_m3_top = m3d.Manifold.cylinder(floor_t + 2.0, 1.7, 1.7, 32).translate([0.0, 13.5, -1.0])
-    hole_m3_bot = m3d.Manifold.cylinder(floor_t + 2.0, 1.7, 1.7, 32).translate([0.0, -13.5, -1.0])
+    # 7. Multi-Faceted Outer Chamfers (matching Option 1 Concept Art):
+    rear_top_ch = m3d.Manifold.cube([8.0, total_w + 2.0, 8.0], center=True).rotate([0, 40, 0]).translate([
+        15.0, 0, max_h + 1.0
+    ])
+    front_top_ch = m3d.Manifold.cube([8.0, total_w + 2.0, 8.0], center=True).rotate([0, -40, 0]).translate([
+        -15.0, 0, max_h + 1.0
+    ])
     
-    # Central Aeration / Weight-Reduction Window in the floor:
-    floor_window = m3d.Manifold.cube([14.0, 12.0, floor_t + 2.0], center=True).translate([0.0, 0.0, floor_t / 2.0])
+    c_sw = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([-15.0, -18.0, max_h/2.0])
+    c_nw = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([-15.0,  18.0, max_h/2.0])
+    c_se = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([ 15.0, -18.0, max_h/2.0])
+    c_ne = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([ 15.0,  18.0, max_h/2.0])
+    outer_corners = c_sw + c_nw + c_se + c_ne
     
-    return solid - hole_m3_top - hole_m3_bot - floor_window
+    side_bevel_top = m3d.Manifold.cube([total_l + 2.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([
+        0, 18.0, max_h
+    ])
+    side_bevel_bot = m3d.Manifold.cube([total_l + 2.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([
+        0, -18.0, max_h
+    ])
+    
+    # 8. Counterbored M3 Mounting Holes on Side Flanges (X = 0, Y = +/- 14.5mm):
+    m3_mounts = m3d.Manifold()
+    for sy in [-14.5, 14.5]:
+        hole = m3d.Manifold.cylinder(max_h + 2.0, 1.7, 1.7, 32).translate([0, sy, -1.0])
+        cb = m3d.Manifold.cylinder(max_h, 3.2, 3.2, 32).translate([0, sy, 3.0])
+        m3_mounts = m3_mounts + hole + cb
+        
+    cuts = (pcb_pocket + antenna_gap + usbc_channel + center_vent +
+            waist_cut + ramp_rear + ramp_front + rear_top_ch + front_top_ch +
+            outer_corners + side_bevel_top + side_bevel_bot + m3_mounts)
+            
+    carrier = raw_block - cuts
+    
+    # 9. Snap retention clips:
+    clip_z = shelf_z + pcb_t + 0.3
+    c_top = make_snap_clip(4.5, 0.50, 1.0, '+Y').translate([0, board_w / 2.0 + 0.2, clip_z])
+    c_bot = make_snap_clip(4.5, 0.50, 1.0, '-Y').translate([0, -(board_w / 2.0 + 0.2), clip_z])
+    
+    return carrier + c_top + c_bot
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
@@ -129,7 +129,7 @@ def main():
         faces=mesh_data.tri_verts
     )
     tri_mesh.export(out_stl, file_type='stl')
-    print(f"[Standalone ESP32-S3 Carrier] Exported: {out_stl}")
+    print(f"[Standalone ESP32-S3 Option 1 Carrier] Exported: {out_stl}")
     print(f"   -> Triangles: {len(tri_mesh.faces)}, Watertight: {tri_mesh.is_watertight}, Volume: {tri_mesh.volume / 1000.0:.2f} cm3")
 
 if __name__ == "__main__":
