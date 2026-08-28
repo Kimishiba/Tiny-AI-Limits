@@ -135,8 +135,11 @@ def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
     tri_mesh = trimesh.Trimesh(
         vertices=mesh_data.vert_properties[:, :3],
-        faces=mesh_data.tri_verts
+        faces=mesh_data.tri_verts,
+        process=True
     )
+    trimesh.repair.fix_inversion(tri_mesh)
+    trimesh.repair.fix_winding(tri_mesh)
     tri_mesh.export(filepath, file_type='stl')
     print(f"[{name}] Exported: {filepath}")
     print(f"   -> Triangles: {len(tri_mesh.faces)}, Watertight: {tri_mesh.is_watertight}, Volume: {tri_mesh.volume / 1000.0:.2f} cm3")
@@ -145,9 +148,10 @@ def export_stl(manifold_obj, filepath, name="Model"):
 def generate_front_bezel():
     w = 54.0
     c = 6.0
-    t = 5.5
+    ext = 4.0 # Base extended 4.0mm down from original print base
+    t = 5.5 + ext # 9.5mm base thickness
     ring_h = 1.5
-    oal_t = t + ring_h
+    oal_t = t + ring_h # 11.0mm overall thickness
     screw_dist = 20.50
     chamfer_outer = 1.2
     
@@ -157,12 +161,13 @@ def generate_front_bezel():
     
     r_glass = 16.5
     r_front = 19.4
-    funnel_h = oal_t + 2.0
-    dr_dz = (r_front - r_glass) / (oal_t - 3.4)
-    r_bot = r_glass - dr_dz * (3.4 - (-1.0))
-    r_top = r_front + dr_dz * (8.0 - oal_t)
-    window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, -1.0])
-    pcb_recess = make_gc9a01_pcb_pocket(3.4).translate([0, 0, -0.1])
+    shelf_z = 3.4 + ext # Screen seating shelf at Z = 7.4mm (untouched relative to front face)
+    funnel_h = (oal_t - shelf_z) + 2.0
+    dr_dz = (r_front - r_glass) / (oal_t - shelf_z)
+    r_bot = r_glass - dr_dz * (shelf_z - (shelf_z - 1.0))
+    r_top = r_front + dr_dz * (oal_t + 1.0 - oal_t)
+    window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, shelf_z - 1.0])
+    pcb_recess = make_gc9a01_pcb_pocket(shelf_z).translate([0, 0, -0.1])
     cuts = window_funnel + pcb_recess
     
     for sx in [-screw_dist, screw_dist]:
@@ -175,10 +180,51 @@ def generate_front_bezel():
     screen_holes_y = -18.91
     r_pilot = 1.75 / 2.0
     for sx in [-screen_holes_x, screen_holes_x]:
-        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, -0.1])
+        s_hole = m3d.Manifold.cylinder(3.2, r_pilot, r_pilot, 32).translate([sx, screen_holes_y, shelf_z - 3.3])
         cuts = cuts + s_hole
             
-    return bezel_solid - cuts
+    bezel_hollow = bezel_solid - cuts
+
+    # Screen Retaining Snap Tabs originating at Z = 0 (with 1.5mm support clearance tolerance):
+    tab_w = 5.0
+    tab_arm_h = 4.30 # Arm height from Z = 0 to snap lip apex (7.4mm shelf - 3.1mm gap)
+    lip_overhang = 0.65
+    lip_h = 1.10
+    
+    # Right tab (+X):
+    arm_r = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([19.7 - 0.2, -tab_w/2.0, 0])
+    v_base = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
+    v_apex = [[-lip_overhang, -tab_w/2.0 + 0.5, lip_h], [-lip_overhang, tab_w/2.0 - 0.5, lip_h]]
+    pts_lip = v_base + v_apex
+    lip_r = m3d.Manifold()
+    for p in pts_lip:
+        lip_r = lip_r + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_r = lip_r.hull().translate([19.7 - 0.2, 0, tab_arm_h - lip_h])
+    tab_right = arm_r + lip_r
+
+    # Left tab (-X):
+    arm_l = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([-19.7 - 1.2, -tab_w/2.0, 0])
+    v_base_l = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
+    v_apex_l = [[lip_overhang, -tab_w/2.0 + 0.5, lip_h], [lip_overhang, tab_w/2.0 - 0.5, lip_h]]
+    pts_lip_l = v_base_l + v_apex_l
+    lip_l = m3d.Manifold()
+    for p in pts_lip_l:
+        lip_l = lip_l + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_l = lip_l.hull().translate([-19.7 + 0.2, 0, tab_arm_h - lip_h])
+    tab_left = arm_l + lip_l
+
+    # Top tab (+Y):
+    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 23.8 - 0.2, 0])
+    v_base_t = [[-tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, lip_h], [-tab_w/2.0, 0.0, lip_h]]
+    v_apex_t = [[-tab_w/2.0 + 0.5, -lip_overhang, lip_h], [tab_w/2.0 - 0.5, -lip_overhang, lip_h]]
+    pts_lip_t = v_base_t + v_apex_t
+    lip_t = m3d.Manifold()
+    for p in pts_lip_t:
+        lip_t = lip_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    lip_t = lip_t.hull().translate([0, 23.8 - 0.2, tab_arm_h - lip_h])
+    tab_top = arm_t + lip_t
+
+    return bezel_hollow + tab_right + tab_left + tab_top
 
 def generate_mid_clamp():
     w = 54.0
@@ -322,17 +368,18 @@ def generate_main_housing():
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
             
-    # 6. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
+    # 6. High-Airflow Enlarged Contour-Following Aeration Slits on Backplate (Z = 0)
     vent_cuts = m3d.Manifold()
     top_rows = [
-        (10.5, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (12.7, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (14.9, 9.0, -11.0, 7.5, 0.0, 9.0, 11.0),
-        (17.1, 8.0, -10.5, 7.5, 0.0, 8.0, 10.5),
-        (19.3, 7.0, -10.0, 7.5, 0.0, 7.0, 10.0),
-        (21.5, 5.0, -9.0,  7.5, 0.0, 5.0, 9.0),
+        # (ry, lw, lcx, cw_v, ccx, rw, rcx)
+        (9.8,  10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
+        (12.3, 10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
+        (14.8, 10.0, -11.0, 9.5, 0.0, 10.0, 11.0),
+        (17.3,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
+        (19.8,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
+        (22.0,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
     ]
-    slot_h = 1.05
+    slot_h = 1.50 # Enlarged aperture height (1.50mm vs 1.05mm, +43% opening for maximum airflow)
     for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
@@ -345,14 +392,27 @@ def generate_main_housing():
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
+    # Enlarged 1.6mm top vertical exhaust vents with 45-degree peaked roof:
+    pts_slot_ccw = [[-0.80, 11.0], [0.80, 11.0], [0.80, 18.2], [0.0, 19.0], [-0.80, 18.2]]
     poly_slot = m3d.CrossSection([pts_slot_ccw])
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Embossed/Debossed Product Name in center area (Z = 0) with True Vector Font Curves
-    text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
+    # 7. Dedicated Under-MCU Aeration Grille (4 rows under ESP32-C3 cradle, X = -21.0 to -3.5mm):
+    for y_pos in [-5.4, -1.8, 1.8, 5.4]:
+        s_mcu1 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-16.6, y_pos, floor_t / 2.0])
+        s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
+        vent_cuts = vent_cuts + s_mcu1 + s_mcu2
+
+    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (50% Larger Font, X = +11.5mm, Z = 0):
+    cs_l1, _, _ = text_to_cross_section("TINY AI", size=3.6)
+    cs_l2, _, _ = text_to_cross_section("LIMITS", size=3.6)
+    cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.4)
+    # 3-Line stacked layout with +56% larger font size (size 3.6 vs 2.3):
+    cs_stacked = cs_l1.translate([0, 3.6]) + cs_l2.translate([0, 0.0]) + cs_l3.translate([0, -3.6])
+    cs_right_panel = cs_stacked.translate([11.5, 0])
+    text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
@@ -596,6 +656,69 @@ def generate_monolithic_desk_stand():
             
     return (tier1_solid + pedestal_solid) - pod_cutter - feet_cuts
 
+def generate_minimalist_stand():
+    """
+    1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787932520699.jpg):
+    - 54.0mm wide matching pod
+    - 56.0mm base depth on desk
+    - 6.0mm base plate with wide 45° front chamfer
+    - 22.0° angled front lip matching bezel chamfer
+    - 36.0mm backrest height (concealed below top corners of pod)
+    - Wide open triangular side window (A-frame truss)
+    - 24x26mm central cable pass-through slot
+    - 4x rubber feet recess pockets (dia 8.0mm x 1.5mm)
+    - 100% support-free FDM 3D printable
+    """
+    stand_w = 54.0
+    tilt_deg = 22.0
+    tilt_rad = math.radians(tilt_deg)
+    s_t = math.sin(tilt_rad)
+    c_t = math.cos(tilt_rad)
+    
+    base_l = 56.0
+    base_t = 6.0
+    beam_t = 5.5
+    back_h = 36.0
+    
+    base = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2.0, 0, 0])
+    chamfer_cut = m3d.Manifold.cube([stand_w + 10.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([0, 0, base_t + 1.5])
+    
+    lip_block = m3d.Manifold.cube([stand_w, 4.5, 6.0], center=False).translate([-stand_w/2.0, 0, -0.5])
+    lip_rot = lip_block.rotate([-tilt_deg, 0, 0]).translate([0, 5.0, base_t])
+    
+    y_cr_rear = 40.0
+    spine = m3d.Manifold.cube([stand_w, beam_t, back_h + 1.0], center=False).translate([-stand_w/2.0, 0, -0.5])
+    spine_rot = spine.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t])
+    
+    tri_pts = [
+        [y_cr_rear + beam_t - 1.0, base_t - 0.5],
+        [base_l - 2.0, base_t - 0.5],
+        [y_cr_rear + s_t * (back_h - 3.0), base_t + c_t * (back_h - 3.0)]
+    ]
+    tri_poly = m3d.CrossSection([tri_pts])
+    tri_solid = m3d.Manifold.extrude(tri_poly, stand_w).translate([-stand_w/2.0, 0, 0])
+    
+    stand_raw = (base - chamfer_cut) + lip_rot + spine_rot + tri_solid
+    
+    window_pts = [
+        [10.0, base_t + 2.0],
+        [base_l - 8.0, base_t + 2.0],
+        [y_cr_rear + s_t * (back_h - 8.0) + 1.0, base_t + c_t * (back_h - 8.0) - 3.0]
+    ]
+    window_poly = m3d.CrossSection([window_pts])
+    window_cutout = m3d.Manifold.extrude(window_poly, stand_w + 20.0).translate([-(stand_w + 20.0)/2.0, 0, 0])
+    
+    cable_slot = m3d.Manifold.cube([26.0, 40.0, 24.0], center=True)
+    cable_slot = cable_slot.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear + s_t * 16.0 + 3.0, base_t + c_t * 16.0])
+    
+    feet = m3d.Manifold()
+    for fx in [-stand_w/2.0 + 8.5, stand_w/2.0 - 8.5]:
+        for fy in [6.5, base_l - 6.5]:
+            foot = m3d.Manifold.cylinder(1.5, 4.0, 4.0, 32).translate([fx, fy, -0.1])
+            feet = feet + foot
+            
+    return stand_raw - window_cutout - cable_slot - feet
+
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -624,6 +747,10 @@ def main():
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
+
+    stand_minimalist = generate_minimalist_stand()
+    stand_min_path = os.path.join(output_dir, "gc9a01_minimalist_stand.stl")
+    export_stl(stand_minimalist, stand_min_path, "Minimalist Angled Cradle Desk Stand (Photo Matched)")
 
     print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified!")
 
