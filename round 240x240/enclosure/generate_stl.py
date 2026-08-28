@@ -135,8 +135,11 @@ def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
     tri_mesh = trimesh.Trimesh(
         vertices=mesh_data.vert_properties[:, :3],
-        faces=mesh_data.tri_verts
+        faces=mesh_data.tri_verts,
+        process=True
     )
+    trimesh.repair.fix_inversion(tri_mesh)
+    trimesh.repair.fix_winding(tri_mesh)
     tri_mesh.export(filepath, file_type='stl')
     print(f"[{name}] Exported: {filepath}")
     print(f"   -> Triangles: {len(tri_mesh.faces)}, Watertight: {tri_mesh.is_watertight}, Volume: {tri_mesh.volume / 1000.0:.2f} cm3")
@@ -402,12 +405,13 @@ def generate_main_housing():
         s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
         vent_cuts = vent_cuts + s_mcu1 + s_mcu2
 
-    # 8. Embossed/Debossed Product Name on Solid Right Backplate Panel (X = +11.5mm, Z = 0)
+    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (X = +11.5mm, Z = 0):
     cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.3)
     cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.1)
-    # Center text at origin, mirror X for rear reading, then translate to solid right panel (+X):
-    cs_total = (cs1.translate([0, 1.8]) + cs2.translate([0, -1.8])).scale([-1, 1]).translate([11.5, 0])
-    text_deboss = m3d.Manifold.extrude(cs_total, 0.50 + 0.1).translate([0, 0, -0.05])
+    # Stack lines and translate directly to solid right panel (+X):
+    cs_stacked = cs1.translate([0, 1.8]) + cs2.translate([0, -1.8])
+    cs_right_panel = cs_stacked.translate([11.5, 0])
+    text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
@@ -678,16 +682,16 @@ def generate_minimalist_stand():
     base = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2.0, 0, 0])
     chamfer_cut = m3d.Manifold.cube([stand_w + 10.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([0, 0, base_t + 1.5])
     
-    lip_block = m3d.Manifold.cube([stand_w, 4.5, 5.5], center=False).translate([-stand_w/2.0, 0, 0])
+    lip_block = m3d.Manifold.cube([stand_w, 4.5, 6.0], center=False).translate([-stand_w/2.0, 0, -0.5])
     lip_rot = lip_block.rotate([-tilt_deg, 0, 0]).translate([0, 5.0, base_t])
     
     y_cr_rear = 40.0
-    spine = m3d.Manifold.cube([stand_w, beam_t, back_h], center=False).translate([-stand_w/2.0, 0, 0])
+    spine = m3d.Manifold.cube([stand_w, beam_t, back_h + 1.0], center=False).translate([-stand_w/2.0, 0, -0.5])
     spine_rot = spine.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t])
     
     tri_pts = [
-        [y_cr_rear + beam_t - 0.5, base_t],
-        [base_l - 2.0, base_t],
+        [y_cr_rear + beam_t - 1.0, base_t - 0.5],
+        [base_l - 2.0, base_t - 0.5],
         [y_cr_rear + s_t * (back_h - 3.0), base_t + c_t * (back_h - 3.0)]
     ]
     tri_poly = m3d.CrossSection([tri_pts])
