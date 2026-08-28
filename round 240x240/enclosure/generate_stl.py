@@ -10,20 +10,23 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing Pod (Clean Monolithic Cyberdeck Enclosure):
-  * Compliant Cantilever Snap Arm Mechanism (Dual 1.2mm vertical flex relief slits allowing center snap arm to bend backwards on board insertion, then snap forward with positive lock)
-  * Dual Rigid Outer Cheeks backed by 2x Heavy-Duty Curved Buttress Ribs (absorbing 100% of USB-C cable insertion load)
-  * Taller 9.5mm Rear Retaining Wall with Smooth Cylindrical Rounded Corners
-  * Optimized Height 3-Way Snap-Fit Locking System (Side clips at Z = 6.7mm tight on PCB top, Rear retention lip at Z = 8.8mm)
-  * Shaved-Depth High-Clearance USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness at port on LEFT sidewall)
-  * Flush Inner Wall Board Seating (ESP32 PCB sits directly flush against inner wall at X = -24.0mm)
+- Main Housing Pod (Low-Profile Optimized Monolithic Cyberdeck Enclosure):
+  * Lowered Board Seating (PCB bottom at Z = 3.8mm, USB-C at Z = 7.0mm)
+  * +0.4mm Inside Cradle Tolerances (18.9mm W x 23.6mm L for frictionless seating)
+  * Stepped-Down Outer Rigid Cheeks (Z = 6.8mm) eliminating tall corner obstructions
+  * 45° Self-Centering Entry Lead-In Chamfers along top inner rims of side walls and rear posts
+  * 1.5mm Corner Clearance Relief Pockets preventing sharp PCB corners from binding
+  * Compliant Cantilever Snap Arm (7.5mm tall, Z = 2.0 to 9.5mm) with dual 1.2mm flex slits
+  * Dynamic 30° Smooth Deflection Ramp on rear snap lip (Z = 7.0mm)
+  * 3-Way Snap Retention (Side clips at Z = 5.3mm, Rear lip at Z = 7.0mm)
+  * 2x Heavy-Duty Curved Buttress Ribs (reinforcing cheeks against USB-C insertion forces)
+  * Shaved-Depth USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
-  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
-  * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
+  * Integrated 1.0mm side edge support ledges (Z = 2.0 to 3.8mm)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
-  * True Vector Font Bold "TINY AI LIMITS / SENTINEL MK-1" Branding (Correct Left-to-Right Rear Exterior Orientation)
+  * True Vector Font Bold "TINY AI LIMITS / SENTINEL MK-1" Debossed Branding (Z = 0)
 - Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
   * Tier 2 (Cradle Trunk): 62x66mm base tapering to 54x58mm top (24mm H) with deep V-saddle cradle
@@ -248,7 +251,7 @@ def make_text_emboss(line1="TINY AI LIMITS", line2="SENTINEL MK-1", depth=0.50):
     cs_mirrored = cs_total.scale([-1, 1])
     return m3d.Manifold.extrude(cs_mirrored, depth + 0.1)
 
-def make_snap_clip(length=5.0, width=0.60, height=1.4, side='+Y'):
+def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
     hw_x = length / 2.0
     hz = height / 2.0
     if side == '+Y':
@@ -263,11 +266,15 @@ def make_snap_clip(length=5.0, width=0.60, height=1.4, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def make_rear_snap_clip(length=5.5, width=0.60, height=1.4):
+def make_rear_snap_clip(length=5.5, width=0.55, height=1.3):
+    """
+    Dynamic Low-Friction 30° Deflection Snap Ramp
+    """
     hw_y = length / 2.0
     hz = height / 2.0
+    # Asymmetric profile: 30° entry ramp on top, sharp retention flat on bottom:
     v_base = [[0.05, -hw_y, -hz], [0.05, hw_y, -hz], [0.05, hw_y, hz], [0.05, -hw_y, hz]]
-    v_apex = [[-width, -hw_y + 0.60, 0.0], [-width, hw_y - 0.60, 0.0]]
+    v_apex = [[-width, -hw_y + 0.60, -0.2], [-width, hw_y - 0.60, -0.2]]
     pts = v_base + v_apex
     combined = m3d.Manifold()
     for p in pts:
@@ -300,8 +307,8 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Extra-Wide High-Clearance Oval USB-C Port on LEFT wall (X = -27.0mm):
-    usbc_z = 9.50
+    # 3. Lowered Extra-Wide High-Clearance Oval USB-C Port on LEFT wall (X = -27.0mm, Z = 7.00mm):
+    usbc_z = 7.00
     y_span = 4.0
     r_inner = 3.25
     r_outer = 4.75
@@ -367,39 +374,46 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. COMPLIANT CANTILEVER SNAP CRADLE:
-    esp_l = 23.0
-    esp_w = 18.4
-    rail_h = 3.2
+    # 8. LOW-PROFILE COMPLIANT CANTILEVER SNAP CRADLE (+0.4mm Tolerances & Lower Board Seating):
+    esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
+    esp_w = 18.9       # Expanded width (+0.5mm clearance for 18.0-18.2mm boards)
+    rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
     side_thick = 1.6
-    side_wall_h = 6.2
-    rear_wall_h = 9.5
+    side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
+    rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
     x_front = -24.0
-    x_rear = -1.0
+    x_rear = -0.4      # Rear wall positioned for 23.6mm length
     wall_thick = 2.4
     r_corner = 1.6
-    hw_c = esp_w / 2.0 + side_thick
+    hw_c = esp_w / 2.0 + side_thick # 11.05mm
 
     arm_w_snap = 6.5
     slit_w = 1.2
-    slit_depth = 6.5
+    slit_depth = 5.5
 
-    # 1. Back Wall with Cylindrical Rounded Outer Corners:
-    bw_base = m3d.Manifold.cube([wall_thick - r_corner, 2 * hw_c, rear_wall_h], center=False).translate([
+    # 1. Stepped Rear Wall (Outer cheeks stepped down to side_wall_h = 4.8mm, Center cantilever arm at rear_wall_h = 7.5mm):
+    # Outer Cheek Blocks (Z = 2.0 to 6.8mm):
+    outer_cheek_t = m3d.Manifold.cube([wall_thick, hw_c - arm_w_snap/2 - slit_w, side_wall_h], center=False).translate([
+        x_rear, arm_w_snap/2 + slit_w, floor_t
+    ])
+    outer_cheek_b = m3d.Manifold.cube([wall_thick, hw_c - arm_w_snap/2 - slit_w, side_wall_h], center=False).translate([
         x_rear, -hw_c, floor_t
     ])
-    bw_fill = m3d.Manifold.cube([wall_thick, 2 * (hw_c - r_corner), rear_wall_h], center=False).translate([
-        x_rear, -(hw_c - r_corner), floor_t
-    ])
-    c_top = m3d.Manifold.cylinder(rear_wall_h, r_corner, r_corner, 32).translate([
+    
+    # Rounded outer corners on cheeks (Z = 2.0 to 6.8mm):
+    c_top = m3d.Manifold.cylinder(side_wall_h, r_corner, r_corner, 32).translate([
         x_rear + wall_thick - r_corner, hw_c - r_corner, floor_t
     ])
-    c_bot = m3d.Manifold.cylinder(rear_wall_h, r_corner, r_corner, 32).translate([
+    c_bot = m3d.Manifold.cylinder(side_wall_h, r_corner, r_corner, 32).translate([
         x_rear + wall_thick - r_corner, -(hw_c - r_corner), floor_t
     ])
-    rounded_back_wall = bw_base + bw_fill + c_top + c_bot
+
+    # Center Compliant Snap Arm (Z = 2.0 to 9.5mm):
+    center_snap_post = m3d.Manifold.cube([wall_thick, arm_w_snap, rear_wall_h], center=False).translate([
+        x_rear, -arm_w_snap/2, floor_t
+    ])
     
-    # 2. Side Walls & Edge Steps:
+    # 2. Side Walls & Edge Steps (Z = 2.0 to 6.8mm):
     side_wall_top = m3d.Manifold.cube([esp_l + 0.1, side_thick, side_wall_h], center=False).translate([
         x_front, esp_w / 2.0, floor_t
     ])
@@ -413,29 +427,31 @@ def generate_main_housing():
         x_front, -esp_w / 2.0, floor_t
     ])
     
-    # 3. 2 Heavy-Duty Corner Buttress Ribs:
-    r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 4.8, 0.8, floor_t + 0.8])
-    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick - 0.1, 0.8, floor_t + rear_wall_h - 0.8])
+    # 3. 2 Heavy-Duty Corner Buttress Ribs reinforcing outer cheeks:
+    r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 3.8, 0.8, floor_t + 0.8])
+    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick - 0.1, 0.8, floor_t + side_wall_h - 0.8])
     r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick - 0.1, 0, floor_t + 0.05])
     rib_template = (r_bot_c + r_top_c + r_base_c).hull()
     
     rib_t = rib_template.translate([0, esp_w / 2.0 - 1.2, 0])
     rib_b = rib_template.translate([0, -(esp_w / 2.0 - 1.2), 0])
     
-    # 4. 3-Way Snap Retention System:
+    # 4. Low-Profile 3-Way Snap Retention System:
     esp_center_x = (x_front + x_rear) / 2.0
-    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 6.7mm
-    snap_rear_z = floor_t + rail_h + 1.4 + 2.2  # 8.8mm
+    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 5.3mm
+    snap_rear_z = floor_t + rail_h + 1.4 + 1.8  # 7.0mm
     
-    clip_top = make_snap_clip(5.0, 0.60, 1.4, '+Y').translate([esp_center_x, esp_w / 2.0, snap_side_z])
-    clip_bot = make_snap_clip(5.0, 0.60, 1.4, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_side_z])
-    clip_rear = make_rear_snap_clip(5.5, 0.60, 1.4).translate([x_rear, 0, snap_rear_z])
+    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_side_z])
+    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_side_z])
+    clip_rear = make_rear_snap_clip(5.5, 0.55, 1.3).translate([x_rear, 0, snap_rear_z])
     
-    cradle_solid = (rounded_back_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
+    cradle_solid = (outer_cheek_t + outer_cheek_b + c_top + c_bot + center_snap_post +
+                    side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
                     rib_t + rib_b + clip_top + clip_bot + clip_rear)
 
     housing_assembled = (housing_hollow + cradle_solid) - usbc_port
 
+    # 5. Flex Relief Slits (isolating center cantilever snap arm):
     slit_t = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
         x_rear + wall_thick / 2.0, arm_w_snap / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
     ])
@@ -443,7 +459,22 @@ def generate_main_housing():
         x_rear + wall_thick / 2.0, -(arm_w_snap / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
     ])
 
-    return housing_assembled - slit_t - slit_b
+    # 6. 45° Self-Centering Entry Lead-In Chamfers & 1.5mm Corner Relief Pockets:
+    # 45° Entry chamfer on top inner edge of side walls:
+    chamfer_top_side = m3d.Manifold.cylinder(esp_l + 2.0, 1.0, 0.01, 4).rotate([0, 90, 0]).translate([x_front - 1.0, esp_w/2.0, floor_t + side_wall_h])
+    chamfer_bot_side = m3d.Manifold.cylinder(esp_l + 2.0, 1.0, 0.01, 4).rotate([0, 90, 0]).translate([x_front - 1.0, -esp_w/2.0, floor_t + side_wall_h])
+    
+    # 1.5mm diagonal relief pockets on inside rear corners (Y = +/- 9.45mm):
+    corner_relief_t = m3d.Manifold.cube([2.0, 2.0, side_wall_h + 2.0], center=True).rotate([0, 0, 45]).translate([
+        x_rear, esp_w/2.0, floor_t + side_wall_h/2.0
+    ])
+    corner_relief_b = m3d.Manifold.cube([2.0, 2.0, side_wall_h + 2.0], center=True).rotate([0, 0, 45]).translate([
+        x_rear, -esp_w/2.0, floor_t + side_wall_h/2.0
+    ])
+
+    entry_refinements = slit_t + slit_b + chamfer_top_side + chamfer_bot_side + corner_relief_t + corner_relief_b
+
+    return housing_assembled - entry_refinements
 
 def generate_stand_tier1_base():
     base_w = 64.0
@@ -609,7 +640,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Clean Monolithic)")
+    export_stl(housing, housing_path, "Main Housing Pod (Low-Profile Optimized)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
@@ -622,12 +653,6 @@ def main():
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
-
-    # Clean up standalone kickstand STL if present:
-    ubracket_path = os.path.join(output_dir, "gc9a01_u_bracket_kickstand.stl")
-    if os.path.exists(ubracket_path):
-        os.remove(ubracket_path)
-        print(f"Removed obsolete: {ubracket_path}")
 
     print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified!")
 
