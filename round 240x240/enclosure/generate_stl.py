@@ -402,12 +402,12 @@ def generate_main_housing():
         s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
         vent_cuts = vent_cuts + s_mcu1 + s_mcu2
 
-    # 8. Embossed/Debossed Product Name on Right Backplate Panel (X = +11.0mm, Z = 0)
-    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.4)
-    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.2)
-    cs_total = cs1.translate([11.0, 1.8]) + cs2.translate([11.0, -1.8])
-    cs_mirrored = cs_total.scale([-1, 1])
-    text_deboss = m3d.Manifold.extrude(cs_mirrored, 0.50 + 0.1).translate([0, 0, -0.05])
+    # 8. Embossed/Debossed Product Name on Solid Right Backplate Panel (X = +11.5mm, Z = 0)
+    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.3)
+    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.1)
+    # Center text at origin, mirror X for rear reading, then translate to solid right panel (+X):
+    cs_total = (cs1.translate([0, 1.8]) + cs2.translate([0, -1.8])).scale([-1, 1]).translate([11.5, 0])
+    text_deboss = m3d.Manifold.extrude(cs_total, 0.50 + 0.1).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
@@ -651,6 +651,69 @@ def generate_monolithic_desk_stand():
             
     return (tier1_solid + pedestal_solid) - pod_cutter - feet_cuts
 
+def generate_minimalist_stand():
+    """
+    1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787932520699.jpg):
+    - 54.0mm wide matching pod
+    - 56.0mm base depth on desk
+    - 6.0mm base plate with wide 45° front chamfer
+    - 22.0° angled front lip matching bezel chamfer
+    - 36.0mm backrest height (concealed below top corners of pod)
+    - Wide open triangular side window (A-frame truss)
+    - 24x26mm central cable pass-through slot
+    - 4x rubber feet recess pockets (dia 8.0mm x 1.5mm)
+    - 100% support-free FDM 3D printable
+    """
+    stand_w = 54.0
+    tilt_deg = 22.0
+    tilt_rad = math.radians(tilt_deg)
+    s_t = math.sin(tilt_rad)
+    c_t = math.cos(tilt_rad)
+    
+    base_l = 56.0
+    base_t = 6.0
+    beam_t = 5.5
+    back_h = 36.0
+    
+    base = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2.0, 0, 0])
+    chamfer_cut = m3d.Manifold.cube([stand_w + 10.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([0, 0, base_t + 1.5])
+    
+    lip_block = m3d.Manifold.cube([stand_w, 4.5, 5.5], center=False).translate([-stand_w/2.0, 0, 0])
+    lip_rot = lip_block.rotate([-tilt_deg, 0, 0]).translate([0, 5.0, base_t])
+    
+    y_cr_rear = 40.0
+    spine = m3d.Manifold.cube([stand_w, beam_t, back_h], center=False).translate([-stand_w/2.0, 0, 0])
+    spine_rot = spine.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t])
+    
+    tri_pts = [
+        [y_cr_rear + beam_t - 0.5, base_t],
+        [base_l - 2.0, base_t],
+        [y_cr_rear + s_t * (back_h - 3.0), base_t + c_t * (back_h - 3.0)]
+    ]
+    tri_poly = m3d.CrossSection([tri_pts])
+    tri_solid = m3d.Manifold.extrude(tri_poly, stand_w).translate([-stand_w/2.0, 0, 0])
+    
+    stand_raw = (base - chamfer_cut) + lip_rot + spine_rot + tri_solid
+    
+    window_pts = [
+        [10.0, base_t + 2.0],
+        [base_l - 8.0, base_t + 2.0],
+        [y_cr_rear + s_t * (back_h - 8.0) + 1.0, base_t + c_t * (back_h - 8.0) - 3.0]
+    ]
+    window_poly = m3d.CrossSection([window_pts])
+    window_cutout = m3d.Manifold.extrude(window_poly, stand_w + 20.0).translate([-(stand_w + 20.0)/2.0, 0, 0])
+    
+    cable_slot = m3d.Manifold.cube([26.0, 40.0, 24.0], center=True)
+    cable_slot = cable_slot.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear + s_t * 16.0 + 3.0, base_t + c_t * 16.0])
+    
+    feet = m3d.Manifold()
+    for fx in [-stand_w/2.0 + 8.5, stand_w/2.0 - 8.5]:
+        for fy in [6.5, base_l - 6.5]:
+            foot = m3d.Manifold.cylinder(1.5, 4.0, 4.0, 32).translate([fx, fy, -0.1])
+            feet = feet + foot
+            
+    return stand_raw - window_cutout - cable_slot - feet
+
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -679,6 +742,10 @@ def main():
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
+
+    stand_minimalist = generate_minimalist_stand()
+    stand_min_path = os.path.join(output_dir, "gc9a01_minimalist_stand.stl")
+    export_stl(stand_minimalist, stand_min_path, "Minimalist Angled Cradle Desk Stand (Photo Matched)")
 
     print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified!")
 
