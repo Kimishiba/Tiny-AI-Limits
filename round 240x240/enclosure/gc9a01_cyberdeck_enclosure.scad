@@ -334,7 +334,7 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle
+    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front)
     wall_thick  = 3.0;
     side_thick  = 1.6;
     tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
@@ -378,12 +378,6 @@ module main_housing() {
                 translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
                 translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
             }
-
-        // 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
-        translate([x_front - 1.8, 7.9 - 1.3, floor_t])
-            cube([1.8, 2.6, esp_standoff_h + 3.0]);
-        translate([x_front - 1.8, -7.9 - 1.3, floor_t])
-            cube([1.8, 2.6, esp_standoff_h + 3.0]);
     }
 }
 

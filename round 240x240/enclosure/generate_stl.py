@@ -11,7 +11,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
-  * Open-Bay Minimalist U-Cradle (Internal standalone rails removed for massive open clearance)
+  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, no front pillars)
   * Integrated 1.0mm side edge support ledges along inner base of side walls
   * Clean discrete 45° self-supporting snap-fit retention clips
   * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
@@ -190,14 +190,14 @@ def generate_mid_clamp():
         [hw - c, hw],   [-hw + c, hw],
         [-hw, hw - c],  [-hw, -hw + c]
     ]
-    oct_outer = m3d.CrossSection([oct_pts])
+    oct_outer = m3d.CrossSection([pts_oct := oct_pts])
     
     cw, cc = 48.0, 12.0
     hcw = cw / 2.0
     cav_pts = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
         [hcw, -hcw + cc],  [hcw, hcw - cc],
-        [hcw - cc, hcw],   [-hcw + cc, hcw],
+        [hcw - cc, hw_c := hcw],   [-hcw + cc, hw_c],
         [-hcw, hcw - cc],  [-hcw, -hcw + cc]
     ]
     oct_inner = m3d.CrossSection([cav_pts])
@@ -264,7 +264,7 @@ def make_text_emboss(line1="CYBER-DECK", line2="UNIT 01", depth=0.45):
         back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
         loop = (m3d.CrossSection.circle(size * 0.5, 32) - m3d.CrossSection.circle(size * 0.5 - 0.55, 32)).translate([-size * 0.15, 0])
         mask = m3d.CrossSection.square([size, size * 1.2], center=False).translate([-size * 0.35, -size * 0.6])
-        return back + (loop ^ mask) + leg if 'leg' in locals() else back + (loop ^ mask)
+        return back + (loop ^ mask)
 
     def letter_k(size=2.8):
         back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
@@ -436,7 +436,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Bay Minimalist U-Cradle (Internal standalone rails removed for massive open clearance):
+    # 8. Open-Front Minimalist U-Cradle (No front pillars):
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
@@ -475,15 +475,7 @@ def generate_main_housing():
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
     
-    # 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
-    front_stop_top = m3d.Manifold.cube([1.8, 2.6, rail_h + 3.0], center=True).translate([
-        x_front - 0.9, 7.9, floor_t + (rail_h + 3.0) / 2.0
-    ])
-    front_stop_bot = m3d.Manifold.cube([1.8, 2.6, rail_h + 3.0], center=True).translate([
-        x_front - 0.9, -7.9, floor_t + (rail_h + 3.0) / 2.0
-    ])
-    
-    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot + front_stop_top + front_stop_bot
+    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot
 
     return (housing_hollow + carrier_solid) - usbc_port
 
