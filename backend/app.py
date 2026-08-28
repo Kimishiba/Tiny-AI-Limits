@@ -225,19 +225,35 @@ def get_weather():
             raise Exception(f"HTTP {res.status_code}: {data.get('reason', data)}")
 
         current_temp = data['current_weather']['temperature']
+        weather_code = data['current_weather'].get('weathercode', data['current_weather'].get('weather_code', 0))
+
+        # WMO Weather Codes indicating active rain/drizzle/showers/thunderstorms:
+        # 51, 53, 55: Drizzle (light, moderate, dense)
+        # 56, 57: Freezing Drizzle
+        # 61, 63, 65: Rain (slight, moderate, heavy)
+        # 66, 67: Freezing Rain
+        # 80, 81, 82: Rain showers (slight, moderate, violent)
+        # 95, 96, 99: Thunderstorm with rain/hail
+        rain_codes = {51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99}
 
         hours_until_rain = -1
-        hourly_precip = data['hourly']['precipitation']
-        current_time = data['current_weather']['time']
+        if weather_code in rain_codes:
+            hours_until_rain = 0
+        else:
+            hourly_precip = data.get('hourly', {}).get('precipitation', [])
+            hourly_times = data.get('hourly', {}).get('time', [])
+            current_time = data['current_weather'].get('time', '')
+            # Match top of the hour: "YYYY-MM-DDTHH:00"
+            current_hour_str = current_time[:13] + ":00" if len(current_time) >= 13 else current_time
 
-        try:
-            current_index = data['hourly']['time'].index(current_time)
-            for i in range(current_index, len(hourly_precip)):
-                if hourly_precip[i] > 0:
-                    hours_until_rain = i - current_index
-                    break
-        except ValueError:
-            pass
+            try:
+                current_index = hourly_times.index(current_hour_str)
+                for i in range(current_index, len(hourly_precip)):
+                    if hourly_precip[i] > 0:
+                        hours_until_rain = i - current_index
+                        break
+            except (ValueError, IndexError):
+                pass
 
         result = {
             "temperature": current_temp,
