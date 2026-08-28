@@ -665,100 +665,92 @@ def generate_monolithic_desk_stand():
 def generate_minimalist_stand():
     """
     1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787933987185.jpg):
-    - 54.0mm wide matching pod
-    - 60.0mm base depth on desk
-    - 6.5mm base plate with 35° front chamfer
-    - Debossed "TINY AI LIMITS v1.0" text on front chamfer
-    - Recessed inner base tray behind retaining lip
-    - Full angled rectangular framing backrest (52.0mm H) with top cap & rounded/chamfered corners
-    - Stepped internal seating lip (for pod retention)
-    - Side clearance notches for buttons/screws
-    - Open triangular side window (A-frame truss)
-    - 4x rubber feet recess pockets (dia 8.0mm x 1.5mm)
+    - Full front rectangular cradle frame starting directly from the front lip
+    - Large open central window cutout with stepped internal retention lip
+    - Inner clearance notch on side beam for button/connector relief
+    - Flush side-mounted triangular A-frame struts connecting mid-frame to rear base
+    - Low-profile base tray with chamfered front and debossed 'TINY AI LIMITS v1.0' text
+    - 4x bottom rubber bumper recesses (dia 8.0mm x 1.6mm)
     - 100% support-free FDM 3D printable
     """
-    stand_w = 54.0
-    tilt_deg = 22.0
-    tilt_rad = math.radians(tilt_deg)
-    s_t = math.sin(tilt_rad)
-    c_t = math.cos(tilt_rad)
+    stand_w = 68.0       # total width across side frames
+    base_l  = 64.0       # total depth on desk
+    base_t  = 4.5        # thickness of bottom tray floor
+    lip_h   = 8.0        # total height of front lip from desk
+    frame_h = 68.0       # length of slanted front frame
+    tilt_deg = 20.0      # tilt backwards from vertical
+    rad = math.radians(tilt_deg)
     
-    base_l = 60.0
-    base_t = 6.5
-    frame_h = 52.0
-    y_cr_rear = 42.0
+    # Outer frame profile dimensions
+    frame_thick = 8.0    # depth of top bezel ring
+    side_beam_w = 6.0    # width of side upright beams
+    top_beam_w  = 7.0    # width of top crossbar
     
-    # 1. Base footprint
-    base = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2.0, 0, 0])
+    # 1. Base floor plate
+    base_floor = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2, 0, 0])
     
-    # Front 35° chamfer cut
-    chamfer_cut = m3d.Manifold.cube([stand_w + 10.0, 6.0, 6.0], center=True).rotate([35, 0, 0]).translate([0, 0, base_t + 1.2])
+    # Front angled nose
+    nose_cut = m3d.Manifold.cube([stand_w + 10.0, 20.0, 20.0], center=True).rotate([32, 0, 0]).translate([0, 0, lip_h + 4.5])
     
-    # 2. Retaining lip
-    lip_block = m3d.Manifold.cube([stand_w, 5.0, 7.5], center=False).translate([-stand_w/2.0, 0, -0.5])
-    lip_rot = lip_block.rotate([-tilt_deg, 0, 0]).translate([0, 6.0, base_t])
+    # Front retaining lip bar (full width)
+    lip_bar = m3d.Manifold.cube([stand_w, 4.0, lip_h], center=False).translate([-stand_w/2, 0, 0]).rotate([-tilt_deg, 0, 0]).translate([0, 4.5, 0])
     
-    # 3. Full rectangular frame backrest
-    spine = m3d.Manifold.cube([stand_w, 6.0, frame_h + 1.0], center=False).translate([-stand_w/2.0, 0, -0.5])
-    spine_rot = spine.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t])
+    # 2. Slanted Rectangular Ring (Front Frame)
+    f_outer = m3d.Manifold.cube([stand_w, frame_thick, frame_h], center=False).translate([-stand_w/2, 0, 0])
     
-    # 4. Triangular A-frame gussets
-    tri_pts = [
-        [y_cr_rear + 5.0, base_t - 0.5],
-        [base_l - 2.0, base_t - 0.5],
-        [y_cr_rear + s_t * (frame_h * 0.65), base_t + c_t * (frame_h * 0.65)]
-    ]
-    tri_poly = m3d.CrossSection([tri_pts])
-    tri_solid = m3d.Manifold.extrude(tri_poly, stand_w).translate([-stand_w/2.0, 0, 0])
+    # Central through-window cutout
+    win_w = stand_w - 2 * side_beam_w
+    win_h = frame_h - top_beam_w - 8.0
+    f_win = m3d.Manifold.cube([win_w, frame_thick + 10.0, win_h], center=False).translate([-win_w/2, -5.0, 8.0])
     
-    stand_raw = (base - chamfer_cut) + lip_rot + spine_rot + tri_solid
+    # Stepped internal recess pocket in the top cradle
+    step_w = stand_w - 2 * 3.5
+    step_h = frame_h - 4.0 - 12.0
+    f_step = m3d.Manifold.cube([step_w, 3.2, step_h], center=False).translate([-step_w/2, -0.1, 12.0])
     
-    # Recessed tray in base floor
-    base_tray = m3d.Manifold.cube([stand_w - 10.0, y_cr_rear - 12.0, 4.0], center=False).translate([-(stand_w - 10.0)/2.0, 10.0, base_t - 2.5])
+    # Inner left clearance notch
+    f_notch = m3d.Manifold.cube([3.0, frame_thick + 4.0, 8.0], center=False).translate([-stand_w/2 + side_beam_w - 3.0, -2.0, frame_h * 0.42])
     
-    # Backrest central window cutout
-    window_back = m3d.Manifold.cube([stand_w - 11.0, 16.0, frame_h - 10.0], center=False).translate([-(stand_w - 11.0)/2.0, -5.0, 0])
-    window_back_rot = window_back.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear - 1.0, base_t + 5.0])
+    f_cradle = f_outer - f_win - f_step - f_notch
     
-    # Stepped seating rim in top & sides of backrest
-    step_pocket = m3d.Manifold.cube([stand_w - 6.0, 3.0, frame_h - 15.0], center=False).translate([-(stand_w - 6.0)/2.0, -1.0, 0])
-    step_pocket_rot = step_pocket.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear - 1.0, base_t + 12.0])
-    
-    # Side notches
-    side_notches = m3d.Manifold()
-    for nx in [-stand_w/2.0 - 1.0, stand_w/2.0 - 3.0]:
-        notch = m3d.Manifold.cube([4.0, 10.0, 6.0], center=False).translate([nx, 0, 0])
-        notch_rot = notch.rotate([-tilt_deg, 0, 0]).translate([0, y_cr_rear, base_t + frame_h * 0.45])
-        side_notches = side_notches + notch_rot
+    # Chamfer top outer corners of the frame
+    for cx in [-stand_w/2, stand_w/2]:
+        ccut = m3d.Manifold.cube([8.0, frame_thick + 4.0, 8.0], center=True).rotate([0, 0, 45 if cx<0 else -45]).translate([cx, frame_thick/2, frame_h])
+        f_cradle = f_cradle - ccut
         
-    # Open triangular side windows
-    side_win_pts = [
-        [12.0, base_t + 2.0],
-        [base_l - 8.0, base_t + 2.0],
-        [y_cr_rear + s_t * (frame_h * 0.65) - 2.0, base_t + c_t * (frame_h * 0.65) - 4.0]
-    ]
-    side_win_poly = m3d.CrossSection([side_win_pts])
-    side_window_cutout = m3d.Manifold.extrude(side_win_poly, stand_w + 20.0).translate([-(stand_w + 20.0)/2.0, 0, 0])
+    f_cradle_rot = f_cradle.rotate([-tilt_deg, 0, 0]).translate([0, 4.5, 0.5])
     
-    # Top corner chamfers
-    corner_cuts = m3d.Manifold()
-    for cx in [-stand_w/2.0, stand_w/2.0]:
-        cut = m3d.Manifold.cube([6.0, 12.0, 6.0], center=True)
-        cut = cut.rotate([0, 0, (45 if cx < 0 else -45)]).rotate([-tilt_deg, 0, 0]).translate([cx, y_cr_rear + s_t * frame_h, base_t + c_t * frame_h])
-        corner_cuts = corner_cuts + cut
+    # 3. Rear Triangular A-Frame Struts
+    strut_w = side_beam_w
+    top_y = 4.5 + math.sin(rad) * (frame_h * 0.55)
+    top_z = math.cos(rad) * (frame_h * 0.55)
+    
+    s_top_l = m3d.Manifold.cube([strut_w, frame_thick, 8.0], center=False).rotate([-tilt_deg, 0, 0]).translate([-stand_w/2, top_y, top_z])
+    s_bot_l = m3d.Manifold.cube([strut_w, 8.0, base_t], center=False).translate([-stand_w/2, base_l - 12.0, 0])
+    strut_left = (s_top_l + s_bot_l).hull()
 
-    # Debossed text branding on front chamfer
-    text_cs, _, _ = text_to_cross_section("TINY AI LIMITS v1.0", size=2.8)
-    branding_cut = m3d.Manifold.extrude(text_cs, 1.2).rotate([35, 0, 0]).translate([0, 2.2, base_t - 2.0])
+    s_top_r = m3d.Manifold.cube([strut_w, frame_thick, 8.0], center=False).rotate([-tilt_deg, 0, 0]).translate([stand_w/2 - strut_w, top_y, top_z])
+    s_bot_r = m3d.Manifold.cube([strut_w, 8.0, base_t], center=False).translate([stand_w/2 - strut_w, base_l - 12.0, 0])
+    strut_right = (s_top_r + s_bot_r).hull()
     
-    # 4x rubber feet
+    # Rear base chamfered corners
+    rear_chamfers = m3d.Manifold()
+    for cx in [-stand_w/2, stand_w/2]:
+        rcut = m3d.Manifold.cube([12.0, 12.0, 20.0], center=True).rotate([0, 0, 45 if cx<0 else -45]).translate([cx, base_l, 0])
+        rear_chamfers = rear_chamfers + rcut
+        
+    # Debossed text branding on the front chamfer
+    text_cs, _, _ = text_to_cross_section('TINY AI LIMITS v1.0', size=3.0)
+    text_cut = m3d.Manifold.extrude(text_cs, 1.5).rotate([32, 0, 0]).translate([0, 2.5, 2.8])
+    
+    # 4x rubber feet recesses
     feet = m3d.Manifold()
-    for fx in [-stand_w/2.0 + 8.5, stand_w/2.0 - 8.5]:
-        for fy in [7.0, base_l - 7.0]:
+    for fx in [-stand_w/2 + 9.0, stand_w/2 - 9.0]:
+        for fy in [8.0, base_l - 8.0]:
             foot = m3d.Manifold.cylinder(1.6, 4.0, 4.0, 32).translate([fx, fy, -0.1])
             feet = feet + foot
             
-    return stand_raw - chamfer_cut - base_tray - window_back_rot - step_pocket_rot - side_notches - side_window_cutout - corner_cuts - branding_cut - feet
+    return (base_floor + lip_bar + f_cradle_rot + strut_left + strut_right) - nose_cut - rear_chamfers - text_cut - feet
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
