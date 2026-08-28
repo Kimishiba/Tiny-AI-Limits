@@ -439,12 +439,12 @@ class TestAgentStatus(unittest.TestCase):
 
     def test_contextual_agent_label_agy_subagent_role(self):
         label = app.get_stable_agent_label("antigravity", "sess_role_1", role="Thermal CAD Modeler")
-        self.assertEqual(label, "Thermal")
+        self.assertEqual(label, "Thermal CAD")
         self.assertLessEqual(len(label), 12)
 
     def test_contextual_agent_label_claude_cwd(self):
         label = app.get_stable_agent_label("claude", "sess_cl_1", cwd="/Users/dev/Documents/Tiny AI Limits")
-        self.assertEqual(label, "Limits")
+        self.assertEqual(label, "Tiny AI")
         self.assertLessEqual(len(label), 12)
 
     def test_contextual_agent_label_length_limit(self):
