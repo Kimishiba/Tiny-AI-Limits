@@ -10,7 +10,7 @@ An open-source, Wi-Fi enabled desktop telemetry companion powered by the ultra-c
 
 👉 **[Try the In-Browser Hardware Simulator & Showcase Site](https://kimishiba.github.io/Tiny-AI-Limits/)**
 
-It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas for **Claude Code** and **Google Antigravity CLI**, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
+It brings your AI developer environment to life with physical desktop hardware — monitoring real-time token quotas, **daily USD ($) spend**, and token telemetry across **Anthropic Claude**, **Google Antigravity**, **OpenRouter**, **DeepSeek**, and more, alerting you when AI agents require plan approvals, and serving as an expressive animated desk companion and synchronized clock.
 
 
 ---
