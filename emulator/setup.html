@@ -702,6 +702,18 @@
             <div id="gauge-left-status" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
               Detecting...
             </div>
+
+            <div style="margin-top: 0.75rem; border-top: 1px dashed var(--border-dark); padding-top: 0.65rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 1 Mode / Plan:</label>
+              <select id="gauge-left-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
+                <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
+                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+              </select>
+            </div>
+            <div id="gauge-left-budget-row" style="margin-top: 0.5rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+              <input type="number" step="0.5" min="1" id="gauge-left-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+            </div>
           </div>
 
           <!-- Right Gauge Selector -->
@@ -716,6 +728,18 @@
             </select>
             <div id="gauge-right-status" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
               Detecting...
+            </div>
+
+            <div style="margin-top: 0.75rem; border-top: 1px dashed var(--border-dark); padding-top: 0.65rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 2 Mode / Plan:</label>
+              <select id="gauge-right-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
+                <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
+                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+              </select>
+            </div>
+            <div id="gauge-right-budget-row" style="margin-top: 0.5rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+              <input type="number" step="0.5" min="1" id="gauge-right-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
             </div>
           </div>
         </div>
@@ -1208,12 +1232,27 @@
     // --- HUD Gauge Configuration Logic ---
     const gaugeLeftSelect = document.getElementById('gauge-left-select');
     const gaugeRightSelect = document.getElementById('gauge-right-select');
+    const gaugeLeftPlan = document.getElementById('gauge-left-plan');
+    const gaugeRightPlan = document.getElementById('gauge-right-plan');
+    const gaugeLeftBudget = document.getElementById('gauge-left-budget');
+    const gaugeRightBudget = document.getElementById('gauge-right-budget');
+    const gaugeLeftBudgetRow = document.getElementById('gauge-left-budget-row');
+    const gaugeRightBudgetRow = document.getElementById('gauge-right-budget-row');
     const gaugeLeftStatus = document.getElementById('gauge-left-status');
     const gaugeRightStatus = document.getElementById('gauge-right-status');
     const saveGaugesBtn = document.getElementById('save-gauges-btn');
     const saveGaugesStatus = document.getElementById('save-gauges-status');
 
     let allProvidersList = [];
+    let savedConfig = {};
+
+    function updatePlanUiVisibility() {
+      gaugeLeftBudgetRow.style.display = (gaugeLeftPlan.value === 'enterprise') ? 'block' : 'none';
+      gaugeRightBudgetRow.style.display = (gaugeRightPlan.value === 'enterprise') ? 'block' : 'none';
+    }
+
+    gaugeLeftPlan.addEventListener('change', updatePlanUiVisibility);
+    gaugeRightPlan.addEventListener('change', updatePlanUiVisibility);
 
     function renderProviderStatus(provider) {
       if (!provider) return "Unknown";
@@ -1237,13 +1276,26 @@
       const rightProv = allProvidersList.find(p => p.id === rightId);
       gaugeLeftStatus.textContent = renderProviderStatus(leftProv);
       gaugeRightStatus.textContent = renderProviderStatus(rightProv);
+
+      const plans = savedConfig.provider_plans || {};
+      const budgets = savedConfig.provider_daily_budgets || {};
+      if (plans[leftId]) gaugeLeftPlan.value = plans[leftId];
+      if (plans[rightId]) gaugeRightPlan.value = plans[rightId];
+      if (budgets[leftId] !== undefined) gaugeLeftBudget.value = budgets[leftId];
+      if (budgets[rightId] !== undefined) gaugeRightBudget.value = budgets[rightId];
+      updatePlanUiVisibility();
     }
 
     async function loadProvidersAndGauges() {
       try {
-        const res = await fetch('/api/providers');
-        if (!res.ok) return;
-        const data = await res.json();
+        const [resProv, resCfg] = await Promise.all([
+          fetch('/api/providers'),
+          fetch('/api/config')
+        ]);
+        if (!resProv.ok) return;
+        const data = await resProv.json();
+        savedConfig = resCfg.ok ? ((await resCfg.json()).config || {}) : {};
+
         allProvidersList = data.providers || [];
         const selected = data.selected_gauges || { left: 'claude', right: 'antigravity' };
 
@@ -1279,13 +1331,29 @@
       saveGaugesStatus.style.color = '#89b4fa';
       saveGaugesStatus.textContent = 'Saving configuration...';
 
+      const leftId = gaugeLeftSelect.value;
+      const rightId = gaugeRightSelect.value;
+
       const payload = {
         selected_gauges: {
-          left: gaugeLeftSelect.value,
-          right: gaugeRightSelect.value
+          left: leftId,
+          right: rightId
+        },
+        provider_plans: {
+          [leftId]: gaugeLeftPlan.value,
+          [rightId]: gaugeRightPlan.value
+        },
+        provider_daily_budgets: {
+          [leftId]: parseFloat(gaugeLeftBudget.value) || 10.0,
+          [rightId]: parseFloat(gaugeRightBudget.value) || 10.0
         },
         provider_keys: {}
       };
+
+      if (leftId === 'claude' || rightId === 'claude') {
+        payload.claude_plan = (leftId === 'claude') ? gaugeLeftPlan.value : gaugeRightPlan.value;
+        payload.claude_daily_budget_usd = (leftId === 'claude') ? parseFloat(gaugeLeftBudget.value) : parseFloat(gaugeRightBudget.value);
+      }
 
       const orKey = document.getElementById('key-openrouter').value.trim();
       const dsKey = document.getElementById('key-deepseek').value.trim();
@@ -1306,7 +1374,7 @@
 
         if (res.ok) {
           saveGaugesStatus.style.color = '#a6e3a1';
-          saveGaugesStatus.textContent = '✓ Gauges saved! Updated telemetry streaming to display.';
+          saveGaugesStatus.textContent = '✓ Gauges & plans saved! Updated telemetry streaming to display.';
           setTimeout(() => {
             saveGaugesStatus.textContent = '';
           }, 4000);

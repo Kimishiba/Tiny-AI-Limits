@@ -680,6 +680,8 @@ void drawGC9A01RoundFlipUI() {
     static int lastAntiPct = -1;
     static String lastLeftCostStr = "";
     static String lastLeftMode = "";
+    static String lastRightCostStr = "";
+    static String lastRightMode = "";
     static float lastTemp = -999.0f;
     static String lastDate = "";
     static bool lastWaiting = false;
@@ -811,11 +813,15 @@ void drawGC9A01RoundFlipUI() {
     int leftPct = leftGauge.percent;
     int rightPct = rightGauge.percent;
 
-    if (leftPct != lastClaudePct || rightPct != lastAntiPct || leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode) {
+    if (leftPct != lastClaudePct || rightPct != lastAntiPct ||
+        leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode ||
+        rightGauge.cost_str != lastRightCostStr || rightGauge.mode != lastRightMode) {
         lastClaudePct = leftPct;
         lastAntiPct = rightPct;
         lastLeftCostStr = leftGauge.cost_str;
         lastLeftMode = leftGauge.mode;
+        lastRightCostStr = rightGauge.cost_str;
+        lastRightMode = rightGauge.mode;
 
         uint16_t leftCol = leftGauge.color;
         uint16_t leftColDim = gcGfx->color565(14, 40, 50);
@@ -876,9 +882,13 @@ void drawGC9A01RoundFlipUI() {
         gcGfx->fillRoundRect(175, 108, 36, 24, 3, gcGfx->color565(28, 18, 10));
         gcGfx->drawRoundRect(175, 108, 36, 24, 3, rightCol);
         gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
-        char rightPctStr[8];
-        sprintf(rightPctStr, "%d%%", rightPct);
-        gcPrintCentered(rightPctStr, 193, 121, rightCol);
+        if (rightGauge.mode == "enterprise" && rightGauge.cost_str.length() > 0) {
+            gcPrintCentered(rightGauge.cost_str.c_str(), 193, 121, rightCol);
+        } else {
+            char rightPctStr[8];
+            sprintf(rightPctStr, "%d%%", rightPct);
+            gcPrintCentered(rightPctStr, 193, 121, rightCol);
+        }
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
@@ -1685,12 +1695,18 @@ void fetchBackendData() {
                 rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
                 rightGauge.label = doc["right_gauge"]["label"] | "AGY";
                 rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
+                rightGauge.mode = doc["right_gauge"]["mode"] | "standard";
+                rightGauge.cost_str = doc["right_gauge"]["cost_str"] | "$0.00";
+                rightGauge.curved_text = doc["right_gauge"]["curved_text"] | "";
                 rightGauge.percent = doc["right_gauge"]["percent"] | 100;
                 rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
                 String colStr = doc["right_gauge"]["color"] | "0xFF9100";
                 rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
             } else {
                 rightGauge.label = "AGY";
+                rightGauge.mode = "standard";
+                rightGauge.cost_str = "$0.00";
+                rightGauge.curved_text = "";
                 rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
                 rightGauge.color = gcGfx->color565(255, 122, 0);
                 rightGauge.reset_str = agData.reset_str;
