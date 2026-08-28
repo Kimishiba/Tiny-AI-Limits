@@ -636,6 +636,8 @@ void drawGC9A01RoundFlipUI() {
     static int lastPulseLevel = -1;
     static int lastClaudePct = -1;
     static int lastAntiPct = -1;
+    static String lastLeftCostStr = "";
+    static String lastLeftMode = "";
     static float lastTemp = -999.0f;
     static String lastDate = "";
     static bool lastWaiting = false;
@@ -767,9 +769,11 @@ void drawGC9A01RoundFlipUI() {
     int leftPct = leftGauge.percent;
     int rightPct = rightGauge.percent;
 
-    if (leftPct != lastClaudePct || rightPct != lastAntiPct) {
+    if (leftPct != lastClaudePct || rightPct != lastAntiPct || leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode) {
         lastClaudePct = leftPct;
         lastAntiPct = rightPct;
+        lastLeftCostStr = leftGauge.cost_str;
+        lastLeftMode = leftGauge.mode;
 
         uint16_t leftCol = leftGauge.color;
         uint16_t leftColDim = gcGfx->color565(14, 40, 50);
