@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GC9A01 1.28" Round Display & ESP32-C3 SuperMini Cyberdeck Enclosure
+GC9A01 1.28" Round Display & ESP32-C3 / S3 SuperMini Cyberdeck Enclosure
 Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engine)
 
 100% SUPPORT-FREE FDM 3D PRINTABLE ARCHITECTURE:
@@ -11,12 +11,12 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
+  * Sculpted Multi-Faceted Cyberdeck Option 1 Dual-Buttress Cradle matching Concept Art
   * Extra-Wide High-Clearance USB-C Port (14.5mm inner width x 6.5mm inner height, 17.5mm outer lead-in flare)
+  * 10.0mm Wide Open Center Notch for zero RF attenuation behind ESP32 ceramic antenna
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
-  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
-  * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
-  * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
-  * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
+  * Integrated 1.0mm internal shelf support ledges (Z = 2.0 to 5.2mm)
+  * Discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
@@ -242,20 +242,19 @@ def make_text_emboss(line1="TINY AI LIMITS", line2="SENTINEL MK-1", depth=0.50):
     cs1, _, _ = text_to_cross_section(line1, size=3.2)
     cs2, _, _ = text_to_cross_section(line2, size=3.0)
     cs_total = cs1.translate([0, 2.3]) + cs2.translate([0, -2.3])
-    # Mirror along X so that looking at the bottom/backplate from the outside (rear of device),
-    # the letters read cleanly from left to right:
+    # Mirror along X for direct exterior rear viewing:
     cs_mirrored = cs_total.scale([-1, 1])
     return m3d.Manifold.extrude(cs_mirrored, depth + 0.1)
 
-def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
+def make_snap_clip(length=4.5, width=0.50, height=1.0, side='+Y'):
     hw_x = length / 2.0
     hz = height / 2.0
     if side == '+Y':
         v_base = [[-hw_x, 0.05, -hz], [hw_x, 0.05, -hz], [hw_x, 0.05, hz], [-hw_x, 0.05, hz]]
-        v_apex = [[-hw_x + 0.55, -width, 0.0], [hw_x - 0.55, -width, 0.0]]
+        v_apex = [[-hw_x + 0.5, -width, 0.0], [hw_x - 0.5, -width, 0.0]]
     else:
         v_base = [[-hw_x, -0.05, -hz], [hw_x, -0.05, -hz], [hw_x, -0.05, hz], [-hw_x, -0.05, hz]]
-        v_apex = [[-hw_x + 0.55, width, 0.0], [hw_x - 0.55, width, 0.0]]
+        v_apex = [[-hw_x + 0.5, width, 0.0], [hw_x - 0.5, width, 0.0]]
     pts = v_base + v_apex
     combined = m3d.Manifold()
     for p in pts:
@@ -338,7 +337,7 @@ def generate_main_housing():
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    # Top edge perimeter slim slits with 45-degree peaked roofs (100% self-supporting FDM printability)
+    # Top edge perimeter slim slits with 45-degree peaked roofs
     pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
     poly_slot = m3d.CrossSection([pts_slot_ccw])
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
@@ -351,46 +350,75 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Front Minimalist U-Cradle (No front pillars):
-    esp_l = 23.0
-    esp_w = 18.4
-    esp_center_x = -10.0
-    rail_h = 3.2
+    # 8. SCULPTED MULTI-FACETED CYBERDECK OPTION 1 DUAL-BUTTRESS CRADLE:
+    board_l = 23.5 # ESP32 PCB length
+    board_w = 18.4 # ESP32 PCB width
+    pcb_t = 1.2
+    rail_h = 3.2 # Above floor
     
-    x_front = esp_center_x - esp_l / 2.0  # -21.5 (USB-C port end)
-    x_rear = esp_center_x + esp_l / 2.0   # +1.5  (Opposite end behind antenna)
-    wall_thick = 3.0
-    side_thick = 1.6
-    tall_wall_h = 12.0  # Solid vertical rear wall opposite USB-C (Z = 2.0 to 14.0)
-    side_wall_h = 6.2   # Clean vertical side guide wall height (Z = 2.0 to 8.2)
+    total_l = 29.0
+    total_w = 34.0
+    max_h = 9.5
     
-    # 1. Straight Solid Rear Thrust Wall (solid all the way to floor)
-    rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
-        x_rear, -(esp_w / 2.0 + side_thick), floor_t
+    raw_block = m3d.Manifold.cube([total_l, total_w, max_h], center=True).translate([0, 0, max_h / 2.0])
+    
+    pcb_pocket = m3d.Manifold.cube([board_l + 0.4, board_w + 0.4, max_h + 1.0], center=True).translate([
+        0, 0, rail_h + (max_h + 1.0) / 2.0
     ])
     
-    # 2. Straight Vertical Side Guide Walls with integrated 1.0mm edge support steps:
-    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
-        x_front, esp_w / 2.0, floor_t
-    ])
-    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
-        x_front, -(esp_w / 2.0 + side_thick), floor_t
-    ])
-
-    # 1.0mm side edge support steps (flush with inner side wall, Z = 2.0 to 5.2):
-    edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
-        x_front, esp_w / 2.0 - 1.0, floor_t
-    ])
-    edge_step_bot = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
-        x_front, -esp_w / 2.0, floor_t
+    antenna_gap = m3d.Manifold.cube([12.0, 10.0, max_h + 2.0], center=True).translate([
+        10.0, 0, max_h / 2.0
     ])
     
-    # 3. Discrete 45-Degree Self-Supporting Snap Clips
-    snap_z = floor_t + rail_h + 1.2 + 0.3 # 6.7mm
-    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
-    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
+    usbc_channel = m3d.Manifold.cube([12.0, 15.0, max_h + 2.0], center=True).translate([
+        -11.0, 0, max_h / 2.0
+    ])
     
-    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot
+    center_vent = m3d.Manifold.cube([12.0, 12.0, floor_t + 2.0], center=True).translate([
+        0, 0, floor_t / 2.0
+    ])
+    
+    waist_cut = m3d.Manifold.cube([12.0, total_w + 2.0, max_h], center=True).translate([
+        0, 0, 5.0 + max_h / 2.0
+    ])
+    ramp_rear = m3d.Manifold.cube([6.0, total_w + 2.0, 8.0], center=True).rotate([0, 35, 0]).translate([
+        7.5, 0, 8.0
+    ])
+    ramp_front = m3d.Manifold.cube([6.0, total_w + 2.0, 8.0], center=True).rotate([0, -35, 0]).translate([
+        -7.5, 0, 8.0
+    ])
+    
+    rear_top_ch = m3d.Manifold.cube([8.0, total_w + 2.0, 8.0], center=True).rotate([0, 40, 0]).translate([
+        14.5, 0, max_h + 1.0
+    ])
+    front_top_ch = m3d.Manifold.cube([8.0, total_w + 2.0, 8.0], center=True).rotate([0, -40, 0]).translate([
+        -14.5, 0, max_h + 1.0
+    ])
+    
+    c_sw = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([-14.5, -17.0, max_h/2.0])
+    c_nw = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([-14.5,  17.0, max_h/2.0])
+    c_se = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([ 14.5, -17.0, max_h/2.0])
+    c_ne = m3d.Manifold.cube([5.0, 5.0, max_h + 2.0], center=True).rotate([0, 0, 45]).translate([ 14.5,  17.0, max_h/2.0])
+    outer_corners = c_sw + c_nw + c_se + c_ne
+    
+    side_bevel_top = m3d.Manifold.cube([total_l + 2.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([
+        0, 17.0, max_h
+    ])
+    side_bevel_bot = m3d.Manifold.cube([total_l + 2.0, 5.0, 5.0], center=True).rotate([45, 0, 0]).translate([
+        0, -17.0, max_h
+    ])
+    
+    cradle_cuts = (pcb_pocket + antenna_gap + usbc_channel + center_vent +
+                   waist_cut + ramp_rear + ramp_front + rear_top_ch + front_top_ch +
+                   outer_corners + side_bevel_top + side_bevel_bot)
+            
+    carrier = (raw_block - cradle_cuts).translate([-10.0, 0, floor_t])
+    
+    clip_z = floor_t + rail_h + pcb_t + 0.3
+    c_top = make_snap_clip(4.5, 0.50, 1.0, '+Y').translate([-10.0, board_w / 2.0 + 0.2, clip_z])
+    c_bot = make_snap_clip(4.5, 0.50, 1.0, '-Y').translate([-10.0, -(board_w / 2.0 + 0.2), clip_z])
+    
+    carrier_solid = carrier + c_top + c_bot
 
     return (housing_hollow + carrier_solid) - usbc_port
 
@@ -558,7 +586,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod")
+    export_stl(housing, housing_path, "Main Housing Pod (with Sculpted Option 1 Concept Cradle)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
