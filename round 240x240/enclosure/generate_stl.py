@@ -11,10 +11,10 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
-  * Minimalist Inline Thrust Carrier Dock with straight vertical walls
+  * Open-Bay Minimalist U-Cradle (Internal standalone rails removed for massive open clearance)
+  * Integrated 1.0mm side edge support ledges along inner base of side walls
   * Clean discrete 45° self-supporting snap-fit retention clips
   * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
-  * 4.2mm wide continuous pin clearance rail channels bounded inside ledges
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
@@ -264,7 +264,7 @@ def make_text_emboss(line1="CYBER-DECK", line2="UNIT 01", depth=0.45):
         back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
         loop = (m3d.CrossSection.circle(size * 0.5, 32) - m3d.CrossSection.circle(size * 0.5 - 0.55, 32)).translate([-size * 0.15, 0])
         mask = m3d.CrossSection.square([size, size * 1.2], center=False).translate([-size * 0.35, -size * 0.6])
-        return back + (loop ^ mask)
+        return back + (loop ^ mask) + leg if 'leg' in locals() else back + (loop ^ mask)
 
     def letter_k(size=2.8):
         back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
@@ -436,7 +436,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Minimalist Clean Inline Thrust Carrier Dock:
+    # 8. Open-Bay Minimalist U-Cradle (Internal standalone rails removed for massive open clearance):
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
@@ -454,12 +454,20 @@ def generate_main_housing():
         x_rear, -(esp_w / 2.0 + side_thick), floor_t
     ])
     
-    # 2. Straight Vertical Side Guide Walls (solid all the way to floor)
+    # 2. Straight Vertical Side Guide Walls with integrated 1.0mm edge support steps:
     side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, esp_w / 2.0, floor_t
     ])
     side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, -(esp_w / 2.0 + side_thick), floor_t
+    ])
+
+    # 1.0mm side edge support steps (flush with inner side wall, Z = 2.0 to 5.2):
+    edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+        x_front, esp_w / 2.0 - 1.0, floor_t
+    ])
+    edge_step_bot = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+        x_front, -esp_w / 2.0, floor_t
     ])
     
     # 3. Discrete 45-Degree Self-Supporting Snap Clips
@@ -467,35 +475,17 @@ def generate_main_housing():
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
     
-    # 4. Support Standoff Ledges (solid to floor_t)
-    ledge_top = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, 7.62, floor_t + rail_h / 2.0])
-    ledge_bot = m3d.Manifold.cube([esp_l, 4.8, rail_h], center=True).translate([esp_center_x, -7.62, floor_t + rail_h / 2.0])
-    
-    # 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
-    front_stop_top = m3d.Manifold.cube([1.8, 3.2, rail_h + 3.0], center=True).translate([
-        x_front - 0.9, 7.62, floor_t + (rail_h + 3.0) / 2.0
+    # 4. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
+    front_stop_top = m3d.Manifold.cube([1.8, 2.6, rail_h + 3.0], center=True).translate([
+        x_front - 0.9, 7.9, floor_t + (rail_h + 3.0) / 2.0
     ])
-    front_stop_bot = m3d.Manifold.cube([1.8, 3.2, rail_h + 3.0], center=True).translate([
-        x_front - 0.9, -7.62, floor_t + (rail_h + 3.0) / 2.0
+    front_stop_bot = m3d.Manifold.cube([1.8, 2.6, rail_h + 3.0], center=True).translate([
+        x_front - 0.9, -7.9, floor_t + (rail_h + 3.0) / 2.0
     ])
     
-    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + clip_top + clip_bot + ledge_top + ledge_bot + front_stop_top + front_stop_bot
+    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot + front_stop_top + front_stop_bot
 
-    # 6. Continuous Pin Clearance Rail Channels (bounded inside the ledge length -> zero overhang ceilings)
-    channel_w = 4.2
-    channel_l = esp_l
-    channel_depth = 2.6
-    chan_top = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
-        esp_center_x, 7.62, floor_t + rail_h - channel_depth / 2.0
-    ])
-    chan_bot = m3d.Manifold.cube([channel_l, channel_w, channel_depth + 0.1], center=True).translate([
-        esp_center_x, -7.62, floor_t + rail_h - channel_depth / 2.0
-    ])
-    pin_cuts = chan_top + chan_bot
-        
-    dock_solid = carrier_solid - pin_cuts
-    
-    return (housing_hollow + dock_solid) - usbc_port
+    return (housing_hollow + carrier_solid) - usbc_port
 
 def generate_stand_tier1_base():
     base_w = 64.0

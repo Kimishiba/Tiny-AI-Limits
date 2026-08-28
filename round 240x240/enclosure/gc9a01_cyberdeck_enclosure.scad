@@ -237,7 +237,7 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD
+// 3. MAIN HOUSING POD (Open-Bay U-Cradle Architecture)
 module main_housing() {
     cavity_depth = housing_depth - floor_t;
     
@@ -334,7 +334,7 @@ module main_housing() {
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini Minimalist Inline Thrust Carrier Dock
+    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle
     wall_thick  = 3.0;
     side_thick  = 1.6;
     tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
@@ -343,55 +343,47 @@ module main_housing() {
     x_rear      = esp_center_x + esp_l / 2;
     snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
 
-    difference() {
-        union() {
-            // 1. Straight Solid Rear Thrust Wall (opposite of USB-C port, solid all the way to floor)
-            translate([x_rear, -(esp_w / 2 + side_thick), floor_t])
-                cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
+    union() {
+        // 1. Straight Solid Rear Thrust Wall (opposite of USB-C port, solid all the way to floor)
+        translate([x_rear, -(esp_w / 2 + side_thick), floor_t])
+            cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
 
-            // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
-            translate([x_front, esp_w / 2, floor_t])
-                cube([esp_l, side_thick, side_wall_h]);
-            translate([x_front, -(esp_w / 2 + side_thick), floor_t])
-                cube([esp_l, side_thick, side_wall_h]);
+        // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
+        translate([x_front, esp_w / 2, floor_t])
+            cube([esp_l, side_thick, side_wall_h]);
+        translate([x_front, -(esp_w / 2 + side_thick), floor_t])
+            cube([esp_l, side_thick, side_wall_h]);
 
-            // 3. Discrete 45-Degree Self-Supporting Snap Retention Clips
-            // Top clip
-            translate([esp_center_x, esp_w / 2, snap_z])
-                hull() {
-                    translate([-2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                    translate([ 2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                    translate([-1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                    translate([ 1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                }
-            
-            // Bottom clip
-            translate([esp_center_x, -esp_w / 2, snap_z])
-                hull() {
-                    translate([-2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                    translate([ 2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                    translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                    translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                }
+        // 3. Integrated 1.0mm Side Edge Support Steps (Z = 2.0 to 5.2)
+        translate([x_front, esp_w / 2 - 1.0, floor_t])
+            cube([esp_l, 1.0, esp_standoff_h]);
+        translate([x_front, -esp_w / 2, floor_t])
+            cube([esp_l, 1.0, esp_standoff_h]);
 
-            // 4. Standoff Support Ledges (solid to floor_t)
-            translate([esp_center_x - esp_l/2, 7.62 - 2.4, floor_t])
-                cube([esp_l, 4.8, esp_standoff_h]);
-            translate([esp_center_x - esp_l/2, -7.62 - 2.4, floor_t])
-                cube([esp_l, 4.8, esp_standoff_h]);
-
-            // 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
-            translate([x_front - 1.8, 7.62 - 1.6, floor_t])
-                cube([1.8, 3.2, esp_standoff_h + 3.0]);
-            translate([x_front - 1.8, -7.62 - 1.6, floor_t])
-                cube([1.8, 3.2, esp_standoff_h + 3.0]);
-        }
+        // 4. Discrete 45-Degree Self-Supporting Snap Retention Clips
+        // Top clip
+        translate([esp_center_x, esp_w / 2, snap_z])
+            hull() {
+                translate([-2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                translate([ 2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                translate([-1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([ 1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+            }
         
-        // 6. Wide Continuous Pin Clearance Rail Channels (bounded inside ledge)
-        translate([esp_center_x, 7.62, floor_t + esp_standoff_h - 1.3])
-            cube([esp_l, 4.2, 2.7], center=true);
-        translate([esp_center_x, -7.62, floor_t + esp_standoff_h - 1.3])
-            cube([esp_l, 4.2, 2.7], center=true);
+        // Bottom clip
+        translate([esp_center_x, -esp_w / 2, snap_z])
+            hull() {
+                translate([-2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                translate([ 2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
+                translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+            }
+
+        // 5. Front USB-C Receptacle Collar Pull-Stop Shoulders (solid straight blocks)
+        translate([x_front - 1.8, 7.9 - 1.3, floor_t])
+            cube([1.8, 2.6, esp_standoff_h + 3.0]);
+        translate([x_front - 1.8, -7.9 - 1.3, floor_t])
+            cube([1.8, 2.6, esp_standoff_h + 3.0]);
     }
 }
 
