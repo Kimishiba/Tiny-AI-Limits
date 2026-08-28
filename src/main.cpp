@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
+#include <font/glcdfont.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
@@ -100,6 +101,9 @@ struct GaugeInfo {
     String id = "claude";
     String label = "CLD";
     String name = "Claude";
+    String mode = "standard"; // "standard" | "enterprise"
+    String cost_str = "$0.00";
+    String curved_text = "";
     int percent = 100;
     uint16_t color = 0x07FF; // Cyan
     String reset_str = "READY";
@@ -457,6 +461,47 @@ void gcPrintCentered(const char* str, int centerX, int y, uint16_t color) {
     gcGfx->print(str);
 }
 
+// Draw individual 5x7 character rotated tangent to a circle (tangent upwards/clockwise, top facing outwards)
+void drawRotatedCurvedChar(char c, int cx, int cy, float radius, float angleDeg, uint16_t color) {
+    if (c < 32 || c > 126) return;
+    int charIdx = (int)c;
+
+    float rad = angleDeg * 0.0174532925f;
+    float charCenterX = (float)cx + cosf(rad) * radius;
+    float charCenterY = (float)cy + sinf(rad) * radius;
+
+    // Tangent vector pointing upwards / clockwise along the left perimeter (angleDeg + 90 deg)
+    float cosT = cosf((angleDeg + 90.0f) * 0.0174532925f);
+    float sinT = sinf((angleDeg + 90.0f) * 0.0174532925f);
+    // Normal vector pointing outwards towards bezel (angleDeg)
+    float cosN = cosf(rad);
+    float sinN = sinf(rad);
+
+    for (int col = 0; col < 5; col++) {
+        uint8_t line = pgm_read_byte(&font[charIdx * 5 + col]);
+        float dx = (float)(col - 2); // along tangent
+        for (int row = 0; row < 7; row++) {
+            if (line & 0x01) {
+                float dy = (float)(row - 3); // along normal: negative = towards bezel (top of char), positive = towards center (bottom)
+                int px = (int)roundf(charCenterX + dx * cosT - dy * cosN);
+                int py = (int)roundf(charCenterY + dx * sinT - dy * sinN);
+                gcGfx->drawPixel(px, py, color);
+            }
+            line >>= 1;
+        }
+    }
+}
+
+// Draw a string curving smoothly along the left circular perimeter starting from the bottom up to the top
+void drawRotatedCurvedString(const char* str, int cx, int cy, float radius, float startDeg, float stepDeg, uint16_t color) {
+    if (!str) return;
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        float charAngle = startDeg + (i * stepDeg);
+        drawRotatedCurvedChar(str[i], cx, cy, radius, charAngle, color);
+    }
+}
+
 void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int oldDigit, int newDigit, float progress) {
     int midY = posY + cardH / 2;
     int halfH = cardH / 2;
@@ -633,6 +678,10 @@ void drawGC9A01RoundFlipUI() {
     static int lastPulseLevel = -1;
     static int lastClaudePct = -1;
     static int lastAntiPct = -1;
+    static String lastLeftCostStr = "";
+    static String lastLeftMode = "";
+    static String lastRightCostStr = "";
+    static String lastRightMode = "";
     static float lastTemp = -999.0f;
     static String lastDate = "";
     static bool lastWaiting = false;
@@ -729,8 +778,8 @@ void drawGC9A01RoundFlipUI() {
     }
 
     // 2. Top Crown: Backend Connection Status Indicator Arc & Weather / Rain Indicator
-    // 0 = no backend (red), 1 = paired (solid green / telemetry ping), 2 = connected but unpaired (amber)
-    int curLedState = !backendConnected ? 0 : (pairedHost.length() > 0 ? 1 : 2);
+    // 0 = no backend (red), 1 = connected (green telemetry ping/pulse)
+    int curLedState = !backendConnected ? 0 : 1;
     bool hasAlert = agentData.waiting_for_input || agentData.work_completed;
     bool isPinging = (curLedState == 1) && !hasAlert && ((millis() - lastBackendPollSuccessMs) < 600);
     static bool wasPinging = false;
@@ -764,9 +813,15 @@ void drawGC9A01RoundFlipUI() {
     int leftPct = leftGauge.percent;
     int rightPct = rightGauge.percent;
 
-    if (leftPct != lastClaudePct || rightPct != lastAntiPct) {
+    if (leftPct != lastClaudePct || rightPct != lastAntiPct ||
+        leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode ||
+        rightGauge.cost_str != lastRightCostStr || rightGauge.mode != lastRightMode) {
         lastClaudePct = leftPct;
         lastAntiPct = rightPct;
+        lastLeftCostStr = leftGauge.cost_str;
+        lastLeftMode = leftGauge.mode;
+        lastRightCostStr = rightGauge.cost_str;
+        lastRightMode = rightGauge.mode;
 
         uint16_t leftCol = leftGauge.color;
         uint16_t leftColDim = gcGfx->color565(14, 40, 50);
@@ -812,20 +867,28 @@ void drawGC9A01RoundFlipUI() {
 
         // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
         // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
-        gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
-        gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
+        gcGfx->fillRoundRect(29, 108, 36, 24, 3, gcGfx->color565(14, 20, 28));
+        gcGfx->drawRoundRect(29, 108, 36, 24, 3, leftCol);
         gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
-        char leftPctStr[8];
-        sprintf(leftPctStr, "%d%%", leftPct);
-        gcPrintCentered(leftPctStr, 47, 121, leftCol);
+        if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
+            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 121, leftCol);
+        } else {
+            char leftPctStr[8];
+            sprintf(leftPctStr, "%d%%", leftPct);
+            gcPrintCentered(leftPctStr, 47, 121, leftCol);
+        }
 
         // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
-        gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
-        gcGfx->drawRoundRect(177, 108, 32, 24, 3, rightCol);
+        gcGfx->fillRoundRect(175, 108, 36, 24, 3, gcGfx->color565(28, 18, 10));
+        gcGfx->drawRoundRect(175, 108, 36, 24, 3, rightCol);
         gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
-        char rightPctStr[8];
-        sprintf(rightPctStr, "%d%%", rightPct);
-        gcPrintCentered(rightPctStr, 193, 121, rightCol);
+        if (rightGauge.mode == "enterprise" && rightGauge.cost_str.length() > 0) {
+            gcPrintCentered(rightGauge.cost_str.c_str(), 193, 121, rightCol);
+        } else {
+            char rightPctStr[8];
+            sprintf(rightPctStr, "%d%%", rightPct);
+            gcPrintCentered(rightPctStr, 193, 121, rightCol);
+        }
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
@@ -1587,7 +1650,7 @@ void fetchBackendData() {
         lastBackendPollSuccessMs = millis();
         consecutiveBackendFailures = 0;
         String payload = http.getString();
-        StaticJsonDocument<2560> doc;
+        StaticJsonDocument<4096> doc;
         DeserializationError error = deserializeJson(doc, payload);
 
         if (!error) {
@@ -1612,12 +1675,18 @@ void fetchBackendData() {
                 leftGauge.id = doc["left_gauge"]["id"] | "claude";
                 leftGauge.label = doc["left_gauge"]["label"] | "CLD";
                 leftGauge.name = doc["left_gauge"]["name"] | "Claude";
+                leftGauge.mode = doc["left_gauge"]["mode"] | "standard";
+                leftGauge.cost_str = doc["left_gauge"]["cost_str"] | "$0.00";
+                leftGauge.curved_text = doc["left_gauge"]["curved_text"] | "";
                 leftGauge.percent = doc["left_gauge"]["percent"] | 100;
                 leftGauge.reset_str = doc["left_gauge"]["reset_str"] | "READY";
                 String colStr = doc["left_gauge"]["color"] | "0x00E5FF";
                 leftGauge.color = parseHexColor565(colStr, gcGfx->color565(0, 229, 255));
             } else {
                 leftGauge.label = "CLD";
+                leftGauge.mode = "standard";
+                leftGauge.cost_str = "$0.00";
+                leftGauge.curved_text = "";
                 leftGauge.percent = 100;
                 leftGauge.color = gcGfx->color565(0, 229, 255);
                 leftGauge.reset_str = claudeData.reset_str;
@@ -1626,12 +1695,18 @@ void fetchBackendData() {
                 rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
                 rightGauge.label = doc["right_gauge"]["label"] | "AGY";
                 rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
+                rightGauge.mode = doc["right_gauge"]["mode"] | "standard";
+                rightGauge.cost_str = doc["right_gauge"]["cost_str"] | "$0.00";
+                rightGauge.curved_text = doc["right_gauge"]["curved_text"] | "";
                 rightGauge.percent = doc["right_gauge"]["percent"] | 100;
                 rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
                 String colStr = doc["right_gauge"]["color"] | "0xFF9100";
                 rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
             } else {
                 rightGauge.label = "AGY";
+                rightGauge.mode = "standard";
+                rightGauge.cost_str = "$0.00";
+                rightGauge.curved_text = "";
                 rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
                 rightGauge.color = gcGfx->color565(255, 122, 0);
                 rightGauge.reset_str = agData.reset_str;

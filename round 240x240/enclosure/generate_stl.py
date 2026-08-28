@@ -10,16 +10,23 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing:
+- Main Housing Pod (Low-Profile Optimized Monolithic Cyberdeck Enclosure):
+  * Lowered Board Seating (PCB bottom at Z = 3.8mm, USB-C at Z = 7.0mm)
+  * +0.4mm Inside Cradle Tolerances (18.9mm W x 23.6mm L for frictionless seating)
+  * Stepped-Down Outer Rigid Cheeks (Z = 6.8mm) eliminating tall corner obstructions
+  * 45° Self-Centering Entry Lead-In Chamfers along top inner rims of side walls and rear posts
+  * 1.5mm Corner Clearance Relief Pockets preventing sharp PCB corners from binding
+  * Compliant Cantilever Snap Arm (7.5mm tall, Z = 2.0 to 9.5mm) with dual 1.2mm flex slits
+  * Dynamic 30° Smooth Deflection Ramp on rear snap lip (Z = 7.0mm)
+  * 3-Way Snap Retention (Side clips at Z = 5.3mm, Rear lip at Z = 7.0mm)
+  * 2x Heavy-Duty Curved Buttress Ribs (reinforcing cheeks against USB-C insertion forces)
+  * Shaved-Depth USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
-  * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
-  * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
-  * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
-  * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
+  * Integrated 1.0mm side edge support ledges (Z = 2.0 to 3.8mm)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
-  * Embossed "CYBER-DECK UNIT 01" branding
+  * True Vector Font Bold "TINY AI LIMITS / SENTINEL MK-1" Debossed Branding (Z = 0)
 - Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
   * Tier 2 (Cradle Trunk): 62x66mm base tapering to 54x58mm top (24mm H) with deep V-saddle cradle
@@ -30,6 +37,8 @@ import os
 import manifold3d as m3d
 import trimesh
 import numpy as np
+from matplotlib.textpath import TextPath
+from matplotlib.font_manager import FontProperties
 
 def make_octagonal_prism(w, h, c):
     hw = w / 2.0
@@ -197,7 +206,7 @@ def generate_mid_clamp():
     hcw = cw / 2.0
     cav_pts = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
-        [hcw, -hcw + cc],  [hcw, hcw - cc],
+        [hcw, -hcw + cc],  [hcw, hw := hcw - cc],
         [hcw - cc, hcw],   [-hcw + cc, hcw],
         [-hcw, hcw - cc],  [-hcw, -hcw + cc]
     ]
@@ -223,131 +232,49 @@ def generate_mid_clamp():
             
     return solid - cuts
 
-def make_text_emboss(line1="CYBER-DECK", line2="UNIT 01", depth=0.45):
-    def letter_c(size=2.8):
-        c_outer = m3d.CrossSection.circle(size / 2.0, 32)
-        c_inner = m3d.CrossSection.circle(size / 2.0 - 0.55, 32)
-        c_ring = c_outer - c_inner
-        c_notch = m3d.CrossSection.square([size / 2.0 + 0.1, size * 0.45], center=False).translate([0, -size * 0.225])
-        return c_ring - c_notch
-        
-    def letter_y(size=2.8):
-        stem = m3d.CrossSection.square([0.55, size / 2.0], center=False).translate([-0.275, -size / 2.0])
-        arm_l = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(30).translate([-size * 0.2, size * 0.2])
-        arm_r = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(-30).translate([size * 0.2, size * 0.2])
-        return stem + arm_l + arm_r
+def text_to_cross_section(text, size=3.2, font_family='sans-serif', font_weight='bold'):
+    fp = FontProperties(family=font_family, weight=font_weight)
+    tp = TextPath((0, 0), text, size=size, prop=fp)
+    polys = tp.to_polygons()
+    all_pts = np.vstack(polys)
+    min_x, min_y = all_pts.min(axis=0)
+    max_x, max_y = all_pts.max(axis=0)
+    cx = (min_x + max_x) / 2.0
+    cy = (min_y + max_y) / 2.0
+    centered_polys = [p - [cx, cy] for p in polys]
+    return m3d.CrossSection(centered_polys, m3d.FillRule.EvenOdd), (max_x - min_x), (max_y - min_y)
 
-    def letter_b(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        loop1 = (m3d.CrossSection.circle(size * 0.28, 24) - m3d.CrossSection.circle(size * 0.28 - 0.5, 24)).translate([0, size * 0.22])
-        loop2 = (m3d.CrossSection.circle(size * 0.28, 24) - m3d.CrossSection.circle(size * 0.28 - 0.5, 24)).translate([0, -size * 0.22])
-        mask = m3d.CrossSection.square([size, size * 1.5], center=False).translate([-size * 0.35, -size * 0.75])
-        return back + ((loop1 + loop2) ^ mask)
-
-    def letter_e(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        bar_t = m3d.CrossSection.square([size * 0.65, 0.5], center=False).translate([-size * 0.35, size / 2.0 - 0.5])
-        bar_m = m3d.CrossSection.square([size * 0.5, 0.5], center=False).translate([-size * 0.35, -0.25])
-        bar_b = m3d.CrossSection.square([size * 0.65, 0.5], center=False).translate([-size * 0.35, -size / 2.0])
-        return back + bar_t + bar_m + bar_b
-
-    def letter_r(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        loop = (m3d.CrossSection.circle(size * 0.3, 24) - m3d.CrossSection.circle(size * 0.3 - 0.5, 24)).translate([0, size * 0.2])
-        mask = m3d.CrossSection.square([size, size], center=False).translate([-size * 0.35, 0])
-        leg = m3d.CrossSection.square([0.55, size * 0.65], center=True).rotate(-35).translate([size * 0.15, -size * 0.22])
-        return back + (loop ^ mask) + leg
-
-    def letter_dash(size=2.8):
-        return m3d.CrossSection.square([size * 0.5, 0.55], center=True)
-
-    def letter_d(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        loop = (m3d.CrossSection.circle(size * 0.5, 32) - m3d.CrossSection.circle(size * 0.5 - 0.55, 32)).translate([-size * 0.15, 0])
-        mask = m3d.CrossSection.square([size, size * 1.2], center=False).translate([-size * 0.35, -size * 0.6])
-        return back + (loop ^ mask)
-
-    def letter_k(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        arm_t = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(38).translate([size * 0.1, size * 0.2])
-        arm_b = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(-38).translate([size * 0.1, -size * 0.2])
-        return back + arm_t + arm_b
-
-    def letter_u(size=2.2):
-        u_outer = m3d.CrossSection.circle(size * 0.4, 24)
-        u_inner = m3d.CrossSection.circle(size * 0.4 - 0.45, 24)
-        u_bot = (u_outer - u_inner).translate([0, -size * 0.1])
-        mask = m3d.CrossSection.square([size, size], center=False).translate([-size / 2.0, -size / 2.0])
-        arm_l = m3d.CrossSection.square([0.45, size * 0.6], center=False).translate([-size * 0.4, -size * 0.1])
-        arm_r = m3d.CrossSection.square([0.45, size * 0.6], center=False).translate([size * 0.4 - 0.45, -size * 0.1])
-        return (u_bot ^ mask) + arm_l + arm_r
-
-    def letter_n(size=2.2):
-        l1 = m3d.CrossSection.square([0.45, size], center=False).translate([-size * 0.35, -size / 2.0])
-        l2 = m3d.CrossSection.square([0.45, size], center=False).translate([size * 0.35 - 0.45, -size / 2.0])
-        diag = m3d.CrossSection.square([0.45, size * 1.15], center=True).rotate(-32).translate([0, 0])
-        return l1 + l2 + diag
-
-    def letter_i(size=2.2):
-        return m3d.CrossSection.square([0.45, size], center=True)
-
-    def letter_t(size=2.2):
-        stem = m3d.CrossSection.square([0.45, size], center=False).translate([-0.225, -size / 2.0])
-        top_bar = m3d.CrossSection.square([size * 0.8, 0.45], center=False).translate([-size * 0.4, size / 2.0 - 0.45])
-        return stem + top_bar
-
-    def letter_0(size=2.2):
-        o_outer = m3d.CrossSection.circle(size * 0.4, 24)
-        o_inner = m3d.CrossSection.circle(size * 0.4 - 0.45, 24)
-        return o_outer - o_inner
-
-    def letter_1(size=2.2):
-        stem = m3d.CrossSection.square([0.45, size], center=False).translate([-0.225, -size / 2.0])
-        serif = m3d.CrossSection.square([0.45, size * 0.4], center=True).rotate(40).translate([-size * 0.18, size * 0.32])
-        base = m3d.CrossSection.square([size * 0.6, 0.45], center=False).translate([-size * 0.3, -size / 2.0])
-        return stem + serif + base
-
-    spacing_1 = 2.45
-    s1 = 2.7
-    line1_shapes = [
-        letter_c(s1).translate([-4.5 * spacing_1, 2.0]),
-        letter_y(s1).translate([-3.5 * spacing_1, 2.0]),
-        letter_b(s1).translate([-2.5 * spacing_1, 2.0]),
-        letter_e(s1).translate([-1.5 * spacing_1, 2.0]),
-        letter_r(s1).translate([-0.5 * spacing_1, 2.0]),
-        letter_dash(s1).translate([0.5 * spacing_1, 2.0]),
-        letter_d(s1).translate([1.5 * spacing_1, 2.0]),
-        letter_e(s1).translate([2.5 * spacing_1, 2.0]),
-        letter_c(s1).translate([3.5 * spacing_1, 2.0]),
-        letter_k(s1).translate([4.5 * spacing_1, 2.0])
-    ]
-    
-    spacing_2 = 2.3
-    s2 = 2.2
-    line2_shapes = [
-        letter_u(s2).translate([-3.0 * spacing_2, -2.0]),
-        letter_n(s2).translate([-2.0 * spacing_2, -2.0]),
-        letter_i(s2).translate([-1.0 * spacing_2, -2.0]),
-        letter_t(s2).translate([0.0 * spacing_2, -2.0]),
-        letter_0(s2).translate([1.8 * spacing_2, -2.0]),
-        letter_1(s2).translate([2.8 * spacing_2, -2.0])
-    ]
-    
-    combined_2d = m3d.CrossSection()
-    for shape in line1_shapes + line2_shapes:
-        combined_2d = combined_2d + shape
-        
-    return m3d.Manifold.extrude(combined_2d, depth + 0.1)
+def make_text_emboss(line1="TINY AI LIMITS", line2="SENTINEL MK-1", depth=0.50):
+    cs1, _, _ = text_to_cross_section(line1, size=3.2)
+    cs2, _, _ = text_to_cross_section(line2, size=3.0)
+    cs_total = cs1.translate([0, 2.3]) + cs2.translate([0, -2.3])
+    cs_mirrored = cs_total.scale([-1, 1])
+    return m3d.Manifold.extrude(cs_mirrored, depth + 0.1)
 
 def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
     hw_x = length / 2.0
     hz = height / 2.0
     if side == '+Y':
         v_base = [[-hw_x, 0.05, -hz], [hw_x, 0.05, -hz], [hw_x, 0.05, hz], [-hw_x, 0.05, hz]]
-        v_apex = [[-hw_x + 0.55, -width, 0.0], [hw_x - 0.55, -width, 0.0]]
+        v_apex = [[-hw_x + 0.60, -width, 0.0], [hw_x - 0.60, -width, 0.0]]
     else:
         v_base = [[-hw_x, -0.05, -hz], [hw_x, -0.05, -hz], [hw_x, -0.05, hz], [-hw_x, -0.05, hz]]
-        v_apex = [[-hw_x + 0.55, width, 0.0], [hw_x - 0.55, width, 0.0]]
+        v_apex = [[-hw_x + 0.60, width, 0.0], [hw_x - 0.60, width, 0.0]]
+    pts = v_base + v_apex
+    combined = m3d.Manifold()
+    for p in pts:
+        combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
+    return combined.hull()
+
+def make_rear_snap_clip(length=5.5, width=0.55, height=1.3):
+    """
+    Dynamic Low-Friction 30° Deflection Snap Ramp
+    """
+    hw_y = length / 2.0
+    hz = height / 2.0
+    # Asymmetric profile: 30° entry ramp on top, sharp retention flat on bottom:
+    v_base = [[0.05, -hw_y, -hz], [0.05, hw_y, -hz], [0.05, hw_y, hz], [0.05, -hw_y, hz]]
+    v_apex = [[-width, -hw_y + 0.60, -0.2], [-width, hw_y - 0.60, -0.2]]
     pts = v_base + v_apex
     combined = m3d.Manifold()
     for p in pts:
@@ -380,18 +307,28 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 9.50mm):
-    usbc_z = 9.50
-    c1 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
-    c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
+    # 3. Lowered Extra-Wide High-Clearance Oval USB-C Port on LEFT wall (X = -27.0mm, Z = 7.00mm):
+    usbc_z = 7.00
+    y_span = 4.0
+    r_inner = 3.25
+    r_outer = 4.75
+    
+    c1 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
     usbc_tunnel = (c1 + c2).hull()
     
-    cone1 = m3d.Manifold.cylinder(3.5, 4.25, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
-    cone2 = m3d.Manifold.cylinder(3.5, 4.25, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
+    cone1 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
+    cone2 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, y_span, usbc_z])
     usbc_flare = (cone1 + cone2).hull()
-    usbc_port = usbc_tunnel + usbc_flare
     
-    # 4. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to depth)
+    # Shaved internal relief pocket (X = -25.2 to -23.5mm, 16.0mm wide x 8.0mm tall):
+    shave_cone1 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, -y_span, usbc_z])
+    shave_cone2 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, y_span, usbc_z])
+    usbc_inner_shave = (shave_cone1 + shave_cone2).hull()
+
+    usbc_port = usbc_tunnel + usbc_flare + usbc_inner_shave
+    
+    # 4. DuPont Connector & Wire Clearance Trench
     dupont_trench = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
     
     # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
@@ -425,61 +362,119 @@ def generate_main_housing():
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
         
-    # Top edge perimeter slim slits with 45-degree peaked roofs (100% self-supporting FDM printability)
     pts_slot_ccw = [[-0.6, 11.0], [0.6, 11.0], [0.6, 18.4], [0.0, 19.0], [-0.6, 18.4]]
     poly_slot = m3d.CrossSection([pts_slot_ccw])
     for vx in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
-    text_deboss = make_text_emboss("CYBER-DECK", "UNIT 01", depth=0.45).translate([0, 0, -0.05])
+    # 7. Embossed/Debossed Product Name in center area (Z = 0) with True Vector Font Curves
+    text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Front Minimalist U-Cradle (No front pillars):
-    esp_l = 23.0
-    esp_w = 18.4
-    esp_center_x = -10.0
-    rail_h = 3.2
-    
-    x_front = esp_center_x - esp_l / 2.0  # -21.5 (USB-C port end)
-    x_rear = esp_center_x + esp_l / 2.0   # +1.5  (Opposite end behind antenna)
-    wall_thick = 3.0
+    # 8. LOW-PROFILE COMPLIANT CANTILEVER SNAP CRADLE (+0.4mm Tolerances & Lower Board Seating):
+    esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
+    esp_w = 18.9       # Expanded width (+0.5mm clearance for 18.0-18.2mm boards)
+    rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
     side_thick = 1.6
-    tall_wall_h = 12.0  # Solid vertical rear wall opposite USB-C (Z = 2.0 to 14.0)
-    side_wall_h = 6.2   # Clean vertical side guide wall height (Z = 2.0 to 8.2)
-    
-    # 1. Straight Solid Rear Thrust Wall (solid all the way to floor)
-    rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
-        x_rear, -(esp_w / 2.0 + side_thick), floor_t
+    side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
+    rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
+    x_front = -24.0
+    x_rear = -0.4      # Rear wall positioned for 23.6mm length
+    wall_thick = 2.4
+    r_corner = 1.6
+    hw_c = esp_w / 2.0 + side_thick # 11.05mm
+
+    arm_w_snap = 6.5
+    slit_w = 1.2
+    slit_depth = 5.5
+
+    # 1. Stepped Rear Wall (Outer cheeks stepped down to side_wall_h = 4.8mm, Center cantilever arm at rear_wall_h = 7.5mm):
+    # Outer Cheek Blocks (Z = 2.0 to 6.8mm):
+    outer_cheek_t = m3d.Manifold.cube([wall_thick, hw_c - arm_w_snap/2 - slit_w, side_wall_h], center=False).translate([
+        x_rear, arm_w_snap/2 + slit_w, floor_t
+    ])
+    outer_cheek_b = m3d.Manifold.cube([wall_thick, hw_c - arm_w_snap/2 - slit_w, side_wall_h], center=False).translate([
+        x_rear, -hw_c, floor_t
     ])
     
-    # 2. Straight Vertical Side Guide Walls with integrated 1.0mm edge support steps:
-    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
-        x_front, esp_w / 2.0, floor_t
+    # Rounded outer corners on cheeks (Z = 2.0 to 6.8mm):
+    c_top = m3d.Manifold.cylinder(side_wall_h, r_corner, r_corner, 32).translate([
+        x_rear + wall_thick - r_corner, hw_c - r_corner, floor_t
     ])
-    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
-        x_front, -(esp_w / 2.0 + side_thick), floor_t
+    c_bot = m3d.Manifold.cylinder(side_wall_h, r_corner, r_corner, 32).translate([
+        x_rear + wall_thick - r_corner, -(hw_c - r_corner), floor_t
     ])
 
-    # 1.0mm side edge support steps (flush with inner side wall, Z = 2.0 to 5.2):
-    edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+    # Center Compliant Snap Arm (Z = 2.0 to 9.5mm):
+    center_snap_post = m3d.Manifold.cube([wall_thick, arm_w_snap, rear_wall_h], center=False).translate([
+        x_rear, -arm_w_snap/2, floor_t
+    ])
+    
+    # 2. Side Walls & Edge Steps (Z = 2.0 to 6.8mm):
+    side_wall_top = m3d.Manifold.cube([esp_l + 0.1, side_thick, side_wall_h], center=False).translate([
+        x_front, esp_w / 2.0, floor_t
+    ])
+    side_wall_bot = m3d.Manifold.cube([esp_l + 0.1, side_thick, side_wall_h], center=False).translate([
+        x_front, -(esp_w / 2.0 + side_thick), floor_t
+    ])
+    edge_step_top = m3d.Manifold.cube([esp_l + 0.1, 1.0, rail_h], center=False).translate([
         x_front, esp_w / 2.0 - 1.0, floor_t
     ])
-    edge_step_bot = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
+    edge_step_bot = m3d.Manifold.cube([esp_l + 0.1, 1.0, rail_h], center=False).translate([
         x_front, -esp_w / 2.0, floor_t
     ])
     
-    # 3. Discrete 45-Degree Self-Supporting Snap Clips
-    snap_z = floor_t + rail_h + 1.2 + 0.3 # 6.7mm
-    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
-    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
+    # 3. 2 Heavy-Duty Corner Buttress Ribs reinforcing outer cheeks:
+    r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 3.8, 0.8, floor_t + 0.8])
+    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick - 0.1, 0.8, floor_t + side_wall_h - 0.8])
+    r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick - 0.1, 0, floor_t + 0.05])
+    rib_template = (r_bot_c + r_top_c + r_base_c).hull()
     
-    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot
+    rib_t = rib_template.translate([0, esp_w / 2.0 - 1.2, 0])
+    rib_b = rib_template.translate([0, -(esp_w / 2.0 - 1.2), 0])
+    
+    # 4. Low-Profile 3-Way Snap Retention System:
+    esp_center_x = (x_front + x_rear) / 2.0
+    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 5.3mm
+    snap_rear_z = floor_t + rail_h + 1.4 + 1.8  # 7.0mm
+    
+    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_side_z])
+    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_side_z])
+    clip_rear = make_rear_snap_clip(5.5, 0.55, 1.3).translate([x_rear, 0, snap_rear_z])
+    
+    cradle_solid = (outer_cheek_t + outer_cheek_b + c_top + c_bot + center_snap_post +
+                    side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
+                    rib_t + rib_b + clip_top + clip_bot + clip_rear)
 
-    return (housing_hollow + carrier_solid) - usbc_port
+    housing_assembled = (housing_hollow + cradle_solid) - usbc_port
+
+    # 5. Flex Relief Slits (isolating center cantilever snap arm):
+    slit_t = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
+        x_rear + wall_thick / 2.0, arm_w_snap / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+    ])
+    slit_b = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
+        x_rear + wall_thick / 2.0, -(arm_w_snap / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+    ])
+
+    # 6. 45° Self-Centering Entry Lead-In Chamfers & 1.5mm Corner Relief Pockets:
+    # 45° Entry chamfer on top inner edge of side walls:
+    chamfer_top_side = m3d.Manifold.cylinder(esp_l + 2.0, 1.0, 0.01, 4).rotate([0, 90, 0]).translate([x_front - 1.0, esp_w/2.0, floor_t + side_wall_h])
+    chamfer_bot_side = m3d.Manifold.cylinder(esp_l + 2.0, 1.0, 0.01, 4).rotate([0, 90, 0]).translate([x_front - 1.0, -esp_w/2.0, floor_t + side_wall_h])
+    
+    # 1.5mm diagonal relief pockets on inside rear corners (Y = +/- 9.45mm):
+    corner_relief_t = m3d.Manifold.cube([2.0, 2.0, side_wall_h + 2.0], center=True).rotate([0, 0, 45]).translate([
+        x_rear, esp_w/2.0, floor_t + side_wall_h/2.0
+    ])
+    corner_relief_b = m3d.Manifold.cube([2.0, 2.0, side_wall_h + 2.0], center=True).rotate([0, 0, 45]).translate([
+        x_rear, -esp_w/2.0, floor_t + side_wall_h/2.0
+    ])
+
+    entry_refinements = slit_t + slit_b + chamfer_top_side + chamfer_bot_side + corner_relief_t + corner_relief_b
+
+    return housing_assembled - entry_refinements
 
 def generate_stand_tier1_base():
     base_w = 64.0
@@ -645,7 +640,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod")
+    export_stl(housing, housing_path, "Main Housing Pod (Low-Profile Optimized)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
