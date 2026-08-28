@@ -63,6 +63,30 @@ Yes. Each board claims a unique mDNS name derived from its MAC address (`tinyscr
 
 The board prints its hostname on the serial console at boot, and the setup page reports it when you connect over serial.
 
+## How does Enterprise / Spend Mode work for users without hourly quotas?
+
+If you are on an Enterprise, Team, or Pay-As-You-Go account (such as Anthropic Claude Enterprise or custom API keys), you do not have a 5-hour rolling limit.
+
+In **Enterprise Mode**, the companion app:
+1. Replaces the percentage remaining with your live **USD ($) expenditure** for the day (`$0.13`).
+2. Displays your total 24-hour token volume in the footer (`28.2k TOK`).
+3. Tracks your progress against a configurable **Daily Budget ($ USD)** on the radial arc.
+
+You can switch between **Standard Quota** and **Enterprise Mode** for any provider on the Web Setup page at `http://localhost:5000/setup`.
+
+## How are model token prices calculated?
+
+The companion backend automatically calculates model-specific pricing per 1,000,000 tokens for all assistant turns executed locally within the day:
+* **Claude 3.7 Sonnet / 3.5 Sonnet:** \$3.00 input / \$15.00 output / \$3.75 cache write / \$0.30 cache read
+* **Claude 3.5 Haiku:** \$0.80 input / \$4.00 output / \$1.00 cache write / \$0.08 cache read
+* **Claude 3 Opus:** \$15.00 input / \$75.00 output / \$18.75 cache write / \$1.50 cache read
+
+## Can I track cloud LLMs like OpenRouter or DeepSeek?
+
+Yes! You can independently assign the Left and Right radial arcs to any supported provider:
+* **Local CLIs (zero-config):** Anthropic Claude Code, Google Antigravity.
+* **Cloud API Services:** OpenRouter, DeepSeek, Mistral, Groq (just enter your API key in `http://localhost:5000/setup`).
+
 ## Can I test the interface without building the physical hardware?
 
 Yes! The project includes an interactive browser prototype and visualizer where you can preview and interact with all screens, animations, and telemetry states in real time:
