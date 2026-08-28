@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Stand
+part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
@@ -425,7 +425,7 @@ module stand_tier2_trunk() {
     }
 }
 
-// 6. UNIFIED MONOLITHIC DESK STAND
+// 6. UNIFIED MONOLITHIC PEDESTAL DESK STAND
 module desk_stand() {
     difference() {
         union() {
@@ -449,6 +449,70 @@ module desk_stand() {
     }
 }
 
+// 7. MINIMALIST ANGLED CRADLE DESK STAND (Open Triangular A-Frame)
+module minimalist_stand() {
+    m_stand_w = 48.0;
+    m_base_l  = 62.0;
+    m_base_t  = 5.0;
+    m_lip_h   = 4.5;
+    m_lip_d   = 4.0;
+    m_back_h  = 42.0;
+    m_spine_t = 5.5;
+    m_pocket_end = 38.0;
+    m_tilt    = stand_tilt_deg; // 22.0 deg
+
+    difference() {
+        union() {
+            // Flat Desk Base Plate
+            translate([-m_stand_w/2, 0, 0])
+                cube([m_stand_w, m_base_l, m_base_t]);
+            
+            // Front Retaining Lip
+            translate([-m_stand_w/2, 2.0, m_base_t])
+                cube([m_stand_w, m_lip_d, m_lip_h]);
+            
+            // Slanted Backrest Spine
+            translate([0, m_pocket_end, m_base_t])
+                rotate([-m_tilt, 0, 0])
+                    translate([-m_stand_w/2, 0, 0])
+                        cube([m_stand_w, m_spine_t, m_back_h]);
+            
+            // Rear Triangular Support Wedge
+            translate([-m_stand_w/2, 0, 0])
+                rotate([0, 90, 0])
+                    linear_extrude(height = m_stand_w)
+                        polygon(points = [
+                            [m_base_t, m_pocket_end + m_spine_t - 0.5],
+                            [m_base_t, m_base_l - 2.5],
+                            [m_base_t + cos(m_tilt)*(m_back_h - 4.0), m_pocket_end + sin(m_tilt)*(m_back_h - 4.0)]
+                        ]);
+        }
+        
+        // Open Triangular Side Window Cutout
+        translate([-(m_stand_w + 10)/2, 0, 0])
+            rotate([0, 90, 0])
+                linear_extrude(height = m_stand_w + 10)
+                    polygon(points = [
+                        [m_base_t + 2.0, m_pocket_end + m_spine_t + 2.5],
+                        [m_base_t + 2.0, m_base_l - 8.0],
+                        [m_base_t + cos(m_tilt)*(m_back_h - 8.0) - 4.0, m_pocket_end + sin(m_tilt)*(m_back_h - 8.0) + 1.0]
+                    ]);
+        
+        // Rear Cable Routing Slot
+        translate([0, m_pocket_end + sin(m_tilt)*18.0 + 3.0, m_base_t + cos(m_tilt)*18.0])
+            rotate([-m_tilt, 0, 0])
+                cube([22.0, 40.0, 22.0], center = true);
+        
+        // 4x Rubber Feet Recesses (dia 7.6mm x 1.2mm deep)
+        for (fx = [-m_stand_w/2 + 8.0, m_stand_w/2 - 8.0]) {
+            for (fy = [5.5, m_base_l - 6.0]) {
+                translate([fx, fy, -0.1])
+                    cylinder(d = 7.6, h = 1.3);
+            }
+        }
+    }
+}
+
 // --- PART DISPATCH ---
 if (part == 1) {
     front_bezel();
@@ -462,14 +526,15 @@ if (part == 1) {
     stand_tier2_trunk();
 } else if (part == 6) {
     desk_stand();
+} else if (part == 7) {
+    minimalist_stand();
 } else {
-    // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance)
-    translate([0, -4.0, 42.40])
-        rotate([90.0 - stand_tilt_deg, 0, 180.0]) {
+    // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance on Minimalist Stand)
+    translate([0, 38.0 + sin(stand_tilt_deg)*27.0, 5.0 + cos(stand_tilt_deg)*27.0])
+        rotate([-stand_tilt_deg, 0, 0]) {
             translate([0, 0, housing_depth + mid_clamp_thickness]) color("#22252B") front_bezel();
             translate([0, 0, housing_depth]) color("#D08770") mid_clamp();
             color("#181A1F") main_housing();
         }
-    color("#5c4033") stand_tier1_base();
-    color("#2E3440") stand_tier2_trunk();
+    color("#1E2127") minimalist_stand();
 }
