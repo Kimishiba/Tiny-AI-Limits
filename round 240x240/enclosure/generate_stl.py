@@ -11,14 +11,15 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
-  * Taller 9.5mm Rear Retaining Wall with Smooth Cylindrical Rounded Corners & 3x Curved Buttress Ribs
+  * Compliant Cantilever Snap Arm Mechanism (Dual vertical flex relief slits allowing center snap arm to bend backwards on board insertion, then snap forward with positive lock)
+  * Dual Rigid Outer Cheeks backed by 2x Heavy-Duty Curved Buttress Ribs (absorbing 100% of USB-C cable insertion load)
+  * Taller 9.5mm Rear Retaining Wall with Smooth Cylindrical Rounded Corners
   * Optimized Height 3-Way Snap-Fit Locking System (Side clips at Z = 7.8mm, Rear retention lip at Z = 8.8mm)
   * Shaved-Depth High-Clearance USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness at port)
   * Flush Inner Wall Board Seating (ESP32 PCB sits directly flush against inner wall at X = -24.0mm)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
   * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
   * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
-  * Solid rear thrust wall directly opposite USB-C port at X = -1.0mm (absorbing 100% cable insertion load)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
@@ -263,8 +264,8 @@ def make_snap_clip(length=5.0, width=0.60, height=1.4, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def make_rear_snap_clip(length=6.0, width=0.60, height=1.4):
-    # Retention clip facing -X (projecting forward from the rear wall over PCB rear edge):
+def make_rear_snap_clip(length=5.5, width=0.60, height=1.4):
+    # Retention clip facing -X (projecting forward from the flex arm over PCB rear edge):
     hw_y = length / 2.0
     hz = height / 2.0
     v_base = [[0.05, -hw_y, -hz], [0.05, hw_y, -hz], [0.05, hw_y, hz], [0.05, -hw_y, hz]]
@@ -371,7 +372,7 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. SCULPTED U-CRADLE WITH TALLER REAR WALL (9.5mm), ROUNDED CORNERS & ELEVATED 3-WAY SNAP LOCKING:
+    # 8. COMPLIANT CANTILEVER SNAP CRADLE WITH TALLER REAR WALL (9.5mm) & ROUNDED CORNERS:
     esp_l = 23.0
     esp_w = 18.4
     rail_h = 3.2
@@ -384,7 +385,12 @@ def generate_main_housing():
     r_corner = 1.6
     hw = esp_w / 2.0 + side_thick
 
-    # 1. Taller Back Wall with Cylindrical Rounded Outer Corners (Z = 2.0 to 11.5mm):
+    # Cantilever Arm & Flex Slit parameters:
+    arm_w = 6.5
+    slit_w = 1.0
+    slit_depth = 6.5
+
+    # 1. Back Wall with Cylindrical Rounded Outer Corners:
     bw_base = m3d.Manifold.cube([wall_thick - r_corner, 2 * hw, rear_wall_h], center=False).translate([
         x_rear, -hw, floor_t
     ])
@@ -398,6 +404,15 @@ def generate_main_housing():
         x_rear + wall_thick - r_corner, -(hw - r_corner), floor_t
     ])
     rounded_back_wall = bw_base + bw_fill + c_top + c_bot
+
+    # Cut Dual Vertical Flex Relief Slits:
+    slit_t = m3d.Manifold.cube([wall_thick + 2.0, slit_w, slit_depth + 1.0], center=True).translate([
+        x_rear + wall_thick / 2.0, arm_w / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+    ])
+    slit_b = m3d.Manifold.cube([wall_thick + 2.0, slit_w, slit_depth + 1.0], center=True).translate([
+        x_rear + wall_thick / 2.0, -(arm_w / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+    ])
+    flex_back_wall = rounded_back_wall - slit_t - slit_b
     
     # 2. Side Walls & Edge Steps:
     side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
@@ -413,28 +428,26 @@ def generate_main_housing():
         x_front, -esp_w / 2.0, floor_t
     ])
     
-    # 3. 3 Taller Rear Curved Buttress Ribs (scaling smoothly up to 9.5mm H):
+    # 3. 2 Heavy-Duty Corner Buttress Ribs (Bracing the rigid outer cheeks):
     r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 4.8, 0.8, floor_t + 0.8])
     r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick, 0.8, floor_t + rear_wall_h - 0.8])
     r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick, 0, floor_t + 0.05])
-    rib_c = (r_bot_c + r_top_c + r_base_c).hull()
+    rib_template = (r_bot_c + r_top_c + r_base_c).hull()
     
-    rib_t = rib_c.translate([0, esp_w / 2.0 - 1.2, 0])
-    rib_b = rib_c.translate([0, -(esp_w / 2.0 - 1.2), 0])
+    rib_t = rib_template.translate([0, esp_w / 2.0 - 1.2, 0])
+    rib_b = rib_template.translate([0, -(esp_w / 2.0 - 1.2), 0])
     
     # 4. Elevated 3-Way Snap Retention System:
-    # Side clips at Z = 7.8mm (top of side guide walls)
-    # Rear clip at Z = 8.8mm (clearing antenna package at 7.8mm, locking board envelope firmly)
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.4 + 1.2  # 7.8mm
     snap_rear_z = floor_t + rail_h + 1.4 + 2.2  # 8.8mm
     
     clip_top = make_snap_clip(5.0, 0.60, 1.4, '+Y').translate([esp_center_x, esp_w / 2.0, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.60, 1.4, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_side_z])
-    clip_rear = make_rear_snap_clip(6.0, 0.60, 1.4).translate([x_rear, 0, snap_rear_z])
+    clip_rear = make_rear_snap_clip(5.5, 0.60, 1.4).translate([x_rear, 0, snap_rear_z])
     
-    cradle = (rounded_back_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
-              rib_c + rib_t + rib_b + clip_top + clip_bot + clip_rear)
+    cradle = (flex_back_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
+              rib_t + rib_b + clip_top + clip_bot + clip_rear)
 
     return (housing_hollow + cradle) - usbc_port
 
@@ -602,7 +615,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Taller Wall + Raised 3-Way Snap Lock)")
+    export_stl(housing, housing_path, "Main Housing Pod (Compliant Cantilever Snap Arm)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
