@@ -658,10 +658,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (V4 Refined Zero Suspended Parts)")
-    
-    housing_v4_path = os.path.join(output_dir, "gc9a01_main_housing_v4.stl")
-    export_stl(housing, housing_v4_path, "Main Housing Pod V4")
+    export_stl(housing, housing_path, "Main Housing Pod")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
