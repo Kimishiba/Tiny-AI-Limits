@@ -51,7 +51,9 @@ def load_config():
     return default_config
 
 def save_config(cfg):
+    global config
     try:
+        config = cfg
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=4)
         try:
@@ -311,7 +313,7 @@ def get_claude_dirs():
 # swamps the number with something proportional to turn count rather than
 # real new work (input + output + freshly-cached context).
 def scan_claude_usage(now_ts=None):
-    """Scan Claude transcript logs for today's tokens and 5h rolling reset window."""
+    """Scan Claude transcript logs for 24h tokens, USD cost, and 5h rolling reset window."""
     if now_ts is None:
         now_ts = time.time()
     five_hours_ago = now_ts - (5 * 3600)
@@ -391,14 +393,18 @@ def scan_claude_usage(now_ts=None):
 
     return {
         "tokens_today": total_tokens,
+        "tokens_24h": total_tokens,
         "tokens_str": tok_k,
         "cost_today_usd": cost_today_usd,
+        "cost_24h_usd": cost_today_usd,
         "cost_str": f"${cost_today_usd:.2f}",
         "limit": 100,
         "remaining": 100,
+        "percent": 100,
         "reset_time": reset_time,
         "reset_in_seconds": reset_in_seconds,
-        "reset_str": reset_str
+        "reset_str": reset_str,
+        "curved_text": "CLD 100%"
     }
 
 def scan_claude_tokens_today():

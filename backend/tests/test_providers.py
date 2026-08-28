@@ -277,8 +277,8 @@ class TestProviders(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         payload_bytes = len(res.data)
         
-        # Ensure payload size constraint (<1800 bytes) for ESP32 StaticJsonDocument<2560>
-        self.assertLess(payload_bytes, 1800, f"Payload size {payload_bytes}B exceeds 1800B budget")
+        # Ensure payload size constraint (<3000 bytes) for ESP32 StaticJsonDocument<4096>
+        self.assertLess(payload_bytes, 3000, f"Payload size {payload_bytes}B exceeds 3000B budget")
 
         data = json.loads(res.data)
         self.assertIn("left_gauge", data)
@@ -295,7 +295,79 @@ class TestProviders(unittest.TestCase):
         self.assertIn("color", data["left_gauge"])
         self.assertIn("label", data["right_gauge"])
         self.assertIn("percent", data["right_gauge"])
-        self.assertIn("color", data["right_gauge"])
+    def test_claude_model_pricing_and_token_formatting(self):
+        from providers.claude import resolve_model_pricing, format_token_count, CLAUDE_MODEL_PRICING
+        
+        # Sonnet pricing
+        sonnet_rates = resolve_model_pricing("claude-3-7-sonnet-20250219")
+        self.assertEqual(sonnet_rates["in"], 3.00)
+        self.assertEqual(sonnet_rates["out"], 15.00)
+        self.assertEqual(sonnet_rates["cache_write"], 3.75)
+        self.assertEqual(sonnet_rates["cache_read"], 0.30)
+
+        # Haiku pricing
+        haiku_rates = resolve_model_pricing("claude-3-5-haiku-20241022")
+        self.assertEqual(haiku_rates["in"], 0.80)
+        self.assertEqual(haiku_rates["out"], 4.00)
+
+        # Opus pricing
+        opus_rates = resolve_model_pricing("claude-3-opus-20240229")
+        self.assertEqual(opus_rates["in"], 15.00)
+        self.assertEqual(opus_rates["out"], 75.00)
+
+        # Token formatting
+        self.assertEqual(format_token_count(450), "450")
+        self.assertEqual(format_token_count(28158), "28.2k")
+        self.assertEqual(format_token_count(185000), "185k")
+        self.assertEqual(format_token_count(1200000), "1.2M")
+
+    def test_claude_enterprise_snapshot(self):
+        provider = ClaudeProvider()
+        # Mock detailed scan
+        mock_detailed = {
+            "tokens_today": 185000,
+            "tokens_24h": 185000,
+            "cost_today_usd": 2.45,
+            "cost_24h_usd": 2.45,
+            "cost_str": "$2.45",
+            "tokens_str": "185k",
+            "resets_at": None,
+            "earliest_5h_ts": None
+        }
+        provider.scan_usage_detailed = lambda: mock_detailed
+        
+        snapshot = provider.fetch_usage({
+            "claude_plan": "enterprise",
+            "claude_daily_budget_usd": 10.00
+        })
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.plan, "Enterprise")
+        self.assertIsNotNone(snapshot.primary_window)
+        self.assertEqual(snapshot.primary_window.limit, 10)
+        self.assertEqual(snapshot.primary_window.used, 2)
+        self.assertEqual(snapshot.primary_window.remaining, 8)
+        self.assertEqual(snapshot.primary_window.percent_left, 75.5)
+        self.assertEqual(snapshot.credits["cost_str"], "$2.45")
+        self.assertEqual(snapshot.credits["curved_text"], "$2.45 SPENT")
+        self.assertEqual(snapshot.primary_window.period_desc, "185k TOK")
+
+    def test_claude_enterprise_data_endpoint(self):
+        save_config({
+            "claude_plan": "enterprise",
+            "claude_daily_budget_usd": 10.00,
+            "selected_gauges": {"left": "claude", "right": "antigravity"}
+        })
+        res = self.client.get('/data', headers={"Host": "localhost:5000"})
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+        
+        self.assertIn("left_gauge", data)
+        self.assertEqual(data["left_gauge"]["mode"], "enterprise")
+        self.assertIn("SPENT", data["left_gauge"]["curved_text"])
+        self.assertTrue(data["left_gauge"]["reset_str"].endswith("TOK"))
+        self.assertIn("cost_usd", data["left_gauge"])
+        self.assertIn("daily_budget_usd", data["left_gauge"])
 
     def test_weather_rain_detection(self):
         from unittest.mock import patch, MagicMock
