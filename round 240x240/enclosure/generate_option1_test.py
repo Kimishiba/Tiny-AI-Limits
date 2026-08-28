@@ -13,6 +13,12 @@ from generate_stl import (
     export_stl
 )
 
+def make_rounded_pillar(w, d, h, r_top=2.0):
+    b1 = m3d.Manifold.cube([d - r_top, w, h], center=False)
+    b2 = m3d.Manifold.cube([d, w, h - r_top], center=False)
+    cyl = m3d.Manifold.cylinder(w, r_top, r_top, 32).rotate([90, 0, 0]).translate([d - r_top, 0, h - r_top])
+    return (b1 + b2 + cyl).hull()
+
 def generate_main_housing_option1():
     w = 54.0
     c = 6.0
@@ -100,7 +106,7 @@ def generate_main_housing_option1():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Front Minimalist U-Cradle with OPTION 1 DUAL BUTTRESSES & ANTENNA GAP
+    # 8. Open-Front Minimalist U-Cradle with SMOOTH ROUNDED DUAL BUTTRESSES & ANTENNA GAP
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
@@ -111,26 +117,14 @@ def generate_main_housing_option1():
     side_thick = 1.6
     side_wall_h = 6.2   # Z = 2.0 to 8.2
     pillar_w = 5.2      # Width of each corner pillar along Y
-    pillar_thick = 3.0  # Thickness along X
-    pillar_h = 8.2      # Pillar height (Z = 2.0 to 10.2)
+    pillar_thick = 3.2  # Thickness along X
+    pillar_h = 6.2      # Pillar height matching side walls (Z = 2.0 to 8.2)
     
-    # Option 1 Dual Corner Thrust Buttresses with 45° rear chamfer
-    p_top = m3d.Manifold.cube([pillar_thick, pillar_w, pillar_h], center=False).translate([
-        x_rear, esp_w / 2.0 + side_thick - pillar_w, floor_t
-    ])
-    p_bot = m3d.Manifold.cube([pillar_thick, pillar_w, pillar_h], center=False).translate([
-        x_rear, -(esp_w / 2.0 + side_thick), floor_t
-    ])
-    
-    # 45° chamfer cutouts on rear top of the two buttresses:
-    ch_top = m3d.Manifold.cube([5.0, pillar_w + 1.0, 5.0], center=True).rotate([0, 45, 0]).translate([
-        x_rear + pillar_thick, esp_w / 2.0 + side_thick - pillar_w / 2.0, floor_t + pillar_h
-    ])
-    ch_bot = m3d.Manifold.cube([5.0, pillar_w + 1.0, 5.0], center=True).rotate([0, 45, 0]).translate([
-        x_rear + pillar_thick, -(esp_w / 2.0 + side_thick - pillar_w / 2.0), floor_t + pillar_h
-    ])
-    
-    buttresses = (p_top + p_bot) - ch_top - ch_bot
+    # Smoothly rounded corner thrust buttresses
+    p_shape = make_rounded_pillar(pillar_w, pillar_thick, pillar_h, r_top=2.0)
+    p_top = p_shape.translate([x_rear, esp_w / 2.0 + side_thick - pillar_w, floor_t])
+    p_bot = p_shape.translate([x_rear, -(esp_w / 2.0 + side_thick), floor_t])
+    buttresses = p_top + p_bot
     
     # Straight Vertical Side Guide Walls:
     side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
@@ -161,4 +155,4 @@ if __name__ == "__main__":
     out_dir = os.path.dirname(os.path.abspath(__file__))
     out_stl = os.path.join(out_dir, "gc9a01_main_housing_option1_test.stl")
     opt1_housing = generate_main_housing_option1()
-    export_stl(opt1_housing, out_stl, "Main Housing Pod (Option 1 Test)")
+    export_stl(opt1_housing, out_stl, "Main Housing Pod (Option 1 Test - Rounded Pillars)")
