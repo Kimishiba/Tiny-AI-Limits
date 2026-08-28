@@ -767,42 +767,68 @@ _session_counters = {"claude": 0, "antigravity": 0}
 
 IN_FLIGHT_TIMEOUT_SECONDS = 45
 
+def _format_context_phrase(words, max_len=12):
+    """Combine 1-2 meaningful context words into a clear, descriptive label <= max_len."""
+    if not words:
+        return ""
+
+    acronyms = {"3D", "CAD", "UI", "UX", "QA", "API", "RPC", "OTA", "LCD", "ESP", "PCB", "CLI", "AGY", "CLD", "AI"}
+    cleaned_words = []
+    for w in words:
+        clean = re.sub(r"[^A-Za-z0-9]", "", w)
+        if not clean:
+            continue
+        if clean.upper() in acronyms or (len(clean) <= 3 and clean.isupper()):
+            cleaned_words.append(clean.upper())
+        elif len(clean) <= 2:
+            cleaned_words.append(clean.upper())
+        else:
+            cleaned_words.append(clean.capitalize())
+
+    if not cleaned_words:
+        return ""
+
+    # Try combining two words if they fit comfortably (e.g. "3D CAD", "Firmware QA", "AI Limits")
+    if len(cleaned_words) >= 2:
+        combined = f"{cleaned_words[0]} {cleaned_words[1]}"
+        if len(combined) <= max_len:
+            return combined
+
+    # If first word is very short (<= 3 chars, e.g. "3D", "UI", "QA") and we have a 2nd word,
+    # combine with truncated 2nd word so it's not a lonely cryptic acronym
+    if len(cleaned_words) >= 2 and len(cleaned_words[0]) <= 3:
+        combined = f"{cleaned_words[0]} {cleaned_words[1]}"
+        return combined[:max_len].strip()
+
+    # Otherwise return the first word
+    return cleaned_words[0][:max_len]
+
 def _clean_context_word(word, max_len=12):
-    """Clean a keyword to alphanumeric, capitalized, strictly clamped to max_len."""
-    if not word:
-        return ""
-    cleaned = re.sub(r"[^A-Za-z0-9\-]", "", word).strip("-")
-    if not cleaned:
-        return ""
-    if len(cleaned) <= 3:
-        cleaned = cleaned.upper()
-    else:
-        cleaned = cleaned.capitalize()
-    return cleaned[:max_len]
+    """Legacy helper fallback."""
+    return _format_context_phrase([word] if word else [], max_len=max_len)
 
 def _extract_antigravity_context(transcript_lines=None, role=None, objective=None):
     """Extract a concise, meaningful context tag for Antigravity."""
     generic_words = {
         "agent", "worker", "specialist", "engineer", "subagent", "reviewer",
         "tester", "ticket", "task", "user", "objective", "display", "multi",
-        "service", "system", "request", "tool", "call"
+        "service", "system", "request", "tool", "call", "please", "help"
     }
+    acronyms = {"3d", "cad", "ui", "ux", "qa", "api", "rpc", "ota", "lcd", "esp", "pcb", "cli", "ai"}
 
     if role:
         words = re.findall(r"[A-Za-z0-9]+", role)
         filtered = [w for w in words if w.lower() not in generic_words]
-        candidate = filtered[0] if filtered else (words[0] if words else "")
-        cleaned = _clean_context_word(candidate, max_len=12)
-        if cleaned:
-            return cleaned
+        phrase = _format_context_phrase(filtered or words, max_len=12)
+        if phrase:
+            return phrase
 
     if objective:
         words = re.findall(r"[A-Za-z0-9]+", objective)
         filtered = [w for w in words if w.lower() not in generic_words]
-        candidate = filtered[0] if filtered else (words[0] if words else "")
-        cleaned = _clean_context_word(candidate, max_len=12)
-        if cleaned:
-            return cleaned
+        phrase = _format_context_phrase(filtered or words, max_len=12)
+        if phrase:
+            return phrase
 
     if transcript_lines:
         for line in transcript_lines:
@@ -824,10 +850,9 @@ def _extract_antigravity_context(transcript_lines=None, role=None, objective=Non
                 if m:
                     words = re.findall(r"[A-Za-z0-9]+", m.group(1))
                     filtered = [w for w in words if w.lower() not in generic_words]
-                    candidate = filtered[0] if filtered else (words[0] if words else "")
-                    cleaned = _clean_context_word(candidate, max_len=12)
-                    if cleaned:
-                        return cleaned
+                    phrase = _format_context_phrase(filtered or words, max_len=12)
+                    if phrase:
+                        return phrase
 
             tool_calls = entry.get("tool_calls", [])
             if isinstance(tool_calls, list):
@@ -839,10 +864,9 @@ def _extract_antigravity_context(transcript_lines=None, role=None, objective=Non
                             if isinstance(sa, dict) and sa.get("Role"):
                                 words = re.findall(r"[A-Za-z0-9]+", sa["Role"])
                                 filtered = [w for w in words if w.lower() not in generic_words]
-                                candidate = filtered[0] if filtered else (words[0] if words else "")
-                                cleaned = _clean_context_word(candidate, max_len=12)
-                                if cleaned:
-                                    return cleaned
+                                phrase = _format_context_phrase(filtered or words, max_len=12)
+                                if phrase:
+                                    return phrase
 
         stop_words = {
             "can", "we", "the", "a", "an", "to", "for", "in", "of", "and", "is", "it",
@@ -868,11 +892,11 @@ def _extract_antigravity_context(transcript_lines=None, role=None, objective=Non
                 if isinstance(raw_content, str):
                     stripped = re.sub(r"<[^>]+>", " ", raw_content)
                     words = re.findall(r"[A-Za-z0-9]+", stripped)
-                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and len(w) >= 3]
+                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and (len(w) >= 3 or w.lower() in acronyms)]
                     if filtered:
-                        cleaned = _clean_context_word(filtered[0], max_len=12)
-                        if cleaned:
-                            return cleaned
+                        phrase = _format_context_phrase(filtered, max_len=12)
+                        if phrase:
+                            return phrase
     return ""
 
 def _extract_claude_context(cwd=None, transcript_lines=None):
@@ -881,10 +905,9 @@ def _extract_claude_context(cwd=None, transcript_lines=None):
         base = os.path.basename(os.path.normpath(cwd))
         words = re.findall(r"[A-Za-z0-9]+", base)
         if words:
-            candidate = words[-1] if len(words) > 1 and len(words[-1]) >= 3 else words[0]
-            cleaned = _clean_context_word(candidate, max_len=12)
-            if cleaned:
-                return cleaned
+            phrase = _format_context_phrase(words, max_len=12)
+            if phrase:
+                return phrase
     return ""
 
 def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
@@ -1681,18 +1704,21 @@ def get_data():
     right_snap = poller.get_snapshot(right_id)
 
     # Left gauge properties
-    if left_snap and left_snap.primary_window:
-        left_pct = int(round(left_snap.primary_window.percent_left))
-        left_label = left_snap.badge or left_id[:3].upper()
-        left_name = left_snap.provider_name
-        left_color = left_snap.color
-        left_reset = left_snap.primary_window.period_desc or "READY"
-    elif left_id == "claude":
-        left_pct = 100
+    if left_id == "claude":
+        left_pct = claude_data.get("remaining", 100)
         left_label = "CLD"
         left_name = "Claude"
         left_color = "0x00E5FF"
         left_reset = claude_data.get("reset_str", "READY")
+    elif left_snap and left_snap.primary_window:
+        left_pct = int(round(left_snap.primary_window.percent_left))
+        left_label = left_snap.badge or left_id[:3].upper()
+        left_name = left_snap.provider_name
+        left_color = left_snap.color
+        if left_snap.primary_window.resets_at:
+            _, left_reset = format_reset_time(left_snap.primary_window.resets_at)
+        else:
+            left_reset = left_snap.primary_window.period_desc or "READY"
     else:
         left_pct = 100
         left_label = left_id[:3].upper()
@@ -1701,20 +1727,23 @@ def get_data():
         left_reset = "READY"
 
     # Right gauge properties
-    if right_snap and right_snap.primary_window:
-        right_pct = int(round(right_snap.primary_window.percent_left))
-        right_label = right_snap.badge or right_id[:3].upper()
-        right_name = right_snap.provider_name
-        right_color = right_snap.color
-        right_reset = right_snap.primary_window.period_desc or "5h"
-    elif right_id == "antigravity":
-        lim = max(1, antigravity_data.get("limit", 200))
-        rem = antigravity_data.get("remaining", 200)
+    if right_id == "antigravity":
+        lim = max(1, antigravity_data.get("limit", 100))
+        rem = antigravity_data.get("remaining", 100)
         right_pct = int(round((rem / lim) * 100))
         right_label = "AGY"
         right_name = "Antigravity"
         right_color = "0xFF9100"
-        right_reset = antigravity_data.get("period", "5h")
+        right_reset = antigravity_data.get("reset_str") or antigravity_data.get("period", "5h")
+    elif right_snap and right_snap.primary_window:
+        right_pct = int(round(right_snap.primary_window.percent_left))
+        right_label = right_snap.badge or right_id[:3].upper()
+        right_name = right_snap.provider_name
+        right_color = right_snap.color
+        if right_snap.primary_window.resets_at:
+            _, right_reset = format_reset_time(right_snap.primary_window.resets_at)
+        else:
+            right_reset = right_snap.primary_window.period_desc or "5h"
     else:
         right_pct = 100
         right_label = right_id[:3].upper()
