@@ -832,9 +832,11 @@
     let antigravity_reset_str = "";
     let left_gauge_label = "CLD";
     let left_gauge_name = "Claude";
+    let left_gauge_mode = "enterprise";
+    let left_gauge_curved = "$0.13 SPENT";
     let left_gauge_pct = 85;
     let left_gauge_color = "#00E5FF";
-    let left_gauge_reset = "READY";
+    let left_gauge_reset = "28.2k TOK";
     let right_gauge_label = "AGY";
     let right_gauge_name = "Antigravity";
     let right_gauge_pct = 60;
@@ -1124,7 +1126,9 @@
       const badgeFont = "900 10.5px 'JetBrains Mono', 'Fira Code', monospace";
 
       // Left Gauge % Curved along inside of Left Arc (Clockwise around left perimeter)
-      const leftBadgeText = `${(left_gauge_name || "CLAUDE").toUpperCase()} ${claudePct}%`;
+      const leftBadgeText = (left_gauge_mode === "enterprise" && left_gauge_curved)
+        ? left_gauge_curved
+        : `${(left_gauge_name || "CLAUDE").toUpperCase()} ${claudePct}%`;
       drawCurvedTextClockwise(c, leftBadgeText, cx, cy, textRadius, -Math.PI / 2, left_gauge_color || "#00E5FF", badgeFont);
 
       // Right Gauge % Curved along inside of Right Arc (Clockwise around right perimeter)
@@ -1958,6 +1962,8 @@
           if (data.left_gauge) {
             left_gauge_label = data.left_gauge.label || "CLD";
             left_gauge_name = data.left_gauge.name || "Claude";
+            left_gauge_mode = data.left_gauge.mode || "standard";
+            left_gauge_curved = data.left_gauge.curved_text || "";
             left_gauge_pct = data.left_gauge.percent !== undefined ? data.left_gauge.percent : 100;
             left_gauge_reset = data.left_gauge.reset_str || "";
             if (data.left_gauge.color) {
