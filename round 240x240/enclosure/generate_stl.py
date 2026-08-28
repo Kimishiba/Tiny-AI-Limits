@@ -11,12 +11,13 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
-  * Extra-Wide High-Clearance USB-C Port (14.5mm inner width x 6.5mm inner height, 17.5mm outer lead-in flare)
+  * Shaved-Depth High-Clearance USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness at port)
+  * Flush Inner Wall Board Seating (ESP32 PCB sits directly flush against inner wall at X = -24.0mm)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
   * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
   * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
   * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
-  * Solid 12.0mm tall rear thrust wall directly opposite USB-C port (absorbing 100% cable insertion load)
+  * Solid 12.0mm tall rear thrust wall directly opposite USB-C port at X = -1.0mm (absorbing 100% cable insertion load)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
@@ -287,8 +288,9 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Extra-Wide High-Clearance Oval USB-C Port with Accentuated Lead-In Chamfer (Z = 9.50mm):
+    # 3. Extra-Wide High-Clearance Oval USB-C Port with Shaved Inner Wall & Accentuated Lead-In Chamfer:
     # Inner tunnel: 14.5mm wide x 6.5mm tall. Outer lead-in flare: 17.5mm wide x 9.5mm tall.
+    # Shaves 1.2mm off the inside of the enclosure wall (leaving a sleek 1.8mm wall at the port)
     usbc_z = 9.50
     y_span = 4.0
     r_inner = 3.25
@@ -301,7 +303,13 @@ def generate_main_housing():
     cone1 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
     cone2 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, y_span, usbc_z])
     usbc_flare = (cone1 + cone2).hull()
-    usbc_port = usbc_tunnel + usbc_flare
+    
+    # Shaved internal relief pocket (X = -25.2 to -23.5mm, 16.0mm wide x 8.0mm tall):
+    shave_cone1 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, -y_span, usbc_z])
+    shave_cone2 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, y_span, usbc_z])
+    usbc_inner_shave = (shave_cone1 + shave_cone2).hull()
+
+    usbc_port = usbc_tunnel + usbc_flare + usbc_inner_shave
     
     # 4. DuPont Connector & Wire Clearance Trench (26.0mm wide x 5.0mm deep, Z = floor_t to depth)
     dupont_trench = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
@@ -350,20 +358,21 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Front Minimalist U-Cradle (Original Canonical Solid Architecture):
+    # 8. Open-Front Minimalist U-Cradle FLUSH WITH INNER WALL (X = -24.0mm to -1.0mm):
     esp_l = 23.0
     esp_w = 18.4
-    esp_center_x = -10.0
     rail_h = 3.2
     
-    x_front = esp_center_x - esp_l / 2.0  # -21.5 (USB-C port end)
-    x_rear = esp_center_x + esp_l / 2.0   # +1.5  (Opposite end behind antenna)
+    x_front = -24.0 # Sits directly flush against the inner wall at X = -24.0mm
+    x_rear = x_front + esp_l # -1.0mm (Opposite end behind antenna)
+    esp_center_x = (x_front + x_rear) / 2.0 # -12.5mm
+    
     wall_thick = 3.0
     side_thick = 1.6
     tall_wall_h = 12.0  # Solid vertical rear wall opposite USB-C (Z = 2.0 to 14.0)
     side_wall_h = 6.2   # Clean vertical side guide wall height (Z = 2.0 to 8.2)
     
-    # 1. Straight Solid Rear Thrust Wall (solid all the way to floor)
+    # 1. Straight Solid Rear Thrust Wall (solid all the way to floor at X = -1.0 to +2.0)
     rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
         x_rear, -(esp_w / 2.0 + side_thick), floor_t
     ])
@@ -557,7 +566,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod")
+    export_stl(housing, housing_path, "Main Housing Pod (Flush Fit + Shaved USB-C)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
