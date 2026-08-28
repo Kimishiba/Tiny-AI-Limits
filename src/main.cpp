@@ -865,30 +865,37 @@ void drawGC9A01RoundFlipUI() {
             }
         }
 
-        // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
-        // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
-        gcGfx->fillRoundRect(29, 108, 36, 24, 3, gcGfx->color565(14, 20, 28));
-        gcGfx->drawRoundRect(29, 108, 36, 24, 3, leftCol);
-        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
-        if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
-            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 121, leftCol);
-        } else {
-            char leftPctStr[8];
-            sprintf(leftPctStr, "%d%%", leftPct);
-            gcPrintCentered(leftPctStr, 47, 121, leftCol);
-        }
+        // Clear corridor & text zones before redrawing
+        gcGfx->fillRect(20, 90, 48, 60, GC_COLOR_BLACK);
+        gcGfx->fillRect(172, 90, 48, 60, GC_COLOR_BLACK);
+        gcGfx->fillRect(32, 154, 52, 16, GC_COLOR_BLACK);
+        gcGfx->fillRect(156, 154, 52, 16, GC_COLOR_BLACK);
 
-        // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
-        gcGfx->fillRoundRect(175, 108, 36, 24, 3, gcGfx->color565(28, 18, 10));
-        gcGfx->drawRoundRect(175, 108, 36, 24, 3, rightCol);
-        gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
-        if (rightGauge.mode == "enterprise" && rightGauge.cost_str.length() > 0) {
-            gcPrintCentered(rightGauge.cost_str.c_str(), 193, 121, rightCol);
-        } else {
-            char rightPctStr[8];
-            sprintf(rightPctStr, "%d%%", rightPct);
-            gcPrintCentered(rightPctStr, 193, 121, rightCol);
-        }
+        // Left Curved Text along R = 85.5px (Centered at 180 deg)
+        String leftCurved = (leftGauge.mode == "enterprise" && leftGauge.curved_text.length() > 0)
+                            ? leftGauge.curved_text
+                            : (leftGauge.label + " " + String(leftPct) + "%");
+        int leftLen = leftCurved.length();
+        float leftStep = 5.2f;
+        float leftStart = 180.0f - ((leftLen - 1) * leftStep / 2.0f);
+        drawRotatedCurvedString(leftCurved.c_str(), cx, cy, 85.5f, leftStart, leftStep, leftCol);
+
+        // Right Curved Text along R = 85.5px (Centered at 0 deg)
+        String rightCurved = (rightGauge.mode == "enterprise" && rightGauge.curved_text.length() > 0)
+                             ? rightGauge.curved_text
+                             : (rightGauge.label + " " + String(rightPct) + "%");
+        int rightLen = rightCurved.length();
+        float rightStep = 5.2f;
+        float rightStart = 0.0f - ((rightLen - 1) * rightStep / 2.0f);
+        drawRotatedCurvedString(rightCurved.c_str(), cx, cy, 85.5f, rightStart, rightStep, rightCol);
+
+        // Under-Gauge Footers (Left X=58, Y=162 | Right X=182, Y=162)
+        gcGfx->setTextSize(1);
+        String leftReset = (leftGauge.reset_str.length() > 0) ? leftGauge.reset_str : "READY";
+        gcPrintCentered(leftReset.c_str(), 58, 162, leftCol);
+
+        String rightReset = (rightGauge.reset_str.length() > 0) ? rightGauge.reset_str : "READY";
+        gcPrintCentered(rightReset.c_str(), 182, 162, rightCol);
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
@@ -1069,25 +1076,21 @@ void drawGC9A01RoundFlipUI() {
             gcPrintCentered(agentData.completion_text.c_str(), cx, cy + 94, GC_COLOR_WHITE);
         }
     } else {
-        static String lastLeftResetStr = "";
-        static String lastRightResetStr = "";
+        static String lastBottomStr = "";
 
-        if (lastWaiting || leftGauge.reset_str != lastLeftResetStr || rightGauge.reset_str != lastRightResetStr) {
+        String dateStr = timeData.date_str.length() > 0 ? timeData.date_str : "FRI 28 AUG";
+        String locStr = weatherData.location.length() > 0 ? weatherData.location : "AMSTERDAM";
+        int tempVal = (int)roundf(weatherData.temp > -900.0f ? weatherData.temp : 20.0f);
+        String bottomStr = dateStr + " | " + locStr + " " + String(tempVal) + "C";
+
+        if (lastWaiting || bottomStr != lastBottomStr) {
             lastWaiting = false;
-            lastLeftResetStr = leftGauge.reset_str;
-            lastRightResetStr = rightGauge.reset_str;
+            lastBottomStr = bottomStr;
 
-            // Clear bottom sub-HUD area (Centered at cx=120, y=cy+74..cy+106)
-            gcGfx->fillRect(cx - 55, cy + 74, 110, 32, GC_COLOR_BLACK);
+            // Clear bottom sub-HUD area (Centered at cx=120, y=cy+84..cy+102)
+            gcGfx->fillRect(cx - 95, cy + 82, 190, 22, GC_COLOR_BLACK);
             gcGfx->setTextSize(1);
-
-            // Line 1: Left Gauge Reset Countdown
-            String leftStr = leftGauge.label + ": " + (leftGauge.reset_str.length() > 0 ? leftGauge.reset_str : "READY");
-            gcPrintCentered(leftStr.c_str(), cx, cy + 80, leftGauge.color);
-
-            // Line 2: Right Gauge Reset Countdown
-            String rightStr = rightGauge.label + ": " + (rightGauge.reset_str.length() > 0 ? rightGauge.reset_str : "READY");
-            gcPrintCentered(rightStr.c_str(), cx, cy + 94, rightGauge.color);
+            gcPrintCentered(bottomStr.c_str(), cx, cy + 92, gcGfx->color565(148, 163, 184));
         }
     }
 }

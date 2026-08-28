@@ -1123,13 +1123,25 @@
       const textRadius = 86.5;
       const badgeFont = "900 10.5px 'JetBrains Mono', 'Fira Code', monospace";
 
-      // Left Gauge % Curved along inside of Left Arc (Clockwise around left perimeter)
-      const leftBadgeText = `${(left_gauge_name || "CLAUDE").toUpperCase()} ${claudePct}%`;
+      // Left Gauge % Curved along inside of Left Arc
+      const leftBadgeText = (left_gauge_mode === "enterprise" && left_gauge_curved) ? left_gauge_curved : `${(left_gauge_label || "CLD").toUpperCase()} ${claudePct}%`;
       drawCurvedTextClockwise(c, leftBadgeText, cx, cy, textRadius, -Math.PI / 2, left_gauge_color || "#00E5FF", badgeFont);
 
-      // Right Gauge % Curved along inside of Right Arc (Clockwise around right perimeter)
-      const rightBadgeText = `${(right_gauge_name || "ANTIGRAVITY").toUpperCase()} ${antiPct}%`;
+      // Right Gauge % Curved along inside of Right Arc
+      const rightBadgeText = (right_gauge_mode === "enterprise" && right_gauge_curved) ? right_gauge_curved : `${(right_gauge_label || "AGY").toUpperCase()} ${antiPct}%`;
       drawCurvedTextClockwise(c, rightBadgeText, cx, cy, textRadius, Math.PI / 2, right_gauge_color || "#FF7A00", badgeFont);
+
+      // Under-Gauge Footers
+      c.font = "bold 9px 'JetBrains Mono', monospace";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+      c.fillStyle = left_gauge_color || "#00E5FF";
+      const leftFoot = left_gauge_reset || claude_reset_str || "READY";
+      c.fillText(leftFoot, cx - 62, cy + 42);
+
+      c.fillStyle = right_gauge_color || "#FF7A00";
+      const rightFoot = right_gauge_reset || antigravity_reset_str || "READY";
+      c.fillText(rightFoot, cx + 62, cy + 42);
 
       // 4. Top Crown: Backend Connection Status Arc & Rain Indicator
       const wifiLedEl = document.getElementById("wifiLed");
@@ -1572,17 +1584,12 @@
         c.fillStyle = "#ffffff";
         c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
-        // Line 1: Left Gauge Reset Countdown
-        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = left_gauge_color || "#00E5FF";
-        const leftStr = (left_gauge_label || "CLD") + ": " + (left_gauge_reset || claude_reset_str || "READY");
-        c.fillText(leftStr, cx, cy + 81);
-
-        // Line 2: Right Gauge Reset Countdown
-        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = right_gauge_color || "#FF7A00";
-        const rightStr = (right_gauge_label || "AGY") + ": " + (right_gauge_reset || antigravity_reset_str || "READY");
-        c.fillText(rightStr, cx, cy + 95);
+        c.font = "bold 9.5px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#94a3b8";
+        const dateStr = date_string || "FRI 28 AUG";
+        const locStr = location_name || "AMSTERDAM";
+        const tempStr = (typeof current_temperature === "number") ? Math.round(current_temperature) + "°C" : "21°C";
+        c.fillText(`${dateStr} | ${locStr} ${tempStr}`, cx, cy + 88);
       }
     }
 
