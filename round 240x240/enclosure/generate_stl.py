@@ -11,6 +11,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
+  * Extra-Wide High-Clearance USB-C Port (14.5mm inner width x 6.5mm inner height, 17.5mm outer lead-in flare)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
   * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
   * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
@@ -19,7 +20,7 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
-  * Embossed "CYBER-DECK UNIT 01" branding
+  * True Vector Font Bold "TINY AI LIMITS / SENTINEL MK-1" Branding (Correct Left-to-Right Rear Exterior Orientation)
 - Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
   * Tier 2 (Cradle Trunk): 62x66mm base tapering to 54x58mm top (24mm H) with deep V-saddle cradle
@@ -30,6 +31,8 @@ import os
 import manifold3d as m3d
 import trimesh
 import numpy as np
+from matplotlib.textpath import TextPath
+from matplotlib.font_manager import FontProperties
 
 def make_octagonal_prism(w, h, c):
     hw = w / 2.0
@@ -223,121 +226,26 @@ def generate_mid_clamp():
             
     return solid - cuts
 
-def make_text_emboss(line1="CYBER-DECK", line2="UNIT 01", depth=0.45):
-    def letter_c(size=2.8):
-        c_outer = m3d.CrossSection.circle(size / 2.0, 32)
-        c_inner = m3d.CrossSection.circle(size / 2.0 - 0.55, 32)
-        c_ring = c_outer - c_inner
-        c_notch = m3d.CrossSection.square([size / 2.0 + 0.1, size * 0.45], center=False).translate([0, -size * 0.225])
-        return c_ring - c_notch
-        
-    def letter_y(size=2.8):
-        stem = m3d.CrossSection.square([0.55, size / 2.0], center=False).translate([-0.275, -size / 2.0])
-        arm_l = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(30).translate([-size * 0.2, size * 0.2])
-        arm_r = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(-30).translate([size * 0.2, size * 0.2])
-        return stem + arm_l + arm_r
+def text_to_cross_section(text, size=3.2, font_family='sans-serif', font_weight='bold'):
+    fp = FontProperties(family=font_family, weight=font_weight)
+    tp = TextPath((0, 0), text, size=size, prop=fp)
+    polys = tp.to_polygons()
+    all_pts = np.vstack(polys)
+    min_x, min_y = all_pts.min(axis=0)
+    max_x, max_y = all_pts.max(axis=0)
+    cx = (min_x + max_x) / 2.0
+    cy = (min_y + max_y) / 2.0
+    centered_polys = [p - [cx, cy] for p in polys]
+    return m3d.CrossSection(centered_polys, m3d.FillRule.EvenOdd), (max_x - min_x), (max_y - min_y)
 
-    def letter_b(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        loop1 = (m3d.CrossSection.circle(size * 0.28, 24) - m3d.CrossSection.circle(size * 0.28 - 0.5, 24)).translate([0, size * 0.22])
-        loop2 = (m3d.CrossSection.circle(size * 0.28, 24) - m3d.CrossSection.circle(size * 0.28 - 0.5, 24)).translate([0, -size * 0.22])
-        mask = m3d.CrossSection.square([size, size * 1.5], center=False).translate([-size * 0.35, -size * 0.75])
-        return back + ((loop1 + loop2) ^ mask)
-
-    def letter_e(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        bar_t = m3d.CrossSection.square([size * 0.65, 0.5], center=False).translate([-size * 0.35, size / 2.0 - 0.5])
-        bar_m = m3d.CrossSection.square([size * 0.5, 0.5], center=False).translate([-size * 0.35, -0.25])
-        bar_b = m3d.CrossSection.square([size * 0.65, 0.5], center=False).translate([-size * 0.35, -size / 2.0])
-        return back + bar_t + bar_m + bar_b
-
-    def letter_r(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        loop = (m3d.CrossSection.circle(size * 0.3, 24) - m3d.CrossSection.circle(size * 0.3 - 0.5, 24)).translate([0, size * 0.2])
-        mask = m3d.CrossSection.square([size, size], center=False).translate([-size * 0.35, 0])
-        leg = m3d.CrossSection.square([0.55, size * 0.65], center=True).rotate(-35).translate([size * 0.15, -size * 0.22])
-        return back + (loop ^ mask) + leg
-
-    def letter_dash(size=2.8):
-        return m3d.CrossSection.square([size * 0.5, 0.55], center=True)
-
-    def letter_d(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        loop = (m3d.CrossSection.circle(size * 0.5, 32) - m3d.CrossSection.circle(size * 0.5 - 0.55, 32)).translate([-size * 0.15, 0])
-        mask = m3d.CrossSection.square([size, size * 1.2], center=False).translate([-size * 0.35, -size * 0.6])
-        return back + (loop ^ mask)
-
-    def letter_k(size=2.8):
-        back = m3d.CrossSection.square([0.55, size], center=False).translate([-size * 0.35, -size / 2.0])
-        arm_t = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(38).translate([size * 0.1, size * 0.2])
-        arm_b = m3d.CrossSection.square([0.55, size * 0.7], center=True).rotate(-38).translate([size * 0.1, -size * 0.2])
-        return back + arm_t + arm_b
-
-    def letter_u(size=2.2):
-        u_outer = m3d.CrossSection.circle(size * 0.4, 24)
-        u_inner = m3d.CrossSection.circle(size * 0.4 - 0.45, 24)
-        u_bot = (u_outer - u_inner).translate([0, -size * 0.1])
-        mask = m3d.CrossSection.square([size, size], center=False).translate([-size / 2.0, -size / 2.0])
-        arm_l = m3d.CrossSection.square([0.45, size * 0.6], center=False).translate([-size * 0.4, -size * 0.1])
-        arm_r = m3d.CrossSection.square([0.45, size * 0.6], center=False).translate([size * 0.4 - 0.45, -size * 0.1])
-        return (u_bot ^ mask) + arm_l + arm_r
-
-    def letter_n(size=2.2):
-        l1 = m3d.CrossSection.square([0.45, size], center=False).translate([-size * 0.35, -size / 2.0])
-        l2 = m3d.CrossSection.square([0.45, size], center=False).translate([size * 0.35 - 0.45, -size / 2.0])
-        diag = m3d.CrossSection.square([0.45, size * 1.15], center=True).rotate(-32).translate([0, 0])
-        return l1 + l2 + diag
-
-    def letter_i(size=2.2):
-        return m3d.CrossSection.square([0.45, size], center=True)
-
-    def letter_t(size=2.2):
-        stem = m3d.CrossSection.square([0.45, size], center=False).translate([-0.225, -size / 2.0])
-        top_bar = m3d.CrossSection.square([size * 0.8, 0.45], center=False).translate([-size * 0.4, size / 2.0 - 0.45])
-        return stem + top_bar
-
-    def letter_0(size=2.2):
-        o_outer = m3d.CrossSection.circle(size * 0.4, 24)
-        o_inner = m3d.CrossSection.circle(size * 0.4 - 0.45, 24)
-        return o_outer - o_inner
-
-    def letter_1(size=2.2):
-        stem = m3d.CrossSection.square([0.45, size], center=False).translate([-0.225, -size / 2.0])
-        serif = m3d.CrossSection.square([0.45, size * 0.4], center=True).rotate(40).translate([-size * 0.18, size * 0.32])
-        base = m3d.CrossSection.square([size * 0.6, 0.45], center=False).translate([-size * 0.3, -size / 2.0])
-        return stem + serif + base
-
-    spacing_1 = 2.45
-    s1 = 2.7
-    line1_shapes = [
-        letter_c(s1).translate([-4.5 * spacing_1, 2.0]),
-        letter_y(s1).translate([-3.5 * spacing_1, 2.0]),
-        letter_b(s1).translate([-2.5 * spacing_1, 2.0]),
-        letter_e(s1).translate([-1.5 * spacing_1, 2.0]),
-        letter_r(s1).translate([-0.5 * spacing_1, 2.0]),
-        letter_dash(s1).translate([0.5 * spacing_1, 2.0]),
-        letter_d(s1).translate([1.5 * spacing_1, 2.0]),
-        letter_e(s1).translate([2.5 * spacing_1, 2.0]),
-        letter_c(s1).translate([3.5 * spacing_1, 2.0]),
-        letter_k(s1).translate([4.5 * spacing_1, 2.0])
-    ]
-    
-    spacing_2 = 2.3
-    s2 = 2.2
-    line2_shapes = [
-        letter_u(s2).translate([-3.0 * spacing_2, -2.0]),
-        letter_n(s2).translate([-2.0 * spacing_2, -2.0]),
-        letter_i(s2).translate([-1.0 * spacing_2, -2.0]),
-        letter_t(s2).translate([0.0 * spacing_2, -2.0]),
-        letter_0(s2).translate([1.8 * spacing_2, -2.0]),
-        letter_1(s2).translate([2.8 * spacing_2, -2.0])
-    ]
-    
-    combined_2d = m3d.CrossSection()
-    for shape in line1_shapes + line2_shapes:
-        combined_2d = combined_2d + shape
-        
-    return m3d.Manifold.extrude(combined_2d, depth + 0.1)
+def make_text_emboss(line1="TINY AI LIMITS", line2="SENTINEL MK-1", depth=0.50):
+    cs1, _, _ = text_to_cross_section(line1, size=3.2)
+    cs2, _, _ = text_to_cross_section(line2, size=3.0)
+    cs_total = cs1.translate([0, 2.3]) + cs2.translate([0, -2.3])
+    # Mirror along X so that looking at the bottom/backplate from the outside (rear of device),
+    # the letters read cleanly from left to right:
+    cs_mirrored = cs_total.scale([-1, 1])
+    return m3d.Manifold.extrude(cs_mirrored, depth + 0.1)
 
 def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
     hw_x = length / 2.0
@@ -380,14 +288,19 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Precision Oval USB-C Port with ACCENTUATED Lead-In Chamfer (Z = 9.50mm):
+    # 3. Extra-Wide High-Clearance Oval USB-C Port with Accentuated Lead-In Chamfer (Z = 9.50mm):
+    # Inner tunnel: 14.5mm wide x 6.5mm tall. Outer lead-in flare: 17.5mm wide x 9.5mm tall.
     usbc_z = 9.50
-    c1 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, -3.0, usbc_z])
-    c2 = m3d.Manifold.cylinder(16.0, 2.75, 2.75, 32).rotate([0, 90, 0]).translate([-32.0, 3.0, usbc_z])
+    y_span = 4.0
+    r_inner = 3.25
+    r_outer = 4.75
+    
+    c1 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
     usbc_tunnel = (c1 + c2).hull()
     
-    cone1 = m3d.Manifold.cylinder(3.5, 4.25, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, -3.0, usbc_z])
-    cone2 = m3d.Manifold.cylinder(3.5, 4.25, 2.75, 32).rotate([0, 90, 0]).translate([-29.0, 3.0, usbc_z])
+    cone1 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
+    cone2 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, y_span, usbc_z])
     usbc_flare = (cone1 + cone2).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
@@ -432,8 +345,8 @@ def generate_main_housing():
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Embossed/Debossed Product Name ("CYBER-DECK UNIT 01") in center area (Z = 0)
-    text_deboss = make_text_emboss("CYBER-DECK", "UNIT 01", depth=0.45).translate([0, 0, -0.05])
+    # 7. Embossed/Debossed Product Name ("TINY AI LIMITS / SENTINEL MK-1") in center area (Z = 0) with True Vector Font Curves
+    text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
