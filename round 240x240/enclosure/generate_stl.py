@@ -10,8 +10,9 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * 4x M3 Socket Head Cap Screw holes balanced at (+/-20.50mm, +/-20.50mm)
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
-- Main Housing:
-  * Dual Lateral Snap-Fit Pivot Sockets with 45° lead-in chamfers on left and right sidewalls (Y = +/-27.0mm) for snap-on external U-bracket
+- Main Housing (Aerocam-Style Stepped Perimeter Architecture):
+  * Stepped Perimeter Track on rear portion (Z = 0.0 to 8.8mm, depth 2.5mm along left, right, and bottom walls)
+  * Dual Lateral Snap-Fit Pivot Sockets with 45° lead-in chamfers at (X = 6.0mm, Y = +/-24.5mm, Z = 5.5mm)
   * Compliant Cantilever Snap Arm Mechanism (Dual 1.2mm vertical flex relief slits allowing center snap arm to bend backwards on board insertion, then snap forward with positive lock)
   * Dual Rigid Outer Cheeks backed by 2x Heavy-Duty Curved Buttress Ribs (absorbing 100% of USB-C cable insertion load)
   * Taller 9.5mm Rear Retaining Wall with Smooth Cylindrical Rounded Corners
@@ -27,9 +28,10 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * True Vector Font Bold "TINY AI LIMITS / SENTINEL MK-1" Branding (Correct Left-to-Right Rear Exterior Orientation)
 - Snap-On External U-Bracket Kickstand:
   * Dedicated separate component printing flat on bed for maximum layer strength and flexibility
+  * Stowed: Nests 100% flush inside the stepped perimeter track of the case
   * Inward-facing conical snap pivot pins engaging lateral sidewall sockets
   * Center USB-C cable relief cutout on bottom cross-bar
-  * Supports solid 70° desktop reading angle when deployed, folds flat hugging case perimeter
+  * Deployed: Swings backward to form an easel stand propping the screen at an ergonomic 72° reading angle
 - Two-Tier Desktop Pedestal Stand:
   * Tier 1 (Base Accent Plate): 64x68x5.0mm rounded base plate with 4 upward alignment pillars
   * Tier 2 (Cradle Trunk): 62x66mm base tapering to 54x58mm top (24mm H) with deep V-saddle cradle
@@ -338,17 +340,25 @@ def generate_main_housing():
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
 
-    # 6. Lateral Snap-Fit Pivot Sockets for External U-Bracket Kickstand:
-    x_pivot = 4.0
-    z_pivot = 14.0
-    pivot_socket_cuts = m3d.Manifold()
-    for sy in [-27.0, 27.0]:
+    # 6. Stepped Perimeter Track Cuts & Lateral Snap-Fit Pivot Sockets:
+    x_piv = 6.0
+    z_piv = 5.5
+    arm_w = 5.6
+    track_h = arm_w + 0.4  # 6.0mm height
+    track_d = 2.5          # 2.5mm recessed step depth
+
+    track_l = m3d.Manifold.cube([x_piv - (-27.0) + 1.0, track_d + 1.0, track_h], center=False).translate([-27.5, 24.5, z_piv - track_h/2.0])
+    track_r = m3d.Manifold.cube([x_piv - (-27.0) + 1.0, track_d + 1.0, track_h], center=False).translate([-27.5, -27.5 - track_d, z_piv - track_h/2.0])
+    track_b = m3d.Manifold.cube([track_d + 1.0, 55.0, track_h], center=False).translate([-27.5 - track_d, -27.5, z_piv - track_h/2.0])
+
+    sock_cuts = m3d.Manifold()
+    for sy in [-24.5, 24.5]:
         dir_y = 1 if sy > 0 else -1
-        # Socket cylinder (depth 3.5mm, radius 2.05mm):
-        sock_cyl = m3d.Manifold.cylinder(3.5, 2.05, 2.05, 32).rotate([-dir_y * 90, 0, 0]).translate([x_pivot, sy + dir_y * 0.1, z_pivot])
-        # Entry lead-in cone:
-        sock_cone = m3d.Manifold.cylinder(1.2, 2.7, 2.05, 32).rotate([-dir_y * 90, 0, 0]).translate([x_pivot, sy + dir_y * 0.1, z_pivot])
-        pivot_socket_cuts = pivot_socket_cuts + sock_cyl + sock_cone
+        sock_cyl = m3d.Manifold.cylinder(3.5, 2.0, 2.0, 32).rotate([-dir_y * 90, 0, 0]).translate([x_piv, sy + dir_y * 0.1, z_piv])
+        sock_cone = m3d.Manifold.cylinder(1.0, 2.6, 2.0, 32).rotate([-dir_y * 90, 0, 0]).translate([x_piv, sy + dir_y * 0.1, z_piv])
+        sock_cuts = sock_cuts + sock_cyl + sock_cone
+
+    stepped_track_cuts = track_l + track_r + track_b + sock_cuts
             
     # 7. Sleek Contour-Following Aeration Slits on Backplate (Z = 0)
     vent_cuts = m3d.Manifold()
@@ -382,7 +392,7 @@ def generate_main_housing():
     # 8. Embossed/Debossed Product Name in center area (Z = 0) with True Vector Font Curves
     text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
 
-    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + pivot_socket_cuts + vent_cuts + text_deboss
+    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + stepped_track_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
     # 9. COMPLIANT CANTILEVER SNAP CRADLE:
@@ -398,7 +408,7 @@ def generate_main_housing():
     r_corner = 1.6
     hw_c = esp_w / 2.0 + side_thick
 
-    arm_w = 6.5
+    arm_w_snap = 6.5
     slit_w = 1.2
     slit_depth = 6.5
 
@@ -455,67 +465,46 @@ def generate_main_housing():
     housing_assembled = (housing_hollow + cradle_solid) - usbc_port
 
     slit_t = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
-        x_rear + wall_thick / 2.0, arm_w / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+        x_rear + wall_thick / 2.0, arm_w_snap / 2.0 + slit_w / 2.0, floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
     ])
     slit_b = m3d.Manifold.cube([wall_thick + 4.0, slit_w, slit_depth + 2.0], center=True).translate([
-        x_rear + wall_thick / 2.0, -(arm_w / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
+        x_rear + wall_thick / 2.0, -(arm_w_snap / 2.0 + slit_w / 2.0), floor_t + rear_wall_h - slit_depth / 2.0 + 0.5
     ])
 
     return housing_assembled - slit_t - slit_b
 
 def generate_u_bracket_kickstand():
     """
-    Snap-On External U-Bracket Kickstand:
-    Dedicated separate 3D printable part that snaps onto lateral sidewall sockets.
+    Aerocam-Style Pivoting U-Shaped Kickstand:
+    Dedicated separate 3D printable part that nests 100% flush into the stepped perimeter track.
     """
-    arm_thick = 3.8
-    arm_width = 4.5
-    inner_w = 54.6
-    outer_w = inner_w + 2 * arm_thick # 62.2mm
+    arm_t = 2.3
+    arm_w = 5.6
+    w_case = 54.0
+    x_piv = 6.0
+    x_bot = -27.0
+    z_piv = 5.5
 
-    x_pivot = 4.0
-    x_bottom = -28.5
+    inner_w = w_case - 2 * arm_t # 49.4mm
+    outer_w = w_case            # 54.0mm
 
-    # 2D U-Profile:
-    pts_l = [
-        [x_bottom, inner_w/2], [x_pivot + 2.5, inner_w/2],
-        [x_pivot + 2.5, outer_w/2], [x_bottom, outer_w/2]
-    ]
-    pts_r = [
-        [x_bottom, -outer_w/2], [x_pivot + 2.5, -outer_w/2],
-        [x_pivot + 2.5, -inner_w/2], [x_bottom, -inner_w/2]
-    ]
-    # Crossbar with central USB-C cable cutout:
-    pts_c_top = [
-        [x_bottom - arm_width, inner_w/2 - 8.0], [x_bottom, inner_w/2 - 8.0],
-        [x_bottom, outer_w/2], [x_bottom - arm_width, outer_w/2]
-    ]
-    pts_c_bot = [
-        [x_bottom - arm_width, -outer_w/2], [x_bottom, -outer_w/2],
-        [x_bottom, -inner_w/2 + 8.0], [x_bottom - arm_width, -inner_w/2 + 8.0]
-    ]
-    pts_bar = [
-        [x_bottom - arm_width, -outer_w/2], [x_bottom - arm_width + 1.8, -outer_w/2],
-        [x_bottom - arm_width + 1.8, outer_w/2], [x_bottom - arm_width, outer_w/2]
-    ]
+    arm_l = m3d.Manifold.cube([x_piv - x_bot, arm_t, arm_w], center=False).translate([x_bot, inner_w/2, z_piv - arm_w/2])
+    arm_r = m3d.Manifold.cube([x_piv - x_bot, arm_t, arm_w], center=False).translate([x_bot, -outer_w/2, z_piv - arm_w/2])
+    cross_bar = m3d.Manifold.cube([arm_w, outer_w, 1.8], center=False).translate([x_bot, -outer_w/2, z_piv - arm_w/2])
+    c_block_l = m3d.Manifold.cube([arm_w, 8.0, arm_w], center=False).translate([x_bot, outer_w/2 - 8.0, z_piv - arm_w/2])
+    c_block_r = m3d.Manifold.cube([arm_w, 8.0, arm_w], center=False).translate([x_bot, -outer_w/2, z_piv - arm_w/2])
 
-    poly_u = (m3d.CrossSection([pts_l]) + m3d.CrossSection([pts_r]) + 
-              m3d.CrossSection([pts_c_top]) + m3d.CrossSection([pts_c_bot]) + 
-              m3d.CrossSection([pts_bar]))
-    u_body = m3d.Manifold.extrude(poly_u, arm_width)
+    cyl_piv_l = m3d.Manifold.cylinder(arm_t, arm_w/2, arm_w/2, 32).rotate([90, 0, 0]).translate([x_piv, outer_w/2, z_piv])
+    cyl_piv_r = m3d.Manifold.cylinder(arm_t, arm_w/2, arm_w/2, 32).rotate([-90, 0, 0]).translate([x_piv, -outer_w/2, z_piv])
 
-    # Pivot hinge outer rounded knuckles:
-    cyl_l = m3d.Manifold.cylinder(arm_thick + 0.2, arm_width/2.0, arm_width/2.0, 32).rotate([90, 0, 0]).translate([x_pivot, outer_w/2 + 0.1, arm_width/2.0])
-    cyl_r = m3d.Manifold.cylinder(arm_thick + 0.2, arm_width/2.0, arm_width/2.0, 32).rotate([-90, 0, 0]).translate([x_pivot, -outer_w/2 - 0.1, arm_width/2.0])
+    pin_cyl_l = m3d.Manifold.cylinder(2.0, 1.8, 1.8, 32).rotate([90, 0, 0]).translate([x_piv, inner_w/2 + 0.1, z_piv])
+    pin_cone_l = m3d.Manifold.cylinder(0.8, 1.8, 1.2, 32).rotate([90, 0, 0]).translate([x_piv, inner_w/2 - 1.9, z_piv])
 
-    # Inward snap-fit pivot pins with conical lead-in tips:
-    pin_cyl_l = m3d.Manifold.cylinder(2.0, 1.9, 1.9, 32).rotate([90, 0, 0]).translate([x_pivot, inner_w/2 + 0.1, arm_width/2.0])
-    pin_cone_l = m3d.Manifold.cylinder(1.0, 1.9, 1.2, 32).rotate([90, 0, 0]).translate([x_pivot, inner_w/2 - 1.9, arm_width/2.0])
+    pin_cyl_r = m3d.Manifold.cylinder(2.0, 1.8, 1.8, 32).rotate([-90, 0, 0]).translate([x_piv, -inner_w/2 - 0.1, z_piv])
+    pin_cone_r = m3d.Manifold.cylinder(0.8, 1.8, 1.2, 32).rotate([-90, 0, 0]).translate([x_piv, -inner_w/2 + 1.9, z_piv])
 
-    pin_cyl_r = m3d.Manifold.cylinder(2.0, 1.9, 1.9, 32).rotate([-90, 0, 0]).translate([x_pivot, -inner_w/2 - 0.1, arm_width/2.0])
-    pin_cone_r = m3d.Manifold.cylinder(1.0, 1.9, 1.2, 32).rotate([-90, 0, 0]).translate([x_pivot, -inner_w/2 + 1.9, arm_width/2.0])
-
-    return u_body + cyl_l + cyl_r + pin_cyl_l + pin_cone_l + pin_cyl_r + pin_cone_r
+    return (arm_l + arm_r + cross_bar + c_block_l + c_block_r + 
+            cyl_piv_l + cyl_piv_r + pin_cyl_l + pin_cone_l + pin_cyl_r + pin_cone_r)
 
 def generate_stand_tier1_base():
     base_w = 64.0
@@ -681,11 +670,11 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (with Lateral Pivot Sockets)")
+    export_stl(housing, housing_path, "Main Housing Pod (with Stepped Perimeter Track)")
 
     ubracket = generate_u_bracket_kickstand()
     ubracket_path = os.path.join(output_dir, "gc9a01_u_bracket_kickstand.stl")
-    export_stl(ubracket, ubracket_path, "Snap-On External U-Bracket Kickstand")
+    export_stl(ubracket, ubracket_path, "Aerocam-Style Flush U-Bracket Kickstand")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
