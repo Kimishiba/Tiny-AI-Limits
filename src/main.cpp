@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <Arduino_GFX_Library.h>
+#include <font/glcdfont.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
@@ -460,6 +461,47 @@ void gcPrintCentered(const char* str, int centerX, int y, uint16_t color) {
     gcGfx->print(str);
 }
 
+// Draw individual 5x7 character rotated tangent to a circle (tangent upwards/clockwise, top facing outwards)
+void drawRotatedCurvedChar(char c, int cx, int cy, float radius, float angleDeg, uint16_t color) {
+    if (c < 32 || c > 126) return;
+    int charIdx = (int)c;
+
+    float rad = angleDeg * 0.0174532925f;
+    float charCenterX = (float)cx + cosf(rad) * radius;
+    float charCenterY = (float)cy + sinf(rad) * radius;
+
+    // Tangent vector pointing upwards / clockwise along the left perimeter (angleDeg + 90 deg)
+    float cosT = cosf((angleDeg + 90.0f) * 0.0174532925f);
+    float sinT = sinf((angleDeg + 90.0f) * 0.0174532925f);
+    // Normal vector pointing outwards towards bezel (angleDeg)
+    float cosN = cosf(rad);
+    float sinN = sinf(rad);
+
+    for (int col = 0; col < 5; col++) {
+        uint8_t line = pgm_read_byte(&font[charIdx * 5 + col]);
+        float dx = (float)(col - 2); // along tangent
+        for (int row = 0; row < 7; row++) {
+            if (line & 0x01) {
+                float dy = (float)(row - 3); // along normal: negative = towards bezel (top of char), positive = towards center (bottom)
+                int px = (int)roundf(charCenterX + dx * cosT - dy * cosN);
+                int py = (int)roundf(charCenterY + dx * sinT - dy * sinN);
+                gcGfx->drawPixel(px, py, color);
+            }
+            line >>= 1;
+        }
+    }
+}
+
+// Draw a string curving smoothly along the left circular perimeter starting from the bottom up to the top
+void drawRotatedCurvedString(const char* str, int cx, int cy, float radius, float startDeg, float stepDeg, uint16_t color) {
+    if (!str) return;
+    int len = strlen(str);
+    for (int i = 0; i < len; i++) {
+        float charAngle = startDeg + (i * stepDeg);
+        drawRotatedCurvedChar(str[i], cx, cy, radius, charAngle, color);
+    }
+}
+
 void drawGC9A01AnimatedFlipCard(int posX, int posY, int cardW, int cardH, int oldDigit, int newDigit, float progress) {
     int midY = posY + cardH / 2;
     int halfH = cardH / 2;
@@ -788,20 +830,13 @@ void drawGC9A01RoundFlipUI() {
                     gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), GC_COLOR_BLACK);
                 }
             }
-            // Draw prominent curved text along the left arc perimeter where the gauge was
+            // Draw prominent curved text along the left arc perimeter following the circular curve
             String enterpriseCurved = (leftGauge.curved_text.length() > 0) ? leftGauge.curved_text : (leftGauge.cost_str + " SPENT");
             int numChars = enterpriseCurved.length();
-            float stepDeg = 7.5f;
+            float stepDeg = 8.2f;
             float totalAngleDeg = (numChars - 1) * stepDeg;
             float startAngleDeg = 180.0f - (totalAngleDeg / 2.0f);
-            for (int i = 0; i < numChars; i++) {
-                float charDeg = startAngleDeg + (i * stepDeg);
-                float charRad = charDeg * 0.0174533f;
-                int charX = cx + (int)roundf(cosf(charRad) * 102.0f);
-                int charY = cy + (int)roundf(sinf(charRad) * 102.0f);
-                char ch[2] = { enterpriseCurved[i], '\0' };
-                gcPrintCentered(ch, charX, charY, leftCol);
-            }
+            drawRotatedCurvedString(enterpriseCurved.c_str(), cx, cy, 102.0f, startAngleDeg, stepDeg, leftCol);
         } else {
             // Left Arc (126 deg at bottom to 234 deg at top)
             for (int deg = 126; deg <= 234; deg++) {
