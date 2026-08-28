@@ -11,13 +11,14 @@ Professional 3D Printable STL Generator (Boolean CSG & Watertight Manifold Engin
   * Sloping inner conical aperture (dia 32.8mm -> dia 38.4mm at 36.4° slope) to eliminate shadows
 - Mid Clamp: Sandwich brace with corner pads and cable routing windows
 - Main Housing:
+  * Option B Sculpted Low-Profile Retaining Wall with Smooth Cylindrical Rounded Corners & 3x Curved Buttress Ribs
   * Shaved-Depth High-Clearance USB-C Port (Inner wall shaved by 1.2mm down to 1.8mm wall thickness at port)
   * Flush Inner Wall Board Seating (ESP32 PCB sits directly flush against inner wall at X = -24.0mm)
   * 45° Lead-in conical chamfers on 4 corner M3 screw entry holes (Z = 27.5mm)
   * Open-Front Minimalist U-Cradle (Obstruction-free USB-C entry, zero front pillars)
   * Integrated 1.0mm side edge support ledges along inner base of side walls (Z = 2.0 to 5.2mm)
   * Clean discrete 45° self-supporting snap-fit retention clips (Z = 6.7mm)
-  * Solid 12.0mm tall rear thrust wall directly opposite USB-C port at X = -1.0mm (absorbing 100% cable insertion load)
+  * Solid 6.2mm tall rear thrust wall directly opposite USB-C port at X = -1.0mm (absorbing 100% cable insertion load)
   * Slimmed 3.0mm outer walls and 2.0mm floor
   * Contour-following 1.05mm horizontal rear aeration slits (12 slot rows)
   * 45° peaked roof top vertical aeration exhaust slits (7 slots)
@@ -201,7 +202,7 @@ def generate_mid_clamp():
     hcw = cw / 2.0
     cav_pts = [
         [-hcw + cc, -hcw], [hcw - cc, -hcw],
-        [hcw, -hcw + cc],  [hcw, hcw - cc],
+        [hcw, -hcw + cc],  [hcw, hw - cc],
         [hcw - cc, hcw],   [-hcw + cc, hcw],
         [-hcw, hcw - cc],  [-hcw, -hcw + cc]
     ]
@@ -358,34 +359,40 @@ def generate_main_housing():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Front Minimalist U-Cradle FLUSH WITH INNER WALL (X = -24.0mm to -1.0mm):
+    # 8. SCULPTED OPTION B U-CRADLE WITH ROUNDED CORNERS & CURVED BUTTRESS RIBS:
     esp_l = 23.0
     esp_w = 18.4
     rail_h = 3.2
-    
-    x_front = -24.0 # Sits directly flush against the inner wall at X = -24.0mm
-    x_rear = x_front + esp_l # -1.0mm (Opposite end behind antenna)
-    esp_center_x = (x_front + x_rear) / 2.0 # -12.5mm
-    
-    wall_thick = 3.0
     side_thick = 1.6
-    tall_wall_h = 12.0  # Solid vertical rear wall opposite USB-C (Z = 2.0 to 14.0)
-    side_wall_h = 6.2   # Clean vertical side guide wall height (Z = 2.0 to 8.2)
-    
-    # 1. Straight Solid Rear Thrust Wall (solid all the way to floor at X = -1.0 to +2.0)
-    rear_thrust_wall = m3d.Manifold.cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h], center=False).translate([
-        x_rear, -(esp_w / 2.0 + side_thick), floor_t
+    side_wall_h = 6.2
+    x_front = -24.0
+    x_rear = -1.0
+    wall_thick = 2.4
+    r_corner = 1.6
+    hw = esp_w / 2.0 + side_thick
+
+    # 1. Back Wall with Cylindrical Rounded Outer Corners (Z = 2.0 to 8.2mm):
+    bw_base = m3d.Manifold.cube([wall_thick - r_corner, 2 * hw, side_wall_h], center=False).translate([
+        x_rear, -hw, floor_t
     ])
+    bw_fill = m3d.Manifold.cube([wall_thick, 2 * (hw - r_corner), side_wall_h], center=False).translate([
+        x_rear, -(hw - r_corner), floor_t
+    ])
+    c_top = m3d.Manifold.cylinder(side_wall_h, r_corner, r_corner, 32).translate([
+        x_rear + wall_thick - r_corner, hw - r_corner, floor_t
+    ])
+    c_bot = m3d.Manifold.cylinder(side_wall_h, r_corner, r_corner, 32).translate([
+        x_rear + wall_thick - r_corner, -(hw - r_corner), floor_t
+    ])
+    rounded_back_wall = bw_base + bw_fill + c_top + c_bot
     
-    # 2. Straight Vertical Side Guide Walls with integrated 1.0mm edge support steps:
+    # 2. Side Walls & Edge Steps:
     side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, esp_w / 2.0, floor_t
     ])
     side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
         x_front, -(esp_w / 2.0 + side_thick), floor_t
     ])
-
-    # 1.0mm side edge support steps (flush with inner side wall, Z = 2.0 to 5.2):
     edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
         x_front, esp_w / 2.0 - 1.0, floor_t
     ])
@@ -393,14 +400,25 @@ def generate_main_housing():
         x_front, -esp_w / 2.0, floor_t
     ])
     
-    # 3. Discrete 45-Degree Self-Supporting Snap Clips
+    # 3. 3 Rear Curved Buttress Ribs (Smooth rounded transition transferring 100% load to floor):
+    r_bot_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick + 3.6, 0.8, floor_t + 0.8])
+    r_top_c = m3d.Manifold.cylinder(1.6, 0.8, 0.8, 16).rotate([90, 0, 0]).translate([x_rear + wall_thick, 0.8, floor_t + side_wall_h - 0.8])
+    r_base_c = m3d.Manifold.cube([0.1, 1.6, 0.1], center=True).translate([x_rear + wall_thick, 0, floor_t + 0.05])
+    rib_c = (r_bot_c + r_top_c + r_base_c).hull()
+    
+    rib_t = rib_c.translate([0, esp_w / 2.0 - 1.2, 0])
+    rib_b = rib_c.translate([0, -(esp_w / 2.0 - 1.2), 0])
+    
+    # 4. Discrete 45-Degree Self-Supporting Snap Clips
+    esp_center_x = (x_front + x_rear) / 2.0
     snap_z = floor_t + rail_h + 1.2 + 0.3 # 6.7mm
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
     
-    carrier_solid = rear_thrust_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot
+    cradle = (rounded_back_wall + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot +
+              rib_c + rib_t + rib_b + clip_top + clip_bot)
 
-    return (housing_hollow + carrier_solid) - usbc_port
+    return (housing_hollow + cradle) - usbc_port
 
 def generate_stand_tier1_base():
     base_w = 64.0
@@ -566,7 +584,7 @@ def main():
 
     housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Flush Fit + Shaved USB-C)")
+    export_stl(housing, housing_path, "Main Housing Pod (Option B Rounded Retaining Wall)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
