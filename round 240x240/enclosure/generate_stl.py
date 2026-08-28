@@ -439,7 +439,7 @@ def generate_main_housing():
     
     # 4. Elevated 3-Way Snap Retention System:
     esp_center_x = (x_front + x_rear) / 2.0
-    snap_side_z = floor_t + rail_h + 1.4 + 1.2  # 7.8mm
+    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 6.7mm (exact fit over PCB top edge)
     snap_rear_z = floor_t + rail_h + 1.4 + 2.2  # 8.8mm
     
     clip_top = make_snap_clip(5.0, 0.60, 1.4, '+Y').translate([esp_center_x, esp_w / 2.0, snap_side_z])
