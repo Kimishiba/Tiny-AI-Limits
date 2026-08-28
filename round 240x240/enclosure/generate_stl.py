@@ -184,9 +184,7 @@ def generate_front_bezel():
 
     # Screen Retaining Snap Tabs originating at Z = 0 (with 1.5mm support clearance tolerance):
     tab_w = 5.0
-    # Screen seating shelf is at Z = 7.4mm. With 1.6mm PCB + 1.5mm support interface tolerance (3.1mm total gap),
-    # tab arm top is positioned at Z = 4.3mm (7.4mm - 3.1mm = 4.3mm):
-    tab_arm_h = 4.30 # Arm height from Z = 0 to snap lip apex
+    tab_arm_h = 4.30 # Arm height from Z = 0 to snap lip apex (7.4mm shelf - 3.1mm gap)
     lip_overhang = 0.65
     lip_h = 1.10
     
@@ -398,8 +396,18 @@ def generate_main_housing():
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Embossed/Debossed Product Name in center area (Z = 0) with True Vector Font Curves
-    text_deboss = make_text_emboss("TINY AI LIMITS", "SENTINEL MK-1", depth=0.50).translate([0, 0, -0.05])
+    # 7. Dedicated Under-MCU Aeration Grille (4 rows under ESP32-C3 cradle, X = -21.0 to -3.5mm):
+    for y_pos in [-5.4, -1.8, 1.8, 5.4]:
+        s_mcu1 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-16.6, y_pos, floor_t / 2.0])
+        s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
+        vent_cuts = vent_cuts + s_mcu1 + s_mcu2
+
+    # 8. Embossed/Debossed Product Name on Right Backplate Panel (X = +11.0mm, Z = 0)
+    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.4)
+    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.2)
+    cs_total = cs1.translate([11.0, 1.8]) + cs2.translate([11.0, -1.8])
+    cs_mirrored = cs_total.scale([-1, 1])
+    text_deboss = m3d.Manifold.extrude(cs_mirrored, 0.50 + 0.1).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
@@ -641,65 +649,7 @@ def generate_monolithic_desk_stand():
             foot = m3d.Manifold.cylinder(1.5, 4.1, 4.1, 32).translate([fx, fy, -0.1])
             feet_cuts = feet_cuts + foot
             
-def generate_minimalist_stand():
-    """
-    Minimalist Angled Desk Stand (Open Triangular Cradle)
-    - 48.0mm compact width matching 54.0mm cyberdeck enclosure with subtle inset
-    - 22.0° ergonomic desktop tilt (68° viewing angle)
-    - Low-profile front retaining lip (4.5mm) cradling front bezel without obscuring branding
-    - Inclined backrest spine with central cable pass-through slot
-    - Open A-frame triangular truss side profile
-    - 4x recess pockets for anti-slip rubber bumper feet (dia 7.6mm x 1.2mm)
-    - 100% support-free FDM 3D printable
-    """
-    stand_w = 48.0
-    tilt_deg = 22.0
-    tilt_rad = math.radians(tilt_deg)
-    s_t = math.sin(tilt_rad)
-    c_t = math.cos(tilt_rad)
-    
-    base_l = 62.0
-    base_t = 5.0
-    lip_h = 4.5
-    back_h = 42.0
-    spine_t = 5.5
-    y_pocket_end = 38.0
-    
-    base_plate = m3d.Manifold.cube([stand_w, base_l, base_t], center=False).translate([-stand_w/2.0, 0, 0])
-    
-    spine_block = m3d.Manifold.cube([stand_w, spine_t, back_h], center=False).translate([-stand_w/2.0, 0, 0])
-    spine_rot = spine_block.rotate([-tilt_deg, 0, 0]).translate([0, y_pocket_end, base_t])
-    
-    tri_pts = [
-        [y_pocket_end + spine_t - 0.5, base_t],
-        [base_l - 2.5, base_t],
-        [y_pocket_end + s_t * (back_h - 4.0), base_t + c_t * (back_h - 4.0)]
-    ]
-    tri_poly = m3d.CrossSection([tri_pts])
-    tri_solid = m3d.Manifold.extrude(tri_poly, stand_w).translate([-stand_w/2.0, 0, 0])
-    
-    lip_box = m3d.Manifold.cube([stand_w, 4.0, lip_h], center=False).translate([-stand_w/2.0, 2.0, base_t])
-    
-    stand_raw = base_plate + spine_rot + tri_solid + lip_box
-    
-    window_pts = [
-        [y_pocket_end + spine_t + 2.5, base_t + 2.0],
-        [base_l - 8.0, base_t + 2.0],
-        [y_pocket_end + s_t * (back_h - 8.0) + 1.0, base_t + c_t * (back_h - 8.0) - 4.0]
-    ]
-    window_poly = m3d.CrossSection([window_pts])
-    window_cutout = m3d.Manifold.extrude(window_poly, stand_w + 10.0).translate([-(stand_w + 10.0)/2.0, 0, 0])
-    
-    cable_slot = m3d.Manifold.cube([22.0, 40.0, 22.0], center=True)
-    cable_slot = cable_slot.rotate([-tilt_deg, 0, 0]).translate([0, y_pocket_end + s_t * 18.0 + 3.0, base_t + c_t * 18.0])
-    
-    feet = m3d.Manifold()
-    for fx in [-stand_w/2.0 + 8.0, stand_w/2.0 - 8.0]:
-        for fy in [5.5, base_l - 6.0]:
-            foot = m3d.Manifold.cylinder(1.2, 3.8, 3.8, 32).translate([fx, fy, -0.1])
-            feet = feet + foot
-            
-    return stand_raw - window_cutout - cable_slot - feet
+    return (tier1_solid + pedestal_solid) - pod_cutter - feet_cuts
 
 def main():
     output_dir = os.path.dirname(os.path.abspath(__file__))
@@ -729,10 +679,6 @@ def main():
     stand_mono = generate_monolithic_desk_stand()
     stand_path = os.path.join(output_dir, "gc9a01_desk_stand.stl")
     export_stl(stand_mono, stand_path, "Monolithic Desk Stand (Unified)")
-
-    stand_minimalist = generate_minimalist_stand()
-    stand_min_path = os.path.join(output_dir, "gc9a01_minimalist_stand.stl")
-    export_stl(stand_minimalist, stand_min_path, "Minimalist Angled Cradle Desk Stand")
 
     print("\n[ALL MODELS COMPLETE] All STL files are 100% watertight, manifold, and verified!")
 
