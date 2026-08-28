@@ -405,12 +405,13 @@ def generate_main_housing():
         s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
         vent_cuts = vent_cuts + s_mcu1 + s_mcu2
 
-    # 8. Embossed/Debossed Product Name on Right Backplate Panel (X = +11.0mm, Z = 0)
-    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.4)
-    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.2)
-    cs_total = cs1.translate([11.0, 1.8]) + cs2.translate([11.0, -1.8])
-    cs_mirrored = cs_total.scale([-1, 1])
-    text_deboss = m3d.Manifold.extrude(cs_mirrored, 0.50 + 0.1).translate([0, 0, -0.05])
+    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (X = +11.5mm, Z = 0):
+    cs1, _, _ = text_to_cross_section("TINY AI LIMITS", size=2.3)
+    cs2, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.1)
+    # Stack lines and translate directly to solid right panel (+X):
+    cs_stacked = cs1.translate([0, 1.8]) + cs2.translate([0, -1.8])
+    cs_right_panel = cs_stacked.translate([11.5, 0])
+    text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
