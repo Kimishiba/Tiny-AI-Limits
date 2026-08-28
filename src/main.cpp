@@ -638,6 +638,8 @@ void drawGC9A01RoundFlipUI() {
     static int lastAntiPct = -1;
     static String lastLeftCostStr = "";
     static String lastLeftMode = "";
+    static String lastRightCostStr = "";
+    static String lastRightMode = "";
     static float lastTemp = -999.0f;
     static String lastDate = "";
     static bool lastWaiting = false;
@@ -769,56 +771,34 @@ void drawGC9A01RoundFlipUI() {
     int leftPct = leftGauge.percent;
     int rightPct = rightGauge.percent;
 
-    if (leftPct != lastClaudePct || rightPct != lastAntiPct || leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode) {
+    if (leftPct != lastClaudePct || rightPct != lastAntiPct ||
+        leftGauge.cost_str != lastLeftCostStr || leftGauge.mode != lastLeftMode ||
+        rightGauge.cost_str != lastRightCostStr || rightGauge.mode != lastRightMode) {
         lastClaudePct = leftPct;
         lastAntiPct = rightPct;
         lastLeftCostStr = leftGauge.cost_str;
         lastLeftMode = leftGauge.mode;
+        lastRightCostStr = rightGauge.cost_str;
+        lastRightMode = rightGauge.mode;
 
         uint16_t leftCol = leftGauge.color;
         uint16_t leftColDim = gcGfx->color565(14, 40, 50);
 
-        if (leftGauge.mode == "enterprise") {
-            // In Enterprise mode: Clear the left arc channel completely
-            for (int deg = 126; deg <= 234; deg++) {
-                float rad = deg * 0.0174533f;
-                float cosR = cosf(rad);
-                float sinR = sinf(rad);
-                for (int r = 92; r <= 108; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), GC_COLOR_BLACK);
-                }
-            }
-            // Draw prominent curved text along the left arc perimeter where the gauge was
-            String enterpriseCurved = (leftGauge.curved_text.length() > 0) ? leftGauge.curved_text : (leftGauge.cost_str + " SPENT");
-            int numChars = enterpriseCurved.length();
-            float stepDeg = 7.5f;
-            float totalAngleDeg = (numChars - 1) * stepDeg;
-            float startAngleDeg = 180.0f - (totalAngleDeg / 2.0f);
-            for (int i = 0; i < numChars; i++) {
-                float charDeg = startAngleDeg + (i * stepDeg);
-                float charRad = charDeg * 0.0174533f;
-                int charX = cx + (int)roundf(cosf(charRad) * 102.0f);
-                int charY = cy + (int)roundf(sinf(charRad) * 102.0f);
-                char ch[2] = { enterpriseCurved[i], '\0' };
-                gcPrintCentered(ch, charX, charY, leftCol);
-            }
-        } else {
-            // Left Arc (126 deg at bottom to 234 deg at top)
-            for (int deg = 126; deg <= 234; deg++) {
-                float rad = deg * 0.0174533f;
-                float cosR = cos(rad);
-                float sinR = sin(rad);
+        // Left Arc (126 deg at bottom to 234 deg at top)
+        for (int deg = 126; deg <= 234; deg++) {
+            float rad = deg * 0.0174533f;
+            float cosR = cos(rad);
+            float sinR = sin(rad);
 
-                bool active = (deg <= 126 + (leftPct * 108 / 100));
-                uint16_t mainCol = active ? leftCol : leftColDim;
-                uint16_t thinCol = active ? leftCol : leftColDim;
+            bool active = (deg <= 126 + (leftPct * 108 / 100));
+            uint16_t mainCol = active ? leftCol : leftColDim;
+            uint16_t thinCol = active ? leftCol : leftColDim;
 
-                for (int r = 101; r <= 107; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
-                }
-                for (int r = 94; r <= 95; r++) {
-                    gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
-                }
+            for (int r = 101; r <= 107; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
+            }
+            for (int r = 94; r <= 95; r++) {
+                gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
             }
         }
 
@@ -845,27 +825,28 @@ void drawGC9A01RoundFlipUI() {
 
         // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
         // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
+        gcGfx->fillRoundRect(29, 108, 36, 24, 3, gcGfx->color565(14, 20, 28));
+        gcGfx->drawRoundRect(29, 108, 36, 24, 3, leftCol);
+        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
         if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
-            gcGfx->fillRoundRect(28, 106, 38, 28, 3, gcGfx->color565(10, 24, 32));
-            gcGfx->drawRoundRect(28, 106, 38, 28, 3, leftCol);
-            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 112, GC_COLOR_WHITE);
-            gcPrintCentered("TODAY", 47, 123, leftCol);
+            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 121, leftCol);
         } else {
-            gcGfx->fillRoundRect(31, 108, 32, 24, 3, gcGfx->color565(14, 20, 28));
-            gcGfx->drawRoundRect(31, 108, 32, 24, 3, leftCol);
-            gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
             char leftPctStr[8];
             sprintf(leftPctStr, "%d%%", leftPct);
             gcPrintCentered(leftPctStr, 47, 121, leftCol);
         }
 
         // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
-        gcGfx->fillRoundRect(177, 108, 32, 24, 3, gcGfx->color565(28, 18, 10));
-        gcGfx->drawRoundRect(177, 108, 32, 24, 3, rightCol);
+        gcGfx->fillRoundRect(175, 108, 36, 24, 3, gcGfx->color565(28, 18, 10));
+        gcGfx->drawRoundRect(175, 108, 36, 24, 3, rightCol);
         gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
-        char rightPctStr[8];
-        sprintf(rightPctStr, "%d%%", rightPct);
-        gcPrintCentered(rightPctStr, 193, 121, rightCol);
+        if (rightGauge.mode == "enterprise" && rightGauge.cost_str.length() > 0) {
+            gcPrintCentered(rightGauge.cost_str.c_str(), 193, 121, rightCol);
+        } else {
+            char rightPctStr[8];
+            sprintf(rightPctStr, "%d%%", rightPct);
+            gcPrintCentered(rightPctStr, 193, 121, rightCol);
+        }
     }
 
     // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
