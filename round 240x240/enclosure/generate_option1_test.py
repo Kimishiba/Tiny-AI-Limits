@@ -13,12 +13,6 @@ from generate_stl import (
     export_stl
 )
 
-def make_rounded_pillar(w, d, h, r_top=2.0):
-    b1 = m3d.Manifold.cube([d - r_top, w, h], center=False)
-    b2 = m3d.Manifold.cube([d, w, h - r_top], center=False)
-    cyl = m3d.Manifold.cylinder(w, r_top, r_top, 32).rotate([90, 0, 0]).translate([d - r_top, 0, h - r_top])
-    return (b1 + b2 + cyl).hull()
-
 def generate_main_housing_option1():
     w = 54.0
     c = 6.0
@@ -106,7 +100,7 @@ def generate_main_housing_option1():
     cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
-    # 8. Open-Front Minimalist U-Cradle with SMOOTH ROUNDED DUAL BUTTRESSES & ANTENNA GAP
+    # 8. Open-Front Minimalist U-Cradle with VERTICAL ROUNDED D-PILLARS & ANTENNA GAP
     esp_l = 23.0
     esp_w = 18.4
     esp_center_x = -10.0
@@ -117,37 +111,46 @@ def generate_main_housing_option1():
     side_thick = 1.6
     side_wall_h = 6.2   # Z = 2.0 to 8.2
     pillar_w = 5.2      # Width of each corner pillar along Y
-    pillar_thick = 3.2  # Thickness along X
-    pillar_h = 6.2      # Pillar height matching side walls (Z = 2.0 to 8.2)
+    pillar_thick = 3.5  # Thickness along X
     
-    # Smoothly rounded corner thrust buttresses
-    p_shape = make_rounded_pillar(pillar_w, pillar_thick, pillar_h, r_top=2.0)
-    p_top = p_shape.translate([x_rear, esp_w / 2.0 + side_thick - pillar_w, floor_t])
-    p_bot = p_shape.translate([x_rear, -(esp_w / 2.0 + side_thick), floor_t])
-    buttresses = p_top + p_bot
-    
-    # Straight Vertical Side Guide Walls:
-    side_wall_top = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
-        x_front, esp_w / 2.0, floor_t
-    ])
-    side_wall_bot = m3d.Manifold.cube([esp_l, side_thick, side_wall_h], center=False).translate([
-        x_front, -(esp_w / 2.0 + side_thick), floor_t
-    ])
+    # 1. Monolithic L-shaped stepped side guide walls (Z = 2.0 to 8.2):
+    pts_top_yz = [
+        [esp_w / 2.0 - 1.0, 0.0],
+        [esp_w / 2.0 + side_thick, 0.0],
+        [esp_w / 2.0 + side_thick, side_wall_h],
+        [esp_w / 2.0, side_wall_h],
+        [esp_w / 2.0, rail_h],
+        [esp_w / 2.0 - 1.0, rail_h]
+    ]
+    pts_bot_yz = [
+        [-(esp_w / 2.0 + side_thick), 0.0],
+        [-(esp_w / 2.0 - 1.0), 0.0],
+        [-(esp_w / 2.0 - 1.0), rail_h],
+        [-esp_w / 2.0, rail_h],
+        [-esp_w / 2.0, side_wall_h],
+        [-(esp_w / 2.0 + side_thick), side_wall_h]
+    ]
+    poly_top = m3d.CrossSection([pts_top_yz])
+    poly_bot = m3d.CrossSection([pts_bot_yz])
+    wall_top_3d = m3d.Manifold.extrude(poly_top, esp_l).rotate([0, -90, 0]).translate([x_rear, 0, floor_t])
+    wall_bot_3d = m3d.Manifold.extrude(poly_bot, esp_l).rotate([0, -90, 0]).translate([x_rear, 0, floor_t])
 
-    # 1.0mm side edge support steps:
-    edge_step_top = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
-        x_front, esp_w / 2.0 - 1.0, floor_t
-    ])
-    edge_step_bot = m3d.Manifold.cube([esp_l, 1.0, rail_h], center=False).translate([
-        x_front, -esp_w / 2.0, floor_t
-    ])
+    # 2. Vertical rounded D-pillars (semicircular cylindrical curve along Z):
+    r = pillar_w / 2.0
+    c_top = m3d.CrossSection.circle(r, 32).translate([x_rear + pillar_thick - r, esp_w / 2.0 + side_thick - r])
+    rect_top = m3d.CrossSection.square([pillar_thick - r, pillar_w], center=False).translate([x_rear, esp_w / 2.0 + side_thick - pillar_w])
+    p_top_3d = m3d.Manifold.extrude((c_top + rect_top).hull(), side_wall_h).translate([0, 0, floor_t])
+
+    c_bot = m3d.CrossSection.circle(r, 32).translate([x_rear + pillar_thick - r, -(esp_w / 2.0 + side_thick) + r])
+    rect_bot = m3d.CrossSection.square([pillar_thick - r, pillar_w], center=False).translate([x_rear, -(esp_w / 2.0 + side_thick)])
+    p_bot_3d = m3d.Manifold.extrude((c_bot + rect_bot).hull(), side_wall_h).translate([0, 0, floor_t])
     
-    # Discrete 45-Degree Self-Supporting Snap Clips
+    # 3. Discrete 45-Degree Self-Supporting Snap Clips
     snap_z = floor_t + rail_h + 1.2 + 0.3 # 6.7mm
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, esp_w / 2.0, snap_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -esp_w / 2.0, snap_z])
     
-    carrier_solid = buttresses + side_wall_top + side_wall_bot + edge_step_top + edge_step_bot + clip_top + clip_bot
+    carrier_solid = wall_top_3d + wall_bot_3d + p_top_3d + p_bot_3d + clip_top + clip_bot
 
     return (housing_hollow + carrier_solid) - usbc_port
 
@@ -155,4 +158,4 @@ if __name__ == "__main__":
     out_dir = os.path.dirname(os.path.abspath(__file__))
     out_stl = os.path.join(out_dir, "gc9a01_main_housing_option1_test.stl")
     opt1_housing = generate_main_housing_option1()
-    export_stl(opt1_housing, out_stl, "Main Housing Pod (Option 1 Test - Rounded Pillars)")
+    export_stl(opt1_housing, out_stl, "Main Housing Pod (Option 1 Test - Vertical Cylindrical Pillars)")
