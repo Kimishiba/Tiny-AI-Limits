@@ -830,6 +830,16 @@
     let antigravity_limit = 100;
     let antigravity_remaining = 60;
     let antigravity_reset_str = "";
+    let left_gauge_label = "CLD";
+    let left_gauge_name = "Claude";
+    let left_gauge_pct = 85;
+    let left_gauge_color = "#00E5FF";
+    let left_gauge_reset = "READY";
+    let right_gauge_label = "AGY";
+    let right_gauge_name = "Antigravity";
+    let right_gauge_pct = 60;
+    let right_gauge_color = "#FF7A00";
+    let right_gauge_reset = "3h 12m";
     let current_temperature = 23.5;
     let hours_until_rain = 2;
     let date_string = "THU 06 AUG";
@@ -1070,8 +1080,8 @@
       c.fill();
 
       // 3. Quota Ratios
-      const claudePct = Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
-      const antiPct = Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
+      const claudePct = left_gauge_pct !== undefined ? left_gauge_pct : Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
+      const antiPct = right_gauge_pct !== undefined ? right_gauge_pct : Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
 
       // Helper for Curved Clockwise Text along a circular arc
       function drawCurvedTextClockwise(ctx, text, centerX, centerY, radius, centerAngleRad, color, font) {
@@ -1109,15 +1119,17 @@
         ctx.restore();
       }
 
-      // 4. Curved Inside Quota Badges (CLAUDE % and ANTIGRAVITY %)
+      // 4. Curved Inside Quota Badges (Dynamic Left % and Right %)
       const textRadius = 86.5;
       const badgeFont = "900 10.5px 'JetBrains Mono', 'Fira Code', monospace";
 
-      // Claude % Curved along inside of Left Arc (Clockwise around left perimeter)
-      drawCurvedTextClockwise(c, "CLAUDE " + claudePct + "%", cx, cy, textRadius, -Math.PI / 2, "#00E5FF", badgeFont);
+      // Left Gauge % Curved along inside of Left Arc (Clockwise around left perimeter)
+      const leftBadgeText = `${(left_gauge_name || "CLAUDE").toUpperCase()} ${claudePct}%`;
+      drawCurvedTextClockwise(c, leftBadgeText, cx, cy, textRadius, -Math.PI / 2, left_gauge_color || "#00E5FF", badgeFont);
 
-      // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
-      drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
+      // Right Gauge % Curved along inside of Right Arc (Clockwise around right perimeter)
+      const rightBadgeText = `${(right_gauge_name || "ANTIGRAVITY").toUpperCase()} ${antiPct}%`;
+      drawCurvedTextClockwise(c, rightBadgeText, cx, cy, textRadius, Math.PI / 2, right_gauge_color || "#FF7A00", badgeFont);
 
       // 4. Top Crown: Backend Connection Status Arc & Rain Indicator
       const wifiLedEl = document.getElementById("wifiLed");
@@ -1174,7 +1186,7 @@
       if (claudePct > 0) {
         const activeEndLeft = bottomAngleLeft + (claudePct / 100) * totalSweepLeft;
         c.lineWidth = 7;
-        c.strokeStyle = "#00E5FF";
+        c.strokeStyle = left_gauge_color || "#00E5FF";
         c.beginPath();
         c.arc(cx, cy, arcR, bottomAngleLeft, activeEndLeft, false);
         c.stroke();
@@ -1208,7 +1220,7 @@
       if (antiPct > 0) {
         const activeEndRight = bottomAngleRight - (antiPct / 100) * totalSweepRight;
         c.lineWidth = 7;
-        c.strokeStyle = "#FF7A00";
+        c.strokeStyle = right_gauge_color || "#FF7A00";
         c.beginPath();
         c.arc(cx, cy, arcR, bottomAngleRight, activeEndRight, true);
         c.stroke();
@@ -1560,17 +1572,17 @@
         c.fillStyle = "#ffffff";
         c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
-        // Line 1: Claude Reset Countdown in Teal #00E5FF
+        // Line 1: Left Gauge Reset Countdown
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = "#00E5FF";
-        const cldStr = "CLD: " + (claude_reset_str || "READY");
-        c.fillText(cldStr, cx, cy + 81);
+        c.fillStyle = left_gauge_color || "#00E5FF";
+        const leftStr = (left_gauge_label || "CLD") + ": " + (left_gauge_reset || claude_reset_str || "READY");
+        c.fillText(leftStr, cx, cy + 81);
 
-        // Line 2: Antigravity Reset Countdown in Orange #FF7A00
+        // Line 2: Right Gauge Reset Countdown
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = "#FF7A00";
-        const agyStr = "AGY: " + (antigravity_reset_str || "READY");
-        c.fillText(agyStr, cx, cy + 95);
+        c.fillStyle = right_gauge_color || "#FF7A00";
+        const rightStr = (right_gauge_label || "AGY") + ": " + (right_gauge_reset || antigravity_reset_str || "READY");
+        c.fillText(rightStr, cx, cy + 95);
       }
     }
 
@@ -1943,14 +1955,35 @@
         const res = await fetch("http://localhost:5000/data", { method: "GET" });
         if (res.ok) {
           const data = await res.json();
-          if (data.claude) {
+          if (data.left_gauge) {
+            left_gauge_label = data.left_gauge.label || "CLD";
+            left_gauge_name = data.left_gauge.name || "Claude";
+            left_gauge_pct = data.left_gauge.percent !== undefined ? data.left_gauge.percent : 100;
+            left_gauge_reset = data.left_gauge.reset_str || "";
+            if (data.left_gauge.color) {
+              left_gauge_color = data.left_gauge.color.startsWith("0x") ? "#" + data.left_gauge.color.slice(2) : data.left_gauge.color;
+            }
+            document.getElementById("claudeSlider").value = left_gauge_pct;
+            document.getElementById("claudeVal").innerText = left_gauge_pct + "%";
+          } else if (data.claude) {
             claude_limit = data.claude.limit || 500000;
             claude_remaining = data.claude.remaining || 500000;
             claude_reset_str = data.claude.reset_str || "";
             document.getElementById("claudeSlider").value = Math.round((claude_remaining/claude_limit)*100);
             document.getElementById("claudeVal").innerText = Math.round((claude_remaining/claude_limit)*100) + "%";
           }
-          if (data.antigravity) {
+
+          if (data.right_gauge) {
+            right_gauge_label = data.right_gauge.label || "AGY";
+            right_gauge_name = data.right_gauge.name || "Antigravity";
+            right_gauge_pct = data.right_gauge.percent !== undefined ? data.right_gauge.percent : 100;
+            right_gauge_reset = data.right_gauge.reset_str || "";
+            if (data.right_gauge.color) {
+              right_gauge_color = data.right_gauge.color.startsWith("0x") ? "#" + data.right_gauge.color.slice(2) : data.right_gauge.color;
+            }
+            document.getElementById("antiSlider").value = right_gauge_pct;
+            document.getElementById("antiVal").innerText = right_gauge_pct + "%";
+          } else if (data.antigravity) {
             antigravity_limit = data.antigravity.limit || 200;
             antigravity_remaining = data.antigravity.remaining !== undefined ? data.antigravity.remaining : 200;
             antigravity_reset_str = data.antigravity.reset_str || "";

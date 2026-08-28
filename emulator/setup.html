@@ -674,6 +674,94 @@
       </div>
     </div>
 
+    <!-- AI Quota & Dual HUD Gauge Configuration Card -->
+    <div class="setup-card" style="margin-top: 1.5rem;">
+      <div class="card-header-badge" style="background: #00E5FF; color: #000;">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">tune</span>
+        HUD GAUGE CONFIGURATION
+      </div>
+
+      <div>
+        <h2 class="setup-title" style="font-size: 1.5rem;">Select Display AI Quotas</h2>
+        <p class="setup-description">
+          Choose which 2 AI services are mapped to the physical GC9A01 dual radial HUD arcs (Left Gauge &amp; Right Gauge). The backend automatically scans local credentials and tokens across your active tools.
+        </p>
+
+        <!-- Gauge Dropdowns Form -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 1.25rem;">
+          <!-- Left Gauge Selector -->
+          <div style="background: #f8f9fa; border: 2px solid var(--border-dark); padding: 1rem; border-radius: 4px;">
+            <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span class="material-symbols-outlined" style="color: #00E5FF;">arrow_back</span>
+              Left Radial Arc (Gauge 1)
+            </div>
+            <select id="gauge-left-select" style="width: 100%; padding: 0.6rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #fff; cursor: pointer;">
+              <option value="claude">Anthropic Claude (CLD)</option>
+              <option value="antigravity">Google Antigravity (AGY)</option>
+            </select>
+            <div id="gauge-left-status" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+              Detecting...
+            </div>
+          </div>
+
+          <!-- Right Gauge Selector -->
+          <div style="background: #f8f9fa; border: 2px solid var(--border-dark); padding: 1rem; border-radius: 4px;">
+            <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span class="material-symbols-outlined" style="color: #FF9100;">arrow_forward</span>
+              Right Radial Arc (Gauge 2)
+            </div>
+            <select id="gauge-right-select" style="width: 100%; padding: 0.6rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #fff; cursor: pointer;">
+              <option value="antigravity">Google Antigravity (AGY)</option>
+              <option value="claude">Anthropic Claude (CLD)</option>
+            </select>
+            <div id="gauge-right-status" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+              Detecting...
+            </div>
+          </div>
+        </div>
+
+        <!-- Optional API Keys Accordion -->
+        <details style="margin-top: 1.25rem; background: #fff; border: 2px solid var(--border-dark); padding: 0.75rem 1rem; border-radius: 4px;">
+          <summary style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; user-select: none;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">key</span>
+            Custom Provider API Keys (OpenRouter, DeepSeek, Mistral, Groq)
+          </summary>
+          <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">
+              Local CLI tools (Antigravity, Claude, Codex, Cursor, Copilot, Gemini) are automatically discovered without API keys. For cloud services, enter your API key below:
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+              <div>
+                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">OpenRouter API Key:</label>
+                <input type="password" id="key-openrouter" placeholder="sk-or-..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+              </div>
+              <div>
+                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">DeepSeek API Key:</label>
+                <input type="password" id="key-deepseek" placeholder="sk-..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+              </div>
+              <div>
+                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Mistral / Codestral Key:</label>
+                <input type="password" id="key-mistral" placeholder="API Key..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+              </div>
+              <div>
+                <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Groq API Key:</label>
+                <input type="password" id="key-groq" placeholder="gsk_..." style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.25rem; flex-wrap: wrap;">
+          <button type="button" id="save-gauges-btn" class="nav-btn" style="background: var(--accent-green); color: #fff; border: 2px solid var(--border-dark); padding: 0.6rem 1.4rem; cursor: pointer;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem;">save</span>
+            Save Gauge Selection
+          </button>
+          <div id="save-gauges-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Pair an already-connected board -->
     <div class="setup-card" style="margin-top: 1.5rem;">
       <div class="card-header-badge" style="background: #F5A97F; color: #000;">
@@ -1116,6 +1204,127 @@
         pairBtn.disabled = false;
       }
     });
+
+    // --- HUD Gauge Configuration Logic ---
+    const gaugeLeftSelect = document.getElementById('gauge-left-select');
+    const gaugeRightSelect = document.getElementById('gauge-right-select');
+    const gaugeLeftStatus = document.getElementById('gauge-left-status');
+    const gaugeRightStatus = document.getElementById('gauge-right-status');
+    const saveGaugesBtn = document.getElementById('save-gauges-btn');
+    const saveGaugesStatus = document.getElementById('save-gauges-status');
+
+    let allProvidersList = [];
+
+    function renderProviderStatus(provider) {
+      if (!provider) return "Unknown";
+      if (provider.status === "ok") {
+        return `🟢 ${provider.name} (${provider.percent}% remaining - ${provider.plan || 'Active'})`;
+      } else if (provider.status === "degraded") {
+        return `🟡 ${provider.name} (${provider.percent}% - ${provider.reset_str || 'Degraded/Local'})`;
+      } else if (provider.status === "unauthenticated") {
+        return `⚪ ${provider.name} (Not signed in)`;
+      } else if (provider.status === "unconfigured") {
+        return `⚪ ${provider.name} (API key required)`;
+      } else {
+        return `🔴 ${provider.name} (${provider.error_message || 'Error'})`;
+      }
+    }
+
+    function updateGaugeStatusDisplay() {
+      const leftId = gaugeLeftSelect.value;
+      const rightId = gaugeRightSelect.value;
+      const leftProv = allProvidersList.find(p => p.id === leftId);
+      const rightProv = allProvidersList.find(p => p.id === rightId);
+      gaugeLeftStatus.textContent = renderProviderStatus(leftProv);
+      gaugeRightStatus.textContent = renderProviderStatus(rightProv);
+    }
+
+    async function loadProvidersAndGauges() {
+      try {
+        const res = await fetch('/api/providers');
+        if (!res.ok) return;
+        const data = await res.json();
+        allProvidersList = data.providers || [];
+        const selected = data.selected_gauges || { left: 'claude', right: 'antigravity' };
+
+        gaugeLeftSelect.innerHTML = '';
+        gaugeRightSelect.innerHTML = '';
+
+        allProvidersList.forEach(p => {
+          const statusIcon = p.status === 'ok' ? '🟢' : p.status === 'degraded' ? '🟡' : '⚪';
+          const optLeft = document.createElement('option');
+          optLeft.value = p.id;
+          optLeft.textContent = `${statusIcon} ${p.name} [${p.badge}]`;
+          if (p.id === selected.left) optLeft.selected = true;
+          gaugeLeftSelect.appendChild(optLeft);
+
+          const optRight = document.createElement('option');
+          optRight.value = p.id;
+          optRight.textContent = `${statusIcon} ${p.name} [${p.badge}]`;
+          if (p.id === selected.right) optRight.selected = true;
+          gaugeRightSelect.appendChild(optRight);
+        });
+
+        updateGaugeStatusDisplay();
+      } catch (err) {
+        console.warn("Could not fetch providers:", err);
+      }
+    }
+
+    gaugeLeftSelect.addEventListener('change', updateGaugeStatusDisplay);
+    gaugeRightSelect.addEventListener('change', updateGaugeStatusDisplay);
+
+    saveGaugesBtn.addEventListener('click', async () => {
+      saveGaugesBtn.disabled = true;
+      saveGaugesStatus.style.color = '#89b4fa';
+      saveGaugesStatus.textContent = 'Saving configuration...';
+
+      const payload = {
+        selected_gauges: {
+          left: gaugeLeftSelect.value,
+          right: gaugeRightSelect.value
+        },
+        provider_keys: {}
+      };
+
+      const orKey = document.getElementById('key-openrouter').value.trim();
+      const dsKey = document.getElementById('key-deepseek').value.trim();
+      const msKey = document.getElementById('key-mistral').value.trim();
+      const gqKey = document.getElementById('key-groq').value.trim();
+
+      if (orKey) payload.provider_keys.openrouter = orKey;
+      if (dsKey) payload.provider_keys.deepseek = dsKey;
+      if (msKey) payload.provider_keys.mistral = msKey;
+      if (gqKey) payload.provider_keys.groq = gqKey;
+
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          saveGaugesStatus.style.color = '#a6e3a1';
+          saveGaugesStatus.textContent = '✓ Gauges saved! Updated telemetry streaming to display.';
+          setTimeout(() => {
+            saveGaugesStatus.textContent = '';
+          }, 4000);
+          loadProvidersAndGauges();
+        } else {
+          saveGaugesStatus.style.color = '#f38ba8';
+          saveGaugesStatus.textContent = 'Failed to save configuration.';
+        }
+      } catch (err) {
+        saveGaugesStatus.style.color = '#f38ba8';
+        saveGaugesStatus.textContent = 'Error: ' + err.message;
+      } finally {
+        saveGaugesBtn.disabled = false;
+      }
+    });
+
+    // Initialize provider list on page load
+    loadProvidersAndGauges();
 
   </script>
 </body>

@@ -1,4 +1,5 @@
 import json
+import re
 import glob
 import getpass
 import os
@@ -15,6 +16,12 @@ from flask import Flask, jsonify, request
 from threading import Thread
 from zeroconf import ServiceInfo, Zeroconf
 
+# Providers and background poller
+try:
+    from providers import poller, ALL_PROVIDERS
+except ImportError:
+    from .providers import poller, ALL_PROVIDERS
+
 # Config file setup
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".tiny_ai_screen")
 os.makedirs(CONFIG_DIR, exist_ok=True)
@@ -27,7 +34,12 @@ def load_config():
         "lat": 52.5200,
         "lon": 13.4050,
         "antigravity_5h_quota": 200,
-        "antigravity_account_email": None
+        "antigravity_account_email": None,
+        "selected_gauges": {
+            "left": "claude",
+            "right": "antigravity"
+        },
+        "provider_keys": {}
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -42,6 +54,10 @@ def save_config(cfg):
     try:
         with open(CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=4)
+        try:
+            os.chmod(CONFIG_FILE, 0o600)
+        except Exception:
+            pass
     except Exception as e:
         print(f"Error saving config: {e}")
 
@@ -745,32 +761,179 @@ def caller_is_paired():
     return request.args.get("pair_id", "") == get_pair_id(config)
 
 
-# Persistent/In-memory Registry for stable agent numbering
+# Persistent/In-memory Registry for stable agent naming
 _session_registry = {}
 _session_counters = {"claude": 0, "antigravity": 0}
 
 IN_FLIGHT_TIMEOUT_SECONDS = 45
 
-def get_stable_agent_label(source, session_key):
-    """Assign stable, clean human-readable names like 'Claude 1', 'AGY 1' to sessions."""
+def _clean_context_word(word, max_len=12):
+    """Clean a keyword to alphanumeric, capitalized, strictly clamped to max_len."""
+    if not word:
+        return ""
+    cleaned = re.sub(r"[^A-Za-z0-9\-]", "", word).strip("-")
+    if not cleaned:
+        return ""
+    if len(cleaned) <= 3:
+        cleaned = cleaned.upper()
+    else:
+        cleaned = cleaned.capitalize()
+    return cleaned[:max_len]
+
+def _extract_antigravity_context(transcript_lines=None, role=None, objective=None):
+    """Extract a concise, meaningful context tag for Antigravity."""
+    generic_words = {
+        "agent", "worker", "specialist", "engineer", "subagent", "reviewer",
+        "tester", "ticket", "task", "user", "objective", "display", "multi",
+        "service", "system", "request", "tool", "call"
+    }
+
+    if role:
+        words = re.findall(r"[A-Za-z0-9]+", role)
+        filtered = [w for w in words if w.lower() not in generic_words]
+        candidate = filtered[0] if filtered else (words[0] if words else "")
+        cleaned = _clean_context_word(candidate, max_len=12)
+        if cleaned:
+            return cleaned
+
+    if objective:
+        words = re.findall(r"[A-Za-z0-9]+", objective)
+        filtered = [w for w in words if w.lower() not in generic_words]
+        candidate = filtered[0] if filtered else (words[0] if words else "")
+        cleaned = _clean_context_word(candidate, max_len=12)
+        if cleaned:
+            return cleaned
+
+    if transcript_lines:
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+
+            if not isinstance(entry, dict):
+                continue
+
+            content = entry.get("content", "")
+            if isinstance(content, str) and "# USER Objective:" in content:
+                m = re.search(r"# USER Objective:\s*([^\n\r]+)", content)
+                if m:
+                    words = re.findall(r"[A-Za-z0-9]+", m.group(1))
+                    filtered = [w for w in words if w.lower() not in generic_words]
+                    candidate = filtered[0] if filtered else (words[0] if words else "")
+                    cleaned = _clean_context_word(candidate, max_len=12)
+                    if cleaned:
+                        return cleaned
+
+            tool_calls = entry.get("tool_calls", [])
+            if isinstance(tool_calls, list):
+                for tc in tool_calls:
+                    args = tc.get("args", {}) if isinstance(tc, dict) else {}
+                    subagents = args.get("Subagents", []) if isinstance(args, dict) else []
+                    if isinstance(subagents, list):
+                        for sa in subagents:
+                            if isinstance(sa, dict) and sa.get("Role"):
+                                words = re.findall(r"[A-Za-z0-9]+", sa["Role"])
+                                filtered = [w for w in words if w.lower() not in generic_words]
+                                candidate = filtered[0] if filtered else (words[0] if words else "")
+                                cleaned = _clean_context_word(candidate, max_len=12)
+                                if cleaned:
+                                    return cleaned
+
+        stop_words = {
+            "can", "we", "the", "a", "an", "to", "for", "in", "of", "and", "is", "it",
+            "you", "i", "me", "my", "our", "have", "has", "do", "does", "did", "please",
+            "make", "write", "create", "update", "fix", "add", "show", "get", "let", "lets",
+            "why", "what", "how", "when", "where", "this", "that", "there", "with", "instead"
+        }
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+
+            if not isinstance(entry, dict):
+                continue
+
+            if entry.get("type") in ("USER_INPUT", "user") or entry.get("source") == "USER_EXPLICIT":
+                raw_content = entry.get("content", "")
+                if isinstance(raw_content, str):
+                    stripped = re.sub(r"<[^>]+>", " ", raw_content)
+                    words = re.findall(r"[A-Za-z0-9]+", stripped)
+                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and len(w) >= 3]
+                    if filtered:
+                        cleaned = _clean_context_word(filtered[0], max_len=12)
+                        if cleaned:
+                            return cleaned
+    return ""
+
+def _extract_claude_context(cwd=None, transcript_lines=None):
+    """Extract a concise context tag for Claude."""
+    if cwd:
+        base = os.path.basename(os.path.normpath(cwd))
+        words = re.findall(r"[A-Za-z0-9]+", base)
+        if words:
+            candidate = words[-1] if len(words) > 1 and len(words[-1]) >= 3 else words[0]
+            cleaned = _clean_context_word(candidate, max_len=12)
+            if cleaned:
+                return cleaned
+    return ""
+
+def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
+    """Assign stable, clean contextual names (e.g. 'Customizing', 'Limits', 'Backend') strictly clamped to <= 12 chars."""
     reg_key = f"{source}:{session_key}"
-    if reg_key not in _session_registry:
-        _session_counters[source] = _session_counters.get(source, 0) + 1
-        prefix = "Claude" if source == "claude" else "AGY"
-        _session_registry[reg_key] = f"{prefix} {_session_counters[source]}"
-    return _session_registry[reg_key]
+    if reg_key in _session_registry:
+        return _session_registry[reg_key]
+
+    _session_counters[source] = _session_counters.get(source, 0) + 1
+    seq_num = _session_counters[source]
+
+    label = ""
+    if source == "antigravity":
+        ctx = _extract_antigravity_context(transcript_lines, role=role, objective=objective)
+        if ctx:
+            label = ctx[:12]
+        else:
+            label = f"Agent {seq_num}"[:12]
+    else:  # claude
+        ctx = _extract_claude_context(cwd=cwd, transcript_lines=transcript_lines)
+        if ctx:
+            label = ctx[:12]
+        else:
+            label = f"Claude {seq_num}"[:12]
+
+    # Handle collision with other existing labels in registry
+    assigned_values = set(_session_registry.values())
+    if label in assigned_values:
+        if len(label) <= 10:
+            label = f"{label} {seq_num}"[:12]
+        else:
+            label = f"{label[:10]} {seq_num}"[:12]
+
+    _session_registry[reg_key] = label
+    return label
 
 def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None, source="claude"):
-    """Deterministic state resolution: WAITING > WORKING > COMPLETE > IDLE."""
+    """Deterministic state resolution: WAITING > COMPLETE/IDLE > WORKING > IDLE."""
     completion_duration = (cfg.get("completion_duration_seconds", 10) if isinstance(cfg, dict) else 10) if cfg else 10
     working_color = "#FF7A00" if source == "antigravity" else "#00E5FF"
+
     if found_pending:
         return "WAITING", "waiting_approval", turn_pending_prompt, "#FFB800"
-    elif has_in_flight_tools or (age < IN_FLIGHT_TIMEOUT_SECONDS and not is_final_turn_response):
-        return "WORKING", "working", "EXECUTING...", working_color
-    elif is_final_turn_response and age < completion_duration:
-        return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
-    elif age < IN_FLIGHT_TIMEOUT_SECONDS:
+    elif is_final_turn_response:
+        if age < completion_duration:
+            return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
+        else:
+            return "IDLE", "idle", "IDLE", "#94A3B8"
+    elif has_in_flight_tools or age < IN_FLIGHT_TIMEOUT_SECONDS:
         return "WORKING", "working", "EXECUTING...", working_color
     else:
         return "IDLE", "idle", "IDLE", "#94A3B8"
@@ -886,7 +1049,7 @@ def handle_hook_event(data, now_ts=None):
             return {"status": "ignored", "session_id": session_id}
         
         existing = _hook_sessions.get(session_id, {})
-        label = get_stable_agent_label("claude", session_id)
+        label = get_stable_agent_label("claude", session_id, cwd=cwd or existing.get("cwd", ""))
         
         entry = {
             "id": session_id,
@@ -1078,7 +1241,7 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             # Session identification (parent folder of .system_generated)
             parts = os.path.normpath(fp).split(os.sep)
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
-            label = get_stable_agent_label("antigravity", session_id)
+            label = get_stable_agent_label("antigravity", session_id, transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
                 # User just sent a prompt; assistant is currently thinking/executing
@@ -1160,10 +1323,6 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
                 # Intermediate tool output step: turn is still executing
                 has_in_flight_tools = True
 
-            # Session identification (parent folder of .system_generated)
-            parts = os.path.normpath(fp).split(os.sep)
-            session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
-            label = get_stable_agent_label("antigravity", session_id)
             state, code, detail, color = resolve_session_state(
                 found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, config, source="antigravity"
             )
@@ -1252,7 +1411,7 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                     pass
 
             session_id = os.path.splitext(os.path.basename(fp))[0]
-            label = get_stable_agent_label("claude", session_id)
+            label = get_stable_agent_label("claude", session_id, cwd=os.path.dirname(fp), transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
                 # User just sent a prompt; Claude is currently thinking/executing
@@ -1511,7 +1670,79 @@ def get_data():
         "url": "/firmware/latest.bin"
     }
 
+    # Dynamic Gauge Mapping for Left and Right HUD Arcs
+    cfg = config
+    selected = cfg.get("selected_gauges", {"left": "claude", "right": "antigravity"})
+    left_id = selected.get("left", "claude")
+    right_id = selected.get("right", "antigravity")
+
+    # Fast in-memory lookup from background poller (non-blocking)
+    left_snap = poller.get_snapshot(left_id)
+    right_snap = poller.get_snapshot(right_id)
+
+    # Left gauge properties
+    if left_snap and left_snap.primary_window:
+        left_pct = int(round(left_snap.primary_window.percent_left))
+        left_label = left_snap.badge or left_id[:3].upper()
+        left_name = left_snap.provider_name
+        left_color = left_snap.color
+        left_reset = left_snap.primary_window.period_desc or "READY"
+    elif left_id == "claude":
+        left_pct = 100
+        left_label = "CLD"
+        left_name = "Claude"
+        left_color = "0x00E5FF"
+        left_reset = claude_data.get("reset_str", "READY")
+    else:
+        left_pct = 100
+        left_label = left_id[:3].upper()
+        left_name = left_id.capitalize()
+        left_color = "0x00E5FF"
+        left_reset = "READY"
+
+    # Right gauge properties
+    if right_snap and right_snap.primary_window:
+        right_pct = int(round(right_snap.primary_window.percent_left))
+        right_label = right_snap.badge or right_id[:3].upper()
+        right_name = right_snap.provider_name
+        right_color = right_snap.color
+        right_reset = right_snap.primary_window.period_desc or "5h"
+    elif right_id == "antigravity":
+        lim = max(1, antigravity_data.get("limit", 200))
+        rem = antigravity_data.get("remaining", 200)
+        right_pct = int(round((rem / lim) * 100))
+        right_label = "AGY"
+        right_name = "Antigravity"
+        right_color = "0xFF9100"
+        right_reset = antigravity_data.get("period", "5h")
+    else:
+        right_pct = 100
+        right_label = right_id[:3].upper()
+        right_name = right_id.capitalize()
+        right_color = "0xFF9100"
+        right_reset = "READY"
+
+    left_gauge = {
+        "id": left_id,
+        "label": left_label,
+        "name": left_name,
+        "percent": left_pct,
+        "color": left_color,
+        "reset_str": left_reset
+    }
+
+    right_gauge = {
+        "id": right_id,
+        "label": right_label,
+        "name": right_name,
+        "percent": right_pct,
+        "color": right_color,
+        "reset_str": right_reset
+    }
+
     return jsonify({
+        "left_gauge": left_gauge,
+        "right_gauge": right_gauge,
         "claude": claude_data,
         "antigravity": antigravity_data,
         "weather": weather_data,
@@ -1534,6 +1765,35 @@ def get_data():
         },
         "ota": ota_payload
     })
+
+@app.route('/api/providers', methods=['GET'])
+def get_providers_api():
+    cfg = load_config()
+    selected = cfg.get("selected_gauges", {"left": "claude", "right": "antigravity"})
+    providers_data = []
+    for p in poller.providers.values():
+        snap = poller.get_snapshot(p.provider_id)
+        if not snap:
+            try:
+                snap = p.fetch_usage(cfg)
+            except Exception as e:
+                snap = None
+        pct = round(snap.primary_window.percent_left) if (snap and snap.primary_window) else 100
+        providers_data.append({
+            "id": p.provider_id,
+            "name": p.provider_name,
+            "badge": p.badge,
+            "color": p.color,
+            "status": snap.status if snap else "unconfigured",
+            "percent": pct,
+            "reset_str": (snap.primary_window.period_desc if snap and snap.primary_window else ""),
+            "plan": snap.plan if snap else None,
+            "is_selected_left": (selected.get("left") == p.provider_id),
+            "is_selected_right": (selected.get("right") == p.provider_id),
+            "has_key": bool(cfg.get("provider_keys", {}).get(p.provider_id) or cfg.get(f"{p.provider_id}_api_key")),
+            "error_message": snap.error_message if snap else None
+        })
+    return jsonify({"providers": providers_data, "selected_gauges": selected})
 
 @app.route('/api/agents', methods=['GET'])
 def get_agents():
@@ -1578,6 +1838,7 @@ def trigger_ota():
     })
 
 @app.route('/config', methods=['GET', 'POST'])
+@app.route('/api/config', methods=['GET', 'POST'])
 def handle_config():
     global config
     if request.method == 'POST':
@@ -1592,6 +1853,18 @@ def handle_config():
         if "antigravity_account_email" in data:
             # Empty string/null means "auto, use whichever account is found first"
             config["antigravity_account_email"] = data["antigravity_account_email"] or None
+        if "selected_gauges" in data and isinstance(data["selected_gauges"], dict):
+            config.setdefault("selected_gauges", {})
+            if "left" in data["selected_gauges"]:
+                config["selected_gauges"]["left"] = str(data["selected_gauges"]["left"])
+            if "right" in data["selected_gauges"]:
+                config["selected_gauges"]["right"] = str(data["selected_gauges"]["right"])
+        if "provider_keys" in data and isinstance(data["provider_keys"], dict):
+            config.setdefault("provider_keys", {})
+            for k, v in data["provider_keys"].items():
+                if v:
+                    config["provider_keys"][k] = str(v)
+                    config[f"{k}_api_key"] = str(v)
         if "city" in data and data["city"]:
             lat, lon, full_name = geocode_city(data["city"])
             if lat and lon:
@@ -1601,8 +1874,16 @@ def handle_config():
             else:
                 return jsonify({"status": "error", "message": f"Could not find city '{data['city']}'"}), 400
         save_config(config)
-        return jsonify({"status": "ok", "config": config})
+        
+        # Mask sensitive keys in response
+        masked_cfg = dict(config)
+        if "provider_keys" in masked_cfg:
+            masked_cfg["provider_keys"] = {k: (v[:4] + "..." + v[-4:] if len(v) > 8 else "***") for k, v in masked_cfg["provider_keys"].items()}
+        return jsonify({"status": "ok", "config": masked_cfg})
+        
     response = dict(config)
+    if "provider_keys" in response:
+        response["provider_keys"] = {k: (v[:4] + "..." + v[-4:] if len(v) > 8 else "***") for k, v in response["provider_keys"].items()}
     response["available_antigravity_accounts"] = [a["email"] for a in get_antigravity_accounts()]
     return jsonify(response)
 
@@ -1668,6 +1949,7 @@ def register_mdns_service(port=PORT):
         print(f"[mDNS] Failed to register service: {e}")
 
 def start_flask():
+    poller.start(load_config)
     register_mdns_service(port=PORT)
     app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
 
