@@ -1,33 +1,39 @@
+import os
+import sys
 import unittest
 import json
 import threading
-from backend.app import (
-    app,
-    save_config,
-    load_config,
-    get_stable_agent_label,
-    mask_key,
-    _session_registry,
-    _session_counters,
-    _session_registry_lock,
-)
-from backend.providers.base import read_sqlite_kv_safe
+
+# Ensure both backend directory and repository root are in sys.path
+_backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_repo_dir = os.path.abspath(os.path.join(_backend_dir, ".."))
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+if _repo_dir not in sys.path:
+    sys.path.insert(0, _repo_dir)
+
+try:
+    import app
+    from providers.base import read_sqlite_kv_safe
+except ImportError:
+    from backend import app
+    from backend.providers.base import read_sqlite_kv_safe
 
 class TestPhase1Hardening(unittest.TestCase):
     def setUp(self):
-        self.client = app.test_client()
+        self.client = app.app.test_client()
 
     def test_mask_key(self):
-        self.assertEqual(mask_key(""), "")
-        self.assertEqual(mask_key("short"), "***")
-        self.assertEqual(mask_key("sk-ant-api03-123456789"), "sk-a...6789")
+        self.assertEqual(app.mask_key(""), "")
+        self.assertEqual(app.mask_key("short"), "***")
+        self.assertEqual(app.mask_key("sk-ant-api03-123456789"), "sk-a...6789")
 
     def test_concurrent_session_label_assignment(self):
         """Ensure thread safety when assigning stable agent labels concurrently."""
         def worker(thread_id):
             for i in range(20):
-                get_stable_agent_label("antigravity", f"session_{thread_id}_{i}")
-                get_stable_agent_label("claude", f"session_{thread_id}_{i}")
+                app.get_stable_agent_label("antigravity", f"session_{thread_id}_{i}")
+                app.get_stable_agent_label("claude", f"session_{thread_id}_{i}")
 
         threads = [threading.Thread(target=worker, args=(t,)) for t in range(5)]
         for t in threads:
@@ -35,10 +41,10 @@ class TestPhase1Hardening(unittest.TestCase):
         for t in threads:
             t.join()
 
-        with _session_registry_lock:
-            self.assertGreater(len(_session_registry), 0)
-            self.assertGreater(_session_counters["antigravity"], 0)
-            self.assertGreater(_session_counters["claude"], 0)
+        with app._session_registry_lock:
+            self.assertGreater(len(app._session_registry), 0)
+            self.assertGreater(app._session_counters["antigravity"], 0)
+            self.assertGreater(app._session_counters["claude"], 0)
 
     def test_config_access_security(self):
         """Local callers (127.0.0.1) can access and POST /api/config."""
@@ -76,7 +82,7 @@ class TestPhase1Hardening(unittest.TestCase):
 
     def test_paired_external_access_granted(self):
         """Paired external IP callers with valid pair_id can access protected routes."""
-        cfg = load_config()
+        cfg = app.load_config()
         pair_id = cfg.get("pair_id")
         self.assertIsNotNone(pair_id)
 
@@ -92,9 +98,9 @@ class TestPhase1Hardening(unittest.TestCase):
     def test_concurrent_save_config(self):
         """Ensure concurrent save_config calls with unique temp files execute safely."""
         def saver(val):
-            cfg = load_config()
+            cfg = app.load_config()
             cfg["test_val"] = val
-            save_config(cfg)
+            app.save_config(cfg)
 
         threads = [threading.Thread(target=saver, args=(i,)) for i in range(10)]
         for t in threads:
@@ -102,7 +108,7 @@ class TestPhase1Hardening(unittest.TestCase):
         for t in threads:
             t.join()
 
-        final_cfg = load_config()
+        final_cfg = app.load_config()
         self.assertIn("test_val", final_cfg)
 
     def test_read_sqlite_kv_safe_nonexistent(self):
