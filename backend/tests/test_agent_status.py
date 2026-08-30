@@ -375,6 +375,84 @@ class TestAgentStatus(unittest.TestCase):
         self.assertIn("reset_in_seconds", quota)
         self.assertIn("reset_str", quota)
 
+    def test_quota_period_label(self):
+        from app import _quota_period_label
+        self.assertEqual(_quota_period_label(None), "5h")
+        self.assertEqual(_quota_period_label(0), "5h")
+        self.assertEqual(_quota_period_label(-100), "5h")
+        self.assertEqual(_quota_period_label(3600 * 4), "5h")
+        self.assertEqual(_quota_period_label(3600 * 6), "5h")
+        self.assertEqual(_quota_period_label(3600 * 7), "daily")
+        self.assertEqual(_quota_period_label(3600 * 24), "daily")
+        self.assertEqual(_quota_period_label(3600 * 48), "daily")
+        self.assertEqual(_quota_period_label(3600 * 49), "weekly")
+        self.assertEqual(_quota_period_label(3600 * 150), "weekly")
+
+    def test_get_antigravity_quota_fraction_logic(self):
+        from unittest.mock import patch
+        from app import get_antigravity_quota
+
+        # 1. Exhausted quota (fraction = 0.0) -> remaining: 0, used: 100
+        mock_acc_exhausted = [{
+            "email": "test@example.com",
+            "remaining_fraction": 0.0,
+            "reset_time": "2026-09-05T17:18:49Z"
+        }]
+        with patch("app.get_antigravity_accounts", return_value=mock_acc_exhausted):
+            quota = get_antigravity_quota()
+            self.assertEqual(quota["remaining"], 0)
+            self.assertEqual(quota["used"], 100)
+
+        # 2. Partial quota (fraction = 0.45) -> remaining: 45, used: 55
+        mock_acc_partial = [{
+            "email": "test@example.com",
+            "remaining_fraction": 0.45,
+            "reset_time": None
+        }]
+        with patch("app.get_antigravity_accounts", return_value=mock_acc_partial):
+            quota = get_antigravity_quota()
+            self.assertEqual(quota["remaining"], 45)
+            self.assertEqual(quota["used"], 55)
+
+        # 3. None fraction -> defaults to remaining: 100, used: 0
+        mock_acc_none = [{
+            "email": "test@example.com",
+            "remaining_fraction": None,
+            "reset_time": None
+        }]
+        with patch("app.get_antigravity_accounts", return_value=mock_acc_none):
+            quota = get_antigravity_quota()
+            self.assertEqual(quota["remaining"], 100)
+            self.assertEqual(quota["used"], 0)
+
+    def test_get_antigravity_accounts_proto3_omitted_zero(self):
+        from unittest.mock import patch
+        import app
+
+        mock_server = [{"ports": [12345], "csrf_token": "token123"}]
+        mock_status = {
+            "userStatus": {
+                "email": "plus_user@google.com",
+                "cascadeModelConfigData": {
+                    "clientModelConfigs": [
+                        {
+                            "label": "Gemini 3.1 Pro (High)",
+                            # Proto3 omits remainingFraction when 0.0
+                            "quotaInfo": {
+                                "resetTime": "2026-09-05T17:18:49Z"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        with patch("app._find_antigravity_language_servers", return_value=mock_server), \
+             patch("app._fetch_antigravity_user_status", return_value=mock_status):
+            accounts = app.get_antigravity_accounts(use_cache=False)
+            self.assertEqual(len(accounts), 1)
+            self.assertEqual(accounts[0]["remaining_fraction"], 0.0)
+            self.assertEqual(accounts[0]["reset_time"], "2026-09-05T17:18:49Z")
+
     def test_scan_claude_usage_fields(self):
         from app import scan_claude_usage
         usage = scan_claude_usage()

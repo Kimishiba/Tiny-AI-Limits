@@ -228,6 +228,32 @@ class TestProviders(unittest.TestCase):
         self.assertEqual(snapshot.primary_window.percent_left, 92.0)
         self.assertEqual(snapshot.account_email, "engineer@deepmind.com")
 
+    def test_antigravity_mock_live_rpc_exhausted_proto3(self):
+        from datetime import datetime, timezone, timedelta
+        provider = AntigravityProvider()
+        # Reset 7 days from now -> weekly period
+        reset_time_weekly = (datetime.now(timezone.utc) + timedelta(days=6, hours=6)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        mock_live = {
+            "userStatus": {"userEmail": "plus_user@google.com"},
+            "models": [{
+                "modelId": "gemini-3.1-pro",
+                # Proto3 omits remainingFraction when 0.0
+                "quotaInfo": {
+                    "resetTime": reset_time_weekly
+                }
+            }]
+        }
+        provider._query_live_rpc = lambda: mock_live
+        snapshot = provider.fetch_usage({})
+
+        self.assertEqual(snapshot.status, "ok")
+        self.assertEqual(snapshot.primary_window.remaining, 0)
+        self.assertEqual(snapshot.primary_window.used, 100)
+        self.assertEqual(snapshot.primary_window.percent_left, 0.0)
+        self.assertEqual(snapshot.primary_window.period_desc, "weekly")
+        self.assertEqual(snapshot.primary_window.window_minutes, 10080)
+
+
     def test_poller_cache_and_lifecycle(self):
         test_poller = ProviderPoller()
         test_poller.start(lambda: {})
