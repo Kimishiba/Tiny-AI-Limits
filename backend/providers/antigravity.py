@@ -4,9 +4,12 @@ import json
 import time
 import subprocess
 import requests
+import logging
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 from .base import BaseProvider, RateWindow, UsageSnapshot, get_home_dir
+
+logger = logging.getLogger("tinyscreen.providers.antigravity")
 
 class AntigravityProvider(BaseProvider):
     provider_id = "antigravity"
@@ -41,8 +44,10 @@ class AntigravityProvider(BaseProvider):
 
                     if token:
                         results.append((pid, token))
-        except Exception:
-            pass
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug("Failed executing ps to locate language server: %s", e)
+        except Exception as e:
+            logger.debug("Unexpected error finding language servers: %s", e)
 
         return results
 
@@ -59,8 +64,10 @@ class AntigravityProvider(BaseProvider):
                         ports.append(int(port_str))
                     except ValueError:
                         pass
-        except Exception:
-            pass
+        except (subprocess.SubprocessError, OSError) as e:
+            logger.debug("Failed running lsof for PID %s: %s", pid, e)
+        except Exception as e:
+            logger.debug("Unexpected error getting ports for PID %s: %s", pid, e)
         return ports
 
     def _query_live_rpc(self) -> Optional[Dict[str, Any]]:
@@ -82,7 +89,11 @@ class AntigravityProvider(BaseProvider):
                     resp = requests.post(url, headers=headers, json={}, timeout=1.5)
                     if resp.status_code == 200:
                         return resp.json()
-                except Exception:
+                except requests.RequestException as e:
+                    logger.debug("Connect RPC failed on port %s: %s", port, e)
+                    continue
+                except Exception as e:
+                    logger.debug("Connect RPC error on port %s: %s", port, e)
                     continue
         return None
 
@@ -120,10 +131,14 @@ class AntigravityProvider(BaseProvider):
 
                     if session_has_recent:
                         total_sessions += 1
-                except Exception:
+                except (OSError, UnicodeDecodeError) as e:
+                    logger.debug("Error reading transcript %s: %s", transcript_file, e)
                     continue
-        except Exception:
-            pass
+                except Exception as e:
+                    logger.debug("Unexpected error reading transcript %s: %s", transcript_file, e)
+                    continue
+        except Exception as e:
+            logger.debug("Error scanning transcripts in %s: %s", base_dir, e)
 
         return total_steps, total_sessions
 

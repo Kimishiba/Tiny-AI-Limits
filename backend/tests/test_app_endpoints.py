@@ -39,36 +39,43 @@ class TestAppEndpoints(unittest.TestCase):
             res = self.client.get(ep)
             self.assertEqual(res.status_code, 200)
             self.assertIn(b"<!DOCTYPE html>", res.data)
+            res.close()
 
     def test_static_ui_endpoint_missing_file_404(self):
         with patch('os.path.exists', return_value=False):
             res = self.client.get('/emulator')
             self.assertEqual(res.status_code, 404)
             self.assertIn(b"Emulator file not found", res.data)
+            res.close()
 
     def test_setup_page_endpoint(self):
         res = self.client.get('/setup')
         self.assertEqual(res.status_code, 200)
         self.assertIn(b"<!DOCTYPE html>", res.data)
+        res.close()
 
     def test_setup_page_missing_file_404(self):
         with patch('os.path.exists', return_value=False):
             res = self.client.get('/setup')
             self.assertEqual(res.status_code, 404)
             self.assertIn(b"Setup page not found", res.data)
+            res.close()
 
     def test_setup_vendor_endpoint_and_path_traversal(self):
         # Valid vendor file
         res = self.client.get('/setup/vendor/improv-wifi-serial-launch-button.bundle.js')
         self.assertEqual(res.status_code, 200)
+        res.close()
 
         # Missing vendor file
         res_404 = self.client.get('/setup/vendor/nonexistent-file.js')
         self.assertEqual(res_404.status_code, 404)
+        res_404.close()
 
         # Path traversal attack
         res_traversal = self.client.get('/setup/vendor/../../backend/app.py')
         self.assertEqual(res_traversal.status_code, 404)
+        res_traversal.close()
 
     def test_simulation_test_agents_override(self):
         # Set agents override

@@ -11,10 +11,16 @@ import requests
 import sys
 import uuid
 import threading
+import logging
 from datetime import datetime
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from threading import Thread
 from zeroconf import ServiceInfo, Zeroconf
+
+# Initialize structured logging
+logger = logging.getLogger("tinyscreen.companion")
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s [%(name)s]: %(message)s")
 
 # Providers and background poller
 try:
@@ -22,10 +28,14 @@ try:
 except ImportError:
     from .providers import poller, ALL_PROVIDERS
 
-# Config file setup
+# Config file setup & concurrency locks
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".tiny_ai_screen")
 os.makedirs(CONFIG_DIR, exist_ok=True)
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+
+_config_lock = threading.RLock()
+_firmware_cache_lock = threading.RLock()
+_session_registry_lock = threading.RLock()
 
 def load_config():
     default_config = {
@@ -46,22 +56,27 @@ def load_config():
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
                 default_config.update(cfg)
-        except Exception:
-            pass
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("Failed to load config file: %s", e)
+        except Exception as e:
+            logger.error("Unexpected error loading config: %s", e)
     return default_config
 
 def save_config(cfg):
     global config
-    try:
-        config = cfg
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, indent=4)
+    with _config_lock:
         try:
-            os.chmod(CONFIG_FILE, 0o600)
-        except Exception:
-            pass
-    except Exception as e:
-        print(f"Error saving config: {e}")
+            config = cfg
+            tmp_path = f"{CONFIG_FILE}.tmp.{os.getpid()}"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=4)
+            try:
+                os.chmod(tmp_path, 0o600)
+            except OSError:
+                pass
+            os.replace(tmp_path, CONFIG_FILE)
+        except Exception as e:
+            logger.error("Error saving config: %s", e)
 
 COMPANION_VERSION = "0.5.0"
 FIRMWARE_CACHE_DIR = os.path.join(CONFIG_DIR, "firmware_cache")
@@ -72,62 +87,57 @@ _firmware_cache = {"version": "0.5", "tag": "firmware-v0.5", "path": None, "size
 
 def get_latest_firmware(force_check=False):
     global _firmware_cache
-    now = time.time()
-    if not force_check and _firmware_cache.get("path") and os.path.exists(_firmware_cache["path"]) and (now - _firmware_cache.get("checked_at", 0) < 600):
-        return _firmware_cache
+    with _firmware_cache_lock:
+        now = time.time()
+        if not force_check and _firmware_cache.get("path") and os.path.exists(_firmware_cache["path"]) and (now - _firmware_cache.get("checked_at", 0) < 600):
+            return dict(_firmware_cache)
 
-    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    local_bin = os.path.join(repo_root, ".pio", "build", "esp32c3", "firmware.bin")
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        local_bin = os.path.join(repo_root, ".pio", "build", "esp32c3", "firmware.bin")
 
-    try:
-        res = requests.get("https://api.github.com/repos/Kimishiba/Tiny-AI-Limits/releases", timeout=5)
-        if res.status_code == 200:
-            releases = res.json()
-            for r in releases:
-                tag = r.get("tag_name", "")
-                if tag.startswith("firmware-v") or tag.startswith("v"):
-                    ver_clean = tag.replace("firmware-v", "").replace("v", "")
-                    for asset in r.get("assets", []):
-                        if asset.get("name") == "firmware.bin":
-                            download_url = asset.get("browser_download_url")
-                            dest_path = os.path.join(FIRMWARE_CACHE_DIR, f"firmware_{tag}.bin")
-                            if not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
-                                d_res = requests.get(download_url, timeout=30)
-                                if d_res.status_code == 200:
-                                    with open(dest_path, "wb") as f:
-                                        f.write(d_res.content)
-                            if os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
-                                _firmware_cache = {
-                                    "version": ver_clean,
-                                    "tag": tag,
-                                    "path": dest_path,
-                                    "size": os.path.getsize(dest_path),
-                                    "checked_at": now
-                                }
-                                return _firmware_cache
-    except Exception as e:
-        print(f"GitHub release check warning: {e}")
+        try:
+            res = requests.get("https://api.github.com/repos/Kimishiba/Tiny-AI-Limits/releases", timeout=5)
+            if res.status_code == 200:
+                releases = res.json()
+                for r in releases:
+                    tag = r.get("tag_name", "")
+                    if tag.startswith("firmware-v") or tag.startswith("v"):
+                        ver_clean = tag.replace("firmware-v", "").replace("v", "")
+                        for asset in r.get("assets", []):
+                            if asset.get("name") == "firmware.bin":
+                                download_url = asset.get("browser_download_url")
+                                dest_path = os.path.join(FIRMWARE_CACHE_DIR, f"firmware_{tag}.bin")
+                                if not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
+                                    d_res = requests.get(download_url, timeout=30)
+                                    if d_res.status_code == 200:
+                                        with open(dest_path, "wb") as f:
+                                            f.write(d_res.content)
+                                if os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
+                                    _firmware_cache = {
+                                        "version": ver_clean,
+                                        "tag": tag,
+                                        "path": dest_path,
+                                        "size": os.path.getsize(dest_path),
+                                        "checked_at": now
+                                    }
+                                    return dict(_firmware_cache)
+        except Exception as e:
+            logger.debug("GitHub release check warning: %s", e)
 
-    if os.path.exists(local_bin) and os.path.getsize(local_bin) > 0:
-        _firmware_cache = {
-            "version": "0.5",
-            "tag": "firmware-v0.5",
-            "path": local_bin,
-            "size": os.path.getsize(local_bin),
-            "checked_at": now
-        }
-        return _firmware_cache
+        if os.path.exists(local_bin) and os.path.getsize(local_bin) > 0:
+            _firmware_cache = {
+                "version": "0.5",
+                "tag": "firmware-v0.5",
+                "path": local_bin,
+                "size": os.path.getsize(local_bin),
+                "checked_at": now
+            }
+            return dict(_firmware_cache)
 
-    return _firmware_cache
+        return dict(_firmware_cache)
 
 def get_pair_id(cfg):
-    """Stable per-install identifier used to pair a board to *this* companion.
-
-    Deliberately not the OS username or hostname: two machines on the same LAN
-    can easily share either one (both "admin", both "MacBook-Pro"), which would
-    let a board re-pair with the wrong computer after a DHCP lease change.
-    Generated once and persisted, so it survives restarts and IP changes.
-    """
+    """Stable per-install identifier used to pair a board to *this* companion."""
     pair_id = cfg.get("pair_id")
     if not pair_id:
         pair_id = uuid.uuid4().hex[:12]
@@ -135,8 +145,26 @@ def get_pair_id(cfg):
         save_config(cfg)
     return pair_id
 
-from flask import Flask, jsonify, request, send_file
-import webbrowser
+def client_is_local():
+    """Requests from this machine: the emulator, the setup page, local curl."""
+    return request.remote_addr in ("127.0.0.1", "::1", "localhost")
+
+def caller_is_paired(allow_unpaired=True):
+    """Whether the caller proved it belongs to this companion."""
+    if client_is_local():
+        return True
+    if allow_unpaired and config.get("allow_unpaired_clients", False):
+        return True
+    pair_token = request.args.get("pair_id") or request.headers.get("X-Pair-ID", "")
+    return bool(pair_token and pair_token == get_pair_id(config))
+
+def mask_key(k_val):
+    """Safely mask secrets without exposing critical key entropy."""
+    if not k_val:
+        return ""
+    if len(k_val) > 8:
+        return k_val[:4] + "..." + k_val[-4:]
+    return "***"
 
 config = load_config()
 app = Flask(__name__)
@@ -802,30 +830,6 @@ def api_hook():
         return jsonify({"status": "error", "message": "missing session_id"}), 400
     return jsonify(result), 200
 
-def client_is_local():
-    """Requests from this machine: the emulator, the setup page, local curl.
-
-    These fetch /data same-origin and have no pair_id to send, so they are
-    exempt from the pairing check.
-    """
-    return request.remote_addr in ("127.0.0.1", "::1")
-
-
-def caller_is_paired():
-    """Whether the caller proved it belongs to this companion.
-
-    /data carries a personal email address, working hours, token volume and
-    location. Without this check any board on the LAN that finds us over mDNS
-    reads all of it -- which is exactly what was happening in the wild (#38):
-    a colleague's board on older firmware had been polling every 3 seconds.
-    """
-    if client_is_local():
-        return True
-    if config.get("allow_unpaired_clients", False):
-        return True
-    return request.args.get("pair_id", "") == get_pair_id(config)
-
-
 # Persistent/In-memory Registry for stable agent naming
 _session_registry = {}
 _session_counters = {"claude": 0, "antigravity": 0}
@@ -978,36 +982,37 @@ def _extract_claude_context(cwd=None, transcript_lines=None):
 def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
     """Assign stable, clean contextual names (e.g. 'Customizing', 'Limits', 'Backend') strictly clamped to <= 12 chars."""
     reg_key = f"{source}:{session_key}"
-    if reg_key in _session_registry:
-        return _session_registry[reg_key]
+    with _session_registry_lock:
+        if reg_key in _session_registry:
+            return _session_registry[reg_key]
 
-    _session_counters[source] = _session_counters.get(source, 0) + 1
-    seq_num = _session_counters[source]
+        _session_counters[source] = _session_counters.get(source, 0) + 1
+        seq_num = _session_counters[source]
 
-    label = ""
-    if source == "antigravity":
-        ctx = _extract_antigravity_context(transcript_lines, role=role, objective=objective)
-        if ctx:
-            label = ctx[:12]
-        else:
-            label = f"Agent {seq_num}"[:12]
-    else:  # claude
-        ctx = _extract_claude_context(cwd=cwd, transcript_lines=transcript_lines)
-        if ctx:
-            label = ctx[:12]
-        else:
-            label = f"Claude {seq_num}"[:12]
+        label = ""
+        if source == "antigravity":
+            ctx = _extract_antigravity_context(transcript_lines, role=role, objective=objective)
+            if ctx:
+                label = ctx[:12]
+            else:
+                label = f"Agent {seq_num}"[:12]
+        else:  # claude
+            ctx = _extract_claude_context(cwd=cwd, transcript_lines=transcript_lines)
+            if ctx:
+                label = ctx[:12]
+            else:
+                label = f"Claude {seq_num}"[:12]
 
-    # Handle collision with other existing labels in registry
-    assigned_values = set(_session_registry.values())
-    if label in assigned_values:
-        if len(label) <= 10:
-            label = f"{label} {seq_num}"[:12]
-        else:
-            label = f"{label[:10]} {seq_num}"[:12]
+        # Handle collision with other existing labels in registry
+        assigned_values = set(_session_registry.values())
+        if label in assigned_values:
+            if len(label) <= 10:
+                label = f"{label} {seq_num}"[:12]
+            else:
+                label = f"{label[:10]} {seq_num}"[:12]
 
-    _session_registry[reg_key] = label
-    return label
+        _session_registry[reg_key] = label
+        return label
 
 def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tools, is_final_turn_response, age, cfg=None, source="claude"):
     """Deterministic state resolution: WAITING > COMPLETE/IDLE > WORKING > IDLE."""
@@ -1948,6 +1953,8 @@ def download_latest_firmware():
 
 @app.route('/api/ota/trigger', methods=['POST'])
 def trigger_ota():
+    if not (client_is_local() or caller_is_paired(allow_unpaired=False)):
+        return jsonify({"status": "error", "message": "Access restricted to local callers or paired companion devices"}), 403
     global _ota_trigger_requested
     with _ota_trigger_lock:
         _ota_trigger_requested = True
@@ -1964,83 +1971,87 @@ def trigger_ota():
 def handle_config():
     global config
     if request.method == 'POST':
+        if not (client_is_local() or caller_is_paired(allow_unpaired=False)):
+            return jsonify({"status": "error", "message": "Access restricted to local callers or paired companion devices"}), 403
         data = request.json or {}
-        if "auto_location" in data:
-            config["auto_location"] = bool(data["auto_location"])
-        if "antigravity_5h_quota" in data:
-            try:
-                config["antigravity_5h_quota"] = int(data["antigravity_5h_quota"])
-            except (TypeError, ValueError):
-                return jsonify({"status": "error", "message": "antigravity_5h_quota must be an integer"}), 400
-        if "antigravity_account_email" in data:
-            # Empty string/null means "auto, use whichever account is found first"
-            config["antigravity_account_email"] = data["antigravity_account_email"] or None
-        if "selected_gauges" in data and isinstance(data["selected_gauges"], dict):
-            config.setdefault("selected_gauges", {})
-            if "left" in data["selected_gauges"]:
-                config["selected_gauges"]["left"] = str(data["selected_gauges"]["left"])
-            if "right" in data["selected_gauges"]:
-                config["selected_gauges"]["right"] = str(data["selected_gauges"]["right"])
-        if "provider_keys" in data and isinstance(data["provider_keys"], dict):
-            config.setdefault("provider_keys", {})
-            for k, v in data["provider_keys"].items():
-                if v:
-                    config["provider_keys"][k] = str(v)
-                    config[f"{k}_api_key"] = str(v)
-        if "provider_plans" in data and isinstance(data["provider_plans"], dict):
-            config.setdefault("provider_plans", {})
-            for k, v in data["provider_plans"].items():
-                config["provider_plans"][str(k)] = str(v)
-                config[f"{k}_plan"] = str(v)
-        if "claude_plan" in data:
-            config["claude_plan"] = str(data["claude_plan"])
-            config.setdefault("provider_plans", {})["claude"] = str(data["claude_plan"])
-        if "antigravity_plan" in data:
-            config["antigravity_plan"] = str(data["antigravity_plan"])
-            config.setdefault("provider_plans", {})["antigravity"] = str(data["antigravity_plan"])
-
-        if "provider_daily_budgets" in data and isinstance(data["provider_daily_budgets"], dict):
-            config.setdefault("provider_daily_budgets", {})
-            for k, v in data["provider_daily_budgets"].items():
+        with _config_lock:
+            if "auto_location" in data:
+                config["auto_location"] = bool(data["auto_location"])
+            if "antigravity_5h_quota" in data:
                 try:
-                    config["provider_daily_budgets"][str(k)] = float(v)
-                    config[f"{k}_daily_budget_usd"] = float(v)
+                    config["antigravity_5h_quota"] = int(data["antigravity_5h_quota"])
+                except (TypeError, ValueError):
+                    return jsonify({"status": "error", "message": "antigravity_5h_quota must be an integer"}), 400
+            if "antigravity_account_email" in data:
+                # Empty string/null means "auto, use whichever account is found first"
+                config["antigravity_account_email"] = data["antigravity_account_email"] or None
+            if "selected_gauges" in data and isinstance(data["selected_gauges"], dict):
+                config.setdefault("selected_gauges", {})
+                if "left" in data["selected_gauges"]:
+                    config["selected_gauges"]["left"] = str(data["selected_gauges"]["left"])
+                if "right" in data["selected_gauges"]:
+                    config["selected_gauges"]["right"] = str(data["selected_gauges"]["right"])
+            if "provider_keys" in data and isinstance(data["provider_keys"], dict):
+                config.setdefault("provider_keys", {})
+                for k, v in data["provider_keys"].items():
+                    if v:
+                        config["provider_keys"][k] = str(v)
+                        config[f"{k}_api_key"] = str(v)
+            if "provider_plans" in data and isinstance(data["provider_plans"], dict):
+                config.setdefault("provider_plans", {})
+                for k, v in data["provider_plans"].items():
+                    config["provider_plans"][str(k)] = str(v)
+                    config[f"{k}_plan"] = str(v)
+            if "claude_plan" in data:
+                config["claude_plan"] = str(data["claude_plan"])
+                config.setdefault("provider_plans", {})["claude"] = str(data["claude_plan"])
+            if "antigravity_plan" in data:
+                config["antigravity_plan"] = str(data["antigravity_plan"])
+                config.setdefault("provider_plans", {})["antigravity"] = str(data["antigravity_plan"])
+
+            if "provider_daily_budgets" in data and isinstance(data["provider_daily_budgets"], dict):
+                config.setdefault("provider_daily_budgets", {})
+                for k, v in data["provider_daily_budgets"].items():
+                    try:
+                        config["provider_daily_budgets"][str(k)] = float(v)
+                        config[f"{k}_daily_budget_usd"] = float(v)
+                    except (TypeError, ValueError):
+                        pass
+            if "claude_daily_budget_usd" in data:
+                try:
+                    config["claude_daily_budget_usd"] = float(data["claude_daily_budget_usd"])
+                    config.setdefault("provider_daily_budgets", {})["claude"] = float(data["claude_daily_budget_usd"])
                 except (TypeError, ValueError):
                     pass
-        if "claude_daily_budget_usd" in data:
-            try:
-                config["claude_daily_budget_usd"] = float(data["claude_daily_budget_usd"])
-                config.setdefault("provider_daily_budgets", {})["claude"] = float(data["claude_daily_budget_usd"])
-            except (TypeError, ValueError):
-                pass
-        if "antigravity_daily_budget_usd" in data:
-            try:
-                config["antigravity_daily_budget_usd"] = float(data["antigravity_daily_budget_usd"])
-                config.setdefault("provider_daily_budgets", {})["antigravity"] = float(data["antigravity_daily_budget_usd"])
-            except (TypeError, ValueError):
-                pass
+            if "antigravity_daily_budget_usd" in data:
+                try:
+                    config["antigravity_daily_budget_usd"] = float(data["antigravity_daily_budget_usd"])
+                    config.setdefault("provider_daily_budgets", {})["antigravity"] = float(data["antigravity_daily_budget_usd"])
+                except (TypeError, ValueError):
+                    pass
 
-        if "city" in data and data["city"]:
-            lat, lon, full_name = geocode_city(data["city"])
-            if lat and lon:
-                config["lat"] = lat
-                config["lon"] = lon
-                config["manual_location_name"] = full_name
-            else:
-                return jsonify({"status": "error", "message": f"Could not find city '{data['city']}'"}), 400
-        save_config(config)
-        
-        # Mask sensitive keys in response
-        masked_cfg = dict(config)
-        if "provider_keys" in masked_cfg:
-            masked_cfg["provider_keys"] = {k: (v[:4] + "..." + v[-4:] if len(v) > 8 else "***") for k, v in masked_cfg["provider_keys"].items()}
-        return jsonify({"status": "ok", "config": masked_cfg})
-        
-    response = dict(config)
-    if "provider_keys" in response:
-        response["provider_keys"] = {k: (v[:4] + "..." + v[-4:] if len(v) > 8 else "***") for k, v in response["provider_keys"].items()}
-    response["available_antigravity_accounts"] = [a["email"] for a in get_antigravity_accounts()]
-    return jsonify(response)
+            if "city" in data and data["city"]:
+                lat, lon, full_name = geocode_city(data["city"])
+                if lat and lon:
+                    config["lat"] = lat
+                    config["lon"] = lon
+                    config["manual_location_name"] = full_name
+                else:
+                    return jsonify({"status": "error", "message": f"Could not find city '{data['city']}'"}), 400
+            save_config(config)
+
+            # Mask sensitive keys in response
+            masked_cfg = dict(config)
+            if "provider_keys" in masked_cfg:
+                masked_cfg["provider_keys"] = {k: mask_key(v) for k, v in masked_cfg["provider_keys"].items()}
+            return jsonify({"status": "ok", "config": masked_cfg})
+
+    with _config_lock:
+        response = dict(config)
+        if "provider_keys" in response:
+            response["provider_keys"] = {k: mask_key(v) for k, v in response["provider_keys"].items()}
+        response["available_antigravity_accounts"] = [a["email"] for a in get_antigravity_accounts()]
+        return jsonify(response)
 
 # --- mDNS Service Advertisement (so the ESP32 can find us on any network,
 #     for any user, with zero hardcoded hostname/IP configuration) ---
