@@ -74,6 +74,37 @@ class TestPhase1Hardening(unittest.TestCase):
         self.assertEqual(res_ota.status_code, 403)
         res_ota.close()
 
+    def test_paired_external_access_granted(self):
+        """Paired external IP callers with valid pair_id can access protected routes."""
+        cfg = load_config()
+        pair_id = cfg.get("pair_id")
+        self.assertIsNotNone(pair_id)
+
+        res_post = self.client.post(
+            f'/api/config?pair_id={pair_id}',
+            data=json.dumps({"antigravity_5h_quota": 200}),
+            content_type='application/json',
+            environ_base={'REMOTE_ADDR': '192.168.1.100'}
+        )
+        self.assertEqual(res_post.status_code, 200)
+        res_post.close()
+
+    def test_concurrent_save_config(self):
+        """Ensure concurrent save_config calls with unique temp files execute safely."""
+        def saver(val):
+            cfg = load_config()
+            cfg["test_val"] = val
+            save_config(cfg)
+
+        threads = [threading.Thread(target=saver, args=(i,)) for i in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        final_cfg = load_config()
+        self.assertIn("test_val", final_cfg)
+
     def test_read_sqlite_kv_safe_nonexistent(self):
         """Ensure read_sqlite_kv_safe returns None gracefully for nonexistent DBs."""
         val = read_sqlite_kv_safe("/non/existent/path/state.vscdb", "ItemTable", "key", "value", "target")

@@ -29,6 +29,8 @@ import json
 import os
 import sys
 
+import uuid
+
 CACHE_PATH = os.path.expanduser(os.path.join("~", ".tiny_ai_screen", "claude_rate_limits.json"))
 
 
@@ -55,7 +57,7 @@ def main():
         try:
             cache_dir = os.path.dirname(CACHE_PATH)
             os.makedirs(cache_dir, exist_ok=True)
-            tmp_path = f"{CACHE_PATH}.tmp.{os.getpid()}"
+            tmp_path = f"{CACHE_PATH}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}"
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(cache, f)
             os.replace(tmp_path, CACHE_PATH)

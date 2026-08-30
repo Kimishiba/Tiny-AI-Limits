@@ -33,6 +33,13 @@ CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".tiny_ai_screen")
 os.makedirs(CONFIG_DIR, exist_ok=True)
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 
+import copy
+
+# Concurrency Lock Hierarchy (to prevent deadlocks, always acquire in this order):
+# 1. _config_lock
+# 2. _firmware_cache_lock
+# 3. _session_registry_lock
+# 4. _ota_trigger_lock
 _config_lock = threading.RLock()
 _firmware_cache_lock = threading.RLock()
 _session_registry_lock = threading.RLock()
@@ -67,7 +74,7 @@ def save_config(cfg):
     with _config_lock:
         try:
             config = cfg
-            tmp_path = f"{CONFIG_FILE}.tmp.{os.getpid()}"
+            tmp_path = f"{CONFIG_FILE}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}"
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(cfg, f, indent=4)
             try:
@@ -75,6 +82,10 @@ def save_config(cfg):
             except OSError:
                 pass
             os.replace(tmp_path, CONFIG_FILE)
+            try:
+                os.chmod(CONFIG_FILE, 0o600)
+            except OSError:
+                pass
         except Exception as e:
             logger.error("Error saving config: %s", e)
 
@@ -90,7 +101,7 @@ def get_latest_firmware(force_check=False):
     with _firmware_cache_lock:
         now = time.time()
         if not force_check and _firmware_cache.get("path") and os.path.exists(_firmware_cache["path"]) and (now - _firmware_cache.get("checked_at", 0) < 600):
-            return dict(_firmware_cache)
+            return copy.deepcopy(_firmware_cache)
 
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         local_bin = os.path.join(repo_root, ".pio", "build", "esp32c3", "firmware.bin")
@@ -120,7 +131,7 @@ def get_latest_firmware(force_check=False):
                                         "size": os.path.getsize(dest_path),
                                         "checked_at": now
                                     }
-                                    return dict(_firmware_cache)
+                                    return copy.deepcopy(_firmware_cache)
         except Exception as e:
             logger.debug("GitHub release check warning: %s", e)
 
@@ -132,9 +143,9 @@ def get_latest_firmware(force_check=False):
                 "size": os.path.getsize(local_bin),
                 "checked_at": now
             }
-            return dict(_firmware_cache)
+            return copy.deepcopy(_firmware_cache)
 
-        return dict(_firmware_cache)
+        return copy.deepcopy(_firmware_cache)
 
 def get_pair_id(cfg):
     """Stable per-install identifier used to pair a board to *this* companion."""
