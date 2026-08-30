@@ -851,6 +851,8 @@
     let completion_text = "WORK COMPLETE";
     let active_agents = [];
     let has_active_agents = false;
+    let emulatorScrollPhase = 0;
+    let emulatorScrollPhaseStart = 0;
     let completionCountdownTimer = null;
 
     // Time keeping
@@ -1488,15 +1490,67 @@
 
       // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
       if (active_agents && active_agents.length > 0 && has_active_agents) {
-        // Draw Multi-Agent Status Dashboard inside the 102px x 140px safe corridor
         const startY = cy - 65;
-        const visibleRows = Math.min(active_agents.length, 3);
+        const cardW = 98, cardH = 38;
+        const cardX = cx - cardW / 2;
+        const totalAgents = Math.min(active_agents.length, 8);
 
-        for (let i = 0; i < visibleRows; i++) {
-          const rowY = startY + (i * 44);
+        // Ping-pong scrolling math when > 3 agents
+        let scrollY = 0;
+        if (totalAgents > 3) {
+          const maxScroll = (totalAgents - 3) * 44;
+          if (emulatorScrollPhaseStart === 0) emulatorScrollPhaseStart = now;
+          const elapsed = now - emulatorScrollPhaseStart;
+
+          if (emulatorScrollPhase === 0) { // Top Pause (2.5s)
+            scrollY = 0;
+            if (elapsed >= 2500) {
+              emulatorScrollPhase = 1;
+              emulatorScrollPhaseStart = now;
+            }
+          } else if (emulatorScrollPhase === 1) { // Scroll Down (1.8s)
+            if (elapsed >= 1800) {
+              emulatorScrollPhase = 2;
+              emulatorScrollPhaseStart = now;
+              scrollY = maxScroll;
+            } else {
+              const t = elapsed / 1800;
+              const ease = (t < 0.5) ? (4 * t * t * t) : (1 - Math.pow(-2 * t + 2, 3) / 2);
+              scrollY = ease * maxScroll;
+            }
+          } else if (emulatorScrollPhase === 2) { // Bottom Pause (2.5s)
+            scrollY = maxScroll;
+            if (elapsed >= 2500) {
+              emulatorScrollPhase = 3;
+              emulatorScrollPhaseStart = now;
+            }
+          } else if (emulatorScrollPhase === 3) { // Scroll Up (1.8s)
+            if (elapsed >= 1800) {
+              emulatorScrollPhase = 0;
+              emulatorScrollPhaseStart = now;
+              scrollY = 0;
+            } else {
+              const t = elapsed / 1800;
+              const ease = (t < 0.5) ? (4 * t * t * t) : (1 - Math.pow(-2 * t + 2, 3) / 2);
+              scrollY = (1 - ease) * maxScroll;
+            }
+          }
+        } else {
+          scrollY = 0;
+          emulatorScrollPhase = 0;
+          emulatorScrollPhaseStart = 0;
+        }
+
+        // Clip to safe central corridor
+        c.save();
+        c.beginPath();
+        c.rect(cardX - 4, startY, cardW + 8, 128);
+        c.clip();
+
+        for (let i = 0; i < totalAgents; i++) {
+          const rowY = startY + (i * 44) - scrollY;
+          if (rowY + cardH < startY - 10 || rowY > startY + 138) continue;
           const ag = active_agents[i];
-          const cardW = 98, cardH = 38;
-          const cardX = cx - cardW / 2;
 
           // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
           const isAGY = (ag.source === "antigravity" || (ag.name && ag.name.startsWith("AGY")));
@@ -1547,6 +1601,7 @@
           if (det.length > 14) det = det.substring(0, 13) + "…";
           c.fillText(det, cardX + 8, rowY + 26);
         }
+        c.restore();
       } else {
         // Draw Animated 2x2 Matrix
         draw2x2FlipCard(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);

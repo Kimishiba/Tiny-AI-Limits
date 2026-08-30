@@ -120,6 +120,42 @@ def run_test_sequence():
     print("  [PASSED] Test 3 complete.                         \n")
 
     # -------------------------------------------------------------
+    # TEST 3B: MULTI-AGENT SCROLLING (4 Active Agents)
+    # -------------------------------------------------------------
+    print("-" * 65)
+    print("TEST 3B: MULTI-AGENT SCROLLING (4 Active Sessions) (18s)")
+    print("-> Expected on display:")
+    print("   • 4 active cards: 'Claude 1', 'AGY 2', 'Claude 3', 'AGY 4'")
+    print("   • Smooth Ping-Pong Yo-Yo Scroll:")
+    print("     1. Pause at top (2.5s) showing agents 1–3")
+    print("     2. Ease-in-out scroll down (1.8s) to reveal agent 4")
+    print("     3. Pause at bottom (2.5s) showing agents 2–4")
+    print("     4. Ease-in-out scroll up (1.8s) back to top")
+    print("-" * 65)
+    post_json("/api/hook", {
+        "hook_name": "PreToolUse",
+        "session_id": "test-session-3",
+        "tool_name": "WebSearch",
+        "tool_input": {"query": "ESP32 GC9A01"},
+        "agent_name": "Claude 3",
+        "model": "claude-3-7-sonnet"
+    })
+    post_json("/api/hook", {
+        "hook_name": "PreToolUse",
+        "session_id": "test-session-4",
+        "tool_name": "Terminal",
+        "tool_input": {"command": "pio run"},
+        "agent_name": "AGY 4",
+        "model": "gemini-2.5-pro"
+    })
+    for sec in range(18, 0, -1):
+        print(f"  Observing Test 3B Scrolling... {sec}s remaining", end="\r")
+        time.sleep(1)
+    post_json("/api/hook", {"hook_name": "SessionEnd", "session_id": "test-session-3"})
+    post_json("/api/hook", {"hook_name": "SessionEnd", "session_id": "test-session-4"})
+    print("  [PASSED] Test 3B complete.                        \n")
+
+    # -------------------------------------------------------------
     # TEST 4: PERMISSION REQUEST (AMBER ALERT & PING SUPPRESSION)
     # -------------------------------------------------------------
     print("-" * 65)

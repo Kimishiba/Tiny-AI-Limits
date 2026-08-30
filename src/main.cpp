@@ -84,7 +84,7 @@ struct AgentStatus {
     bool work_completed = false;
     bool has_active_agents = false;
     int active_agent_count = 0;
-    SingleAgentInfo active_agents[4];
+    SingleAgentInfo active_agents[8];
     String prompt_text = "APPROVE PLAN";
     String completion_text = "WORK COMPLETE";
 };
@@ -691,11 +691,14 @@ void drawGC9A01RoundFlipUI() {
     static float flipProg[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
     static bool wasShowingAgents = false;
-    static String lastAgentNames[4] = {"", "", "", ""};
-    static String lastAgentDetails[4] = {"", "", "", ""};
-    static uint16_t lastAgentColors[4] = {0, 0, 0, 0};
+    static String lastAgentNames[8] = {"", "", "", "", "", "", "", ""};
+    static String lastAgentDetails[8] = {"", "", "", "", "", "", "", ""};
+    static uint16_t lastAgentColors[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     static int lastAgentRowCount = -1;
-    static int lastAgentDotPulses[4] = {-1, -1, -1, -1};
+    static int lastAgentDotPulses[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
+    static int lastAgentScrollOffset = -999;
+    static uint8_t scrollPhase = 0; // 0=Top Pause, 1=Scroll Down, 2=Bottom Pause, 3=Scroll Up
+    static unsigned long scrollPhaseStart = 0;
 
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
     uint16_t colEmerald = gcGfx->color565(0, 255, 136);     // #00FF88 Neon Emerald
@@ -895,32 +898,36 @@ void drawGC9A01RoundFlipUI() {
     bool showAgents = agentData.has_active_agents && (agentData.active_agent_count > 0);
 
     if (showAgents) {
+        int count = constrain(agentData.active_agent_count, 1, 8);
         bool forceRedrawAll = false;
         if (!wasShowingAgents) {
             // First transition into agent view: clear central safe corridor
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
             wasShowingAgents = true;
             forceRedrawAll = true;
-            for (int j = 0; j < 4; j++) {
+            scrollPhase = 0;
+            scrollPhaseStart = millis();
+            lastAgentScrollOffset = -999;
+            for (int j = 0; j < 8; j++) {
                 lastAgentNames[j] = "";
                 lastAgentDetails[j] = "";
                 lastAgentColors[j] = 0;
                 lastAgentDotPulses[j] = -1;
+            }
+            for (int j = 0; j < 4; j++) {
                 oldDigits[j] = -1;
                 prevTarget[j] = -1;
             }
         }
 
-        // Draw Multi-Agent Status Dashboard inside the 102px x 140px safe corridor
-        int startY = cy - 65; // y = 55
-        int visibleRows = min(agentData.active_agent_count, 3);
-
-        if (visibleRows != lastAgentRowCount) {
+        if (count != lastAgentRowCount) {
             forceRedrawAll = true;
-            lastAgentRowCount = visibleRows;
-            // Clear entire area if row count changed
+            lastAgentRowCount = count;
+            scrollPhase = 0;
+            scrollPhaseStart = millis();
+            lastAgentScrollOffset = -999;
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
-            for (int j = 0; j < 4; j++) {
+            for (int j = 0; j < 8; j++) {
                 lastAgentNames[j] = "";
                 lastAgentDetails[j] = "";
                 lastAgentColors[j] = 0;
@@ -928,66 +935,173 @@ void drawGC9A01RoundFlipUI() {
             }
         }
 
-        for (int i = 0; i < visibleRows; i++) {
-            int rowY = startY + (i * 44);
-            SingleAgentInfo &ag = agentData.active_agents[i];
+        // Calculate Ping-Pong Scroll Offset (when > 3 agents)
+        int curScrollOffset = 0;
+        if (count > 3) {
+            int maxScroll = (count - 3) * 44;
+            unsigned long nowMs = millis();
+            if (scrollPhaseStart == 0) scrollPhaseStart = nowMs;
+            unsigned long elapsed = nowMs - scrollPhaseStart;
 
-            // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
-            bool isAGY = (ag.source.equalsIgnoreCase("antigravity") || ag.source.indexOf("anti") >= 0 || ag.name.startsWith("AGY"));
-            uint16_t brandCol = isAGY ? colOrange : colCyan;
-            uint16_t cardBorderCol = isAGY ? gcGfx->color565(160, 80, 0) : gcGfx->color565(0, 140, 160);
-            uint16_t cardBgCol = isAGY ? gcGfx->color565(36, 20, 10) : gcGfx->color565(14, 26, 36);
+            switch (scrollPhase) {
+                case 0: // Top Pause (2.5s)
+                    curScrollOffset = 0;
+                    if (elapsed >= 2500) {
+                        scrollPhase = 1;
+                        scrollPhaseStart = nowMs;
+                    }
+                    break;
+                case 1: // Scroll Down (1.8s)
+                    if (elapsed >= 1800) {
+                        scrollPhase = 2;
+                        scrollPhaseStart = nowMs;
+                        curScrollOffset = maxScroll;
+                    } else {
+                        float t = (float)elapsed / 1800.0f;
+                        float ease = (t < 0.5f) ? (4.0f * t * t * t) : (1.0f - powf(-2.0f * t + 2.0f, 3.0f) / 2.0f);
+                        curScrollOffset = (int)roundf(ease * maxScroll);
+                    }
+                    break;
+                case 2: // Bottom Pause (2.5s)
+                    curScrollOffset = maxScroll;
+                    if (elapsed >= 2500) {
+                        scrollPhase = 3;
+                        scrollPhaseStart = nowMs;
+                    }
+                    break;
+                case 3: // Scroll Up (1.8s)
+                    if (elapsed >= 1800) {
+                        scrollPhase = 0;
+                        scrollPhaseStart = nowMs;
+                        curScrollOffset = 0;
+                    } else {
+                        float t = (float)elapsed / 1800.0f;
+                        float ease = (t < 0.5f) ? (4.0f * t * t * t) : (1.0f - powf(-2.0f * t + 2.0f, 3.0f) / 2.0f);
+                        curScrollOffset = (int)roundf((1.0f - ease) * maxScroll);
+                    }
+                    break;
+            }
+        } else {
+            curScrollOffset = 0;
+            scrollPhase = 0;
+            scrollPhaseStart = 0;
+        }
 
-            bool textChanged = forceRedrawAll ||
-                (lastAgentNames[i] != ag.name) ||
-                (lastAgentDetails[i] != ag.detail) ||
-                (lastAgentColors[i] != ag.color);
+        bool offsetChanged = (curScrollOffset != lastAgentScrollOffset);
+        lastAgentScrollOffset = curScrollOffset;
 
-            if (textChanged) {
-                lastAgentNames[i] = ag.name;
-                lastAgentDetails[i] = ag.detail;
-                lastAgentColors[i] = ag.color;
+        int startY = cy - 65; // Base Slot 0 top at y = 55
 
-                // Card container background
-                gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, cardBgCol);
-                gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, cardBorderCol);
+        if (offsetChanged || forceRedrawAll) {
+            // Full corridor redraw during motion or on transition
+            gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
+            for (int i = 0; i < count; i++) {
+                int rowY = startY + (i * 44) - curScrollOffset;
+                // Only render if within or touching corridor bounds
+                if (rowY + 40 >= 44 && rowY <= 196) {
+                    SingleAgentInfo &ag = agentData.active_agents[i];
+                    bool isAGY = (ag.source.equalsIgnoreCase("antigravity") || ag.source.indexOf("anti") >= 0 || ag.name.startsWith("AGY"));
+                    uint16_t brandCol = isAGY ? colOrange : colCyan;
+                    uint16_t cardBorderCol = isAGY ? gcGfx->color565(160, 80, 0) : gcGfx->color565(0, 140, 160);
+                    uint16_t cardBgCol = isAGY ? gcGfx->color565(36, 20, 10) : gcGfx->color565(14, 26, 36);
 
-                // Left brand accent bar (Orange for AGY, Teal for Claude)
-                gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, brandCol);
+                    lastAgentNames[i] = ag.name;
+                    lastAgentDetails[i] = ag.detail;
+                    lastAgentColors[i] = ag.color;
 
-                // Row 1: Agent Label
-                gcGfx->setTextSize(1);
-                gcGfx->setTextColor(brandCol, cardBgCol);
-                gcGfx->setCursor(cx - 42, rowY + 6);
-                gcGfx->print(ag.name);
+                    // Card container background
+                    gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, cardBgCol);
+                    gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, cardBorderCol);
 
-                // Row 2: Detail / Action
-                gcGfx->setTextColor(ag.color, cardBgCol);
-                gcGfx->setCursor(cx - 42, rowY + 22);
-                String det = ag.detail;
-                if (det.length() > 14) det = det.substring(0, 13) + ".";
-                gcGfx->print(det);
+                    // Left brand accent bar
+                    gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, brandCol);
+
+                    // Row 1: Agent Label
+                    gcGfx->setTextSize(1);
+                    gcGfx->setTextColor(brandCol, cardBgCol);
+                    gcGfx->setCursor(cx - 42, rowY + 6);
+                    gcGfx->print(ag.name);
+
+                    // Row 2: Detail / Action
+                    gcGfx->setTextColor(ag.color, cardBgCol);
+                    gcGfx->setCursor(cx - 42, rowY + 22);
+                    String det = ag.detail;
+                    if (det.length() > 14) det = det.substring(0, 13) + ".";
+                    gcGfx->print(det);
+
+                    // Status Badge Dot
+                    float pulse = (sinf((millis() * 0.006f) + (i * 1.3f)) + 1.0f) * 0.5f;
+                    int pulseLevel = (int)(pulse * 3.99f);
+                    lastAgentDotPulses[i] = pulseLevel;
+                    int dotR = (pulseLevel >= 2) ? 3 : 2;
+                    if (pulseLevel == 3) {
+                        uint8_t r = min(255, (int)(((ag.color >> 11) & 0x1F) * 8) + 20);
+                        uint8_t g = min(255, (int)(((ag.color >> 5) & 0x3F) * 4) + 20);
+                        uint8_t b = min(255, (int)((ag.color & 0x1F) * 8) + 20);
+                        gcGfx->drawCircle(cx + 40, rowY + 10, 4, gcGfx->color565(r / 2, g / 2, b / 2));
+                    }
+                    gcGfx->fillCircle(cx + 40, rowY + 10, dotR, ag.color);
+                }
             }
 
-            // Pulsating Status Badge Dot (Phase-shifted sine wave per agent row)
-            float pulse = (sinf((millis() * 0.006f) + (i * 1.3f)) + 1.0f) * 0.5f; // 0.0 .. 1.0
-            int pulseLevel = (int)(pulse * 3.99f); // 0, 1, 2, 3
+            // Top and Bottom guard band masking to preserve crisp 55..183 viewport
+            gcGfx->fillRect(68, 44, 104, 11, GC_COLOR_BLACK);  // Mask y = 44..54
+            gcGfx->fillRect(68, 184, 104, 13, GC_COLOR_BLACK); // Mask y = 184..196
+        } else {
+            // Stationary pause: update text changes or pulsating dots without clearing entire corridor
+            int visibleRows = min(count, 3);
+            int baseIndex = (curScrollOffset > 0) ? (count - 3) : 0;
+            for (int slot = 0; slot < visibleRows; slot++) {
+                int i = baseIndex + slot;
+                int rowY = startY + (slot * 44);
+                SingleAgentInfo &ag = agentData.active_agents[i];
 
-            if (textChanged || pulseLevel != lastAgentDotPulses[i]) {
-                lastAgentDotPulses[i] = pulseLevel;
+                bool isAGY = (ag.source.equalsIgnoreCase("antigravity") || ag.source.indexOf("anti") >= 0 || ag.name.startsWith("AGY"));
+                uint16_t brandCol = isAGY ? colOrange : colCyan;
+                uint16_t cardBorderCol = isAGY ? gcGfx->color565(160, 80, 0) : gcGfx->color565(0, 140, 160);
+                uint16_t cardBgCol = isAGY ? gcGfx->color565(36, 20, 10) : gcGfx->color565(14, 26, 36);
 
-                // Clear tiny dot sub-rectangle (14x14 px) inside card
-                gcGfx->fillRect(cx + 33, rowY + 3, 14, 14, cardBgCol);
+                bool textChanged = (lastAgentNames[i] != ag.name) ||
+                    (lastAgentDetails[i] != ag.detail) ||
+                    (lastAgentColors[i] != ag.color);
 
-                int dotR = (pulseLevel >= 2) ? 3 : 2;
-                if (pulseLevel == 3) {
-                    // Soft outer glow halo
-                    uint8_t r = min(255, (int)(((ag.color >> 11) & 0x1F) * 8) + 20);
-                    uint8_t g = min(255, (int)(((ag.color >> 5) & 0x3F) * 4) + 20);
-                    uint8_t b = min(255, (int)((ag.color & 0x1F) * 8) + 20);
-                    gcGfx->drawCircle(cx + 40, rowY + 10, 4, gcGfx->color565(r / 2, g / 2, b / 2));
+                if (textChanged) {
+                    lastAgentNames[i] = ag.name;
+                    lastAgentDetails[i] = ag.detail;
+                    lastAgentColors[i] = ag.color;
+
+                    gcGfx->fillRoundRect(cx - 49, rowY, 98, 40, 4, cardBgCol);
+                    gcGfx->drawRoundRect(cx - 49, rowY, 98, 40, 4, cardBorderCol);
+                    gcGfx->fillRoundRect(cx - 49, rowY, 3, 40, 2, brandCol);
+
+                    gcGfx->setTextSize(1);
+                    gcGfx->setTextColor(brandCol, cardBgCol);
+                    gcGfx->setCursor(cx - 42, rowY + 6);
+                    gcGfx->print(ag.name);
+
+                    gcGfx->setTextColor(ag.color, cardBgCol);
+                    gcGfx->setCursor(cx - 42, rowY + 22);
+                    String det = ag.detail;
+                    if (det.length() > 14) det = det.substring(0, 13) + ".";
+                    gcGfx->print(det);
                 }
-                gcGfx->fillCircle(cx + 40, rowY + 10, dotR, ag.color);
+
+                float pulse = (sinf((millis() * 0.006f) + (i * 1.3f)) + 1.0f) * 0.5f;
+                int pulseLevel = (int)(pulse * 3.99f);
+
+                if (textChanged || pulseLevel != lastAgentDotPulses[i]) {
+                    lastAgentDotPulses[i] = pulseLevel;
+                    gcGfx->fillRect(cx + 33, rowY + 3, 14, 14, cardBgCol);
+
+                    int dotR = (pulseLevel >= 2) ? 3 : 2;
+                    if (pulseLevel == 3) {
+                        uint8_t r = min(255, (int)(((ag.color >> 11) & 0x1F) * 8) + 20);
+                        uint8_t g = min(255, (int)(((ag.color >> 5) & 0x3F) * 4) + 20);
+                        uint8_t b = min(255, (int)((ag.color & 0x1F) * 8) + 20);
+                        gcGfx->drawCircle(cx + 40, rowY + 10, 4, gcGfx->color565(r / 2, g / 2, b / 2));
+                    }
+                    gcGfx->fillCircle(cx + 40, rowY + 10, dotR, ag.color);
+                }
             }
         }
     } else {
@@ -996,13 +1110,16 @@ void drawGC9A01RoundFlipUI() {
             gcGfx->fillRect(68, 44, 104, 152, GC_COLOR_BLACK);
             wasShowingAgents = false;
             lastAgentRowCount = -1;
-            for (int i = 0; i < 4; i++) {
-                oldDigits[i] = -1;
-                prevTarget[i] = -1;
+            lastAgentScrollOffset = -999;
+            for (int i = 0; i < 8; i++) {
                 lastAgentNames[i] = "";
                 lastAgentDetails[i] = "";
                 lastAgentColors[i] = 0;
                 lastAgentDotPulses[i] = -1;
+            }
+            for (int i = 0; i < 4; i++) {
+                oldDigits[i] = -1;
+                prevTarget[i] = -1;
             }
         }
 
@@ -1731,7 +1848,7 @@ void fetchBackendData() {
                 if (!arr.isNull()) {
                     int count = 0;
                     for (JsonObject obj : arr) {
-                        if (count >= 4) break;
+                        if (count >= 8) break;
                         tempAgent.active_agents[count].name = obj["name"] | "Agent";
                         tempAgent.active_agents[count].source = obj["source"] | "antigravity";
                         tempAgent.active_agents[count].state = obj["state"] | "IDLE";
