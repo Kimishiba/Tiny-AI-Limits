@@ -1635,7 +1635,7 @@ def get_multi_agent_status(antigravity_dirs=None, claude_dirs=None, now_ts=None)
         "prompt_text": prompt_text,
         "completion_text": completion_text,
         "source": source,
-        "active_agents": active[:3],
+        "active_agents": active[:8],
         "has_active_agents": len(active) > 0
     }
 

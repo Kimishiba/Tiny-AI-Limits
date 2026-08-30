@@ -546,6 +546,24 @@ class TestAgentStatus(unittest.TestCase):
         self.assertNotEqual(lbl1, lbl3)
         self.assertLessEqual(len(lbl3), 12)
 
+    def test_multi_agent_status_supports_up_to_eight_agents(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            for i in range(5):
+                sess_dir = os.path.join(brain_dir, f"sess_{i}", ".system_generated", "logs")
+                os.makedirs(sess_dir, exist_ok=True)
+                with open(os.path.join(sess_dir, "transcript.jsonl"), "w") as f:
+                    f.write(json.dumps({
+                        "type": "PLANNER_RESPONSE",
+                        "created_at": "2026-08-27T10:00:00Z",
+                        "tool_calls": [{"name": "run_command", "args": {"CommandLine": f"echo {i}"}}]
+                    }) + "\n")
+
+            res = app.get_multi_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(res["has_active_agents"])
+            self.assertEqual(len(res["active_agents"]), 5)
+
 if __name__ == "__main__":
     unittest.main()
 
