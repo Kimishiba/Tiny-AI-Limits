@@ -29,6 +29,8 @@ import json
 import os
 import sys
 
+import uuid
+
 CACHE_PATH = os.path.expanduser(os.path.join("~", ".tiny_ai_screen", "claude_rate_limits.json"))
 
 
@@ -53,10 +55,13 @@ def main():
             "week_resets_at": seven_day.get("resets_at"),
         }
         try:
-            os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
-            with open(CACHE_PATH, "w", encoding="utf-8") as f:
+            cache_dir = os.path.dirname(CACHE_PATH)
+            os.makedirs(cache_dir, exist_ok=True)
+            tmp_path = f"{CACHE_PATH}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}"
+            with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(cache, f)
-        except Exception:
+            os.replace(tmp_path, CACHE_PATH)
+        except OSError:
             pass
 
     # Keep a normal-looking statusline so nothing regresses in the terminal.

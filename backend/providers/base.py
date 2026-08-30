@@ -75,11 +75,16 @@ def resolve_app_data_path(relative_path: str, app_name: str = "") -> Optional[st
             return p
     return None
 
+import logging
+
+logger = logging.getLogger("tinyscreen.providers")
+
 def read_sqlite_kv_safe(db_path: str, table: str, key_col: str, val_col: str, key_val: str) -> Optional[str]:
     """Safe read-only key-value query for SQLite databases (e.g. Cursor state.vscdb).
-    Uses SQLite URI read-only mode to prevent locking running IDEs or processes."""
-    if not os.path.exists(db_path):
+    Uses SQLite URI read-only mode and guarantees connection closure to prevent resource leaks."""
+    if not db_path or not os.path.exists(db_path):
         return None
+    conn = None
     try:
         abs_path = os.path.abspath(db_path)
         uri = f"file:{abs_path}?mode=ro"
@@ -88,10 +93,19 @@ def read_sqlite_kv_safe(db_path: str, table: str, key_col: str, val_col: str, ke
         query = f"SELECT {val_col} FROM {table} WHERE {key_col} = ? LIMIT 1"
         cursor.execute(query, (key_val,))
         row = cursor.fetchone()
-        conn.close()
         return str(row[0]) if row and row[0] is not None else None
-    except Exception:
+    except sqlite3.OperationalError as e:
+        logger.debug("Operational error reading SQLite DB %s: %s", db_path, e)
         return None
+    except Exception as e:
+        logger.debug("Failed reading SQLite DB %s: %s", db_path, e)
+        return None
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 class BaseProvider(ABC):
     provider_id: str = "base"
@@ -170,6 +184,7 @@ class BaseProvider(ABC):
             return resp.json(), None
 
         except requests.exceptions.Timeout:
+            logger.debug("[%s] Request to %s timed out", self.provider_id, url)
             return None, UsageSnapshot(
                 provider_id=self.provider_id,
                 provider_name=self.provider_name,
@@ -179,7 +194,19 @@ class BaseProvider(ABC):
                 status="degraded",
                 error_message="Network request timed out"
             )
+        except requests.exceptions.RequestException as e:
+            logger.debug("[%s] Network error connecting to %s: %s", self.provider_id, url, e)
+            return None, UsageSnapshot(
+                provider_id=self.provider_id,
+                provider_name=self.provider_name,
+                badge=self.badge,
+                color=self.color,
+                account_email=account_email,
+                status="error",
+                error_message=str(e)
+            )
         except Exception as e:
+            logger.warning("[%s] Unexpected error processing request to %s: %s", self.provider_id, url, e)
             return None, UsageSnapshot(
                 provider_id=self.provider_id,
                 provider_name=self.provider_name,
