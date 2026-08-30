@@ -643,7 +643,10 @@ def get_antigravity_accounts(use_cache=True):
 
             accounts.append({
                 "email": email,
-                "remaining_fraction": (gemini_quota or {}).get("remainingFraction", 1.0),
+                "remaining_fraction": (
+                    gemini_quota.get("remainingFraction", 0.0)
+                    if gemini_quota is not None else 1.0
+                ),
                 "reset_time": (gemini_quota or {}).get("resetTime"),
             })
             break  # this server's account is identified; skip its other port
@@ -651,6 +654,17 @@ def get_antigravity_accounts(use_cache=True):
     _antigravity_accounts_cache["data"] = accounts
     _antigravity_accounts_cache["timestamp"] = now
     return accounts
+
+def _quota_period_label(reset_in_seconds):
+    """Derive human period label ('5h', 'daily', 'weekly') from remaining reset countdown."""
+    if not reset_in_seconds or reset_in_seconds <= 0:
+        return "5h"
+    hours = reset_in_seconds / 3600.0
+    if hours <= 6:
+        return "5h"
+    if hours <= 48:
+        return "daily"
+    return "weekly"
 
 def format_reset_time(reset_time_str, now_ts=None):
     """Compute countdown seconds and human-readable string (e.g. '3h 12m', '45m') from ISO timestamp."""
@@ -686,7 +700,8 @@ def get_antigravity_quota():
     selected_email = config.get("antigravity_account_email")
     account = next((a for a in accounts if a["email"] == selected_email), None) or accounts[0]
 
-    remaining_pct = round((account.get("remaining_fraction") or 1.0) * 100)
+    fraction = account.get("remaining_fraction")
+    remaining_pct = round((1.0 if fraction is None else fraction) * 100)
     remaining_pct = max(0, min(100, remaining_pct))
     reset_time = account.get("reset_time")
     reset_in_seconds, reset_str = format_reset_time(reset_time)
@@ -694,7 +709,7 @@ def get_antigravity_quota():
         "limit": 100,
         "used": 100 - remaining_pct,
         "remaining": remaining_pct,
-        "period": "5h",
+        "period": _quota_period_label(reset_in_seconds),
         "email": account.get("email"),
         "reset_time": reset_time,
         "reset_in_seconds": reset_in_seconds,

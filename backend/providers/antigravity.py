@@ -140,13 +140,29 @@ class AntigravityProvider(BaseProvider):
                 mid = m.get("modelId", "")
                 if "gemini" in mid.lower():
                     gemini_quota = m.get("quotaInfo")
-                    if gemini_quota:
+                    if gemini_quota is not None:
                         break
 
-            if gemini_quota:
-                rem_frac = gemini_quota.get("remainingFraction", 1.0)
+            if gemini_quota is not None:
+                rem_frac = gemini_quota.get("remainingFraction", 0.0)
                 pct_left = float(round(rem_frac * 100.0, 1))
                 reset_time = gemini_quota.get("resetTime")
+
+                window_mins = 300
+                period_desc = "5h"
+                if reset_time:
+                    try:
+                        dt = datetime.fromisoformat(reset_time.replace("Z", "+00:00"))
+                        secs_left = max(0, int(round(dt.timestamp() - time.time())))
+                        hours = secs_left / 3600.0
+                        if hours > 48:
+                            period_desc = "weekly"
+                            window_mins = 10080
+                        elif hours > 6:
+                            period_desc = "daily"
+                            window_mins = 1440
+                    except Exception:
+                        pass
 
                 primary_window = RateWindow(
                     limit=100,
@@ -154,8 +170,8 @@ class AntigravityProvider(BaseProvider):
                     remaining=round(pct_left),
                     percent_left=pct_left,
                     resets_at=reset_time,
-                    window_minutes=300,
-                    period_desc="5h"
+                    window_minutes=window_mins,
+                    period_desc=period_desc
                 )
 
                 return UsageSnapshot(
