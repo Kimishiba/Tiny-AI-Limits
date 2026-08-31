@@ -316,17 +316,16 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5):
+def make_chamfered_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, top_flat_half=2.0):
     pts = []
-    y_r = y_span + r
-    y_l = - (y_span + r)
-    z_side = z_center + z_side_extra
-    z_apex = z_side + y_r # exact 45 deg slope
+    y_max = y_span + r
+    z_side = z_center + 0.50
+    z_top = z_side + (y_max - top_flat_half)
 
-    pts.append([y_r, z_side])
-    pts.append([0.0, z_apex]) # 45-deg top apex
-    pts.append([y_l, z_side])
-    pts.append([y_l, z_center])
+    pts.append([top_flat_half, z_top])
+    pts.append([-top_flat_half, z_top])
+    pts.append([-y_max, z_side])
+    pts.append([-y_max, z_center])
 
     angles_left = np.linspace(np.pi, 1.5 * np.pi, 16)
     for a in angles_left:
@@ -336,7 +335,8 @@ def make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5
     for a in angles_right:
         pts.append([y_span + r * np.cos(a), z_center + r * np.sin(a)])
 
-    pts.append([y_r, z_center])
+    pts.append([y_max, z_center])
+    pts.append([y_max, z_side])
     return m3d.CrossSection([pts])
 
 def generate_main_housing():
@@ -365,9 +365,9 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. 45-degree Peaked Gothic Arch USB-C Port on LEFT wall (Correctly Aligned in Y-Z, X = -32.0 to -25.2mm):
-    poly_usbc_in = make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5)
-    poly_usbc_out = make_gothic_usbc_polygon(y_span=3.0, r=4.25, z_center=7.00, z_side_extra=0.5)
+    # 3. Option 2: 45-degree Chamfered Stadium USB-C Port on LEFT wall (100% Support-Free, Clean Horizontal Profile):
+    poly_usbc_in = make_chamfered_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, top_flat_half=2.0)
+    poly_usbc_out = make_chamfered_usbc_polygon(y_span=3.0, r=4.25, z_center=7.00, top_flat_half=2.0)
     
     usbc_tunnel = m3d.Manifold.extrude(poly_usbc_in, 7.0).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-32.0, 0, 0])
     flare_out = m3d.Manifold.extrude(poly_usbc_out, 0.1).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-29.2, 0, 0])
@@ -439,8 +439,8 @@ def generate_main_housing():
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    # 9. Reinforced Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -25.2mm, 45° top ceiling & outer transitions):
-    b1 = m3d.Manifold.cube([0.1, 20.6, 8.0], center=False).translate([-25.3, -10.3, floor_t])
+    # 9. Reinforced Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -26.0mm shoulder, 45° top ceiling & outer transitions):
+    b1 = m3d.Manifold.cube([0.1, 20.6, 8.0], center=False).translate([-26.1, -10.3, floor_t])
     b2 = m3d.Manifold.cube([0.1, 23.4, 9.4], center=False).translate([-23.9, -11.7, floor_t])
     inner_pocket = (b1 + b2).hull()
 
@@ -459,11 +459,11 @@ def generate_main_housing():
     side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
     rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
     
-    # Board seats at X = -25.2mm (leaves sturdy 2.0mm wall to outside edge at X = -27.2mm):
-    x_front = -25.2
-    x_rear = -1.6
+    # Flush USB-C seating at X = -26.0mm (1.2mm shoulder stop to outside wall at X = -27.2mm):
+    x_front = -26.0
+    x_rear = -3.4
     wall_thick = 2.0
-    x_back = x_rear + wall_thick # +0.4mm
+    x_back = x_rear + wall_thick # -1.4mm
     hw_in = esp_w / 2.0         # 9.95mm
     hw_out = hw_in + side_thick # 11.55mm
     snap_w = 6.0

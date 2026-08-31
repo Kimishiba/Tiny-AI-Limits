@@ -145,25 +145,32 @@ module rounded_rect_prism(w, d, h, r) {
     }
 }
 
-// Precision 45-degree Peaked Gothic Arch USB-C Cutter (100% Support-Free, Correctly Aligned in Y-Z)
+// Option 2: 45-degree Chamfered Stadium USB-C Cutter (100% Support-Free, Clean Horizontal Profile)
 module usbc_stadium_cutter() {
     y_span = 3.0;
     r_in   = 2.75;
     r_out  = 4.25;
-    z_side_extra = 0.5;
+    top_flat_half = 2.0; // 4.0mm horizontal top bridge
     
-    // Outer to inner through-wall tunnel (stops at sturdy recessed wall X = -25.2mm)
+    y_max_in  = y_span + r_in;  // 5.75mm
+    y_max_out = y_span + r_out; // 7.25mm
+    z_side = usbc_center_z + 0.50; // 7.50mm
+    z_top_in  = z_side + (y_max_in - top_flat_half);   // 11.25mm (45° chamfer)
+    z_top_out = z_side + (y_max_out - top_flat_half);  // 12.75mm (45° chamfer)
+    
+    // Outer to inner through-wall tunnel (X = -32.0mm to -25.5mm)
     translate([-32.0, 0, 0]) {
         rotate([0, 90, 0]) rotate([90, 0, 0]) {
             linear_extrude(height = 7.0) {
                 polygon(points = [
-                    [y_span + r_in, usbc_center_z + z_side_extra],
-                    [0.0, usbc_center_z + z_side_extra + (y_span + r_in)], // 45° Apex
-                    [-(y_span + r_in), usbc_center_z + z_side_extra],
-                    [-(y_span + r_in), usbc_center_z],
+                    [top_flat_half, z_top_in],
+                    [-top_flat_half, z_top_in],
+                    [-y_max_in, z_side],
+                    [-y_max_in, usbc_center_z],
                     for (a = [180:15:270]) [ -y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
                     for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                    [y_span + r_in, usbc_center_z]
+                    [y_max_in, usbc_center_z],
+                    [y_max_in, z_side]
                 ]);
             }
         }
@@ -175,26 +182,28 @@ module usbc_stadium_cutter() {
             rotate([0, 90, 0]) rotate([90, 0, 0])
                 linear_extrude(height = 0.1)
                     polygon(points = [
-                        [y_span + r_out, usbc_center_z + z_side_extra],
-                        [0.0, usbc_center_z + z_side_extra + (y_span + r_out)],
-                        [-(y_span + r_out), usbc_center_z + z_side_extra],
-                        [-(y_span + r_out), usbc_center_z],
+                        [top_flat_half, z_top_out],
+                        [-top_flat_half, z_top_out],
+                        [-y_max_out, z_side],
+                        [-y_max_out, usbc_center_z],
                         for (a = [180:15:270]) [ -y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ],
                         for (a = [270:15:360]) [  y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ],
-                        [y_span + r_out, usbc_center_z]
+                        [y_max_out, usbc_center_z],
+                        [y_max_out, z_side]
                     ]);
                     
         translate([-27.2, 0, 0])
             rotate([0, 90, 0]) rotate([90, 0, 0])
                 linear_extrude(height = 0.1)
                     polygon(points = [
-                        [y_span + r_in, usbc_center_z + z_side_extra],
-                        [0.0, usbc_center_z + z_side_extra + (y_span + r_in)],
-                        [-(y_span + r_in), usbc_center_z + z_side_extra],
-                        [-(y_span + r_in), usbc_center_z],
+                        [top_flat_half, z_top_in],
+                        [-top_flat_half, z_top_in],
+                        [-y_max_in, z_side],
+                        [-y_max_in, usbc_center_z],
                         for (a = [180:15:270]) [ -y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
                         for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                        [y_span + r_in, usbc_center_z]
+                        [y_max_in, usbc_center_z],
+                        [y_max_in, z_side]
                     ]);
     }
 }
@@ -285,9 +294,9 @@ module main_housing() {
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter();
         
-        // 2b. Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -25.2mm, 45° top ceiling & outer transitions)
+        // 2b. Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -26.0mm shoulder, 45° top ceiling & outer transitions)
         hull() {
-            translate([-25.3, -10.3, floor_t])
+            translate([-26.1, -10.3, floor_t])
                 cube([0.1, 20.6, 8.0]);
             translate([-23.9, -11.7, floor_t])
                 cube([0.1, 23.4, 9.4]);
@@ -384,9 +393,9 @@ module main_housing() {
     
     cur_esp_w   = 19.9; // Expanded width (+0.5mm on each lateral side for easy board seating)
     cur_esp_l   = 23.6;
-    x_front     = -25.2; // 2.0mm sturdy wall to outside edge at X = -27.2mm
-    x_rear      = -1.6;
-    cur_esp_cx  = (x_front + x_rear) / 2; // -13.4mm
+    x_front     = -26.0; // Flush USB-C seating directly at outer perimeter shoulder
+    x_rear      = -3.4;
+    cur_esp_cx  = (x_front + x_rear) / 2; // -14.7mm
     snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
 
     union() {
