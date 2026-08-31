@@ -145,7 +145,7 @@ module rounded_rect_prism(w, d, h, r) {
     }
 }
 
-// Precision 45-degree Peaked Gothic Arch USB-C Cutter (100% Support-Free, Optimized for 0.12mm / 0.20mm layers)
+// Precision 45-degree Peaked Gothic Arch USB-C Cutter (100% Support-Free, Correctly Aligned in Y-Z)
 module usbc_stadium_cutter() {
     y_span = 3.0;
     r_in   = 2.75;
@@ -154,14 +154,16 @@ module usbc_stadium_cutter() {
     
     // Outer to inner through-wall tunnel (stops at sturdy recessed wall X = -25.2mm)
     translate([-32.0, 0, 0]) {
-        rotate([0, 90, 0]) {
+        rotate([0, 90, 0]) rotate([90, 0, 0]) {
             linear_extrude(height = 7.0) {
                 polygon(points = [
                     [y_span + r_in, usbc_center_z + z_side_extra],
                     [0.0, usbc_center_z + z_side_extra + (y_span + r_in)], // 45° Apex
                     [-(y_span + r_in), usbc_center_z + z_side_extra],
+                    [-(y_span + r_in), usbc_center_z],
                     for (a = [180:15:270]) [ -y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                    for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ]
+                    for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
+                    [y_span + r_in, usbc_center_z]
                 ]);
             }
         }
@@ -170,25 +172,29 @@ module usbc_stadium_cutter() {
     // External lead-in entry chamfer on outside wall (X = -29.2 to -27.2)
     hull() {
         translate([-29.2, 0, 0])
-            rotate([0, 90, 0])
+            rotate([0, 90, 0]) rotate([90, 0, 0])
                 linear_extrude(height = 0.1)
                     polygon(points = [
                         [y_span + r_out, usbc_center_z + z_side_extra],
                         [0.0, usbc_center_z + z_side_extra + (y_span + r_out)],
                         [-(y_span + r_out), usbc_center_z + z_side_extra],
+                        [-(y_span + r_out), usbc_center_z],
                         for (a = [180:15:270]) [ -y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ],
-                        for (a = [270:15:360]) [  y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ]
+                        for (a = [270:15:360]) [  y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ],
+                        [y_span + r_out, usbc_center_z]
                     ]);
                     
         translate([-27.2, 0, 0])
-            rotate([0, 90, 0])
+            rotate([0, 90, 0]) rotate([90, 0, 0])
                 linear_extrude(height = 0.1)
                     polygon(points = [
                         [y_span + r_in, usbc_center_z + z_side_extra],
                         [0.0, usbc_center_z + z_side_extra + (y_span + r_in)],
                         [-(y_span + r_in), usbc_center_z + z_side_extra],
+                        [-(y_span + r_in), usbc_center_z],
                         for (a = [180:15:270]) [ -y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                        for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ]
+                        for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
+                        [y_span + r_in, usbc_center_z]
                     ]);
     }
 }

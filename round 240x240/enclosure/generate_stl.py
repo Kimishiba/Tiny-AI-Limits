@@ -326,6 +326,7 @@ def make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5
     pts.append([y_r, z_side])
     pts.append([0.0, z_apex]) # 45-deg top apex
     pts.append([y_l, z_side])
+    pts.append([y_l, z_center])
 
     angles_left = np.linspace(np.pi, 1.5 * np.pi, 16)
     for a in angles_left:
@@ -335,6 +336,7 @@ def make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5
     for a in angles_right:
         pts.append([y_span + r * np.cos(a), z_center + r * np.sin(a)])
 
+    pts.append([y_r, z_center])
     return m3d.CrossSection([pts])
 
 def generate_main_housing():
@@ -363,13 +365,13 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. 45-degree Peaked Gothic Arch USB-C Port on LEFT wall (100% Support-Free, Optimized for 0.12mm layers):
+    # 3. 45-degree Peaked Gothic Arch USB-C Port on LEFT wall (Correctly Aligned in Y-Z, X = -32.0 to -25.2mm):
     poly_usbc_in = make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5)
     poly_usbc_out = make_gothic_usbc_polygon(y_span=3.0, r=4.25, z_center=7.00, z_side_extra=0.5)
     
-    usbc_tunnel = m3d.Manifold.extrude(poly_usbc_in, 7.0).rotate([0, 90, 0]).translate([-32.0, 0, 0])
-    flare_out = m3d.Manifold.extrude(poly_usbc_out, 0.1).rotate([0, 90, 0]).translate([-29.2, 0, 0])
-    flare_in = m3d.Manifold.extrude(poly_usbc_in, 0.1).rotate([0, 90, 0]).translate([-27.2, 0, 0])
+    usbc_tunnel = m3d.Manifold.extrude(poly_usbc_in, 7.0).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-32.0, 0, 0])
+    flare_out = m3d.Manifold.extrude(poly_usbc_out, 0.1).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-29.2, 0, 0])
+    flare_in = m3d.Manifold.extrude(poly_usbc_in, 0.1).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-27.2, 0, 0])
     usbc_flare = (flare_out + flare_in).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
