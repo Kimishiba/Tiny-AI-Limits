@@ -433,12 +433,20 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    # 9. V2 Inner Wall Relief Pocket at USB-C Port (recesses inside face to 1.2mm wall at X = -26.0mm):
+    # 9. V2 Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting transitions:
     inner_pocket = m3d.Manifold()
     if version == "v2":
-        inner_pocket = m3d.Manifold.cube([2.2, 18.9 + 2 * 1.6 + 0.2, 12.1], center=False).translate([-26.1, -(18.9 / 2.0 + 1.6 + 0.1), floor_t])
+        b1 = m3d.Manifold.cube([0.1, 20.0, 9.5], center=False).translate([-26.1, -10.0, floor_t])
+        b2 = m3d.Manifold.cube([0.1, 24.2, 11.6], center=False).translate([-23.9, -12.1, floor_t])
+        inner_pocket = (b1 + b2).hull()
 
-    cuts = cavity_obj + inner_pocket + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
+    # 10. V2 Inside Floor Debossed "V2.0" text (sunken 0.4mm into inside floor):
+    v2_deboss = m3d.Manifold()
+    if version == "v2":
+        cs_v2, _, _ = text_to_cross_section("V2.0", size=3.6)
+        v2_deboss = m3d.Manifold.extrude(cs_v2.translate([8.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
+
+    cuts = cavity_obj + inner_pocket + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
     
     # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE:
@@ -529,13 +537,7 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
-    # 6. Inside Embossed "V2.0" Branding on Internal Floor (Z = 2.0 to 2.4mm):
-    inside_emboss = m3d.Manifold()
-    if version == "v2":
-        cs_v2, _, _ = text_to_cross_section("V2.0", size=3.6)
-        inside_emboss = m3d.Manifold.extrude(cs_v2.translate([8.5, 0]), 0.40).translate([0, 0, floor_t])
-
-    cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot + inside_emboss)
+    cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot)
 
     return (housing_hollow + cradle_solid) - usbc_port
 

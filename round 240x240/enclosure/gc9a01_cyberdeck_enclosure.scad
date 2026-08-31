@@ -253,10 +253,14 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter(flat_inside=flat_inside);
         
-        // 2b. Inner Wall Relief Pocket at USB-C Port (brings inside wall to 1.2mm from outside edge at X = -26.0mm)
+        // 2b. Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting overhangs & chamfers
         if (is_v2) {
-            translate([-26.1, -(18.9/2 + 1.6 + 0.1), floor_t])
-                cube([2.2, 18.9 + 2*1.6 + 0.2, 12.1]);
+            hull() {
+                translate([-26.1, -10.0, floor_t])
+                    cube([0.1, 20.0, 9.5]);
+                translate([-23.9, -12.1, floor_t])
+                    cube([0.1, 24.2, 11.6]);
+            }
         }
             
         // 3. DuPont Connector & Wire Clearance Trench (Bottom Wall: Y = -26.0 to -21.0)
@@ -348,6 +352,13 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
         translate([0, -2.0, -0.05])
             linear_extrude(height = 0.45)
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+
+        // 8. Inside Floor Debossed "V2.0" (0.4mm deep into inside floor)
+        if (is_v2) {
+            translate([8.5, 0, floor_t - 0.40])
+                linear_extrude(height = 0.45)
+                    text("V2.0", size = 3.6, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+        }
     }
     
     // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front, Shifted towards Edge for V2)
@@ -398,13 +409,6 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
                 translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
                 translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
             }
-            
-        // 5. Embossed "V2.0" Text on Inside Floor
-        if (is_v2) {
-            translate([8.5, 0, floor_t - 0.01])
-                linear_extrude(height = 0.41)
-                    text("V2.0", size = 3.6, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
-        }
     }
 }
 
