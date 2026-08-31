@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = 0; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing, 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand
+part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (with Dual DuPont Trenches), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
 
 // Outer Dimensions
 enclosure_width  = 54.0; // Outer width & height (mm)
@@ -237,8 +237,8 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD (Open-Bay U-Cradle Architecture with Entry Screw Chamfers)
-module main_housing() {
+// 3. MAIN HOUSING POD (Open-Bay U-Cradle Architecture with Dual-Face DuPont Trenches & Entry Screw Chamfers)
+module main_housing(include_opposite_dupont=true) {
     cavity_depth = housing_depth - floor_t;
     
     difference() {
@@ -251,9 +251,15 @@ module main_housing() {
         // 2. Precision USB-C Port Cutout
         usbc_stadium_cutter();
             
-        // 3. DuPont Connector & Wire Clearance Trench
+        // 3. DuPont Connector & Wire Clearance Trench (Bottom Wall: Y = -26.0 to -21.0)
         translate([-13.0, -26.0, floor_t])
             cube([26.0, 5.0, cavity_depth + 0.1]);
+            
+        // 3b. DuPont Connector & Wire Clearance Trench (Right Wall opposite USB-C: X = 21.0 to 26.0)
+        if (include_opposite_dupont) {
+            translate([21.0, -13.0, floor_t])
+                cube([5.0, 26.0, cavity_depth + 0.1]);
+        }
             
         // 4. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -536,6 +542,8 @@ if (part == 1) {
     desk_stand();
 } else if (part == 7) {
     minimalist_stand();
+} else if (part == 8) {
+    main_housing(include_opposite_dupont=false);
 } else {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance on Minimalist Stand)
     translate([0, 40.0 + sin(stand_tilt_deg)*27.0, 6.0 + cos(stand_tilt_deg)*27.0])

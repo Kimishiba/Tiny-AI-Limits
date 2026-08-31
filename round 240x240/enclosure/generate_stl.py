@@ -316,7 +316,7 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def generate_main_housing():
+def generate_main_housing(include_opposite_dupont=True):
     w = 54.0
     c = 6.0
     depth = 27.5
@@ -363,8 +363,13 @@ def generate_main_housing():
 
     usbc_port = usbc_tunnel + usbc_flare + usbc_inner_shave
     
-    # 4. DuPont Connector & Wire Clearance Trench
-    dupont_trench = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
+    # 4. DuPont Connector & Wire Clearance Trenches
+    dupont_trench_bot = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
+    dupont_trench = dupont_trench_bot
+    if include_opposite_dupont:
+        # Opposite Face (Right Wall: X = +21.0 to +26.0, Y = -13.0 to +13.0)
+        dupont_trench_right = m3d.Manifold.cube([5.0, 26.0, cavity_depth + 0.1], center=False).translate([21.0, -13.0, floor_t])
+        dupont_trench = dupont_trench_bot + dupont_trench_right
     
     # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
     screw_pilot_cuts = m3d.Manifold()
@@ -738,9 +743,13 @@ def main():
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
-    housing = generate_main_housing()
+    housing = generate_main_housing(include_opposite_dupont=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Continuous Monolithic U-Cradle)")
+    export_stl(housing, housing_path, "Main Housing Pod (Dual-Face DuPont Trenches)")
+
+    housing_legacy = generate_main_housing(include_opposite_dupont=False)
+    housing_legacy_path = os.path.join(output_dir, "gc9a01_main_housing_legacy.stl")
+    export_stl(housing_legacy, housing_legacy_path, "Main Housing Pod Legacy (Single Bottom Trench)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
