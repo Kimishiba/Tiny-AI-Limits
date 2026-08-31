@@ -256,10 +256,10 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
         // 2b. Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting overhangs & chamfers
         if (is_v2) {
             hull() {
-                translate([-26.1, -10.0, floor_t])
-                    cube([0.1, 20.0, 9.5]);
-                translate([-23.9, -12.1, floor_t])
-                    cube([0.1, 24.2, 11.6]);
+                translate([-26.1, -10.5, floor_t])
+                    cube([0.1, 21.0, 9.5]);
+                translate([-23.9, -12.6, floor_t])
+                    cube([0.1, 25.2, 11.6]);
             }
         }
             
@@ -367,7 +367,7 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
     tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
     side_wall_h = 6.2;  // Clean vertical side guide wall height
     
-    cur_esp_w   = 18.9;
+    cur_esp_w   = 19.9; // Expanded width (+0.5mm on each lateral side for easy board seating)
     cur_esp_l   = 23.6;
     x_front     = is_v2 ? -26.0 : (esp_center_x - esp_l / 2);
     x_rear      = is_v2 ? -2.4  : (esp_center_x + esp_l / 2);

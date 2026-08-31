@@ -436,8 +436,8 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     # 9. V2 Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting transitions:
     inner_pocket = m3d.Manifold()
     if version == "v2":
-        b1 = m3d.Manifold.cube([0.1, 20.0, 9.5], center=False).translate([-26.1, -10.0, floor_t])
-        b2 = m3d.Manifold.cube([0.1, 24.2, 11.6], center=False).translate([-23.9, -12.1, floor_t])
+        b1 = m3d.Manifold.cube([0.1, 21.0, 9.5], center=False).translate([-26.1, -10.5, floor_t])
+        b2 = m3d.Manifold.cube([0.1, 25.2, 11.6], center=False).translate([-23.9, -12.6, floor_t])
         inner_pocket = (b1 + b2).hull()
 
     # 10. V2 Inside Floor Debossed "V2.0" text (sunken 0.4mm into inside floor):
@@ -451,7 +451,7 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     
     # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE:
     esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
-    esp_w = 18.9       # Expanded width (+0.5mm clearance for 18.0-18.2mm boards)
+    esp_w = 19.9       # Expanded width (+0.5mm on each lateral side for easy board insertion)
     rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
     side_thick = 1.6
     side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
@@ -462,8 +462,8 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     x_rear = -2.4 if version == "v2" else -0.4
     wall_thick = 2.0
     x_back = x_rear + wall_thick # -0.4mm for V2
-    hw_in = esp_w / 2.0         # 9.45mm
-    hw_out = hw_in + side_thick # 11.05mm
+    hw_in = esp_w / 2.0         # 9.95mm
+    hw_out = hw_in + side_thick # 11.55mm
     snap_w = 6.0
     slit_w = 1.25
     cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
