@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (V2.0), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
+part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel (60° Male Tongue), 2 = Main Housing (V2.1, 60° Female Socket), 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
 
 // Outer Dimensions
 enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls

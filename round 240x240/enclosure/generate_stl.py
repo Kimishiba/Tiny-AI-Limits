@@ -235,55 +235,7 @@ def generate_front_bezel():
 
     return bezel_hollow + tab_right + tab_left + tab_top
 
-def generate_mid_clamp():
-    w = 54.4
-    c = 6.0
-    t = 2.0
-    lip_h = 0.6
-    arm_w = 7.0
-    center_hole_d = 14.0
-    outer_dia = 38.6
-    screw_dist = 20.50
-    total_h = t + lip_h
 
-    hw = w / 2.0
-    oct_pts = [
-        [-hw + c, -hw], [hw - c, -hw],
-        [hw, -hw + c],  [hw, hw - c],
-        [hw - c, hw],   [-hw + c, hw],
-        [-hw, hw - c],  [-hw, -hw + c]
-    ]
-    oct_outer = m3d.CrossSection([oct_pts])
-    
-    cw, cc = 48.0, 12.0
-    hcw = cw / 2.0
-    cav_pts = [
-        [-hcw + cc, -hcw], [hcw - cc, -hcw],
-        [hcw, -hcw + cc],  [hcw, hw := hcw - cc],
-        [hcw - cc, hcw],   [-hcw + cc, hcw],
-        [-hcw, hcw - cc],  [-hcw, -hcw + cc]
-    ]
-    oct_inner = m3d.CrossSection([cav_pts])
-    border_2d = oct_outer - oct_inner
-    
-    arm45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(45)
-    arm_m45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(-45)
-    x_arms = (arm45 + arm_m45) ^ oct_outer
-    
-    base_2d = (border_2d + x_arms) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
-    base_3d = m3d.Manifold.extrude(base_2d, t)
-    
-    lip_2d = ((arm45 + arm_m45) ^ m3d.CrossSection.circle(outer_dia / 2.0, 64)) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
-    pads_3d = m3d.Manifold.extrude(lip_2d, lip_h).translate([0, 0, t])
-    
-    solid = base_3d + pads_3d
-    cut_h = total_h + 2.0
-    cuts = m3d.Manifold()
-    for sx in [-screw_dist, screw_dist]:
-        for sy in [-screw_dist, screw_dist]:
-            cuts = cuts + m3d.Manifold.cylinder(cut_h, 1.7, 1.7, 32).translate([sx, sy, -1.0])
-            
-    return solid - cuts
 
 def text_to_cross_section(text, size=3.2, font_family='sans-serif', font_weight='bold'):
     fp = FontProperties(family=font_family, weight=font_weight)
@@ -753,10 +705,6 @@ def main():
     bezel = generate_front_bezel()
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
-
-    mid_clamp = generate_mid_clamp()
-    mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
-    export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
     housing = generate_main_housing(include_opposite_dupont=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
