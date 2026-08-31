@@ -261,13 +261,25 @@ module main_housing() {
                 cube([0.1, 25.2, 11.6]);
         }
             
-        // 3. DuPont Connector & Wire Clearance Trench (Bottom Wall: Y = -26.0 to -21.0)
-        translate([-13.0, -26.0, floor_t])
-            cube([26.0, 5.0, cavity_depth + 0.1]);
+        // 3. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
+        trench_z0 = 6.0;
+        trench_h  = housing_depth - trench_z0 + 0.1;
+        
+        // 3a. Bottom Wall DuPont Trench (Y = -26.0 to -21.0)
+        hull() {
+            translate([-13.0, -26.0, trench_z0])
+                cube([26.0, 5.0, trench_h]);
+            translate([-13.0, -24.0, trench_z0 - 2.0])
+                cube([26.0, 3.0, trench_h + 2.0]);
+        }
             
-        // 3b. DuPont Connector & Wire Clearance Trench (Right Wall opposite USB-C: X = 21.0 to 26.0)
-        translate([21.0, -13.0, floor_t])
-            cube([5.0, 26.0, cavity_depth + 0.1]);
+        // 3b. Right Wall DuPont Trench (opposite USB-C: X = 21.0 to 26.0)
+        hull() {
+            translate([21.0, -13.0, trench_z0])
+                cube([5.0, 26.0, trench_h]);
+            translate([21.0, -13.0, trench_z0 - 2.0])
+                cube([3.0, 26.0, trench_h + 2.0]);
+        }
             
         // 4. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {

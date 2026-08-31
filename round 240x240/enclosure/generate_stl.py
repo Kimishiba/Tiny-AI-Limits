@@ -358,9 +358,18 @@ def generate_main_housing():
     usbc_flare = (cone1 + cone2).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
-    # 4. DuPont Connector & Wire Clearance Trenches (1.2mm minimum outer wall)
-    dupont_trench_bot = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
-    dupont_trench_right = m3d.Manifold.cube([5.0, 26.0, cavity_depth + 0.1], center=False).translate([21.0, -13.0, floor_t])
+    # 4. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
+    trench_z0 = 6.0
+    trench_h = depth - trench_z0 + 0.1
+    
+    t_base_bot = m3d.Manifold.cube([26.0, 5.0, trench_h]).translate([-13.0, -26.0, trench_z0])
+    t_ramp_bot = m3d.Manifold.cube([26.0, 3.0, trench_h + 2.0]).translate([-13.0, -24.0, trench_z0 - 2.0])
+    dupont_trench_bot = (t_base_bot + t_ramp_bot).hull()
+
+    t_base_rt = m3d.Manifold.cube([5.0, 26.0, trench_h]).translate([21.0, -13.0, trench_z0])
+    t_ramp_rt = m3d.Manifold.cube([3.0, 26.0, trench_h + 2.0]).translate([21.0, -13.0, trench_z0 - 2.0])
+    dupont_trench_right = (t_base_rt + t_ramp_rt).hull()
+
     dupont_trench = dupont_trench_bot + dupont_trench_right
     
     # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
