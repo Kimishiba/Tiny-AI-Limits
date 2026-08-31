@@ -316,29 +316,6 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def make_chamfered_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, top_flat_half=2.0):
-    pts = []
-    y_max = y_span + r
-    z_side = z_center + 0.50
-    z_top = z_side + (y_max - top_flat_half)
-
-    pts.append([top_flat_half, z_top])
-    pts.append([-top_flat_half, z_top])
-    pts.append([-y_max, z_side])
-    pts.append([-y_max, z_center])
-
-    angles_left = np.linspace(np.pi, 1.5 * np.pi, 16)
-    for a in angles_left:
-        pts.append([-y_span + r * np.cos(a), z_center + r * np.sin(a)])
-
-    angles_right = np.linspace(1.5 * np.pi, 2.0 * np.pi, 16)
-    for a in angles_right:
-        pts.append([y_span + r * np.cos(a), z_center + r * np.sin(a)])
-
-    pts.append([y_max, z_center])
-    pts.append([y_max, z_side])
-    return m3d.CrossSection([pts])
-
 def generate_main_housing():
     w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
@@ -365,14 +342,19 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Option 2: 45-degree Chamfered Stadium USB-C Port on LEFT wall (100% Support-Free, Clean Horizontal Profile):
-    poly_usbc_in = make_chamfered_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, top_flat_half=2.0)
-    poly_usbc_out = make_chamfered_usbc_polygon(y_span=3.0, r=4.25, z_center=7.00, top_flat_half=2.0)
+    # 3. Precision Classic Oval/Stadium USB-C Port on LEFT wall (X = -27.2mm, Z = 7.00mm):
+    usbc_z = 7.00
+    y_span = 3.0
+    r_inner = 2.75
+    r_outer = 4.25
     
-    usbc_tunnel = m3d.Manifold.extrude(poly_usbc_in, 7.0).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-32.0, 0, 0])
-    flare_out = m3d.Manifold.extrude(poly_usbc_out, 0.1).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-29.2, 0, 0])
-    flare_in = m3d.Manifold.extrude(poly_usbc_in, 0.1).rotate([0, 90, 0]).rotate([90, 0, 0]).translate([-27.2, 0, 0])
-    usbc_flare = (flare_out + flare_in).hull()
+    c1 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0,  y_span, usbc_z])
+    usbc_tunnel = (c1 + c2).hull()
+    
+    cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
+    cone2 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2,  y_span, usbc_z])
+    usbc_flare = (cone1 + cone2).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
     # 4. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
@@ -541,7 +523,7 @@ def generate_main_housing():
 
     cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot)
 
-    return (housing_hollow + cradle_solid) - usbc_port
+    return housing_hollow + cradle_solid
 
 def generate_stand_tier1_base():
     base_w = 64.0

@@ -145,66 +145,29 @@ module rounded_rect_prism(w, d, h, r) {
     }
 }
 
-// Option 2: 45-degree Chamfered Stadium USB-C Cutter (100% Support-Free, Clean Horizontal Profile)
+// Precision Classic Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
 module usbc_stadium_cutter() {
     y_span = 3.0;
     r_in   = 2.75;
     r_out  = 4.25;
-    top_flat_half = 2.0; // 4.0mm horizontal top bridge
-    
-    y_max_in  = y_span + r_in;  // 5.75mm
-    y_max_out = y_span + r_out; // 7.25mm
-    z_side = usbc_center_z + 0.50; // 7.50mm
-    z_top_in  = z_side + (y_max_in - top_flat_half);   // 11.25mm (45° chamfer)
-    z_top_out = z_side + (y_max_out - top_flat_half);  // 12.75mm (45° chamfer)
     
     // Outer to inner through-wall tunnel (X = -32.0mm to -25.5mm)
-    translate([-32.0, 0, 0]) {
-        rotate([0, 90, 0]) rotate([90, 0, 0]) {
-            linear_extrude(height = 7.0) {
-                polygon(points = [
-                    [top_flat_half, z_top_in],
-                    [-top_flat_half, z_top_in],
-                    [-y_max_in, z_side],
-                    [-y_max_in, usbc_center_z],
-                    for (a = [180:15:270]) [ -y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                    for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                    [y_max_in, usbc_center_z],
-                    [y_max_in, z_side]
-                ]);
+    translate([-32.0, 0, usbc_center_z]) {
+        rotate([0, 90, 0]) {
+            hull() {
+                translate([0, -y_span, 0]) cylinder(r = r_in, h = 7.0);
+                translate([0,  y_span, 0]) cylinder(r = r_in, h = 7.0);
             }
         }
     }
-    
     // External lead-in entry chamfer on outside wall (X = -29.2 to -27.2)
-    hull() {
-        translate([-29.2, 0, 0])
-            rotate([0, 90, 0]) rotate([90, 0, 0])
-                linear_extrude(height = 0.1)
-                    polygon(points = [
-                        [top_flat_half, z_top_out],
-                        [-top_flat_half, z_top_out],
-                        [-y_max_out, z_side],
-                        [-y_max_out, usbc_center_z],
-                        for (a = [180:15:270]) [ -y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ],
-                        for (a = [270:15:360]) [  y_span + r_out*cos(a), usbc_center_z + r_out*sin(a) ],
-                        [y_max_out, usbc_center_z],
-                        [y_max_out, z_side]
-                    ]);
-                    
-        translate([-27.2, 0, 0])
-            rotate([0, 90, 0]) rotate([90, 0, 0])
-                linear_extrude(height = 0.1)
-                    polygon(points = [
-                        [top_flat_half, z_top_in],
-                        [-top_flat_half, z_top_in],
-                        [-y_max_in, z_side],
-                        [-y_max_in, usbc_center_z],
-                        for (a = [180:15:270]) [ -y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                        for (a = [270:15:360]) [  y_span + r_in*cos(a), usbc_center_z + r_in*sin(a) ],
-                        [y_max_in, usbc_center_z],
-                        [y_max_in, z_side]
-                    ]);
+    translate([-29.2, 0, usbc_center_z]) {
+        rotate([0, 90, 0]) {
+            hull() {
+                translate([0, -y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
+                translate([0,  y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
+            }
+        }
     }
 }
 
