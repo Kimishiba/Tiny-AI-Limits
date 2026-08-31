@@ -409,11 +409,11 @@ def generate_main_housing():
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (50% Larger Font, X = +11.5mm, Z = 0):
-    cs_l1, _, _ = text_to_cross_section("TINY AI", size=3.6)
-    cs_l2, _, _ = text_to_cross_section("LIMITS", size=3.6)
-    cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.4)
-    cs_stacked = cs_l1.translate([0, 3.6]) + cs_l2.translate([0, 0.0]) + cs_l3.translate([0, -3.6])
+    # 7. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (Enlarged for crisp printing, X = +11.5mm, Z = 0):
+    cs_l1, _, _ = text_to_cross_section("TINY AI", size=4.8)
+    cs_l2, _, _ = text_to_cross_section("LIMITS", size=4.8)
+    cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=3.0)
+    cs_stacked = cs_l1.translate([0, 4.8]) + cs_l2.translate([0, 0.0]) + cs_l3.translate([0, -4.2])
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 

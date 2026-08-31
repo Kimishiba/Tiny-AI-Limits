@@ -329,13 +329,16 @@ module main_housing() {
                         ]);
         }
         
-        // 7. Embossed/Debossed Product Name on Underside Backplate (Z = 0)
-        translate([0, 2.0, -0.05])
+        // 7. Embossed/Debossed Product Name on Underside Backplate (Z = 0, enlarged for crisp 3D printing)
+        translate([11.5, 4.8, -0.05])
             linear_extrude(height = 0.45)
-                text("CYBER-DECK", size = 3.2, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
-        translate([0, -2.0, -0.05])
+                text("TINY AI", size = 4.8, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+        translate([11.5, 0.0, -0.05])
             linear_extrude(height = 0.45)
-                text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+                text("LIMITS", size = 4.8, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+        translate([11.5, -4.2, -0.05])
+            linear_extrude(height = 0.45)
+                text("SENTINEL MK-1", size = 3.0, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
 
         // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
         translate([10.5, 0, floor_t - 0.40])
