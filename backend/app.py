@@ -56,7 +56,8 @@ def load_config():
             "left": "claude",
             "right": "antigravity"
         },
-        "provider_keys": {}
+        "provider_keys": {},
+        "display_rotation": 0
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -1901,7 +1902,30 @@ def get_data():
             "has_active_agents": has_active,
             "active_agents": active_agents_payload
         },
-        "ota": ota_payload
+        "ota": ota_payload,
+        "display_rotation": config.get("display_rotation", 0),
+        "rotation_deg": int(config.get("display_rotation", 0)) * 90
+    })
+
+@app.route('/api/rotate', methods=['POST', 'GET'])
+def api_rotate():
+    global config
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        if "rotation" in data:
+            try:
+                rot = int(data["rotation"]) % 4
+                config["display_rotation"] = rot
+            except (ValueError, TypeError):
+                return jsonify({"error": "invalid_rotation", "message": "rotation must be 0, 1, 2, or 3"}), 400
+        else:
+            # Cycle to next 90-degree step
+            config["display_rotation"] = (int(config.get("display_rotation", 0)) + 1) % 4
+        save_config(config)
+    return jsonify({
+        "status": "ok",
+        "display_rotation": config.get("display_rotation", 0),
+        "rotation_deg": int(config.get("display_rotation", 0)) * 90
     })
 
 @app.route('/api/providers', methods=['GET'])
@@ -2233,6 +2257,29 @@ def create_gui_window():
     setup_btn = tk.Button(setup_frame, text="🔌 Set Up New Device (WiFi)", command=open_setup, bg="#89b4fa", fg="#11111b", activebackground="#b4befe", font=("Helvetica", 9, "bold"), bd=0, padx=10, pady=6)
     setup_btn.pack(fill="x", padx=10, pady=8)
 
+    # --- Screen Rotation Section ---
+    rot_frame = tk.LabelFrame(root, text=" Screen Orientation ", font=("Helvetica", 10, "bold"), fg="#cdd6f4", bg="#1e1e2e", bd=1, relief="solid")
+    rot_frame.pack(fill="x", padx=20, pady=5)
+
+    ROT_OPTIONS = [
+        "0° (Standard / Cable Bottom)",
+        "90° (Clockwise / Cable Left)",
+        "180° (Inverted / Cable Top)",
+        "270° (Counter-Clockwise / Cable Right)"
+    ]
+    cur_rot_idx = int(config.get("display_rotation", 0)) % 4
+    rot_var = tk.StringVar(value=ROT_OPTIONS[cur_rot_idx])
+
+    def on_rotation_selected(selected):
+        new_idx = ROT_OPTIONS.index(selected)
+        config["display_rotation"] = new_idx
+        save_config(config)
+
+    rot_menu = tk.OptionMenu(rot_frame, rot_var, *ROT_OPTIONS, command=on_rotation_selected)
+    rot_menu.config(bg="#313244", fg="#cdd6f4", activebackground="#45475a", highlightthickness=0, bd=0)
+    rot_menu["menu"].config(bg="#313244", fg="#cdd6f4")
+    rot_menu.pack(fill="x", padx=10, pady=8)
+
     # --- Antigravity Account Section ---
     # If you're signed into more than one Antigravity account at once (e.g.
     # the desktop app and the IDE extension on different accounts), pick
@@ -2280,6 +2327,52 @@ class TinyScreenMacStatusBarApp(object):
         class StatusBarApp(rumps.App):
             def __init__(self):
                 super(StatusBarApp, self).__init__("🖥️", quit_button=None)
+                
+                self.rot_cycle = rumps.MenuItem("🔄 Rotate 90° (Cycle)", callback=self.cycle_rotation)
+                self.rot_0 = rumps.MenuItem("0° (Standard / Cable Bottom)", callback=lambda _: self.set_rotation_val(0))
+                self.rot_90 = rumps.MenuItem("90° (CW / Cable Left)", callback=lambda _: self.set_rotation_val(1))
+                self.rot_180 = rumps.MenuItem("180° (Inverted / Cable Top)", callback=lambda _: self.set_rotation_val(2))
+                self.rot_270 = rumps.MenuItem("270° (CCW / Cable Right)", callback=lambda _: self.set_rotation_val(3))
+                
+                self.rot_menu = rumps.MenuItem("🔄 Screen Orientation")
+                self.rot_menu.add(self.rot_cycle)
+                self.rot_menu.add(rumps.separator)
+                self.rot_menu.add(self.rot_0)
+                self.rot_menu.add(self.rot_90)
+                self.rot_menu.add(self.rot_180)
+                self.rot_menu.add(self.rot_270)
+                
+                self.update_rotation_checks()
+                
+                self.menu = [
+                    "🖥️ Open Display Emulator",
+                    "🔌 Set Up New Device (WiFi)",
+                    self.rot_menu,
+                    "🔀 Switch Antigravity Account...",
+                    "⚙️ Set Location...",
+                    "⚡ Flash Latest Firmware (OTA)",
+                    "🌐 View Live API (/data)",
+                    None,
+                    "Quit"
+                ]
+
+            def set_rotation_val(self, val):
+                config["display_rotation"] = val
+                save_config(config)
+                self.update_rotation_checks()
+                deg = val * 90
+                rumps.notification("Tiny Screen", "Orientation Changed", f"Display rotated to {deg}°")
+
+            def cycle_rotation(self, _):
+                current = int(config.get("display_rotation", 0))
+                self.set_rotation_val((current + 1) % 4)
+
+            def update_rotation_checks(self):
+                current = int(config.get("display_rotation", 0))
+                self.rot_0.state = (current == 0)
+                self.rot_90.state = (current == 1)
+                self.rot_180.state = (current == 2)
+                self.rot_270.state = (current == 3)
 
             @rumps.clicked("🖥️ Open Display Emulator")
             def open_emulator(self, _):

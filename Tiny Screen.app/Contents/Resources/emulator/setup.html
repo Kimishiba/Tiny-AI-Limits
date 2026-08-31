@@ -674,6 +674,114 @@
       </div>
     </div>
 
+    <!-- AI Quota & Dual HUD Gauge Configuration Card -->
+    <div class="setup-card" style="margin-top: 1.5rem;">
+      <div class="card-header-badge" style="background: #00E5FF; color: #000;">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">tune</span>
+        HUD GAUGE CONFIGURATION
+      </div>
+
+      <div>
+        <h2 class="setup-title" style="font-size: 1.5rem;">Select Display AI Quotas</h2>
+        <p class="setup-description">
+          Choose which 2 AI services are mapped to the physical GC9A01 dual radial HUD arcs (Left Gauge &amp; Right Gauge). The backend automatically scans local credentials and tokens across your active tools.
+        </p>
+
+        <!-- Gauge Dropdowns Form -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-top: 1.25rem;">
+          <!-- Left Gauge Selector -->
+          <div style="background: #f8f9fa; border: 2px solid var(--border-dark); padding: 1rem; border-radius: 4px;">
+            <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span class="material-symbols-outlined" style="color: #00E5FF;">arrow_back</span>
+              Left Radial Arc (Gauge 1)
+            </div>
+            <select id="gauge-left-select" style="width: 100%; padding: 0.6rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #fff; cursor: pointer;">
+              <option value="claude">Anthropic Claude (CLD)</option>
+              <option value="antigravity">Google Antigravity (AGY)</option>
+            </select>
+            <div id="gauge-left-status" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+              Detecting...
+            </div>
+
+            <div style="margin-top: 0.75rem; border-top: 1px dashed var(--border-dark); padding-top: 0.65rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 1 Mode / Plan:</label>
+              <select id="gauge-left-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
+                <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
+                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+              </select>
+            </div>
+            <div id="gauge-left-budget-row" style="margin-top: 0.5rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+              <input type="number" step="0.5" min="1" id="gauge-left-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+            </div>
+          </div>
+
+          <!-- Right Gauge Selector -->
+          <div style="background: #f8f9fa; border: 2px solid var(--border-dark); padding: 1rem; border-radius: 4px;">
+            <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span class="material-symbols-outlined" style="color: #FF9100;">arrow_forward</span>
+              Right Radial Arc (Gauge 2)
+            </div>
+            <select id="gauge-right-select" style="width: 100%; padding: 0.6rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #fff; cursor: pointer;">
+              <option value="antigravity">Google Antigravity (AGY)</option>
+              <option value="claude">Anthropic Claude (CLD)</option>
+            </select>
+            <div id="gauge-right-status" style="margin-top: 0.5rem; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+              Detecting...
+            </div>
+
+            <div style="margin-top: 0.75rem; border-top: 1px dashed var(--border-dark); padding-top: 0.65rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 2 Mode / Plan:</label>
+              <select id="gauge-right-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
+                <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
+                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+              </select>
+            </div>
+            <div id="gauge-right-budget-row" style="margin-top: 0.5rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+              <input type="number" step="0.5" min="1" id="gauge-right-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Claude Plan & Enterprise Mode Settings -->
+        <div style="margin-top: 1.25rem; background: #f0fdf4; border: 2px solid var(--border-dark); padding: 1rem; border-radius: 4px;">
+          <div style="font-family: 'Anybody', sans-serif; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; color: #166534;">
+            <span class="material-symbols-outlined" style="color: #00E5FF; font-size: 1.2rem;">account_balance_wallet</span>
+            Anthropic Claude Telemetry & Plan Settings
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 0.75rem;">
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Claude Account Plan:</label>
+              <select id="claude-plan-select" style="width: 100%; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #fff; cursor: pointer;">
+                <option value="enterprise">Enterprise / Team / PAYG ($ Cost & Tokens)</option>
+                <option value="standard">Standard Free / Pro (5h Quota Countdown)</option>
+              </select>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                Enterprise mode displays live USD ($ spent) and 24h token volume on the left HUD gauge.
+              </div>
+            </div>
+            <div>
+              <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Daily Spending Budget ($ USD):</label>
+              <input type="number" id="claude-budget-input" step="0.50" min="0.50" max="500.00" value="10.00" style="width: 100%; box-sizing: border-box; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #fff;" />
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+                Target budget for the left radial gauge fill ring ($0.00 → $10.00).
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.25rem; flex-wrap: wrap;">
+          <button type="button" id="save-gauges-btn" class="nav-btn" style="background: var(--accent-green); color: #fff; border: 2px solid var(--border-dark); padding: 0.6rem 1.4rem; cursor: pointer;">
+            <span class="material-symbols-outlined" style="font-size: 1.1rem;">save</span>
+            Save Gauge Selection
+          </button>
+          <div id="save-gauges-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Pair an already-connected board -->
     <div class="setup-card" style="margin-top: 1.5rem;">
       <div class="card-header-badge" style="background: #F5A97F; color: #000;">
@@ -1116,6 +1224,187 @@
         pairBtn.disabled = false;
       }
     });
+
+    // --- HUD Gauge Configuration Logic ---
+    const gaugeLeftSelect = document.getElementById('gauge-left-select');
+    const gaugeRightSelect = document.getElementById('gauge-right-select');
+    const gaugeLeftPlan = document.getElementById('gauge-left-plan');
+    const gaugeRightPlan = document.getElementById('gauge-right-plan');
+    const gaugeLeftBudget = document.getElementById('gauge-left-budget');
+    const gaugeRightBudget = document.getElementById('gauge-right-budget');
+    const gaugeLeftBudgetRow = document.getElementById('gauge-left-budget-row');
+    const gaugeRightBudgetRow = document.getElementById('gauge-right-budget-row');
+    const gaugeLeftStatus = document.getElementById('gauge-left-status');
+    const gaugeRightStatus = document.getElementById('gauge-right-status');
+    const saveGaugesBtn = document.getElementById('save-gauges-btn');
+    const saveGaugesStatus = document.getElementById('save-gauges-status');
+
+    let allProvidersList = [];
+    let savedConfig = {};
+
+    function updatePlanUiVisibility() {
+      gaugeLeftBudgetRow.style.display = (gaugeLeftPlan.value === 'enterprise') ? 'block' : 'none';
+      gaugeRightBudgetRow.style.display = (gaugeRightPlan.value === 'enterprise') ? 'block' : 'none';
+    }
+
+    gaugeLeftPlan.addEventListener('change', updatePlanUiVisibility);
+    gaugeRightPlan.addEventListener('change', updatePlanUiVisibility);
+
+    function renderProviderStatus(provider) {
+      if (!provider) return "Unknown";
+      if (provider.status === "ok") {
+        return `🟢 ${provider.name} (${provider.percent}% remaining - ${provider.plan || 'Active'})`;
+      } else if (provider.status === "degraded") {
+        return `🟡 ${provider.name} (${provider.percent}% - ${provider.reset_str || 'Degraded/Local'})`;
+      } else if (provider.status === "unauthenticated") {
+        return `⚪ ${provider.name} (Not signed in)`;
+      } else if (provider.status === "unconfigured") {
+        return `⚪ ${provider.name} (API key required)`;
+      } else {
+        return `🔴 ${provider.name} (${provider.error_message || 'Error'})`;
+      }
+    }
+
+    function updateGaugeStatusDisplay() {
+      const leftId = gaugeLeftSelect.value;
+      const rightId = gaugeRightSelect.value;
+      const leftProv = allProvidersList.find(p => p.id === leftId);
+      const rightProv = allProvidersList.find(p => p.id === rightId);
+      gaugeLeftStatus.textContent = renderProviderStatus(leftProv);
+      gaugeRightStatus.textContent = renderProviderStatus(rightProv);
+
+      const plans = savedConfig.provider_plans || {};
+      const budgets = savedConfig.provider_daily_budgets || {};
+      if (plans[leftId]) gaugeLeftPlan.value = plans[leftId];
+      if (plans[rightId]) gaugeRightPlan.value = plans[rightId];
+      if (budgets[leftId] !== undefined) gaugeLeftBudget.value = budgets[leftId];
+      if (budgets[rightId] !== undefined) gaugeRightBudget.value = budgets[rightId];
+      updatePlanUiVisibility();
+    }
+
+    async function loadProvidersAndGauges() {
+      try {
+        const [resProv, resCfg] = await Promise.all([
+          fetch('/api/providers'),
+          fetch('/api/config')
+        ]);
+        if (!resProv.ok) return;
+        const data = await resProv.json();
+        savedConfig = resCfg.ok ? ((await resCfg.json()).config || {}) : {};
+
+        allProvidersList = data.providers || [];
+        const selected = data.selected_gauges || { left: 'claude', right: 'antigravity' };
+
+        gaugeLeftSelect.innerHTML = '';
+        gaugeRightSelect.innerHTML = '';
+
+        allProvidersList.forEach(p => {
+          const statusIcon = p.status === 'ok' ? '🟢' : p.status === 'degraded' ? '🟡' : '⚪';
+          const optLeft = document.createElement('option');
+          optLeft.value = p.id;
+          optLeft.textContent = `${statusIcon} ${p.name} [${p.badge}]`;
+          if (p.id === selected.left) optLeft.selected = true;
+          gaugeLeftSelect.appendChild(optLeft);
+
+          const optRight = document.createElement('option');
+          optRight.value = p.id;
+          optRight.textContent = `${statusIcon} ${p.name} [${p.badge}]`;
+          if (p.id === selected.right) optRight.selected = true;
+          gaugeRightSelect.appendChild(optRight);
+        });
+
+        // Load Claude Plan config
+        try {
+          const cfgRes = await fetch('/api/config');
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json();
+            if (cfg.claude_plan) {
+              document.getElementById('claude-plan-select').value = cfg.claude_plan;
+            }
+            if (cfg.claude_daily_budget_usd) {
+              document.getElementById('claude-budget-input').value = cfg.claude_daily_budget_usd;
+            }
+          }
+        } catch (e) {}
+
+        updateGaugeStatusDisplay();
+      } catch (err) {
+        console.warn("Could not fetch providers:", err);
+      }
+    }
+
+    gaugeLeftSelect.addEventListener('change', updateGaugeStatusDisplay);
+    gaugeRightSelect.addEventListener('change', updateGaugeStatusDisplay);
+
+    saveGaugesBtn.addEventListener('click', async () => {
+      saveGaugesBtn.disabled = true;
+      saveGaugesStatus.style.color = '#89b4fa';
+      saveGaugesStatus.textContent = 'Saving configuration...';
+
+      const leftId = gaugeLeftSelect.value;
+      const rightId = gaugeRightSelect.value;
+
+      const payload = {
+        selected_gauges: {
+          left: leftId,
+          right: rightId
+        },
+        provider_plans: {
+          [leftId]: gaugeLeftPlan.value,
+          [rightId]: gaugeRightPlan.value
+        },
+        provider_daily_budgets: {
+          [leftId]: parseFloat(gaugeLeftBudget.value) || 10.0,
+          [rightId]: parseFloat(gaugeRightBudget.value) || 10.0
+        },
+        claude_plan: document.getElementById('claude-plan-select').value,
+        claude_daily_budget_usd: parseFloat(document.getElementById('claude-budget-input').value) || 10.0,
+        provider_keys: {}
+      };
+
+      if (leftId === 'claude' || rightId === 'claude') {
+        payload.claude_plan = (leftId === 'claude') ? gaugeLeftPlan.value : gaugeRightPlan.value;
+        payload.claude_daily_budget_usd = (leftId === 'claude') ? parseFloat(gaugeLeftBudget.value) : parseFloat(gaugeRightBudget.value);
+      }
+
+      const orKey = document.getElementById('key-openrouter').value.trim();
+      const dsKey = document.getElementById('key-deepseek').value.trim();
+      const msKey = document.getElementById('key-mistral').value.trim();
+      const gqKey = document.getElementById('key-groq').value.trim();
+
+      if (orKey) payload.provider_keys.openrouter = orKey;
+      if (dsKey) payload.provider_keys.deepseek = dsKey;
+      if (msKey) payload.provider_keys.mistral = msKey;
+      if (gqKey) payload.provider_keys.groq = gqKey;
+
+      try {
+        const res = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          saveGaugesStatus.style.color = '#a6e3a1';
+          saveGaugesStatus.textContent = '✓ Gauges & plans saved! Updated telemetry streaming to display.';
+          setTimeout(() => {
+            saveGaugesStatus.textContent = '';
+          }, 4000);
+          loadProvidersAndGauges();
+        } else {
+          saveGaugesStatus.style.color = '#f38ba8';
+          saveGaugesStatus.textContent = 'Failed to save configuration.';
+        }
+      } catch (err) {
+        saveGaugesStatus.style.color = '#f38ba8';
+        saveGaugesStatus.textContent = 'Error: ' + err.message;
+      } finally {
+        saveGaugesBtn.disabled = false;
+      }
+    });
+
+    // Initialize provider list on page load
+    loadProvidersAndGauges();
 
   </script>
 </body>

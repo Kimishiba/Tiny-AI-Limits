@@ -268,6 +268,7 @@
       aspect-ratio: 4 / 3;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .touch-hint-bar {
@@ -677,9 +678,10 @@
           </div>
         </div>
 
-        <div id="roundModeGrid" class="mode-btn-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div id="roundModeGrid" class="mode-btn-grid" style="grid-template-columns: repeat(3, 1fr);">
           <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK</button>
-          <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES (FACE)</button>
+          <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES</button>
+          <button class="neo-btn" id="btnRotate" onclick="cycleRotation()" title="Rotate screen orientation 90°">🔄 0° (STD)</button>
         </div>
       </div>
 
@@ -2088,6 +2090,9 @@
             const compVal = document.getElementById("completionTextVal");
             if (compVal) compVal.innerText = completion_text;
           }
+          if (data.display_rotation !== undefined) {
+            applyRotation(data.display_rotation, false);
+          }
 
           wifiLed.className = "led wifi";
           backendStatus.className = "status-badge";
@@ -2100,6 +2105,32 @@
         backendStatus.className = "status-badge offline";
         backendStatus.innerText = "DISCONNECTED";
       }
+    }
+
+    let currentRotation = 0;
+    const ROT_SHORT_LABELS = ["0° (STD)", "90° (CW)", "180° (INV)", "270° (CCW)"];
+
+    function applyRotation(rot, pushToBackend = false) {
+      currentRotation = ((rot % 4) + 4) % 4;
+      const canvas = document.getElementById("tftCanvas");
+      if (canvas) {
+        canvas.style.transform = `rotate(${currentRotation * 90}deg)`;
+      }
+      const btn = document.getElementById("btnRotate");
+      if (btn) {
+        btn.innerText = `🔄 ${ROT_SHORT_LABELS[currentRotation]}`;
+      }
+      if (pushToBackend) {
+        fetch("http://localhost:5000/api/rotate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rotation: currentRotation })
+        }).catch(err => console.log("Rotate sync error:", err));
+      }
+    }
+
+    function cycleRotation() {
+      applyRotation(currentRotation + 1, true);
     }
 
     function toggleBackendSync(enabled) {

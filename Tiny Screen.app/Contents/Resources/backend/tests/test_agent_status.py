@@ -148,7 +148,7 @@ class TestAgentStatus(unittest.TestCase):
             status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
             self.assertFalse(status["waiting_for_input"])
 
-    def test_antigravity_run_command_pending_permission(self):
+    def test_antigravity_run_command_working_state(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             brain_dir = os.path.join(tmp_dir, "brain")
@@ -164,6 +164,33 @@ class TestAgentStatus(unittest.TestCase):
                         {
                             "name": "run_command",
                             "args": {"CommandLine": "swift test"}
+                        }
+                    ]
+                }) + "\n")
+            
+            status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertFalse(status["waiting_for_input"])
+            
+            sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0]["state"], "WORKING")
+
+    def test_antigravity_ask_permission_waiting_state(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            session_dir = os.path.join(brain_dir, "session1", ".system_generated", "logs")
+            os.makedirs(session_dir, exist_ok=True)
+            transcript_file = os.path.join(session_dir, "transcript.jsonl")
+            
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-08-27T10:00:00Z",
+                    "tool_calls": [
+                        {
+                            "name": "ask_permission",
+                            "args": {"Action": "Deploy to production"}
                         }
                     ]
                 }) + "\n")
@@ -274,11 +301,10 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WAITING")
-            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
-            self.assertEqual(sessions[0]["color"], "#FFB800")
+            self.assertEqual(sessions[0]["state"], "WORKING")
+            self.assertEqual(sessions[0]["color"], "#FF7A00")
 
-    def test_claude_bash_waiting(self):
+    def test_claude_bash_working(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
             projects_dir = os.path.join(tmp_dir, "projects", "project1")
@@ -302,9 +328,8 @@ class TestAgentStatus(unittest.TestCase):
             
             sessions = scan_claude_sessions(claude_dirs=[tmp_dir], now_ts=time.time())
             self.assertEqual(len(sessions), 1)
-            self.assertEqual(sessions[0]["state"], "WAITING")
-            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
-            self.assertEqual(sessions[0]["color"], "#FFB800")
+            self.assertEqual(sessions[0]["state"], "WORKING")
+            self.assertEqual(sessions[0]["color"], "#00E5FF")
 
     def test_format_reset_time_variations(self):
         from app import format_reset_time
@@ -350,6 +375,84 @@ class TestAgentStatus(unittest.TestCase):
         self.assertIn("reset_in_seconds", quota)
         self.assertIn("reset_str", quota)
 
+    def test_quota_period_label(self):
+        from app import _quota_period_label
+        self.assertEqual(_quota_period_label(None), "5h")
+        self.assertEqual(_quota_period_label(0), "5h")
+        self.assertEqual(_quota_period_label(-100), "5h")
+        self.assertEqual(_quota_period_label(3600 * 4), "5h")
+        self.assertEqual(_quota_period_label(3600 * 6), "5h")
+        self.assertEqual(_quota_period_label(3600 * 7), "daily")
+        self.assertEqual(_quota_period_label(3600 * 24), "daily")
+        self.assertEqual(_quota_period_label(3600 * 48), "daily")
+        self.assertEqual(_quota_period_label(3600 * 49), "weekly")
+        self.assertEqual(_quota_period_label(3600 * 150), "weekly")
+
+    def test_get_antigravity_quota_fraction_logic(self):
+        from unittest.mock import patch
+        from app import get_antigravity_quota
+
+        # 1. Exhausted quota (fraction = 0.0) -> remaining: 0, used: 100
+        mock_acc_exhausted = [{
+            "email": "test@example.com",
+            "remaining_fraction": 0.0,
+            "reset_time": "2026-09-05T17:18:49Z"
+        }]
+        with patch("app.get_antigravity_accounts", return_value=mock_acc_exhausted):
+            quota = get_antigravity_quota()
+            self.assertEqual(quota["remaining"], 0)
+            self.assertEqual(quota["used"], 100)
+
+        # 2. Partial quota (fraction = 0.45) -> remaining: 45, used: 55
+        mock_acc_partial = [{
+            "email": "test@example.com",
+            "remaining_fraction": 0.45,
+            "reset_time": None
+        }]
+        with patch("app.get_antigravity_accounts", return_value=mock_acc_partial):
+            quota = get_antigravity_quota()
+            self.assertEqual(quota["remaining"], 45)
+            self.assertEqual(quota["used"], 55)
+
+        # 3. None fraction -> defaults to remaining: 100, used: 0
+        mock_acc_none = [{
+            "email": "test@example.com",
+            "remaining_fraction": None,
+            "reset_time": None
+        }]
+        with patch("app.get_antigravity_accounts", return_value=mock_acc_none):
+            quota = get_antigravity_quota()
+            self.assertEqual(quota["remaining"], 100)
+            self.assertEqual(quota["used"], 0)
+
+    def test_get_antigravity_accounts_proto3_omitted_zero(self):
+        from unittest.mock import patch
+        import app
+
+        mock_server = [{"ports": [12345], "csrf_token": "token123"}]
+        mock_status = {
+            "userStatus": {
+                "email": "plus_user@google.com",
+                "cascadeModelConfigData": {
+                    "clientModelConfigs": [
+                        {
+                            "label": "Gemini 3.1 Pro (High)",
+                            # Proto3 omits remainingFraction when 0.0
+                            "quotaInfo": {
+                                "resetTime": "2026-09-05T17:18:49Z"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        with patch("app._find_antigravity_language_servers", return_value=mock_server), \
+             patch("app._fetch_antigravity_user_status", return_value=mock_status):
+            accounts = app.get_antigravity_accounts(use_cache=False)
+            self.assertEqual(len(accounts), 1)
+            self.assertEqual(accounts[0]["remaining_fraction"], 0.0)
+            self.assertEqual(accounts[0]["reset_time"], "2026-09-05T17:18:49Z")
+
     def test_scan_claude_usage_fields(self):
         from app import scan_claude_usage
         usage = scan_claude_usage()
@@ -391,6 +494,113 @@ class TestAgentStatus(unittest.TestCase):
         data_res2 = client.get("/data")
         payload2 = json.loads(data_res2.data.decode("utf-8"))
         self.assertFalse(payload2["ota"]["trigger"])
+
+    def test_contextual_agent_label_agy_objective(self):
+        lines = [
+            json.dumps({"type": "CHECKPOINT", "content": "{{ CHECKPOINT 0 }}\n# USER Objective:\nMulti-Service Quota Display Ticket\n"})
+        ]
+        label = app.get_stable_agent_label("antigravity", "sess_obj_1", transcript_lines=lines)
+        self.assertEqual(label, "Quota")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_agy_user_request(self):
+        lines = [
+            json.dumps({
+                "type": "USER_INPUT",
+                "source": "USER_EXPLICIT",
+                "content": "<USER_REQUEST>\ncan we design the enclosure CAD model for the device?\n</USER_REQUEST>"
+            })
+        ]
+        label = app.get_stable_agent_label("antigravity", "sess_prompt_1", transcript_lines=lines)
+        self.assertEqual(label, "Design")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_agy_subagent_role(self):
+        label = app.get_stable_agent_label("antigravity", "sess_role_1", role="Thermal CAD Modeler")
+        self.assertEqual(label, "Thermal CAD")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_claude_cwd(self):
+        label = app.get_stable_agent_label("claude", "sess_cl_1", cwd="/Users/dev/Documents/Tiny AI Limits")
+        self.assertEqual(label, "Tiny AI")
+        self.assertLessEqual(len(label), 12)
+
+    def test_contextual_agent_label_length_limit(self):
+        # Long objective or words must never exceed 12 characters
+        lines = [
+            json.dumps({"type": "CHECKPOINT", "content": "# USER Objective:\nSupercalifragilisticexpialidocious"})
+        ]
+        label = app.get_stable_agent_label("antigravity", "sess_long_1", transcript_lines=lines)
+        self.assertLessEqual(len(label), 12)
+        self.assertEqual(label, "Supercalifra")
+
+    def test_session_name_stability_and_collision(self):
+        # Same session returns same label on subsequent calls
+        lines = [json.dumps({"type": "CHECKPOINT", "content": "# USER Objective:\nFirmware Build\n"})]
+        lbl1 = app.get_stable_agent_label("antigravity", "sess_stable_1", transcript_lines=lines)
+        lbl2 = app.get_stable_agent_label("antigravity", "sess_stable_1", transcript_lines=lines)
+        self.assertEqual(lbl1, lbl2)
+
+        # Another session with identical context gets disambiguated
+        lbl3 = app.get_stable_agent_label("antigravity", "sess_stable_2", transcript_lines=lines)
+        self.assertNotEqual(lbl1, lbl3)
+        self.assertLessEqual(len(lbl3), 12)
+
+    def test_multi_agent_status_supports_up_to_eight_agents(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            for i in range(5):
+                sess_dir = os.path.join(brain_dir, f"sess_{i}", ".system_generated", "logs")
+                os.makedirs(sess_dir, exist_ok=True)
+                with open(os.path.join(sess_dir, "transcript.jsonl"), "w") as f:
+                    f.write(json.dumps({
+                        "type": "PLANNER_RESPONSE",
+                        "created_at": "2026-08-27T10:00:00Z",
+                        "tool_calls": [{"name": "run_command", "args": {"CommandLine": f"echo {i}"}}]
+                    }) + "\n")
+
+            res = app.get_multi_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(res["has_active_agents"])
+            self.assertEqual(len(res["active_agents"]), 5)
+
+    def test_display_rotation_config_and_data_payload(self):
+        client = app.app.test_client()
+        app.config["allow_unpaired_clients"] = True
+        app.config["display_rotation"] = 2
+
+        res = client.get("/data")
+        self.assertEqual(res.status_code, 200)
+        payload = json.loads(res.data.decode("utf-8"))
+        self.assertIn("display_rotation", payload)
+        self.assertEqual(payload["display_rotation"], 2)
+        self.assertIn("rotation_deg", payload)
+        self.assertEqual(payload["rotation_deg"], 180)
+
+    def test_api_rotate_endpoint(self):
+        client = app.app.test_client()
+        app.config["display_rotation"] = 0
+
+        # Cycle rotation via POST with empty body
+        res = client.post("/api/rotate", json={})
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["display_rotation"], 1)
+        self.assertEqual(data["rotation_deg"], 90)
+
+        # Explicit rotation
+        res = client.post("/api/rotate", json={"rotation": 3})
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["display_rotation"], 3)
+        self.assertEqual(data["rotation_deg"], 270)
+
+        # GET method returns current rotation
+        res = client.get("/api/rotate")
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["display_rotation"], 3)
+        self.assertEqual(data["rotation_deg"], 270)
 
 if __name__ == "__main__":
     unittest.main()
