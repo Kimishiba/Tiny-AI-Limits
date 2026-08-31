@@ -1,0 +1,1975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tiny AI Screen — ESP32 Display Emulator</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;0,800;0,900;1,800;1,900&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #f9f9f9;
+      --card-bg: #ffffff;
+      --card-alt: #f3f3f3;
+      --border-dark: #1a1c1c;
+      --text-main: #1a1c1c;
+      --text-muted: #5d5f5f;
+      --accent-orange: #FF5F1F;
+      --accent-orange-hover: #fe5e1e;
+      --accent-orange-light: #ffdbcf;
+      --accent-green: #15803d;
+      --accent-green-bg: #dcfce7;
+      --accent-red: #ba1a1a;
+      --accent-red-bg: #ffdad6;
+      --border-width: 4px;
+      --border-thin: 2px;
+      --shadow-offset: 6px;
+      --shadow-offset-sm: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background-color: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    /* Neo-Brutalist Utility Classes */
+    .neo-border {
+      border: var(--border-width) solid var(--border-dark);
+    }
+
+    .neo-border-thin {
+      border: var(--border-thin) solid var(--border-dark);
+    }
+
+    .neo-shadow {
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+    }
+
+    .neo-shadow-sm {
+      box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0px 0px var(--border-dark);
+    }
+
+    .font-anybody { font-family: 'Anybody', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .font-hanken { font-family: 'Hanken Grotesk', sans-serif; }
+
+    /* Navigation Bar */
+    header.neo-header {
+      background: var(--card-bg);
+      border-bottom: var(--border-width) solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0px 4px 0px 0px var(--border-dark);
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo-badge {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.25rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      letter-spacing: -0.04em;
+    }
+
+    .brand-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-btn {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.4rem 0.85rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .nav-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .nav-btn:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--border-dark);
+      background: var(--accent-orange-light);
+      color: var(--text-main);
+    }
+
+    .nav-btn.active:hover {
+      background: var(--accent-orange-hover);
+      color: #ffffff;
+    }
+
+    /* Main Container */
+    main.main-layout {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 960px) {
+      main.main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Hardware Bezel Box */
+    .device-box {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .bezel-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-thin) solid var(--border-dark);
+      padding-bottom: 0.75rem;
+    }
+
+    .bezel-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .indicator-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .led-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-green);
+      border: 1px solid var(--border-dark);
+    }
+
+    .led-dot.offline {
+      background-color: var(--accent-red);
+    }
+
+    /* Screen Glass & Canvas */
+    .screen-glass-container {
+      background: #000000;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.1s ease;
+    }
+
+    .screen-glass-container:active {
+      transform: scale(0.99);
+    }
+
+    canvas#tftCanvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 3;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .touch-hint-bar {
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      padding: 0.65rem 0.85rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .touch-hint-bar strong {
+      background: var(--accent-orange);
+      color: #ffffff;
+      padding: 0.1rem 0.35rem;
+      font-weight: 800;
+    }
+
+    /* Controls Column */
+    .controls-column {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .neo-card {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px 0px var(--border-dark);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .card-title-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding-bottom: 0.6rem;
+    }
+
+    .card-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .neo-select {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      padding: 0.35rem 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 800;
+      cursor: pointer;
+      outline: none;
+      border-radius: 4px;
+      transition: border-color 0.15s ease;
+    }
+
+    .neo-select:focus {
+      border-color: var(--accent-orange);
+    }
+
+    /* Screen Mode Button Group */
+    .mode-btn-grid {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    #roundModeGrid {
+      grid-template-columns: 1fr;
+    }
+
+    .neo-btn {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: var(--border-thin) solid var(--border-dark);
+      box-shadow: 3px 3px 0px 0px var(--border-dark);
+      padding: 0.65rem 0.5rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      text-decoration: none;
+    }
+
+    .neo-btn:hover {
+      background: var(--accent-orange-light);
+      transform: translate(1px, 1px);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    .neo-btn:active {
+      transform: translate(3px, 3px);
+      box-shadow: 0px 0px 0px 0px var(--border-dark);
+    }
+
+    .neo-btn.active {
+      background: var(--accent-orange);
+      color: #ffffff;
+    }
+
+    .neo-btn-primary {
+      background: var(--accent-orange);
+      color: #ffffff;
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 4px 4px 0px 0px var(--border-dark);
+      padding: 0.85rem 1.25rem;
+      font-family: 'Anybody', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+
+    .neo-btn-primary:hover {
+      background: var(--accent-orange-hover);
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    .neo-btn-primary:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0px 0px 0px 0px var(--border-dark);
+    }
+
+    /* Toggles & Inputs */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      padding: 0.75rem 1rem;
+    }
+
+    .toggle-label {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 0.92rem;
+      font-weight: 600;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1;
+      border: var(--border-thin) solid var(--border-dark);
+      transition: .15s;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--border-dark);
+      transition: .15s;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-orange);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(18px);
+      background-color: #ffffff;
+    }
+
+    /* Range Controls & Inputs */
+    .ctrl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .ctrl-row label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+      text-transform: uppercase;
+    }
+
+    .ctrl-row label span.val {
+      color: var(--accent-orange);
+      background: rgba(255, 95, 31, 0.12);
+      padding: 0.1rem 0.4rem;
+      border: 1px solid var(--accent-orange);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      background: var(--card-alt);
+      border: var(--border-thin) solid var(--border-dark);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent-orange);
+      border: var(--border-thin) solid var(--border-dark);
+      cursor: pointer;
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      background: var(--card-bg);
+      border: var(--border-thin) solid var(--border-dark);
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      font-weight: 700;
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent-orange);
+    }
+
+    .status-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      border: var(--border-thin) solid var(--border-dark);
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      text-transform: uppercase;
+    }
+
+    .status-badge.offline {
+      background: var(--accent-red-bg);
+      color: var(--accent-red);
+    }
+
+    /* Footer */
+    footer.neo-footer {
+      background: var(--border-dark);
+      color: #ffffff;
+      border-top: var(--border-width) solid var(--border-dark);
+      padding: 2rem 1.5rem;
+      margin-top: auto;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .footer-brand {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.2rem;
+      color: var(--accent-orange);
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .footer-links a {
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent-orange);
+    }
+
+    .footer-copy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Neo-Raw Header -->
+  <header class="neo-header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <div class="brand-logo-badge">TS</div>
+        <div class="brand-title">TINY AI SCREEN // EMULATOR</div>
+      </a>
+      <div class="nav-links">
+        <a href="/emulator" class="nav-btn active">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">tv</span>
+          Emulator
+        </a>
+        <a href="/setup" class="nav-btn">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
+          WiFi Setup
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="main-layout">
+
+    <!-- Left Column: Display Screen Box -->
+    <div class="device-box">
+      <div class="bezel-topbar">
+        <div class="bezel-tag" id="bezelTag">
+          <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">radio_button_checked</span>
+          GC9A01 // ROUND 240x240
+        </div>
+        <div class="status-indicators">
+          <div class="indicator-pill">
+            <span class="led-dot"></span>
+            PWR: OK
+          </div>
+          <div class="indicator-pill" id="wifiLedPill">
+            <span id="wifiLed" class="led-dot"></span>
+            STREAM
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-glass-container" id="screenGlass" title="Click screen to simulate touch interaction">
+        <canvas id="tftCanvas" width="320" height="240"></canvas>
+      </div>
+
+      <div class="touch-hint-bar">
+        <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">touch_app</span>
+        Click display to cycle screen modes (or use <strong>LIMITS</strong> / <strong>WEATHER</strong> / <strong>CLOCK</strong> below)
+      </div>
+    </div>
+
+    <!-- Right Column: Control Panels -->
+    <div class="controls-column">
+
+      <!-- Active Display Mode -->
+      <div class="neo-card">
+        <div class="card-title-bar" style="flex-wrap: wrap; gap: 0.6rem;">
+          <div class="card-title" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">view_carousel</span>
+            <span>Screen Type:</span>
+          </div>
+        </div>
+
+        <div id="roundModeGrid" class="mode-btn-grid" style="grid-template-columns: repeat(2, 1fr);">
+          <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK</button>
+          <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES (FACE)</button>
+        </div>
+      </div>
+
+      <!-- Live Backend Connection -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">sync</span>
+            Backend Telemetry
+          </div>
+          <span id="backendStatus" class="status-badge">POLLING (5000)</span>
+        </div>
+
+        <div class="toggle-row">
+          <span class="toggle-label">Poll live data from <code>http://localhost:5000/data</code></span>
+          <label class="switch">
+            <input type="checkbox" id="backendToggle" checked onchange="toggleBackendSync(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <button class="neo-btn" onclick="fetchBackendData()" style="width: 100%;">
+          <span class="material-symbols-outlined" style="font-size: 1.1rem;">refresh</span>
+          Force Fetch Telemetry Now
+        </button>
+      </div>
+
+      <!-- Interactive Hardware Simulation -->
+      <div class="neo-card">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">tune</span>
+            Simulation Controls
+          </div>
+          <button class="neo-btn" onclick="triggerReboot()" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+            Reboot ESP32
+          </button>
+        </div>
+
+        <div class="toggle-row" style="background: var(--accent-orange-light);">
+          <span class="toggle-label" style="font-weight: 700;">⚠️ Simulate Agent Alert (<code>waiting_for_input</code>)</span>
+          <label class="switch">
+            <input type="checkbox" id="agentInputToggle" onchange="toggleAgentInput(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="ctrl-row" style="margin-top: 0.5rem;">
+          <label>Agent Alert Banner: <span class="val" id="promptTextVal">APPROVE PLAN</span></label>
+          <input type="text" id="promptTextInput" value="APPROVE PLAN" oninput="updatePromptText(this.value)">
+        </div>
+
+        <!-- Work Complete Simulation -->
+        <div class="toggle-row" style="background: var(--accent-green-bg); margin-top: 0.75rem;">
+          <span class="toggle-label" style="font-weight: 700; color: var(--accent-green);">✨ Simulate Work Complete (<code>completion_flash</code>)</span>
+          <label class="switch">
+            <input type="checkbox" id="workCompleteToggle" onchange="toggleWorkComplete(this.checked)">
+            <span class="slider" style="background-color: #a7f3d0;"></span>
+          </label>
+        </div>
+
+        <div class="ctrl-row" style="margin-top: 0.5rem;">
+          <label>Completion Banner: <span class="val" id="completionTextVal">WORK COMPLETE</span></label>
+          <input type="text" id="completionTextInput" value="WORK COMPLETE" oninput="updateCompletionText(this.value)">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.6rem;">
+          <button class="neo-btn" style="background: #dcfce7; font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: var(--accent-green); color: #14532d;" onclick="triggerCompletionPulse(10)">
+            ⚡ Trigger 10s Flash
+          </button>
+          <button class="neo-btn" style="background: var(--accent-orange-light); font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: var(--accent-orange);" onclick="triggerApprovalAlert('APPROVE PLAN')">
+            📋 Plan Review Alert
+          </button>
+          <button class="neo-btn" style="background: #e0f2fe; font-size: 0.75rem; padding: 0.4rem 0.5rem; border-color: #0284c7; color: #0369a1; grid-column: span 2;" onclick="triggerOTASimulation()">
+            🚀 Simulate OTA Firmware Update (v0.4 ➔ v0.5)
+          </button>
+        </div>
+
+        <div class="ctrl-row" style="margin-top: 0.75rem;">
+          <label>Claude Remaining %: <span class="val" id="claudeVal">85%</span></label>
+          <input type="range" id="claudeSlider" min="0" max="100" value="85" oninput="updateClaudeVal(this.value)">
+        </div>
+
+        <div class="ctrl-row">
+          <label>Antigravity Remaining %: <span class="val" id="antiVal">60%</span></label>
+          <input type="range" id="antiSlider" min="0" max="100" value="60" oninput="updateAntiVal(this.value)">
+        </div>
+
+        <div class="ctrl-row">
+          <label>Current Temp (°C): <span class="val" id="tempVal">23.5°C</span></label>
+          <input type="range" id="tempSlider" min="-10" max="45" step="0.5" value="23.5" oninput="updateTempVal(this.value)">
+        </div>
+
+        <div class="ctrl-row">
+          <label>Hours Until Rain: <span class="val" id="rainVal">2.0 hrs</span></label>
+          <input type="range" id="rainSlider" min="-1" max="12" step="1" value="2" oninput="updateRainVal(this.value)">
+        </div>
+
+        <button class="neo-btn" style="background: var(--card-alt); font-size: 0.8rem; margin-top: 0.8rem; width: 100%; border-color: var(--border-dark);" onclick="incrementMinuteSim()">
+          ⏱️ Test Minute Flip (+1 Min)
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Neo-Raw Footer -->
+  <footer class="neo-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        TINY AI SCREEN // NEO-RAW
+      </div>
+      <div class="footer-links">
+        <a href="/emulator">Emulator</a>
+        <a href="/setup">WiFi Setup</a>
+        <a href="https://github.com" target="_blank" rel="noopener">Firmware Docs</a>
+      </div>
+      <div class="footer-copy">
+        © 2026 TINY AI SCREEN. NEO-RAW SYSTEM DESIGN.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // --- EMULATOR COLOR DEFINITIONS (Matching TFT_eSPI definitions) ---
+    const KINETIC_YELLOW  = "#FFFF00";
+    const KINETIC_CYAN    = "#00FFFF";
+    const KINETIC_LIME    = "#00FF00";
+    const KINETIC_AMBER   = "#FF6600";
+    const KINETIC_EMERALD = "#00FF88";
+    const KINETIC_MINT    = "#A7F3D0";
+    const KINETIC_BLACK   = "#000000";
+    const KINETIC_DARK    = "#181C24";
+
+    const canvas = document.getElementById("tftCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Display State
+    let currentScreen = 3; // 3: ROUND HUD, 4: ROUND FACE
+    let isBooting = false;
+    let bootStep = 0;
+
+    // Data State (mirrors backend GET /data)
+    let claude_limit = 500000;
+    let claude_remaining = 425000;
+    let claude_reset_str = "";
+    let antigravity_limit = 100;
+    let antigravity_remaining = 60;
+    let antigravity_reset_str = "";
+    let current_temperature = 23.5;
+    let hours_until_rain = 2;
+    let date_string = "THU 06 AUG";
+    let waiting_for_input = false;
+    let prompt_text = "APPROVE PLAN";
+    let work_completed = false;
+    let completion_text = "WORK COMPLETE";
+    let active_agents = [];
+    let has_active_agents = false;
+    let completionCountdownTimer = null;
+
+    // Time keeping
+    let server_hour = 12;
+    let server_minute = 45;
+    let server_second = 22;
+    let lastTimeSync = Date.now();
+
+    // Animations & Blinking
+    let blinkState = false;
+    let lastBlinkTime = Date.now();
+    let transitionProgress = 1.0;
+    let prevScreen = 0;
+    let nextScreen = 0;
+    let backendSyncEnabled = true;
+    let syncIntervalId = null;
+
+    // Offscreen Sprites
+    const offscreenCurrent = document.createElement("canvas");
+    offscreenCurrent.width = 320;
+    offscreenCurrent.height = 240;
+    const ctxCurrent = offscreenCurrent.getContext("2d");
+
+    const offscreenNext = document.createElement("canvas");
+    offscreenNext.width = 320;
+    offscreenNext.height = 240;
+    const ctxNext = offscreenNext.getContext("2d");
+
+    function getNowTime() {
+      const elapsed = Math.floor((Date.now() - lastTimeSync) / 1000);
+      const totalSecs = (server_hour * 3600 + server_minute * 60 + server_second) + elapsed;
+      const h = Math.floor(totalSecs / 3600) % 24;
+      const m = Math.floor(totalSecs / 60) % 60;
+      const s = totalSecs % 60;
+      return { h, m, s, totalSecs };
+    }
+
+    // --- DRAWING HELPER FUNCTIONS ---
+    function drawGC9A01BezelRing(c, cx, cy, rScreen) {
+      if (waiting_for_input) {
+        // Continuous smooth rotation angle driven by system timestamp
+        const spinAngle = (Date.now() / 533) % (Math.PI * 2);
+
+        // Dark amber track underlay
+        c.strokeStyle = "#241804";
+        c.lineWidth = 6;
+        c.beginPath();
+        c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(spinAngle);
+
+        // Layer 1: Primary broken hazard segments (Electric Amber #FFB800)
+        c.strokeStyle = "#FFB800";
+        c.lineWidth = 5;
+        c.lineCap = "round";
+        c.setLineDash([34, 14, 12, 14, 46, 18, 16, 14]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+
+        // Layer 2: Fast counter-spinning neon sparks / highlight dashes
+        c.rotate(-spinAngle * 2.2);
+        c.strokeStyle = "#FFE855";
+        c.lineWidth = 3;
+        c.lineCap = "round";
+        c.setLineDash([8, 42, 14, 52]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+
+        c.restore();
+      } else if (work_completed) {
+        // Celebratory Neon Emerald Wave Pulse & Orbital Sparks
+        const nowMs = Date.now();
+        const spinAngle = (nowMs / 400) % (Math.PI * 2);
+        const pulsePhase = (nowMs % 1000) / 1000; // 0.0 -> 1.0 expanding ripple
+        const pulseRadius = rScreen + 1 + pulsePhase * 7;
+        const pulseAlpha = Math.max(0, 1.0 - pulsePhase);
+
+        // 1. Expanding Outward Ripple Ring
+        c.save();
+        c.strokeStyle = `rgba(0, 255, 136, ${pulseAlpha * 0.8})`;
+        c.lineWidth = 2 + (1 - pulsePhase) * 3.5;
+        c.beginPath();
+        c.arc(cx, cy, pulseRadius, 0, Math.PI * 2);
+        c.stroke();
+
+        // 2. Base Dark Emerald Track
+        c.strokeStyle = "#032e1e";
+        c.lineWidth = 6;
+        c.beginPath();
+        c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+
+        // 3. Dual Forward & Reverse Orbiting Emerald Streaks
+        c.translate(cx, cy);
+        c.rotate(spinAngle);
+        c.strokeStyle = "#00FF88";
+        c.lineWidth = 5;
+        c.lineCap = "round";
+        c.setLineDash([28, 16, 8, 16, 44, 20, 12, 16]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+
+        // 4. Sparkling Mint Highlights
+        c.rotate(-spinAngle * 2.4);
+        c.strokeStyle = "#A7F3D0";
+        c.lineWidth = 3;
+        c.lineCap = "round";
+        c.setLineDash([6, 36, 12, 44]);
+        c.beginPath();
+        c.arc(0, 0, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+        c.restore();
+      } else {
+        // Normal state: Static sleek gunmetal bezel ring
+        c.strokeStyle = "#1f2330";
+        c.lineWidth = 6;
+        c.beginPath();
+        c.arc(cx, cy, rScreen + 3, 0, Math.PI * 2);
+        c.stroke();
+      }
+    }
+
+    function drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn) {
+      const startAngle = (-90 - 24) * Math.PI / 180;
+      const endAngle = (-90 + 24) * Math.PI / 180;
+      const arcRadius = 104;
+      const now = performance.now();
+      const pulse = (Math.sin(now * 0.0035) + 1) / 2; // 0..1
+
+      c.save();
+      c.beginPath();
+      c.arc(cx, cy, arcRadius, startAngle, endAngle);
+      c.lineWidth = 4.5;
+      c.lineCap = "round";
+
+      if (isBackendConn) {
+        // Pulsing Emerald Green Arc
+        const alpha = 0.35 + 0.65 * pulse;
+        c.strokeStyle = `rgba(34, 197, 94, ${alpha})`;
+        c.shadowColor = `rgba(34, 197, 94, ${0.4 + 0.5 * pulse})`;
+        c.shadowBlur = 4 + 8 * pulse;
+      } else if (isWifiConn) {
+        // Amber Searching / Unpaired
+        c.strokeStyle = "#f59e0b";
+        c.shadowColor = "rgba(245, 158, 11, 0.5)";
+        c.shadowBlur = 6;
+      } else {
+        // Offline Red
+        c.strokeStyle = "#ef4444";
+        c.shadowColor = "rgba(239, 68, 68, 0.4)";
+        c.shadowBlur = 4;
+      }
+      c.stroke();
+      c.restore();
+    }
+
+    function drawGC9A01RoundFlipUI(c) {
+      const now = getNowTime();
+      const cx = 160, cy = 120, rScreen = 114;
+      const alertActive = Boolean(waiting_for_input && blinkState);
+
+      // 1. Outer Dark Bezel Canvas Background
+      c.fillStyle = "#0c0e14";
+      c.fillRect(0, 0, 320, 240);
+
+      // 2. Bezel Casing Ring (Normal, Alert, or Work Complete Pulse)
+      drawGC9A01BezelRing(c, cx, cy, rScreen);
+
+      // Screen background (Deep Black)
+      c.fillStyle = "#000000";
+      c.beginPath();
+      c.arc(cx, cy, rScreen, 0, Math.PI * 2);
+      c.fill();
+
+      // 3. Quota Ratios
+      const claudePct = Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
+      const antiPct = Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
+
+      // Helper for Curved Clockwise Text along a circular arc
+      function drawCurvedTextClockwise(ctx, text, centerX, centerY, radius, centerAngleRad, color, font) {
+        ctx.save();
+        ctx.font = font;
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const charWidths = [];
+        let totalWidth = 0;
+        for (let i = 0; i < text.length; i++) {
+          const w = ctx.measureText(text[i]).width * 1.12;
+          charWidths.push(w);
+          totalWidth += w;
+        }
+
+        const totalAngle = totalWidth / radius;
+        let currentAngle = centerAngleRad - totalAngle / 2;
+
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          const chAngle = charWidths[i] / radius;
+          const midAngle = currentAngle + chAngle / 2;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(midAngle);
+          ctx.translate(0, -radius);
+          ctx.fillText(ch, 0, 0);
+          ctx.restore();
+
+          currentAngle += chAngle;
+        }
+        ctx.restore();
+      }
+
+      // 4. Curved Inside Quota Badges (CLAUDE % and ANTIGRAVITY %)
+      const textRadius = 86.5;
+      const badgeFont = "900 10.5px 'JetBrains Mono', 'Fira Code', monospace";
+
+      // Claude % Curved along inside of Left Arc (Clockwise around left perimeter)
+      drawCurvedTextClockwise(c, "CLAUDE " + claudePct + "%", cx, cy, textRadius, -Math.PI / 2, "#00E5FF", badgeFont);
+
+      // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
+      drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
+
+      // 4. Top Crown: Backend Connection Status Arc & Rain Indicator
+      const wifiLedEl = document.getElementById("wifiLed");
+      const backendStatusEl = document.getElementById("backendStatus");
+      const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
+      const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
+
+      drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn);
+
+      c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      let rainStr = "";
+      if (hours_until_rain === -1 || hours_until_rain === null || hours_until_rain === undefined) {
+        rainStr = "NO RAIN ☀️";
+        c.fillStyle = "#94a3b8";
+      } else if (hours_until_rain === 0) {
+        rainStr = "RAIN NOW 🌧️";
+        c.fillStyle = "#38bdf8";
+      } else {
+        const hVal = (typeof hours_until_rain === "number") ? hours_until_rain.toFixed(0) : hours_until_rain;
+        rainStr = "RAIN IN " + hVal + "h 🌧️";
+        c.fillStyle = (hours_until_rain <= 3) ? "#38bdf8" : "#cbd5e1";
+      }
+
+      c.fillText(rainStr, cx, cy - 93);
+
+      // 5. Dual Side-Flanking Radial Arcs (Main 7px + Secondary Inner Thin 2px)
+      const arcR = 105;
+      const innerArcR = 96;
+      c.lineCap = "round";
+
+      // Left Arc Track (0.70 PI at bottom up to 1.30 PI at top)
+      const bottomAngleLeft = 0.70 * Math.PI; // Bottom (0%)
+      const topAngleLeft    = 1.30 * Math.PI; // Top (100%)
+      const totalSweepLeft  = topAngleLeft - bottomAngleLeft;
+
+      // Left 1: Outer Main Background Track
+      c.lineWidth = 7;
+      c.strokeStyle = "rgba(0, 229, 255, 0.16)";
+      c.beginPath();
+      c.arc(cx, cy, arcR, bottomAngleLeft, topAngleLeft, false);
+      c.stroke();
+
+      // Left 2: Inner Secondary Thin Background Track
+      c.lineWidth = 2;
+      c.strokeStyle = "rgba(0, 229, 255, 0.22)";
+      c.beginPath();
+      c.arc(cx, cy, innerArcR, bottomAngleLeft, topAngleLeft, false);
+      c.stroke();
+
+      // Left Active Outer Main Arc
+      if (claudePct > 0) {
+        const activeEndLeft = bottomAngleLeft + (claudePct / 100) * totalSweepLeft;
+        c.lineWidth = 7;
+        c.strokeStyle = "#00E5FF";
+        c.beginPath();
+        c.arc(cx, cy, arcR, bottomAngleLeft, activeEndLeft, false);
+        c.stroke();
+
+        // Left Active Inner Secondary Thin Arc
+        c.lineWidth = 2;
+        c.beginPath();
+        c.arc(cx, cy, innerArcR, bottomAngleLeft, activeEndLeft, false);
+        c.stroke();
+      }
+
+      // Right Arc Track (0.30 PI at bottom up to 1.70 PI / -0.30 PI at top)
+      const bottomAngleRight = 0.30 * Math.PI; // Bottom (0%)
+      const totalSweepRight  = 0.60 * Math.PI; // ~108 degrees sweep
+
+      // Right 1: Outer Main Background Track
+      c.lineWidth = 7;
+      c.strokeStyle = "rgba(255, 122, 0, 0.16)";
+      c.beginPath();
+      c.arc(cx, cy, arcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true);
+      c.stroke();
+
+      // Right 2: Inner Secondary Thin Background Track
+      c.lineWidth = 2;
+      c.strokeStyle = "rgba(255, 122, 0, 0.22)";
+      c.beginPath();
+      c.arc(cx, cy, innerArcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true);
+      c.stroke();
+
+      // Right Active Outer Main Arc
+      if (antiPct > 0) {
+        const activeEndRight = bottomAngleRight - (antiPct / 100) * totalSweepRight;
+        c.lineWidth = 7;
+        c.strokeStyle = "#FF7A00";
+        c.beginPath();
+        c.arc(cx, cy, arcR, bottomAngleRight, activeEndRight, true);
+        c.stroke();
+
+        // Right Active Inner Secondary Thin Arc
+        c.lineWidth = 2;
+        c.beginPath();
+        c.arc(cx, cy, innerArcR, bottomAngleRight, activeEndRight, true);
+        c.stroke();
+      }
+
+      // 6. Central 2x2 Matrix Animated Flip Cards (+5% Larger: 48x72px, 6px gap, 55px Font)
+      const cardW = 48, cardH = 72, gap = 6;
+      const h = now.h, m = now.m;
+      const dH1 = Math.floor(h / 10), dH2 = h % 10;
+      const dM1 = Math.floor(m / 10), dM2 = m % 10;
+
+      const currentDigits = [dH1, dH2, dM1, dM2];
+
+      // Detect Digit Transitions & Drive Animation Progress
+      for (let i = 0; i < 4; i++) {
+        if (roundPrevDigits[i] !== -1 && roundPrevDigits[i] !== currentDigits[i]) {
+          roundOldDigits[i] = roundPrevDigits[i];
+          roundFlipProgress[i] = 0.0;
+        }
+        roundPrevDigits[i] = currentDigits[i];
+
+        if (roundFlipProgress[i] < 1.0) {
+          roundFlipProgress[i] += 0.07; // ~14 frames @ 60fps (~230ms flip)
+          if (roundFlipProgress[i] > 1.0) roundFlipProgress[i] = 1.0;
+        }
+      }
+
+      const x1 = cx - cardW - gap / 2;
+      const x2 = cx + gap / 2;
+      const yTop = cy - cardH - gap / 2;
+      const yBottom = cy + gap / 2;
+
+      function draw2x2FlipCard(posX, posY, oldDigit, newDigit, progress) {
+        const midY = posY + cardH / 2;
+        const halfH = cardH / 2;
+        const numFont = "900 64px 'Anybody', 'JetBrains Mono', sans-serif";
+
+        const COLOR_TOP_FRONT = "#222633"; // Lighter slate for upper half / front face
+        const COLOR_BOT_BACK  = "#12141c"; // Deeper obsidian for lower half / back face
+        const COLOR_CARD_BORDER = "#2b3042";
+
+        // 1. Base Card Outline Container
+        c.fillStyle = COLOR_BOT_BACK;
+        c.beginPath();
+        if (typeof c.roundRect === "function") {
+          c.roundRect(posX, posY, cardW, cardH, 8);
+        } else {
+          c.rect(posX, posY, cardW, cardH);
+        }
+        c.fill();
+        c.strokeStyle = COLOR_CARD_BORDER;
+        c.lineWidth = 1.2;
+        c.stroke();
+
+        if (progress >= 1.0 || oldDigit === newDigit) {
+          // --- STATIC SPLIT-FLAP (Distinct Two-Tone Front & Back with Ultra-Tall Numerals) ---
+          // Top Half (Front Face tone)
+          c.save();
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, posY, cardW, halfH, [8, 8, 0, 0]);
+          } else {
+            c.rect(posX, posY, cardW, halfH);
+          }
+          c.clip();
+          c.fillStyle = COLOR_TOP_FRONT;
+          c.fillRect(posX, posY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 3.5);
+          c.scale(0.92, 1.25);
+          c.font = numFont;
+          c.fillStyle = "#ffffff";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, 0, 0);
+          c.restore();
+          c.restore();
+
+          // Bottom Half (Lower Face tone)
+          c.save();
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, midY, cardW, halfH, [0, 0, 8, 8]);
+          } else {
+            c.rect(posX, midY, cardW, halfH);
+          }
+          c.clip();
+          c.fillStyle = COLOR_BOT_BACK;
+          c.fillRect(posX, midY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 3.5);
+          c.scale(0.92, 1.25);
+          c.font = numFont;
+          c.fillStyle = "#eceef4";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, 0, 0);
+          c.restore();
+          c.restore();
+
+        } else {
+          // --- 3D PERSPECTIVE SPLIT-FLAP FLIP ANIMATION ---
+          // 1. Static Top Half Background (Shows NEW digit on Front Face tone)
+          c.save();
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, posY, cardW, halfH, [8, 8, 0, 0]);
+          } else {
+            c.rect(posX, posY, cardW, halfH);
+          }
+          c.clip();
+          c.fillStyle = COLOR_TOP_FRONT;
+          c.fillRect(posX, posY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 3.5);
+          c.scale(0.92, 1.25);
+          c.font = numFont;
+          c.fillStyle = "#ffffff";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(newDigit, 0, 0);
+          c.restore();
+          c.restore();
+
+          // 2. Static Bottom Half Background (Shows OLD digit on Back Face tone)
+          c.save();
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(posX, midY, cardW, halfH, [0, 0, 8, 8]);
+          } else {
+            c.rect(posX, midY, cardW, halfH);
+          }
+          c.clip();
+          c.fillStyle = COLOR_BOT_BACK;
+          c.fillRect(posX, midY, cardW, halfH);
+
+          c.save();
+          c.translate(posX + cardW / 2, posY + cardH / 2 + 3.5);
+          c.scale(0.92, 1.25);
+          c.font = numFont;
+          c.fillStyle = "#eceef4";
+          c.textAlign = "center";
+          c.textBaseline = "middle";
+          c.fillText(oldDigit, 0, 0);
+          c.restore();
+          c.restore();
+
+          // 3. Falling / Unfolding 3D Flap
+          if (progress < 0.5) {
+            // Phase 1: Top half of OLD digit falls forward/downward (Front Face)
+            const scale = Math.cos(progress * Math.PI); // 1.0 -> 0.0
+            const flapH = Math.max(0.1, halfH * scale);
+            const flapY = midY - flapH;
+
+            c.save();
+            c.beginPath();
+            c.rect(posX, flapY, cardW, flapH);
+            c.clip();
+
+            // Flap Face (Lighter Front tone)
+            c.fillStyle = COLOR_TOP_FRONT;
+            c.fillRect(posX, flapY, cardW, flapH);
+
+            // Flap Glyph (Top half of OLD digit)
+            c.save();
+            c.translate(posX + cardW / 2, midY);
+            c.scale(0.92, scale * 1.25);
+            c.font = numFont;
+            c.fillStyle = "#ffffff";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(oldDigit, 0, -halfH / 2 + 3.5);
+            c.restore();
+
+            // Dynamic Drop Shadow as it tilts forward away from light
+            c.fillStyle = "rgba(0, 0, 0, " + (progress * 0.85).toFixed(2) + ")";
+            c.fillRect(posX, flapY, cardW, flapH);
+            c.restore();
+          } else {
+            // Phase 2: Bottom half of NEW digit unfolds into place (Back Face of Flap)
+            const scale = -Math.cos(progress * Math.PI); // 0.0 -> 1.0
+            const flapH = Math.max(0.1, halfH * scale);
+
+            c.save();
+            c.beginPath();
+            c.rect(posX, midY, cardW, flapH);
+            c.clip();
+
+            // Flap Face (Deeper Back tone)
+            c.fillStyle = COLOR_BOT_BACK;
+            c.fillRect(posX, midY, cardW, flapH);
+
+            // Flap Glyph (Bottom half of NEW digit)
+            c.save();
+            c.translate(posX + cardW / 2, midY);
+            c.scale(0.92, scale * 1.25);
+            c.font = numFont;
+            c.fillStyle = "#eceef4";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(newDigit, 0, halfH / 2 + 3.5);
+            c.restore();
+
+            // Receding Shadow
+            c.fillStyle = "rgba(0, 0, 0, " + ((1.0 - progress) * 0.85).toFixed(2) + ")";
+            c.fillRect(posX, midY, cardW, flapH);
+            c.restore();
+          }
+        }
+
+        // Mechanical Horizontal Split Crease (Shadow + Highlight)
+        c.fillStyle = "#06070a";
+        c.fillRect(posX, midY - 1, cardW, 1.5);
+        c.fillStyle = "#343a4e";
+        c.fillRect(posX, midY + 0.5, cardW, 0.8);
+
+        // Mechanical Retaining Hinge Brackets (Both Left & Right of each card, including Center Seam)
+        function drawHingeBracket(hx) {
+          const bw = 5;
+          const bh = 12;
+          const bx = hx - bw / 2;
+          const by = midY - bh / 2;
+
+          // 1. Dark Lug Bracket Housing
+          c.fillStyle = "#12151f";
+          c.beginPath();
+          if (typeof c.roundRect === "function") {
+            c.roundRect(bx, by, bw, bh, 2);
+          } else {
+            c.fillRect(bx, by, bw, bh);
+          }
+          c.fill();
+          c.strokeStyle = "#384058";
+          c.lineWidth = 1.0;
+          c.stroke();
+
+          // 2. Inset Polished Steel / Metallic Pivot Pin
+          c.fillStyle = "#8a96ab";
+          c.fillRect(bx + 1, midY - 2.5, bw - 2, 5);
+
+          // 3. Highlight Reflection & Shadow Seam
+          c.fillStyle = "#dce3f2";
+          c.fillRect(bx + 1, midY - 2.5, bw - 2, 1);
+          c.fillStyle = "#252b3b";
+          c.fillRect(bx + 1, midY + 1.5, bw - 2, 1);
+        }
+
+        // Draw left and right retaining clips on each card
+        drawHingeBracket(posX);
+        drawHingeBracket(posX + cardW);
+      }
+
+      // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
+      if (active_agents && active_agents.length > 0 && has_active_agents) {
+        // Draw Multi-Agent Status Dashboard inside the 102px x 140px safe corridor
+        const startY = cy - 65;
+        const visibleRows = Math.min(active_agents.length, 3);
+
+        for (let i = 0; i < visibleRows; i++) {
+          const rowY = startY + (i * 44);
+          const ag = active_agents[i];
+          const cardW = 98, cardH = 38;
+          const cardX = cx - cardW / 2;
+
+          // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
+          const isAGY = (ag.source === "antigravity" || (ag.name && ag.name.startsWith("AGY")));
+          const brandCol = isAGY ? "#FF7A00" : "#00E5FF";
+          const cardBg = isAGY ? "#18120C" : "#0C161D";
+          const cardBorder = isAGY ? "#5A2E05" : "#0A3D4D";
+
+          // Card Background
+          c.fillStyle = cardBg;
+          c.beginPath();
+          c.roundRect(cardX, rowY, cardW, cardH, 4);
+          c.fill();
+          c.strokeStyle = cardBorder;
+          c.lineWidth = 1;
+          c.stroke();
+
+          // Left Status Indicator Bar (Orange for AGY, Teal for Claude)
+          c.fillStyle = brandCol;
+          c.beginPath();
+          c.roundRect(cardX, rowY, 3, cardH, [4, 0, 0, 4]);
+          c.fill();
+
+          // Row 1: Agent Label & Status Dot
+          c.textAlign = "left";
+          c.textBaseline = "middle";
+          c.font = "bold 10px 'JetBrains Mono', monospace";
+          c.fillStyle = brandCol;
+          c.fillText(ag.name || "Agent", cardX + 8, rowY + 11);
+
+          // Status Dot
+          c.fillStyle = ag.color || brandCol;
+          c.beginPath();
+          c.arc(cardX + cardW - 10, rowY + 11, 3.5, 0, Math.PI * 2);
+          c.fill();
+
+          // Row 2: Detail / Action Text
+          c.font = "9px 'JetBrains Mono', monospace";
+          c.fillStyle = ag.color || brandCol;
+          let det = ag.detail || "";
+          if (det.length > 14) det = det.substring(0, 13) + "…";
+          c.fillText(det, cardX + 8, rowY + 26);
+        }
+      } else {
+        // Draw Animated 2x2 Matrix
+        draw2x2FlipCard(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);
+        draw2x2FlipCard(x2, yTop, roundOldDigits[1], dH2, roundFlipProgress[1]);
+        draw2x2FlipCard(x1, yBottom, roundOldDigits[2], dM1, roundFlipProgress[2]);
+        draw2x2FlipCard(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
+      }
+
+      // 7. Bottom Sub-HUD (Date & Weather Stacked, or Agent Alert, or Work Complete)
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      if (waiting_for_input) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = alertActive ? "#FFB800" : "#996e00";
+        c.fillText("⚠️ AGENT ALERT", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 95);
+      } else if (work_completed) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = blinkState ? "#00FF88" : "#059669";
+        c.fillText("✨ TASK COMPLETE ✨", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(completion_text || "ALL DONE", cx, cy + 95);
+      } else {
+        // Line 1: Claude Reset Countdown in Teal #00E5FF
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#00E5FF";
+        const cldStr = "CLD: " + (claude_reset_str || "READY");
+        c.fillText(cldStr, cx, cy + 81);
+
+        // Line 2: Antigravity Reset Countdown in Orange #FF7A00
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#FF7A00";
+        const agyStr = "AGY: " + (antigravity_reset_str || "READY");
+        c.fillText(agyStr, cx, cy + 95);
+      }
+    }
+
+    function drawGC9A01RoundFaceUI(c) {
+      const cx = 160, cy = 120, rScreen = 114;
+      const alertActive = Boolean(waiting_for_input && blinkState);
+
+      // 1. Outer Dark Bezel Canvas Background
+      c.fillStyle = "#0c0e14";
+      c.fillRect(0, 0, 320, 240);
+
+      // 2. Bezel Casing Ring (Normal, Alert, or Work Complete Pulse)
+      drawGC9A01BezelRing(c, cx, cy, rScreen);
+
+      // Screen background (Deep Black)
+      c.fillStyle = "#000000";
+      c.beginPath();
+      c.arc(cx, cy, rScreen, 0, Math.PI * 2);
+      c.fill();
+
+      // 2. Top Crown: Backend Connection Status Arc & Rain Indicator
+      const wifiLedEl = document.getElementById("wifiLed");
+      const backendStatusEl = document.getElementById("backendStatus");
+      const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
+      const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
+
+      drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn);
+
+      c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      let rainStr = "";
+      if (hours_until_rain === -1 || hours_until_rain === null || hours_until_rain === undefined) {
+        rainStr = "NO RAIN ☀️";
+        c.fillStyle = "#94a3b8";
+      } else if (hours_until_rain === 0) {
+        rainStr = "RAIN NOW 🌧️";
+        c.fillStyle = "#38bdf8";
+      } else {
+        const hVal = (typeof hours_until_rain === "number") ? hours_until_rain.toFixed(0) : hours_until_rain;
+        rainStr = "RAIN IN " + hVal + "h 🌧️";
+        c.fillStyle = (hours_until_rain <= 3) ? "#38bdf8" : "#cbd5e1";
+      }
+      c.fillText(rainStr, cx, cy - 93);
+
+      // 3. Central Dual Capsule Pill Eyes (Expressive Qbit Face - Enriched Bold Scale)
+      const eyeW = 54, eyeH = 80;
+      const leftEyeX = cx - 52;
+      const rightEyeX = cx + 52;
+      const bounceY = work_completed ? Math.sin(Date.now() / 180) * 3 : 0;
+      const eyeY = cy + bounceY;
+
+      // EYES BLINK & SACCADE PHYSICS
+      const blinkCycle = (Math.floor(Date.now() / 4000) % 2 === 0);
+      const isBlinking = (Date.now() % 4000 < 180);
+      const scaleY = isBlinking ? 0.08 : 1.0;
+      const curH = eyeH * scaleY;
+      const cornerR = Math.min(26, curH / 2);
+
+      const eyeGlowColor = work_completed ? "rgba(0, 255, 136, 0.85)" : (waiting_for_input ? "rgba(255, 184, 0, 0.85)" : "rgba(0, 229, 255, 0.75)");
+      const eyeFillColor = work_completed ? "#00FF88" : (waiting_for_input ? "#FFB800" : "#00E5FF");
+
+      // Draw Left Capsule Eye
+      c.save();
+      c.shadowColor = eyeGlowColor;
+      c.shadowBlur = 16;
+      c.fillStyle = eyeFillColor;
+      c.beginPath();
+      if (typeof c.roundRect === "function") {
+        c.roundRect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR);
+      } else {
+        c.rect(leftEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH);
+      }
+      c.fill();
+
+      // Draw Right Capsule Eye
+      c.beginPath();
+      if (typeof c.roundRect === "function") {
+        c.roundRect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH, cornerR);
+      } else {
+        c.rect(rightEyeX - eyeW / 2, eyeY - curH / 2, eyeW, curH);
+      }
+      c.fill();
+      c.restore();
+
+      // Inner Pupil Iris Highlights
+      if (!isBlinking) {
+        c.fillStyle = "#ffffff";
+        c.beginPath();
+        c.arc(leftEyeX - 7, eyeY - 16, 7, 0, Math.PI * 2);
+        c.arc(rightEyeX - 7, eyeY - 16, 7, 0, Math.PI * 2);
+        c.fill();
+      }
+
+      // 4. Bottom Sub-HUD (Date & Weather / Agent Alert / Work Complete)
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      if (waiting_for_input) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = alertActive ? "#FFB800" : "#996e00";
+        c.fillText("⚠️ AGENT ALERT", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 95);
+      } else if (work_completed) {
+        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.fillStyle = blinkState ? "#00FF88" : "#059669";
+        c.fillText("✨ TASK COMPLETE ✨", cx, cy + 81);
+
+        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(completion_text || "ALL DONE", cx, cy + 95);
+      } else {
+        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.fillStyle = "#94a3b8";
+        c.fillText(date_string.toUpperCase(), cx, cy + 81);
+
+        c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
+        c.fillStyle = "#ffffff";
+        const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
+        c.fillText(tempFormatted + "°C ☀️", cx, cy + 95);
+      }
+    }
+
+    let isOTAUpdating = false;
+    let otaPercent = 0;
+    let otaTimer = null;
+
+    function triggerOTASimulation() {
+      if (isOTAUpdating) return;
+      isOTAUpdating = true;
+      otaPercent = 0;
+      if (otaTimer) clearInterval(otaTimer);
+      otaTimer = setInterval(() => {
+        otaPercent += 2;
+        if (otaPercent >= 100) {
+          clearInterval(otaTimer);
+          setTimeout(() => {
+            isOTAUpdating = false;
+            otaPercent = 0;
+          }, 2000);
+        }
+      }, 70);
+    }
+
+    function drawGC9A01OTAScreen(c) {
+      const cx = 120, cy = 120;
+      c.fillStyle = KINETIC_BLACK;
+      c.fillRect(0, 0, 240, 240);
+
+      // Outer dark track
+      c.strokeStyle = KINETIC_DARK_SLATE;
+      c.lineWidth = 4;
+      c.beginPath();
+      c.arc(cx, cy, 114, 0, Math.PI * 2);
+      c.stroke();
+
+      // Progress Arc
+      c.strokeStyle = KINETIC_AMBER;
+      c.lineWidth = 4;
+      c.beginPath();
+      const maxRad = (otaPercent / 100) * Math.PI * 2;
+      c.arc(cx, cy, 114, -Math.PI / 2, -Math.PI / 2 + maxRad);
+      c.stroke();
+
+      c.textAlign = "center";
+      c.fillStyle = QBIT_CYAN;
+      c.font = "bold 10px monospace";
+      c.fillText("FIRMWARE OTA", cx, cy - 40);
+
+      c.fillStyle = "#94A3B8";
+      c.font = "9px monospace";
+      c.fillText("v0.4 -> v0.5", cx, cy - 25);
+
+      c.fillStyle = "#FFFFFF";
+      c.font = "bold 26px monospace";
+      c.fillText(otaPercent + "%", cx, cy + 8);
+
+      c.fillStyle = KINETIC_AMBER;
+      c.font = "bold 9px monospace";
+      c.fillText(otaPercent >= 100 ? "REBOOTING..." : "FLASHING...", cx, cy + 30);
+
+      c.fillStyle = "#64748B";
+      c.font = "8px monospace";
+      c.fillText("DO NOT UNPLUG", cx, cy + 45);
+    }
+
+    function renderScreenState(screenId, ctxTarget) {
+      if (isOTAUpdating) drawGC9A01OTAScreen(ctxTarget);
+      else if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
+      else drawGC9A01RoundFlipUI(ctxTarget);
+    }
+
+    // --- MAIN RENDER LOOP ---
+    function render() {
+      // Handle Blinking LED / Alert Timer (500ms)
+      if (Date.now() - lastBlinkTime >= 500) {
+        blinkState = !blinkState;
+        lastBlinkTime = Date.now();
+      }
+
+      if (isBooting) {
+        ctx.fillStyle = KINETIC_BLACK;
+        ctx.fillRect(0, 0, 320, 240);
+        ctx.fillStyle = KINETIC_YELLOW;
+        ctx.font = "bold 16px 'Fira Code', monospace";
+        ctx.textAlign = "center";
+        if (bootStep === 1) {
+          ctx.fillText("Connecting WiFi...", 160, 110);
+        } else if (bootStep === 2) {
+          ctx.fillText("WiFi Connected!", 160, 110);
+        } else if (bootStep === 3) {
+          ctx.fillStyle = KINETIC_CYAN;
+          ctx.fillText("[OTA] Checking GitHub...", 160, 110);
+        }
+        requestAnimationFrame(render);
+        return;
+      }
+
+      // Handle Screen Slide Transition Animation
+      if (transitionProgress < 1.0) {
+        transitionProgress += 0.05; // 20 frames transition
+        if (transitionProgress >= 1.0) transitionProgress = 1.0;
+
+        renderScreenState(prevScreen, ctxCurrent);
+        renderScreenState(nextScreen, ctxNext);
+
+        const xOffset = Math.floor(320 * transitionProgress);
+        ctx.fillStyle = KINETIC_BLACK;
+        ctx.fillRect(0, 0, 320, 240);
+        ctx.drawImage(offscreenCurrent, -xOffset, 0);
+        ctx.drawImage(offscreenNext, 320 - xOffset, 0);
+      } else {
+        renderScreenState(currentScreen, ctx);
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // --- INTERACTIVE ACTIONS ---
+    function switchScreen(screenIdx) {
+      if (isBooting || screenIdx === currentScreen) return;
+      prevScreen = currentScreen;
+      nextScreen = screenIdx;
+      currentScreen = screenIdx;
+      transitionProgress = 0.0;
+
+      const bezelTag = document.getElementById("bezelTag");
+      if (bezelTag) {
+        bezelTag.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">radio_button_checked</span> GC9A01 // ROUND 240x240`;
+      }
+
+      const btnRound = document.getElementById("btnRound");
+      const btnRoundFace = document.getElementById("btnRoundFace");
+      if (btnRound) btnRound.classList.toggle("active", screenIdx === 3);
+      if (btnRoundFace) btnRoundFace.classList.toggle("active", screenIdx === 4);
+    }
+
+    document.getElementById("screenGlass").addEventListener("click", () => {
+      // Toggle between the round HUD and the round face view.
+      switchScreen(currentScreen === 4 ? 3 : 4);
+    });
+
+    function toggleAgentInput(checked) {
+      waiting_for_input = checked;
+      if (checked) {
+        work_completed = false;
+        const completeToggle = document.getElementById("workCompleteToggle");
+        if (completeToggle) completeToggle.checked = false;
+        if (completionCountdownTimer) {
+          clearTimeout(completionCountdownTimer);
+          completionCountdownTimer = null;
+        }
+      }
+    }
+
+    function toggleWorkComplete(checked) {
+      work_completed = checked;
+      if (checked) {
+        waiting_for_input = false;
+        const alertToggle = document.getElementById("agentInputToggle");
+        if (alertToggle) alertToggle.checked = false;
+      }
+    }
+
+    function triggerCompletionPulse(durationSeconds = 10) {
+      work_completed = true;
+      waiting_for_input = false;
+      const completeToggle = document.getElementById("workCompleteToggle");
+      const alertToggle = document.getElementById("agentInputToggle");
+      if (completeToggle) completeToggle.checked = true;
+      if (alertToggle) alertToggle.checked = false;
+
+      if (completionCountdownTimer) clearTimeout(completionCountdownTimer);
+      completionCountdownTimer = setTimeout(() => {
+        work_completed = false;
+        if (completeToggle) completeToggle.checked = false;
+        completionCountdownTimer = null;
+      }, durationSeconds * 1000);
+    }
+
+    function triggerApprovalAlert(planText = "APPROVE PLAN") {
+      waiting_for_input = true;
+      work_completed = false;
+      prompt_text = planText;
+      const completeToggle = document.getElementById("workCompleteToggle");
+      const alertToggle = document.getElementById("agentInputToggle");
+      if (completeToggle) completeToggle.checked = false;
+      if (alertToggle) alertToggle.checked = true;
+      const promptInput = document.getElementById("promptTextInput");
+      if (promptInput) promptInput.value = planText;
+      const promptVal = document.getElementById("promptTextVal");
+      if (promptVal) promptVal.innerText = planText;
+      if (completionCountdownTimer) {
+        clearTimeout(completionCountdownTimer);
+        completionCountdownTimer = null;
+      }
+    }
+
+    function updatePromptText(val) {
+      prompt_text = val.trim() || "INPUT REQ";
+      document.getElementById("promptTextVal").innerText = prompt_text;
+    }
+
+    function updateCompletionText(val) {
+      completion_text = val.trim() || "WORK COMPLETE";
+      const el = document.getElementById("completionTextVal");
+      if (el) el.innerText = completion_text;
+    }
+
+    function updateClaudeVal(val) {
+      claude_remaining = Math.round((val / 100) * claude_limit);
+      document.getElementById("claudeVal").innerText = val + "%";
+    }
+
+    function updateAntiVal(val) {
+      antigravity_remaining = Math.round((val / 100) * antigravity_limit);
+      document.getElementById("antiVal").innerText = val + "%";
+    }
+
+    function updateTempVal(val) {
+      current_temperature = parseFloat(val);
+      document.getElementById("tempVal").innerText = val + "°C";
+    }
+
+    function updateRainVal(val) {
+      hours_until_rain = parseInt(val);
+      document.getElementById("rainVal").innerText = hours_until_rain === -1 ? "NONE" : hours_until_rain + ".0 hrs";
+    }
+
+    function triggerReboot() {
+      isBooting = true;
+      bootStep = 1;
+      setTimeout(() => { bootStep = 2; }, 1000);
+      setTimeout(() => { bootStep = 3; }, 2000);
+      setTimeout(() => {
+        isBooting = false;
+        bootStep = 0;
+      }, 3000);
+    }
+
+    // --- BACKEND DATA FETCHING ---
+    async function fetchBackendData() {
+      const wifiLed = document.getElementById("wifiLed");
+      const backendStatus = document.getElementById("backendStatus");
+      try {
+        const res = await fetch("http://localhost:5000/data", { method: "GET" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.claude) {
+            claude_limit = data.claude.limit || 500000;
+            claude_remaining = data.claude.remaining || 500000;
+            claude_reset_str = data.claude.reset_str || "";
+            document.getElementById("claudeSlider").value = Math.round((claude_remaining/claude_limit)*100);
+            document.getElementById("claudeVal").innerText = Math.round((claude_remaining/claude_limit)*100) + "%";
+          }
+          if (data.antigravity) {
+            antigravity_limit = data.antigravity.limit || 200;
+            antigravity_remaining = data.antigravity.remaining !== undefined ? data.antigravity.remaining : 200;
+            antigravity_reset_str = data.antigravity.reset_str || "";
+            document.getElementById("antiSlider").value = Math.round((antigravity_remaining/antigravity_limit)*100);
+            document.getElementById("antiVal").innerText = Math.round((antigravity_remaining/antigravity_limit)*100) + "%";
+          }
+          if (data.weather) {
+            current_temperature = data.weather.temperature || 20.0;
+            hours_until_rain = data.weather.hours_until_rain ?? -1;
+            date_string = data.weather.date_string || "SUN 01 AUG";
+            document.getElementById("tempSlider").value = current_temperature;
+            document.getElementById("tempVal").innerText = current_temperature.toFixed(1) + "°C";
+            document.getElementById("rainSlider").value = hours_until_rain;
+            document.getElementById("rainVal").innerText = hours_until_rain === -1 ? "NONE" : hours_until_rain + ".0 hrs";
+          }
+          if (data.time) {
+            server_hour = data.time.hours;
+            server_minute = data.time.minutes;
+            server_second = data.time.seconds;
+            lastTimeSync = Date.now();
+          }
+          if (data.agent) {
+            waiting_for_input = !!data.agent.waiting_for_input;
+            prompt_text = data.agent.prompt_text || "APPROVE PLAN";
+            work_completed = !!data.agent.work_completed || !!data.agent.completion_flash || (data.agent.state === "completed");
+            if (data.agent.completion_text) {
+              completion_text = data.agent.completion_text;
+            }
+            active_agents = data.agent.active_agents || [];
+            has_active_agents = !!data.agent.has_active_agents || (active_agents.length > 0 && (waiting_for_input || work_completed));
+            const agentToggle = document.getElementById("agentInputToggle");
+            if (agentToggle) agentToggle.checked = waiting_for_input;
+            const completeToggle = document.getElementById("workCompleteToggle");
+            if (completeToggle) completeToggle.checked = work_completed;
+            const promptInput = document.getElementById("promptTextInput");
+            if (promptInput) promptInput.value = prompt_text;
+            const promptVal = document.getElementById("promptTextVal");
+            if (promptVal) promptVal.innerText = prompt_text;
+            const compInput = document.getElementById("completionTextInput");
+            if (compInput) compInput.value = completion_text;
+            const compVal = document.getElementById("completionTextVal");
+            if (compVal) compVal.innerText = completion_text;
+          }
+
+          wifiLed.className = "led wifi";
+          backendStatus.className = "status-badge";
+          backendStatus.innerText = "CONNECTED";
+        } else {
+          throw new Error("HTTP error " + res.status);
+        }
+      } catch (err) {
+        wifiLed.className = "led wifi offline";
+        backendStatus.className = "status-badge offline";
+        backendStatus.innerText = "DISCONNECTED";
+      }
+    }
+
+    function toggleBackendSync(enabled) {
+      backendSyncEnabled = enabled;
+      if (enabled) {
+        fetchBackendData();
+        syncIntervalId = setInterval(fetchBackendData, 5000);
+      } else {
+        if (syncIntervalId) clearInterval(syncIntervalId);
+      }
+    }
+
+    // Start App & Polling
+    fetchBackendData();
+    syncIntervalId = setInterval(fetchBackendData, 5000);
+
+    switchScreen(3);
+    render();
+  </script>
+</body>
+</html>
