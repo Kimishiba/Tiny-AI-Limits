@@ -365,23 +365,19 @@ module main_housing() {
     snap_z      = floor_t + 1.8 + 1.2 + 0.2; // 5.2mm
 
     union() {
-        // 1. Low-Profile Continuous Rear Thrust Wall (flush with side walls)
-        translate([x_rear, -(cur_esp_w / 2 + side_thick), floor_t])
-            cube([wall_thick, cur_esp_w + 2 * side_thick, cradle_h]);
-
-        // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
+        // 1. Straight Vertical Side Guide Walls (solid all the way to floor, open rear gap)
         translate([x_front, cur_esp_w / 2, floor_t])
             cube([cur_esp_l, side_thick, cradle_h]);
         translate([x_front, -(cur_esp_w / 2 + side_thick), floor_t])
             cube([cur_esp_l, side_thick, cradle_h]);
 
-        // 3. Integrated 0.6mm Side Edge Support Steps (Supports outer PCB edge outside pin rows)
+        // 2. Integrated 0.6mm Side Edge Support Steps (Supports outer PCB edge outside pin rows)
         translate([x_front, cur_esp_w / 2 - 0.6, floor_t])
             cube([cur_esp_l, 0.6, 1.8]);
         translate([x_front, -cur_esp_w / 2, floor_t])
             cube([cur_esp_l, 0.6, 1.8]);
 
-        // 4. Discrete 45-Degree Self-Supporting Snap Retention Clips
+        // 3. Discrete 45-Degree Self-Supporting Snap Retention Clips
         // Top clip
         translate([cur_esp_cx, cur_esp_w / 2, snap_z])
             hull() {

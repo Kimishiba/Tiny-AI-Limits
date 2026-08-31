@@ -446,21 +446,27 @@ def generate_main_housing():
     hw_in = esp_w / 2.0          # 9.10mm
     hw_out = hw_in + side_thick  # 10.50mm
 
-    # 1. Monolithic Continuous Low-Profile U-Wall (Side guide walls + continuous rear endstop, CCW Winding):
-    pts_u_wall = [
+    # 1. Top Side Guide Rail (CCW Winding):
+    pts_rail_t = [
         [x_front, hw_in],
         [x_rear, hw_in],
-        [x_rear, -hw_in],
-        [x_front, -hw_in],
-        [x_front, -hw_out],
-        [x_back, -hw_out],
-        [x_back, hw_out],
+        [x_rear, hw_out],
         [x_front, hw_out]
     ]
-    poly_u_wall = m3d.CrossSection([pts_u_wall])
-    u_wall_solid = m3d.Manifold.extrude(poly_u_wall, cradle_h).translate([0, 0, floor_t])
+    poly_rail_t = m3d.CrossSection([pts_rail_t])
+    wall_top_solid = m3d.Manifold.extrude(poly_rail_t, cradle_h).translate([0, 0, floor_t])
 
-    # 2. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
+    # 2. Bottom Side Guide Rail (CCW Winding):
+    pts_rail_b = [
+        [x_front, -hw_out],
+        [x_rear, -hw_out],
+        [x_rear, -hw_in],
+        [x_front, -hw_in]
+    ]
+    poly_rail_b = m3d.CrossSection([pts_rail_b])
+    wall_bot_solid = m3d.Manifold.extrude(poly_rail_b, cradle_h).translate([0, 0, floor_t])
+
+    # 3. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
     pts_ledge_t = [
         [x_front, hw_in - 0.6],
         [x_rear, hw_in - 0.6],
@@ -479,13 +485,13 @@ def generate_main_housing():
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
 
-    # 3. Discrete Side Retention Snap Clips:
+    # 4. Discrete Side Retention Snap Clips:
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.2 + 0.2  # 5.2mm
     clip_top = make_snap_clip(5.0, 0.45, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.45, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
-    cradle_solid = (u_wall_solid + ledge_top + ledge_bot + clip_top + clip_bot)
+    cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + clip_top + clip_bot)
 
     return housing_hollow + cradle_solid
 
