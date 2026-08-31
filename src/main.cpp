@@ -1283,6 +1283,7 @@ void initActiveDisplay() {
 
 bool connectToWifi(const char* ssid, const char* password);
 void onWifiConnected();
+void handleSerialCommunication();
 
 // ==========================================
 // HTTP SERVER (Companion App Screen Provisioning)
@@ -1875,46 +1876,49 @@ void fetchBackendData() {
 // WIFI CONNECTION
 // ==========================================
 bool connectToWifi(const char* ssid, const char* password) {
-    WiFi.disconnect(true, true);
-    delay(150);
-    WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(true);
-    WiFi.setSleep(false);
-    WiFi.setTxPower(WIFI_POWER_19_5dBm);
+    // Array of TX power levels to try: KPN / European routers and ESP32-C3 ceramic
+    // antennas are prone to failing at 19.5dBm when close to the router due to RF
+    // overload and voltage sag. We step through low to max power for universal compatibility.
+    wifi_power_t txPowers[] = { WIFI_POWER_8_5dBm, WIFI_POWER_11dBm, WIFI_POWER_15dBm, WIFI_POWER_19_5dBm };
+    const char* txPowerNames[] = { "8.5dBm (KPN/EU Low)", "11dBm (Balanced)", "15dBm (High)", "19.5dBm (Max Range)" };
 
-    wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
-    esp_wifi_set_country(&country);
-    delay(50);
+    for (int pIdx = 0; pIdx < 4; pIdx++) {
+        WiFi.disconnect(true, true);
+        delay(100);
+        WiFi.mode(WIFI_STA);
+        WiFi.setAutoReconnect(true);
+        WiFi.setSleep(false);
+        esp_wifi_set_ps(WIFI_PS_NONE);
+        WiFi.setTxPower(txPowers[pIdx]);
 
-    Serial.printf("\n[WiFi] Connecting to '%s' (TX: 19.5dBm)...\n", ssid);
-    WiFi.begin(ssid, password);
-
-    unsigned long connectStart = millis();
-    int attempts = 0;
-    // Poll every 50ms (not 500ms): Improv WiFi's browser-side handshake sends a
-    // single request-current-state call with no retry, and a serial connection
-    // opening resets this board -- so if the timing lands inside this loop with
-    // only 500ms granularity, the handshake can time out before we ever service it.
-    while (WiFi.status() != WL_CONNECTED && millis() - connectStart < wifiConnectTimeoutMs) {
+        wifi_country_t country = {"NL", 1, 13, 20, WIFI_COUNTRY_POLICY_AUTO};
+        esp_wifi_set_country(&country);
         delay(50);
-        attempts++;
-        if (attempts % 40 == 0) {
-            Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
+
+        Serial.printf("\n[WiFi] Attempt %d/4: Connecting to '%s' with TX power %s...\n", pIdx + 1, ssid, txPowerNames[pIdx]);
+        WiFi.begin(ssid, password);
+
+        unsigned long connectStart = millis();
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && millis() - connectStart < 6000) {
+            delay(50);
+            attempts++;
+            if (attempts % 30 == 0) {
+                Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
+            }
+            handleSerialCommunication();
         }
-        // handleSerial() consumes exactly one byte per call -- drain everything
-        // waiting so a full Improv packet doesn't take multiple ticks to parse.
-        while (Serial.available()) {
-            improvSerial.handleSerial();
+
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.printf("[WiFi] SUCCESS! Connected with TX power %s. Local IP: %s\n", txPowerNames[pIdx], WiFi.localIP().toString().c_str());
+            onWifiConnected();
+            return true;
         }
+
+        Serial.printf("[WiFi] Attempt %d failed (status: %d).\n", pIdx + 1, WiFi.status());
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
-        Serial.printf("[WiFi] SUCCESS! Local IP: %s\n", WiFi.localIP().toString().c_str());
-        onWifiConnected();
-        return true;
-    }
-
-    Serial.printf("[WiFi] Connection to '%s' failed (status: %d).\n", ssid, WiFi.status());
+    Serial.printf("[WiFi] All connection attempts to '%s' failed.\n", ssid);
     WiFi.disconnect(true, false);
     delay(50);
     return false;
@@ -2011,7 +2015,14 @@ void handleSerialCommunication() {
             line.trim();
             if (line.length() == 0) continue;
 
-            if (line == "SCAN") {
+            if (line == "CLEAR" || line == "RESET_WIFI") {
+                wifiPrefs.begin("wifi", false);
+                wifiPrefs.clear();
+                wifiPrefs.end();
+                WiFi.disconnect(true, true);
+                provisioningMode = true;
+                Serial.println("[WiFi] Stored credentials cleared. In provisioning mode.");
+            } else if (line == "SCAN") {
                 WiFi.mode(WIFI_STA);
                 int16_t n = WiFi.scanNetworks();
                 Serial.print("SCAN_RESULT:[");
@@ -2251,23 +2262,12 @@ void loop() {
 
     // 3. Auto-reconnect Wi-Fi
     static unsigned long lastWiFiCheck = 0;
-    if (now - lastWiFiCheck >= 5000) {
+    if (now - lastWiFiCheck >= 20000) {
         lastWiFiCheck = now;
         if (WiFi.status() != WL_CONNECTED) {
             wifiConnected = false;
             if (!provisioningMode) {
                 WiFi.reconnect();
-            } else {
-                // A failed first-boot attempt leaves us here permanently otherwise --
-                // RF flakiness (auth/handshake timeouts) means a retry often succeeds.
-                wifiPrefs.begin("wifi", false);
-                String storedSsid = wifiPrefs.getString("ssid", "");
-                String storedPassword = wifiPrefs.getString("password", "");
-                wifiPrefs.end();
-                if (storedSsid.length() > 0 && connectToWifi(storedSsid.c_str(), storedPassword.c_str())) {
-                    provisioningMode = false;
-                    onWifiConnected();
-                }
             }
         } else {
             wifiConnected = true;

@@ -152,7 +152,7 @@ def export_stl(manifold_obj, filepath, name="Model"):
     return tri_mesh
 
 def generate_front_bezel():
-    w = 54.0
+    w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
     ext = 4.0 # Base extended 4.0mm down from original print base
     t = 5.5 + ext # 9.5mm base thickness
@@ -233,7 +233,7 @@ def generate_front_bezel():
     return bezel_hollow + tab_right + tab_left + tab_top
 
 def generate_mid_clamp():
-    w = 54.0
+    w = 54.4
     c = 6.0
     t = 2.0
     lip_h = 0.6
@@ -316,7 +316,7 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def generate_main_housing():
+def generate_main_housing(include_opposite_dupont=True):
     w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
     depth = 27.5
@@ -365,11 +365,12 @@ def generate_main_housing():
     t_ramp_bot = m3d.Manifold.cube([26.0, 3.0, trench_h + 2.0]).translate([-13.0, -24.0, trench_z0 - 2.0])
     dupont_trench_bot = (t_base_bot + t_ramp_bot).hull()
 
-    t_base_rt = m3d.Manifold.cube([5.0, 26.0, trench_h]).translate([21.0, -13.0, trench_z0])
-    t_ramp_rt = m3d.Manifold.cube([3.0, 26.0, trench_h + 2.0]).translate([21.0, -13.0, trench_z0 - 2.0])
-    dupont_trench_right = (t_base_rt + t_ramp_rt).hull()
-
-    dupont_trench = dupont_trench_bot + dupont_trench_right
+    dupont_trench = dupont_trench_bot
+    if include_opposite_dupont:
+        t_base_rt = m3d.Manifold.cube([5.0, 26.0, trench_h]).translate([21.0, -13.0, trench_z0])
+        t_ramp_rt = m3d.Manifold.cube([3.0, 26.0, trench_h + 2.0]).translate([21.0, -13.0, trench_z0 - 2.0])
+        dupont_trench_right = (t_base_rt + t_ramp_rt).hull()
+        dupont_trench = dupont_trench_bot + dupont_trench_right
     
     # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
     screw_pilot_cuts = m3d.Manifold()
@@ -564,7 +565,7 @@ def generate_stand_tier2_trunk():
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    w_c = 54.8
+    w_c = 55.2 # 54.4mm pod + 0.8mm slide clearance
     slot_depth = 36.5
     c_c = 6.0
     hw_c = w_c / 2.0
@@ -621,7 +622,7 @@ def generate_monolithic_desk_stand():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    w_c = 54.8
+    w_c = 55.2 # 54.4mm pod + 0.8mm slide clearance
     slot_depth = 36.5
     c_c = 6.0
     hw_c = w_c / 2.0
@@ -653,7 +654,7 @@ def generate_monolithic_desk_stand():
 def generate_minimalist_stand():
     """
     1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787932520699.jpg):
-    - 54.0mm wide matching pod
+    - 54.4mm wide matching pod
     - 56.0mm base depth on desk
     - 6.0mm base plate with wide 45° front chamfer
     - 22.0° angled front lip matching bezel chamfer
@@ -663,7 +664,7 @@ def generate_minimalist_stand():
     - 4x rubber feet recess pockets (dia 8.0mm x 1.5mm)
     - 100% support-free FDM 3D printable
     """
-    stand_w = 54.0
+    stand_w = 54.4
     tilt_deg = 22.0
     tilt_rad = math.radians(tilt_deg)
     s_t = math.sin(tilt_rad)
@@ -726,9 +727,13 @@ def main():
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
-    housing = generate_main_housing()
+    housing = generate_main_housing(include_opposite_dupont=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
     export_stl(housing, housing_path, "Main Housing Pod (V2.0)")
+
+    housing_legacy = generate_main_housing(include_opposite_dupont=False)
+    housing_legacy_path = os.path.join(output_dir, "gc9a01_main_housing_legacy.stl")
+    export_stl(housing_legacy, housing_legacy_path, "Main Housing Pod Legacy (Single Bottom Trench)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")

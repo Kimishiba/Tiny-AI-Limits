@@ -2,8 +2,11 @@ import os
 import glob
 import json
 import time
+import re
+import ssl
 import subprocess
-import requests
+import urllib.request
+import urllib.error
 import logging
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
@@ -18,57 +21,77 @@ class AntigravityProvider(BaseProvider):
     color = "0xFF9100"  # Orange
     ttl_seconds = 30
 
-    def _find_language_servers(self) -> List[Tuple[int, str]]:
-        """Find running Antigravity Language Server processes and their CSRF tokens."""
-        results = []
+    def _find_language_servers(self) -> List[Dict[str, Any]]:
+        """Find running Antigravity Language Server processes and their CSRF tokens and listening ports."""
+        servers = []
+        import sys
+        if sys.platform.startswith("win"):
+            try:
+                ps_cmd = 'Get-CimInstance Win32_Process | Where-Object Name -like "*language_server*" | Select-Object ProcessId, CommandLine | ConvertTo-Json'
+                output = subprocess.check_output(["powershell", "-NoProfile", "-Command", ps_cmd], text=True, timeout=3)
+                if not output.strip():
+                    return servers
+                data = json.loads(output)
+                procs = [data] if isinstance(data, dict) else data
+
+                netstat_out = subprocess.check_output(["netstat", "-ano", "-p", "tcp"], text=True, stderr=subprocess.DEVNULL, timeout=3)
+                for p in procs:
+                    cmd = p.get("CommandLine") or ""
+                    pid = p.get("ProcessId")
+                    if not pid or not cmd:
+                        continue
+                    token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9-]+)", cmd)
+                    if not token_match:
+                        continue
+                    csrf_token = token_match.group(1)
+
+                    ports = []
+                    for line in netstat_out.splitlines():
+                        if "LISTENING" in line and str(pid) == line.strip().split()[-1]:
+                            m = re.search(r"(?:127\.0\.0\.1|0\.0\.0\.0|\[::\]|\[::1\]):(\d+)", line)
+                            if m:
+                                ports.append(int(m.group(1)))
+                    ports = sorted(set(ports))
+                    if ports:
+                        servers.append({"pid": str(pid), "csrf_token": csrf_token, "ports": ports})
+            except Exception as e:
+                logger.debug("Error finding language servers on Windows: %s", e)
+            return servers
+
         try:
-            cmd = ["ps", "auxww"]
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=2)
-            lines = res.stdout.splitlines()
-
-            for line in lines:
-                if "language_server" in line and ("--csrf_token=" in line or "--csrf_token" in line):
-                    parts = line.split()
-                    if len(parts) < 2:
-                        continue
-                    try:
-                        pid = int(parts[1])
-                    except ValueError:
-                        continue
-
-                    token = None
-                    for token_part in line.split():
-                        if token_part.startswith("--csrf_token="):
-                            token = token_part.split("=", 1)[1]
-                            break
-
-                    if token:
-                        results.append((pid, token))
-        except (subprocess.SubprocessError, OSError) as e:
+            ps_output = subprocess.check_output(["ps", "aux"], text=True, timeout=3)
+        except Exception as e:
             logger.debug("Failed executing ps to locate language server: %s", e)
-        except Exception as e:
-            logger.debug("Unexpected error finding language servers: %s", e)
+            return servers
 
-        return results
+        for line in ps_output.splitlines():
+            if "language_server" not in line:
+                continue
+            parts = line.split(None, 10)
+            if len(parts) < 2:
+                continue
+            pid = parts[1]
+            token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9-]+)", line)
+            if not token_match:
+                continue
+            csrf_token = token_match.group(1)
 
-    def _get_listening_ports_for_pid(self, pid: int) -> List[int]:
-        """Find TCP listening ports for the given PID using lsof or netstat."""
-        ports = []
-        try:
-            cmd = ["lsof", "-aPi", "-p", str(pid), "-sTCP:LISTEN", "-Fn"]
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=2)
-            for line in res.stdout.splitlines():
-                if line.startswith("n*:") or line.startswith("n127.0.0.1:") or line.startswith("nlocalhost:"):
-                    port_str = line.split(":")[-1]
-                    try:
-                        ports.append(int(port_str))
-                    except ValueError:
-                        pass
-        except (subprocess.SubprocessError, OSError) as e:
-            logger.debug("Failed running lsof for PID %s: %s", pid, e)
-        except Exception as e:
-            logger.debug("Unexpected error getting ports for PID %s: %s", pid, e)
-        return ports
+            try:
+                lsof_output = subprocess.check_output(
+                    ["lsof", "-a", "-p", pid, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+                    text=True, stderr=subprocess.DEVNULL, timeout=3
+                )
+                ports = sorted(set(
+                    int(m.group(1))
+                    for m in re.finditer(r":(\d+)\s*\(LISTEN\)", lsof_output)
+                ))
+            except Exception:
+                ports = []
+
+            if ports:
+                servers.append({"pid": pid, "csrf_token": csrf_token, "ports": ports})
+
+        return servers
 
     def _query_live_rpc(self) -> Optional[Dict[str, Any]]:
         """Connect to local Language Server Connect RPC to query live quota & user status."""
@@ -76,25 +99,33 @@ class AntigravityProvider(BaseProvider):
         if not servers:
             return None
 
-        for pid, token in servers:
-            ports = self._get_listening_ports_for_pid(pid)
-            for port in ports:
-                try:
-                    url = f"http://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
-                    headers = {
-                        "Content-Type": "application/json",
-                        "X-Csrf-Token": token,
-                        "Connect-Protocol-Version": "1"
-                    }
-                    resp = requests.post(url, headers=headers, json={}, timeout=1.5)
-                    if resp.status_code == 200:
-                        return resp.json()
-                except requests.RequestException as e:
-                    logger.debug("Connect RPC failed on port %s: %s", port, e)
-                    continue
-                except Exception as e:
-                    logger.debug("Connect RPC error on port %s: %s", port, e)
-                    continue
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+        payload = json.dumps({
+            "metadata": {"ideName": "antigravity", "extensionName": "antigravity", "locale": "en"}
+        }).encode("utf-8")
+
+        for server in servers:
+            token = server["csrf_token"]
+            headers = {
+                "Content-Type": "application/json",
+                "Connect-Protocol-Version": "1",
+                "User-Agent": "antigravity",
+                "X-Codeium-Csrf-Token": token,
+            }
+            for port in server["ports"]:
+                for scheme in ["https", "http"]:
+                    url = f"{scheme}://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
+                    try:
+                        req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+                        with urllib.request.urlopen(req, context=ctx if scheme == "https" else None, timeout=2.0) as resp:
+                            if resp.status == 200:
+                                return json.loads(resp.read().decode("utf-8"))
+                    except Exception as e:
+                        logger.debug("Connect RPC %s on port %s failed: %s", scheme, port, e)
+                        continue
         return None
 
     def _scan_antigravity_transcripts(self) -> Tuple[int, int]:
@@ -147,13 +178,16 @@ class AntigravityProvider(BaseProvider):
         live_data = self._query_live_rpc()
         if live_data:
             user_status = live_data.get("userStatus", {})
-            user_email = user_status.get("userEmail")
-            models = live_data.get("models", [])
+            user_email = user_status.get("email") or user_status.get("userEmail")
             
+            client_models = user_status.get("cascadeModelConfigData", {}).get("clientModelConfigs", [])
+            if not client_models:
+                client_models = live_data.get("models", [])
+
             gemini_quota = None
-            for m in models:
-                mid = m.get("modelId", "")
-                if "gemini" in mid.lower():
+            for m in client_models:
+                mid = (m.get("modelId") or m.get("label") or "").lower()
+                if "gemini" in mid:
                     gemini_quota = m.get("quotaInfo")
                     if gemini_quota is not None:
                         break

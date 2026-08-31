@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (V2.0), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand
+part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (V2.0), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
 
 // Outer Dimensions
 enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls
@@ -243,8 +243,8 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD (Support-Free V2.0: Recessed Flat USB-C, Wide Cradle, Dual DuPont Trenches, Debossed V2.0)
-module main_housing() {
+// 3. MAIN HOUSING POD (Support-Free V2.0: Recessed Flat USB-C, Snug Cradle, Dual DuPont Trenches, Debossed V2.0)
+module main_housing(include_opposite_dupont=true) {
     cavity_depth = housing_depth - floor_t;
     
     difference() {
@@ -257,13 +257,9 @@ module main_housing() {
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter();
         
-        // 2b. Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -26.0mm shoulder, 45° top ceiling & outer transitions)
-        hull() {
-            translate([-26.1, -10.3, floor_t])
-                cube([0.1, 20.6, 8.0]);
-            translate([-23.9, -11.7, floor_t])
-                cube([0.1, 23.4, 9.4]);
-        }
+        // 2b. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm)
+        translate([-26.0, -11.0, floor_t])
+            cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
             
         // 3. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
         trench_z0 = 6.0;
@@ -278,11 +274,13 @@ module main_housing() {
         }
             
         // 3b. Right Wall DuPont Trench (opposite USB-C: X = 21.0 to 26.0)
-        hull() {
-            translate([21.0, -13.0, trench_z0])
-                cube([5.0, 26.0, trench_h]);
-            translate([21.0, -13.0, trench_z0 - 2.0])
-                cube([3.0, 26.0, trench_h + 2.0]);
+        if (include_opposite_dupont) {
+            hull() {
+                translate([21.0, -13.0, trench_z0])
+                    cube([5.0, 26.0, trench_h]);
+                translate([21.0, -13.0, trench_z0 - 2.0])
+                    cube([3.0, 26.0, trench_h + 2.0]);
+            }
         }
             
         // 4. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm)
@@ -473,7 +471,7 @@ module desk_stand() {
 
 // 7. MINIMALIST ANGLED CRADLE DESK STAND (Open Triangular A-Frame)
 module minimalist_stand() {
-    m_stand_w = 54.0;
+    m_stand_w = enclosure_width;
     m_base_l  = 56.0;
     m_base_t  = 6.0;
     m_beam_t  = 5.5;
@@ -558,6 +556,8 @@ if (part == 1) {
     desk_stand();
 } else if (part == 7) {
     minimalist_stand();
+} else if (part == 8) {
+    main_housing(include_opposite_dupont=false);
 } else {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance on Minimalist Stand)
     translate([0, 40.0 + sin(stand_tilt_deg)*27.0, 6.0 + cos(stand_tilt_deg)*27.0])
