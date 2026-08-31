@@ -425,18 +425,27 @@ def generate_main_housing(include_opposite_dupont=True):
     # 9. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm, Y = -11.0 to +11.0mm):
     usbc_wall_relief = m3d.Manifold.cube([2.2, 22.0, cavity_depth + 0.2], center=False).translate([-26.0, -11.0, floor_t])
 
-    # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
-    cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
+    # 10. Inside Floor Debossed "V2.1" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
+    cs_v2, _, _ = text_to_cross_section("V2.1", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
-    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
+    # 11. Corner Mass Coring Pockets (Idea 1: 45° self-supporting conical corner pockets below Z = 11.5mm to lighten lower corners without affecting upper screw threads):
+    corner_core_cuts = m3d.Manifold()
+    for cx_sign in [-1, 1]:
+        for cy_sign in [-1, 1]:
+            # Cylindrical base (Z = 2.0 to 9.0mm) + 45° conical dome (Z = 9.0 to 11.5mm)
+            c_base = m3d.Manifold.cylinder(7.0, 3.6, 3.6, 32).translate([cx_sign * 17.5, cy_sign * 17.5, floor_t])
+            c_cone = m3d.Manifold.cylinder(2.5, 3.6, 0.5, 32).translate([cx_sign * 17.5, cy_sign * 17.5, floor_t + 7.0])
+            corner_core_cuts = corner_core_cuts + (c_base + c_cone)
+
+    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss + corner_core_cuts
     housing_hollow = chassis - cuts
     
-    # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (Zero Tall Pillars / 100% Open Overhead Wire Clearance):
+    # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (V2.1 Optimized Flanks & Zero Tall Pillars):
     esp_l = 22.8       # Snug precision length (+0.3mm clearance for 22.5mm SuperMini boards)
     esp_w = 18.5       # Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
     rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
-    side_thick = 1.4
+    side_thick = 1.0   # Idea 4: Slimmed 1.0mm rigid side guide walls (optimized material)
     cradle_h = 3.6     # Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
     # Flush USB-C seating at X = -26.0mm:
@@ -445,7 +454,7 @@ def generate_main_housing(include_opposite_dupont=True):
     wall_thick = 1.6
     x_back = x_rear + wall_thick # -1.6mm
     hw_in = esp_w / 2.0          # 9.25mm
-    hw_out = hw_in + side_thick  # 10.65mm
+    hw_out = hw_in + side_thick  # 10.25mm
 
     center_gap_half_w = 3.5 # 7.0mm open center gap where the tall pillar was
 
@@ -729,7 +738,7 @@ def main():
 
     housing = generate_main_housing(include_opposite_dupont=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (V2.0)")
+    export_stl(housing, housing_path, "Main Housing Pod (V2.1 Lightened Edition)")
 
     housing_legacy = generate_main_housing(include_opposite_dupont=False)
     housing_legacy_path = os.path.join(output_dir, "gc9a01_main_housing_legacy.stl")

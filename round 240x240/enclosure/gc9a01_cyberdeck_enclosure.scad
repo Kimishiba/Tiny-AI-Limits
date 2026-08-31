@@ -344,15 +344,25 @@ module main_housing(include_opposite_dupont=true) {
         translate([-26.0, -11.0, floor_t])
             cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
 
-        // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
+        // 8. Inside Floor Debossed "V2.1" (150% larger size = 5.4mm, 0.4mm deep into floor)
         translate([10.5, 0, floor_t - 0.40])
             linear_extrude(height = 0.45)
-                text("V2.0", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+                text("V2.1", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+
+        // 9. Corner Mass Coring Pockets (Idea 1: 45° self-supporting conical corner pockets below Z = 11.5mm)
+        for (cx_sign = [-1, 1]) {
+            for (cy_sign = [-1, 1]) {
+                translate([cx_sign * 17.5, cy_sign * 17.5, floor_t])
+                    cylinder(r = 3.6, h = 7.0);
+                translate([cx_sign * 17.5, cy_sign * 17.5, floor_t + 7.0])
+                    cylinder(r1 = 3.6, r2 = 0.5, h = 2.5);
+            }
+        }
     }
     
-    // Fused Internal ESP32-C3 SuperMini Snug Low-Profile U-Cradle (Zero Tall Pillars)
+    // Fused Internal ESP32-C3 SuperMini Snug Low-Profile U-Cradle (V2.1 Optimized Flanks & Zero Tall Pillars)
     wall_thick  = 1.6;
-    side_thick  = 1.4;
+    side_thick  = 1.0;  // Idea 4: Slimmed 1.0mm rigid side guide walls (optimized material)
     cradle_h    = 3.6;  // Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
     cur_esp_w   = 18.5; // Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
