@@ -361,10 +361,10 @@ module main_housing() {
             linear_extrude(height = 0.45)
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
 
-        // 8. Inside Floor Debossed "V2.0" (0.4mm deep into inside floor)
-        translate([8.5, 0, floor_t - 0.40])
+        // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
+        translate([10.5, 0, floor_t - 0.40])
             linear_extrude(height = 0.45)
-                text("V2.0", size = 3.6, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+                text("V2.0", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
     // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front, Recessed Seating at X = -26.0mm)

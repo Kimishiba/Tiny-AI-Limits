@@ -430,9 +430,9 @@ def generate_main_housing():
     b2 = m3d.Manifold.cube([0.1, 25.2, 11.6], center=False).translate([-23.9, -12.6, floor_t])
     inner_pocket = (b1 + b2).hull()
 
-    # 10. Inside Floor Debossed "V2.0" text (sunken 0.4mm into inside floor):
-    cs_v2, _, _ = text_to_cross_section("V2.0", size=3.6)
-    v2_deboss = m3d.Manifold.extrude(cs_v2.translate([8.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
+    # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
+    cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
+    v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
     cuts = cavity_obj + inner_pocket + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
