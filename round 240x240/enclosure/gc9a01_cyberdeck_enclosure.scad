@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing V2.0 (Flat USB-C, Embossed V2.0, Dual DuPont), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy V1.0 (Single Bottom Trench), 9 = Main Housing V1.1 (Dual DuPont Trench, V1 Cradle)
+part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (V2.0), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand
 
 // Outer Dimensions
 enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls
@@ -146,13 +146,13 @@ module rounded_rect_prism(w, d, h, r) {
 }
 
 // Precision Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
-module usbc_stadium_cutter(flat_inside=true) {
+module usbc_stadium_cutter() {
     // Outer to inner through-wall tunnel (stops at flat recessed wall X = -26.0)
     translate([-32.0, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -3.0, 0]) cylinder(r = 2.75, h = flat_inside ? 6.2 : 16.0);
-                translate([0, 3.0, 0])  cylinder(r = 2.75, h = flat_inside ? 6.2 : 16.0);
+                translate([0, -3.0, 0]) cylinder(r = 2.75, h = 6.2);
+                translate([0, 3.0, 0])  cylinder(r = 2.75, h = 6.2);
             }
         }
     }
@@ -239,8 +239,8 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD (V2.0: Flat Inside USB-C, Shifted Cradle, Dual DuPont Trenches, Embossed V2.0)
-module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) {
+// 3. MAIN HOUSING POD (Support-Free V2.0: Recessed Flat USB-C, Wide Cradle, Dual DuPont Trenches, Debossed V2.0)
+module main_housing() {
     cavity_depth = housing_depth - floor_t;
     
     difference() {
@@ -251,16 +251,14 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
-        usbc_stadium_cutter(flat_inside=flat_inside);
+        usbc_stadium_cutter();
         
         // 2b. Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting overhangs & chamfers
-        if (is_v2) {
-            hull() {
-                translate([-26.1, -10.5, floor_t])
-                    cube([0.1, 21.0, 9.5]);
-                translate([-23.9, -12.6, floor_t])
-                    cube([0.1, 25.2, 11.6]);
-            }
+        hull() {
+            translate([-26.1, -10.5, floor_t])
+                cube([0.1, 21.0, 9.5]);
+            translate([-23.9, -12.6, floor_t])
+                cube([0.1, 25.2, 11.6]);
         }
             
         // 3. DuPont Connector & Wire Clearance Trench (Bottom Wall: Y = -26.0 to -21.0)
@@ -268,10 +266,8 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
             cube([26.0, 5.0, cavity_depth + 0.1]);
             
         // 3b. DuPont Connector & Wire Clearance Trench (Right Wall opposite USB-C: X = 21.0 to 26.0)
-        if (include_opposite_dupont) {
-            translate([21.0, -13.0, floor_t])
-                cube([5.0, 26.0, cavity_depth + 0.1]);
-        }
+        translate([21.0, -13.0, floor_t])
+            cube([5.0, 26.0, cavity_depth + 0.1]);
             
         // 4. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm)
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -354,14 +350,12 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
                 text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
 
         // 8. Inside Floor Debossed "V2.0" (0.4mm deep into inside floor)
-        if (is_v2) {
-            translate([8.5, 0, floor_t - 0.40])
-                linear_extrude(height = 0.45)
-                    text("V2.0", size = 3.6, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
-        }
+        translate([8.5, 0, floor_t - 0.40])
+            linear_extrude(height = 0.45)
+                text("V2.0", size = 3.6, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front, Shifted towards Edge for V2)
+    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front, Recessed Seating at X = -26.0mm)
     wall_thick  = 3.0;
     side_thick  = 1.6;
     tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
@@ -369,8 +363,8 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
     
     cur_esp_w   = 19.9; // Expanded width (+0.5mm on each lateral side for easy board seating)
     cur_esp_l   = 23.6;
-    x_front     = is_v2 ? -26.0 : (esp_center_x - esp_l / 2);
-    x_rear      = is_v2 ? -2.4  : (esp_center_x + esp_l / 2);
+    x_front     = -26.0;
+    x_rear      = -2.4;
     cur_esp_cx  = (x_front + x_rear) / 2;
     snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
 
@@ -565,10 +559,6 @@ if (part == 1) {
     desk_stand();
 } else if (part == 7) {
     minimalist_stand();
-} else if (part == 8) {
-    main_housing(include_opposite_dupont=false, flat_inside=false, is_v2=false);
-} else if (part == 9) {
-    main_housing(include_opposite_dupont=true, flat_inside=false, is_v2=false);
 } else {
     // Complete Multi-Part Assembly Preview (22° Ergonomic Desktop Stance on Minimalist Stand)
     translate([0, 40.0 + sin(stand_tilt_deg)*27.0, 6.0 + cos(stand_tilt_deg)*27.0])

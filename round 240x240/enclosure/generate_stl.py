@@ -316,7 +316,7 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
-def generate_main_housing(version="v2", include_opposite_dupont=True):
+def generate_main_housing():
     w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
     depth = 27.5
@@ -348,37 +348,20 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     r_inner = 3.25
     r_outer = 4.75
     
-    if version == "v2":
-        # V2: Flat on recessed inside wall at X = -26.0mm (tunnel depth 6.2mm from X = -32.0mm)
-        c1 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-        c2 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
-        usbc_tunnel = (c1 + c2).hull()
-        
-        cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
-        cone2 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, y_span, usbc_z])
-        usbc_flare = (cone1 + cone2).hull()
-        usbc_port = usbc_tunnel + usbc_flare
-    else:
-        c1 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-        c2 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
-        usbc_tunnel = (c1 + c2).hull()
-        
-        cone1 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
-        cone2 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, y_span, usbc_z])
-        usbc_flare = (cone1 + cone2).hull()
-        
-        shave_cone1 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, -y_span, usbc_z])
-        shave_cone2 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, y_span, usbc_z])
-        usbc_inner_shave = (shave_cone1 + shave_cone2).hull()
-        usbc_port = usbc_tunnel + usbc_flare + usbc_inner_shave
+    # Flat on recessed inside wall at X = -26.0mm (tunnel depth 6.2mm from X = -32.0mm)
+    c1 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
+    usbc_tunnel = (c1 + c2).hull()
+    
+    cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
+    cone2 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, y_span, usbc_z])
+    usbc_flare = (cone1 + cone2).hull()
+    usbc_port = usbc_tunnel + usbc_flare
     
     # 4. DuPont Connector & Wire Clearance Trenches (1.2mm minimum outer wall)
     dupont_trench_bot = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
-    dupont_trench = dupont_trench_bot
-    if include_opposite_dupont:
-        # Opposite Face (Right Wall: X = +21.0 to +26.0, Y = -13.0 to +13.0)
-        dupont_trench_right = m3d.Manifold.cube([5.0, 26.0, cavity_depth + 0.1], center=False).translate([21.0, -13.0, floor_t])
-        dupont_trench = dupont_trench_bot + dupont_trench_right
+    dupont_trench_right = m3d.Manifold.cube([5.0, 26.0, cavity_depth + 0.1], center=False).translate([21.0, -13.0, floor_t])
+    dupont_trench = dupont_trench_bot + dupont_trench_right
     
     # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
     screw_pilot_cuts = m3d.Manifold()
@@ -434,17 +417,13 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
     # 9. V2 Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting transitions:
-    inner_pocket = m3d.Manifold()
-    if version == "v2":
-        b1 = m3d.Manifold.cube([0.1, 21.0, 9.5], center=False).translate([-26.1, -10.5, floor_t])
-        b2 = m3d.Manifold.cube([0.1, 25.2, 11.6], center=False).translate([-23.9, -12.6, floor_t])
-        inner_pocket = (b1 + b2).hull()
+    b1 = m3d.Manifold.cube([0.1, 21.0, 9.5], center=False).translate([-26.1, -10.5, floor_t])
+    b2 = m3d.Manifold.cube([0.1, 25.2, 11.6], center=False).translate([-23.9, -12.6, floor_t])
+    inner_pocket = (b1 + b2).hull()
 
-    # 10. V2 Inside Floor Debossed "V2.0" text (sunken 0.4mm into inside floor):
-    v2_deboss = m3d.Manifold()
-    if version == "v2":
-        cs_v2, _, _ = text_to_cross_section("V2.0", size=3.6)
-        v2_deboss = m3d.Manifold.extrude(cs_v2.translate([8.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
+    # 10. Inside Floor Debossed "V2.0" text (sunken 0.4mm into inside floor):
+    cs_v2, _, _ = text_to_cross_section("V2.0", size=3.6)
+    v2_deboss = m3d.Manifold.extrude(cs_v2.translate([8.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
     cuts = cavity_obj + inner_pocket + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
@@ -457,13 +436,16 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
     rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
     
-    # V2 sits board directly at X = -26.0mm (1.2mm from outside edge):
-    x_front = -26.0 if version == "v2" else -24.0
-    x_rear = -2.4 if version == "v2" else -0.4
+    # Board seats directly at X = -26.0mm (1.2mm from outside edge):
+    x_front = -26.0
+    x_rear = -2.4
     wall_thick = 2.0
-    x_back = x_rear + wall_thick # -0.4mm for V2
+    x_back = x_rear + wall_thick # -0.4mm
     hw_in = esp_w / 2.0         # 9.95mm
     hw_out = hw_in + side_thick # 11.55mm
+    snap_w = 6.0
+    slit_w = 1.25
+    cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
     snap_w = 6.0
     slit_w = 1.25
     cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
@@ -766,16 +748,9 @@ def main():
     mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
     export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
 
-    housing_v2 = generate_main_housing(version="v2", include_opposite_dupont=True)
+    housing = generate_main_housing()
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing_v2, housing_path, "Main Housing Pod V2.0 (Flat USB-C, Embossed V2.0, Dual DuPont)")
-
-    housing_v2_path = os.path.join(output_dir, "gc9a01_main_housing_v2.stl")
-    export_stl(housing_v2, housing_v2_path, "Main Housing Pod V2.0 (Explicit)")
-
-    housing_legacy = generate_main_housing(version="v1", include_opposite_dupont=False)
-    housing_legacy_path = os.path.join(output_dir, "gc9a01_main_housing_legacy.stl")
-    export_stl(housing_legacy, housing_legacy_path, "Main Housing Pod Legacy V1.0 (Single Bottom Trench)")
+    export_stl(housing, housing_path, "Main Housing Pod (V2.0)")
 
     tier1 = generate_stand_tier1_base()
     tier1_path = os.path.join(output_dir, "gc9a01_stand_tier1_base.stl")
