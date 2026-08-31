@@ -187,11 +187,49 @@ module usbc_stadium_cutter() {
     }
 }
 
+// Front Bezel Base with 60-degree male tongue at bottom (Z = 0 to 2.0mm) and 45-degree chamfer at top
+module bezel_base_with_male_tongue(w, h, c, ch, bevel_h=2.0, bevel_angle=60) {
+    bevel_dx = bevel_h / tan(bevel_angle); // 1.155mm
+    hw1 = w / 2;
+    hw_bot = (w - 2 * bevel_dx) / 2;
+    c_bot = c - bevel_dx * 0.414;
+    hw_top = (w - 2 * ch) / 2;
+    c_top = c - ch * 0.414;
+    hull() {
+        linear_extrude(height = 0.001) {
+            polygon([
+                [-hw_bot + c_bot, -hw_bot], [hw_bot - c_bot, -hw_bot],
+                [hw_bot, -hw_bot + c_bot],  [hw_bot, hw_bot - c_bot],
+                [hw_bot - c_bot, hw_bot],   [-hw_bot + c_bot, hw_bot],
+                [-hw_bot, hw_bot - c_bot],  [-hw_bot, -hw_bot + c_bot]
+            ]);
+        }
+        translate([0, 0, bevel_h])
+        linear_extrude(height = h - ch - bevel_h) {
+            polygon([
+                [-hw1 + c, -hw1], [hw1 - c, -hw1],
+                [hw1, -hw1 + c],  [hw1, hw1 - c],
+                [hw1 - c, hw1],   [-hw1 + c, hw1],
+                [-hw1, hw1 - c],  [-hw1, -hw1 + c]
+            ]);
+        }
+        translate([0, 0, h - 0.001])
+        linear_extrude(height = 0.001) {
+            polygon([
+                [-hw_top + c_top, -hw_top], [hw_top - c_top, -hw_top],
+                [hw_top, -hw_top + c_top],  [hw_top, hw_top - c_top],
+                [hw_top - c_top, hw_top],   [-hw_top + c_top, hw_top],
+                [-hw_top, hw_top - c_top],  [-hw_top, -hw_top + c_top]
+            ]);
+        }
+    }
+}
+
 // 1. FRONT BEZEL PLATE
 module front_bezel() {
     difference() {
         union() {
-            chamfered_octagonal_base(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, chamfer_top=true);
+            bezel_base_with_male_tongue(enclosure_width, bezel_thickness, chamfer_size, outer_chamfer, bevel_h=2.0, bevel_angle=60);
             translate([0, 0, bezel_thickness])
                 cylinder(r1 = 22.0, r2 = 20.5, h = 1.5);
         }
@@ -203,39 +241,6 @@ module front_bezel() {
             cylinder(d = display_pcb_dia, h = display_pcb_depth + 0.1);
         translate([-display_tab_w/2, -display_tab_h, -0.1])
             cube([display_tab_w, display_tab_h, display_pcb_depth + 0.1]);
-
-        // 60-degree female receiving bevel cut (Z = -0.1 to 2.0mm) with 0.20mm precision tolerance
-        hull() {
-            bevel_h = 2.0;
-            bevel_angle = 60;
-            bevel_dx = bevel_h / tan(bevel_angle); // 1.155mm
-            tol = 0.20;
-            tol_dx = tol / sin(bevel_angle); // 0.231mm
-            
-            hw_cut_bot = (enclosure_width + 2 * tol_dx) / 2;
-            c_cut_bot = chamfer_size + tol_dx * 0.414;
-            hw_cut_top = (enclosure_width - 2 * bevel_dx + 2 * tol) / 2;
-            c_cut_top = chamfer_size - bevel_dx * 0.414 + tol * 0.414;
-
-            translate([0, 0, -0.1])
-            linear_extrude(height = 0.001) {
-                polygon([
-                    [-hw_cut_bot + c_cut_bot, -hw_cut_bot], [hw_cut_bot - c_cut_bot, -hw_cut_bot],
-                    [hw_cut_bot, -hw_cut_bot + c_cut_bot],  [hw_cut_bot, hw_cut_bot - c_cut_bot],
-                    [hw_cut_bot - c_cut_bot, hw_cut_bot],   [-hw_cut_bot + c_cut_bot, hw_cut_bot],
-                    [-hw_cut_bot, hw_cut_bot - c_cut_bot],  [-hw_cut_bot, -hw_cut_bot + c_cut_bot]
-                ]);
-            }
-            translate([0, 0, bevel_h])
-            linear_extrude(height = 0.001) {
-                polygon([
-                    [-hw_cut_top + c_cut_top, -hw_cut_top], [hw_cut_top - c_cut_top, -hw_cut_top],
-                    [hw_cut_top, -hw_cut_top + c_cut_top],  [hw_cut_top, hw_cut_top - c_cut_top],
-                    [hw_cut_top - c_cut_top, hw_cut_top],   [-hw_cut_top + c_cut_top, hw_cut_top],
-                    [-hw_cut_top, hw_cut_top - c_cut_top],  [-hw_cut_top, -hw_cut_top + c_cut_top]
-                ]);
-            }
-        }
             
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -295,11 +300,44 @@ module main_housing(include_opposite_dupont=true) {
     cavity_depth = housing_depth - floor_t;
     
     difference() {
-        mating_housing_base(enclosure_width, housing_depth, chamfer_size, outer_chamfer, bevel_h=2.0, bevel_angle=60);
+        chamfered_octagonal_base(enclosure_width, housing_depth, chamfer_size, outer_chamfer, chamfer_top=false);
         
         // 1. Chamfered Open Tub Cavity
         translate([0, 0, floor_t])
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
+
+        // 1b. 60-degree female receiving bevel cut on top rim (Z = 25.5 to 27.6mm) with 0.20mm precision tolerance
+        hull() {
+            bevel_h = 2.0;
+            bevel_angle = 60;
+            bevel_dx = bevel_h / tan(bevel_angle); // 1.155mm
+            tol = 0.20;
+            tol_dx = tol / sin(bevel_angle); // 0.231mm
+
+            hw_cut_bot = (enclosure_width - 2 * bevel_dx - 2 * tol) / 2;
+            c_cut_bot = chamfer_size - bevel_dx * 0.414 - tol * 0.414;
+            hw_cut_top = (enclosure_width + 2 * tol_dx) / 2;
+            c_cut_top = chamfer_size + tol_dx * 0.414;
+
+            translate([0, 0, housing_depth - bevel_h - 0.05])
+            linear_extrude(height = 0.001) {
+                polygon([
+                    [-hw_cut_bot + c_cut_bot, -hw_cut_bot], [hw_cut_bot - c_cut_bot, -hw_cut_bot],
+                    [hw_cut_bot, -hw_cut_bot + c_cut_bot],  [hw_cut_bot, hw_cut_bot - c_cut_bot],
+                    [hw_cut_bot - c_cut_bot, hw_cut_bot],   [-hw_cut_bot + c_cut_bot, hw_cut_bot],
+                    [-hw_cut_bot, hw_cut_bot - c_cut_bot],  [-hw_cut_bot, -hw_cut_bot + c_cut_bot]
+                ]);
+            }
+            translate([0, 0, housing_depth + 0.1])
+            linear_extrude(height = 0.001) {
+                polygon([
+                    [-hw_cut_top + c_cut_top, -hw_cut_top], [hw_cut_top - c_cut_top, -hw_cut_top],
+                    [hw_cut_top, -hw_cut_top + c_cut_top],  [hw_cut_top, hw_cut_top - c_cut_top],
+                    [hw_cut_top - c_cut_top, hw_cut_top],   [-hw_cut_top + c_cut_top, hw_cut_top],
+                    [-hw_cut_top, hw_cut_top - c_cut_top],  [-hw_cut_top, -hw_cut_top + c_cut_top]
+                ]);
+            }
+        }
             
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter();
