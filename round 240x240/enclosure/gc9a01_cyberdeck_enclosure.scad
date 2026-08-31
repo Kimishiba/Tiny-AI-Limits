@@ -317,6 +317,12 @@ module main_housing() {
         translate([-9.0,  -21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
         translate([0.0,   -21.5, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
         translate([9.0,   -21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
+
+        // 5b. Safe Under-ESP32 Aeration Grille (strictly in central zone X = -19.5 to -7.5, |Y| <= 3.6mm, leaving all retaining walls 100% solid)
+        for (y_pos = [-3.6, -1.2, 1.2, 3.6]) {
+            translate([-17.0, y_pos, -1.0]) cube([5.0, 1.35, floor_t + 2.0], center=true);
+            translate([-10.0, y_pos, -1.0]) cube([5.0, 1.35, floor_t + 2.0], center=true);
+        }
         
         // 6. Top Edge Perimeter Vertical Exhaust Slits with 45-degree peaked roofs
         for (vx = [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]) {

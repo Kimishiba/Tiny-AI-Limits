@@ -401,6 +401,12 @@ def generate_main_housing():
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, -ry, floor_t / 2.0])
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
+
+    # 6b. Safe Under-ESP32 Aeration Grille (strictly in central zone X = -19.5 to -7.5, |Y| <= 3.6mm, leaving all retaining walls 100% solid):
+    for y_pos in [-3.6, -1.2, 1.2, 3.6]:
+        s1 = m3d.Manifold.cube([5.0, 1.35, floor_t + 2.0], center=True).translate([-17.0, y_pos, floor_t / 2.0])
+        s2 = m3d.Manifold.cube([5.0, 1.35, floor_t + 2.0], center=True).translate([-10.0, y_pos, floor_t / 2.0])
+        vent_cuts = vent_cuts + s1 + s2
         
     # Enlarged 1.6mm top vertical exhaust vents with 45-degree peaked roof:
     pts_slot_ccw = [[-0.80, 11.0], [0.80, 11.0], [0.80, 18.2], [0.0, 19.0], [-0.80, 18.2]]
