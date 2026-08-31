@@ -21,10 +21,8 @@ display_active_dia = 33.0; // Active LCD A.A clearing diameter at glass plane (m
 display_funnel_top = 38.8; // Wide front opening diameter (36.4° conical anti-shadow slope) (mm)
 display_glass_dia  = 36.6; // Glass / Backlight step (mm)
 display_pcb_dia    = 39.4; // Circular PCB body (38.0mm blueprint + 1.4mm clearance) (mm)
-display_tab_w      = 24.0; // Bottom connector tab width (mm)
-display_tab_h      = 26.6; // Tab height from center (mm)
-display_top_tab_w  = 24.0; // Top clearance notch width (mm)
-display_top_tab_h  = 26.0; // Top notch height from center (mm)
+display_tab_w      = 21.0; // Bottom connector tab width (mm)
+display_tab_h      = 24.2; // Tab height from center (mm) - Leaves 3.0mm solid outer perimeter wall (>= 4 perimeters)
 display_pcb_depth  = 3.4;  // Bezel rear pocket depth (mm)
 
 // Mid Clamp Sandwich Plate Parameters
@@ -187,8 +185,6 @@ module front_bezel() {
             cylinder(d = display_pcb_dia, h = display_pcb_depth + 0.1);
         translate([-display_tab_w/2, -display_tab_h, -0.1])
             cube([display_tab_w, display_tab_h, display_pcb_depth + 0.1]);
-        translate([-display_top_tab_w/2, 0, -0.1])
-            cube([display_top_tab_w, display_top_tab_h, display_pcb_depth + 0.1]);
             
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {

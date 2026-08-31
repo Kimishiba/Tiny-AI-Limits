@@ -129,13 +129,10 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
 
 def make_gc9a01_pcb_pocket(depth_pocket=3.4):
     top_circle = m3d.Manifold.cylinder(depth_pocket, 39.4 / 2.0, 39.4 / 2.0, 64)
-    tab_w = 24.0
-    tab_h = 26.6
+    tab_w = 21.0
+    tab_h = 24.2 # Leaves 3.0mm solid outer perimeter wall (>= 4 perimeters on a 0.4mm nozzle, zero 1-line thin walls)
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
-    top_notch_w = 24.0
-    top_notch_h = 26.0
-    top_box = m3d.Manifold.cube([top_notch_w, top_notch_h, depth_pocket], center=False).translate([-top_notch_w / 2.0, 0, 0])
-    return top_circle + tab_box + top_box
+    return top_circle + tab_box
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -152,7 +149,7 @@ def export_stl(manifold_obj, filepath, name="Model"):
     return tri_mesh
 
 def generate_front_bezel():
-    w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
+    w = 54.4 # 54.4mm outer profile
     c = 6.0
     ext = 4.0 # Base extended 4.0mm down from original print base
     t = 5.5 + ext # 9.5mm base thickness
@@ -220,14 +217,14 @@ def generate_front_bezel():
     tab_left = arm_l + lip_l
 
     # Top tab (+Y):
-    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 23.8 - 0.2, 0])
+    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 19.7 - 0.2, 0])
     v_base_t = [[-tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, lip_h], [-tab_w/2.0, 0.0, lip_h]]
     v_apex_t = [[-tab_w/2.0 + 0.5, -lip_overhang, lip_h], [tab_w/2.0 - 0.5, -lip_overhang, lip_h]]
     pts_lip_t = v_base_t + v_apex_t
     lip_t = m3d.Manifold()
     for p in pts_lip_t:
         lip_t = lip_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_t = lip_t.hull().translate([0, 23.8 - 0.2, tab_arm_h - lip_h])
+    lip_t = lip_t.hull().translate([0, 19.7 - 0.2, tab_arm_h - lip_h])
     tab_top = arm_t + lip_t
 
     return bezel_hollow + tab_right + tab_left + tab_top
