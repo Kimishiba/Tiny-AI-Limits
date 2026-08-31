@@ -1791,9 +1791,10 @@ def get_data():
         daily_budgets = cfg.get("provider_daily_budgets", {})
         daily_budget = float(daily_budgets.get(provider_id, cfg.get(f"{provider_id}_daily_budget_usd", 10.0)))
 
-        label = default_label
-        name = default_name
-        color = default_color
+        prov_meta = next((p for p in ALL_PROVIDERS if p.provider_id == provider_id), None)
+        label = prov_meta.badge if prov_meta else default_label
+        name = prov_meta.provider_name if prov_meta else default_name
+        color = prov_meta.color if prov_meta else default_color
         mode = "enterprise" if plan == "enterprise" else "standard"
         cost_str = ""
         tokens_str = ""
