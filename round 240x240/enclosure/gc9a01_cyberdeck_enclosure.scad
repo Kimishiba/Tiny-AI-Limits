@@ -11,7 +11,7 @@ part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel (60°
 
 // Outer Dimensions
 enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls
-housing_depth    = 27.5; // Open-tub housing depth (mm)
+housing_depth    = 26.84; // Open-tub housing depth (mm) - capped uniformly at 26.84mm
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)

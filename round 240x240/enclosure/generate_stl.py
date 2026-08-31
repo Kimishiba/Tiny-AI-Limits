@@ -274,14 +274,14 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
 def generate_main_housing(include_opposite_dupont=True):
     w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
-    depth = 27.5
+    depth = 26.84 # Top rim capped uniformly at 26.84mm
     floor_t = 2.0
 
     cavity_depth = depth - floor_t
     screw_dist = 20.50
     chamfer_outer = 1.2
     
-    # 1. Main outer solid chassis with 45-degree outer bottom chamfer (z = 0 to 27.5mm):
+    # 1. Main outer solid chassis with 45-degree outer bottom chamfer (z = 0 to 26.84mm):
     w_ch = w - 2 * chamfer_outer
     c_ch = c - chamfer_outer * 0.414
     layers_chassis = [
