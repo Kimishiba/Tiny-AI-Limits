@@ -35,17 +35,17 @@ def generate_master_1024():
     body_pos = (92, 92)
     radius = 185
 
-    # 1. Drop shadow
+    # 1. Drop shadow & squircle geometry
     shadow_offset = (0, 16)
     shadow_blur = 28
-    shadow_mask = create_squircle_mask(body_size, radius)
+    squircle_mask = create_squircle_mask(body_size, radius)
     shadow_img = Image.new("RGBA", (body_size[0] + shadow_blur * 4, body_size[1] + shadow_blur * 4), (0, 0, 0, 0))
     shadow_fill = Image.new("RGBA", shadow_img.size, (0, 0, 0, 140))
     
     # Paste shadow mask into shadow_img
-    s_mask_padded = Image.new("L", shadow_img.size, 0)
-    s_mask_padded.paste(shadow_mask, (shadow_blur * 2, shadow_blur * 2))
-    shadow_img.paste(shadow_fill, (0, 0), s_mask_padded)
+    shadow_mask_padded = Image.new("L", shadow_img.size, 0)
+    shadow_mask_padded.paste(squircle_mask, (shadow_blur * 2, shadow_blur * 2))
+    shadow_img.paste(shadow_fill, (0, 0), shadow_mask_padded)
     shadow_img = shadow_img.filter(ImageFilter.GaussianBlur(shadow_blur))
 
     # Composite shadow onto canvas
@@ -97,10 +97,9 @@ def generate_master_1024():
         brand_y = (body_size[1] - target_brand_size) // 2 - 10
         body_bg.paste(brand_resized, (brand_x, brand_y), brand_resized)
 
-    # 4. Mask body to squircle
-    mask = create_squircle_mask(body_size, radius)
+    # 4. Mask body to squircle (reuse cached mask)
     masked_body = Image.new("RGBA", body_size, (0, 0, 0, 0))
-    masked_body.paste(body_bg, (0, 0), mask)
+    masked_body.paste(body_bg, (0, 0), squircle_mask)
 
     # 5. Composite body onto canvas
     canvas.paste(masked_body, body_pos, masked_body)

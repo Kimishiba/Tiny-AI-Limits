@@ -13,16 +13,16 @@ CONTENTS_DIR="$( cd -P "$MACOS_DIR/.." >/dev/null 2>&1 && pwd )"
 APP_DIR="$( cd -P "$CONTENTS_DIR/.." >/dev/null 2>&1 && pwd )"
 REPO_DIR="$( cd -P "$APP_DIR/.." >/dev/null 2>&1 && pwd )"
 
-# Determine backend directory (in repo or bundled in Contents/Resources)
-if [ -f "$CONTENTS_DIR/Resources/backend/app.py" ]; then
-    BACKEND_DIR="$CONTENTS_DIR/Resources/backend"
-    WORK_DIR="$CONTENTS_DIR/Resources"
-elif [ -f "$APP_DIR/backend/app.py" ]; then
+# Determine backend directory (prioritize live repository working tree if in-tree)
+if [ -f "$APP_DIR/backend/app.py" ]; then
     BACKEND_DIR="$APP_DIR/backend"
     WORK_DIR="$APP_DIR"
 elif [ -f "$REPO_DIR/backend/app.py" ]; then
     BACKEND_DIR="$REPO_DIR/backend"
     WORK_DIR="$REPO_DIR"
+elif [ -f "$CONTENTS_DIR/Resources/backend/app.py" ]; then
+    BACKEND_DIR="$CONTENTS_DIR/Resources/backend"
+    WORK_DIR="$CONTENTS_DIR/Resources"
 else
     # Default fallback to current working directory
     BACKEND_DIR="$PWD/backend"
@@ -69,7 +69,9 @@ MISSING_DEPS=0
 if [ "$MISSING_DEPS" -eq 1 ]; then
     if [ -f "$BACKEND_DIR/requirements.txt" ]; then
         osascript -e 'display notification "Installing required dependencies (flask, rumps, zeroconf)..." with title "Tiny Screen Companion"'
-        "$PYTHON_BIN" -m pip install -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || {
+        "$PYTHON_BIN" -m pip install -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || \
+        "$PYTHON_BIN" -m pip install --break-system-packages -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || \
+        "$PYTHON_BIN" -m pip install --user -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || {
             osascript -e 'display alert "Tiny Screen Dependency Error" message "Could not automatically install Python dependencies. Run: pip3 install -r backend/requirements.txt" as critical'
             exit 1
         }
