@@ -37,6 +37,8 @@ Arduino_DataBus *gcBus = new Arduino_HWSPI(GC9A01_DC_PIN, GC9A01_CS_PIN, GC9A01_
 Arduino_GFX *gcGfx = new Arduino_GC9A01(gcBus, GC9A01_RST_PIN, 0 /* rotation */, true /* IPS */);
 
 bool gc9a01Initialized = false;
+int currentDisplayRotation = 0;
+bool globalForceRedraw = false;
 
 WebServer server(80);
 
@@ -700,6 +702,36 @@ void drawGC9A01RoundFlipUI() {
     static uint8_t scrollPhase = 0; // 0=Top Pause, 1=Scroll Down, 2=Bottom Pause, 3=Scroll Up
     static unsigned long scrollPhaseStart = 0;
 
+    if (globalForceRedraw) {
+        bezelDrawn = false;
+        lastFlashState = false;
+        lastWaitingState = false;
+        lastHoursUntilRain = -999;
+        lastLedState = -1;
+        lastPulseLevel = -1;
+        lastClaudePct = -1;
+        lastAntiPct = -1;
+        lastTemp = -999.0f;
+        lastDate = "";
+        lastWaiting = false;
+        for (int i = 0; i < 4; i++) {
+            oldDigits[i] = -1;
+            prevTarget[i] = -1;
+            flipProg[i] = 1.0f;
+        }
+        wasShowingAgents = false;
+        for (int i = 0; i < 8; i++) {
+            lastAgentNames[i] = "";
+            lastAgentDetails[i] = "";
+            lastAgentColors[i] = 0;
+            lastAgentDotPulses[i] = -1;
+        }
+        lastAgentRowCount = -1;
+        lastAgentScrollOffset = -999;
+        scrollPhase = 0;
+        globalForceRedraw = false;
+    }
+
     uint16_t colHazardAmber = gcGfx->color565(255, 184, 0); // #FFB800 Kinetic Amber
     uint16_t colEmerald = gcGfx->color565(0, 255, 136);     // #00FF88 Neon Emerald
 
@@ -1307,6 +1339,12 @@ void drawGC9A01RoundFaceUI() {
 // HARDWARE AUTO-DETECTION & INITIALIZATION
 // ==========================================
 void initActiveDisplay() {
+    // Load saved rotation preference
+    Preferences displayPrefs;
+    displayPrefs.begin("display", true);
+    currentDisplayRotation = displayPrefs.getInt("rotation", 0) % 4;
+    displayPrefs.end();
+
     // GC9A01 Round Screen Init
     pinMode(GC9A01_RST_PIN, OUTPUT);
     digitalWrite(GC9A01_RST_PIN, HIGH);
@@ -1318,8 +1356,9 @@ void initActiveDisplay() {
 
     if (gcGfx->begin(40000000)) {
         gc9a01Initialized = true;
+        gcGfx->setRotation(currentDisplayRotation);
         gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
-        Serial.println("[Display] GC9A01 Round IPS initialized with boot logo");
+        Serial.printf("[Display] GC9A01 Round IPS initialized with rotation %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
     } else {
         Serial.println("[Display] Failed to initialize GC9A01 display!");
     }
@@ -1883,6 +1922,21 @@ void fetchBackendData() {
                 String otaPath = otaObj["url"] | "/firmware/latest.bin";
                 if (otaTrigger && otaPath.length() > 0) {
                     performOTAUpdate(otaPath, otaVer);
+                }
+            }
+            if (doc.containsKey("display_rotation") || doc.containsKey("rotation")) {
+                int incomingRot = (doc["display_rotation"] | (doc["rotation"] | 0)) % 4;
+                if (incomingRot >= 0 && incomingRot <= 3 && incomingRot != currentDisplayRotation) {
+                    currentDisplayRotation = incomingRot;
+                    Preferences displayPrefs;
+                    displayPrefs.begin("display", false);
+                    displayPrefs.putInt("rotation", currentDisplayRotation);
+                    displayPrefs.end();
+
+                    gcGfx->setRotation(currentDisplayRotation);
+                    gcGfx->fillScreen(GC_COLOR_BLACK);
+                    globalForceRedraw = true;
+                    Serial.printf("[Display] Screen rotated to %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
                 }
             }
         }

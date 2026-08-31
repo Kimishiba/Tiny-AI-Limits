@@ -87,19 +87,19 @@ class TestHookAdapter(unittest.TestCase):
             "tool_name": "Bash"
         }, now_ts=now)
         
-        self.assertEqual(res2["state"], "WAITING")
-        self.assertEqual(res2["detail"], "GRANT PERM")
-        self.assertEqual(res2["color"], "#FFB800")
+        self.assertEqual(res2["state"], "WORKING")
+        self.assertEqual(res2["detail"], "EXECUTING...")
+        self.assertEqual(res2["color"], "#00E5FF")
 
         res3 = handle_hook_event({
             "session_id": "ses_test2",
             "hook_event_name": "PreToolUse",
-            "tool_name": "Grep"
+            "tool_name": "ask_permission"
         }, now_ts=now)
         
-        self.assertEqual(res3["state"], "WORKING")
-        self.assertEqual(res3["detail"], "EXECUTING...")
-        self.assertEqual(res3["color"], "#00E5FF")
+        self.assertEqual(res3["state"], "WAITING")
+        self.assertEqual(res3["detail"], "GRANT PERM")
+        self.assertEqual(res3["color"], "#FFB800")
 
     def test_handle_hook_event_stop_complete(self):
         now = time.time()

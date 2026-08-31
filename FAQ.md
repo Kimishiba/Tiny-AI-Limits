@@ -59,7 +59,14 @@ A board that has been paired will **not** fall back to picking another companion
 
 ## Can I run several boards on one network?
 
-Yes. Each board claims a unique mDNS name derived from its MAC address (`tinyscreen-F030.local` and so on), so they do not collide, and each is paired to its own companion app.
+Yes. Each board derives a unique hostname from its MAC address (for example `tinyscreen-F030.local`), so they will not clash with each other.
+
+## How do I rotate the display for different mounting or cable routing orientations?
+
+You can rotate the screen orientation in 90° increments at any time:
+- **macOS Menu Bar:** Click the companion app status icon (`🖥️`) and select **🔄 Screen Orientation** to pick `0° (Standard)`, `90° (Clockwise)`, `180° (Inverted)`, or `270° (Counter-Clockwise)`.
+- **Browser Emulator / REST API:** Click the **🔄 ROTATE** button on `http://localhost:5000/emulator` or issue a `POST /api/rotate` request.
+- The ESP32 screen automatically updates its orientation on the next telemetry poll and saves the setting to flash memory (NVS) so it persists through power cycles.
 
 The board prints its hostname on the serial console at boot, and the setup page reports it when you connect over serial.
 

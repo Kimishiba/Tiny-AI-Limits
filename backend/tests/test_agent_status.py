@@ -564,6 +564,44 @@ class TestAgentStatus(unittest.TestCase):
             self.assertTrue(res["has_active_agents"])
             self.assertEqual(len(res["active_agents"]), 5)
 
+    def test_display_rotation_config_and_data_payload(self):
+        client = app.app.test_client()
+        app.config["allow_unpaired_clients"] = True
+        app.config["display_rotation"] = 2
+
+        res = client.get("/data")
+        self.assertEqual(res.status_code, 200)
+        payload = json.loads(res.data.decode("utf-8"))
+        self.assertIn("display_rotation", payload)
+        self.assertEqual(payload["display_rotation"], 2)
+        self.assertIn("rotation_deg", payload)
+        self.assertEqual(payload["rotation_deg"], 180)
+
+    def test_api_rotate_endpoint(self):
+        client = app.app.test_client()
+        app.config["display_rotation"] = 0
+
+        # Cycle rotation via POST with empty body
+        res = client.post("/api/rotate", json={})
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["display_rotation"], 1)
+        self.assertEqual(data["rotation_deg"], 90)
+
+        # Explicit rotation
+        res = client.post("/api/rotate", json={"rotation": 3})
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["display_rotation"], 3)
+        self.assertEqual(data["rotation_deg"], 270)
+
+        # GET method returns current rotation
+        res = client.get("/api/rotate")
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data.decode("utf-8"))
+        self.assertEqual(data["display_rotation"], 3)
+        self.assertEqual(data["rotation_deg"], 270)
+
 if __name__ == "__main__":
     unittest.main()
 

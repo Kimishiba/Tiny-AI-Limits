@@ -268,6 +268,7 @@
       aspect-ratio: 4 / 3;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     .touch-hint-bar {
@@ -677,9 +678,10 @@
           </div>
         </div>
 
-        <div id="roundModeGrid" class="mode-btn-grid" style="grid-template-columns: repeat(2, 1fr);">
+        <div id="roundModeGrid" class="mode-btn-grid" style="grid-template-columns: repeat(3, 1fr);">
           <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK</button>
-          <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES (FACE)</button>
+          <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES</button>
+          <button class="neo-btn" id="btnRotate" onclick="cycleRotation()" title="Rotate screen orientation 90°">🔄 0° (STD)</button>
         </div>
       </div>
 
@@ -830,6 +832,18 @@
     let antigravity_limit = 100;
     let antigravity_remaining = 60;
     let antigravity_reset_str = "";
+    let left_gauge_label = "CLD";
+    let left_gauge_name = "Claude";
+    let left_gauge_mode = "enterprise";
+    let left_gauge_curved = "$0.13 SPENT";
+    let left_gauge_pct = 85;
+    let left_gauge_color = "#00E5FF";
+    let left_gauge_reset = "28.2k TOK";
+    let right_gauge_label = "AGY";
+    let right_gauge_name = "Antigravity";
+    let right_gauge_pct = 60;
+    let right_gauge_color = "#FF7A00";
+    let right_gauge_reset = "3h 12m";
     let current_temperature = 23.5;
     let hours_until_rain = 2;
     let date_string = "THU 06 AUG";
@@ -839,6 +853,8 @@
     let completion_text = "WORK COMPLETE";
     let active_agents = [];
     let has_active_agents = false;
+    let emulatorScrollPhase = 0;
+    let emulatorScrollPhaseStart = 0;
     let completionCountdownTimer = null;
 
     // Time keeping
@@ -972,36 +988,82 @@
     }
 
     function drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn) {
-      const startAngle = (-90 - 24) * Math.PI / 180;
-      const endAngle = (-90 + 24) * Math.PI / 180;
+      const centerAngleDeg = -90;
+      const spanDeg = 24;
+      const startAngle = (centerAngleDeg - spanDeg) * Math.PI / 180;
+      const endAngle = (centerAngleDeg + spanDeg) * Math.PI / 180;
       const arcRadius = 104;
-      const now = performance.now();
-      const pulse = (Math.sin(now * 0.0035) + 1) / 2; // 0..1
 
       c.save();
-      c.beginPath();
-      c.arc(cx, cy, arcRadius, startAngle, endAngle);
-      c.lineWidth = 4.5;
       c.lineCap = "round";
 
       if (isBackendConn) {
-        // Pulsing Emerald Green Arc
-        const alpha = 0.35 + 0.65 * pulse;
-        c.strokeStyle = `rgba(34, 197, 94, ${alpha})`;
-        c.shadowColor = `rgba(34, 197, 94, ${0.4 + 0.5 * pulse})`;
-        c.shadowBlur = 4 + 8 * pulse;
+        // Concept A: Telemetry Packet Ping
+        // 1. Resting dim emerald base arc
+        c.beginPath();
+        c.arc(cx, cy, arcRadius, startAngle, endAngle);
+        c.lineWidth = 4.5;
+        c.strokeStyle = "#004422";
+        c.shadowBlur = 0;
+        c.stroke();
+
+        // 2. 3.0s simulated telemetry poll cycle (600ms ping window, suppressed during active agent alert)
+        const now = performance.now();
+        const cycleMs = 3000;
+        const pingDurationMs = 600;
+        const timeInCycle = now % cycleMs;
+        const hasAlert = Boolean(waiting_for_input || work_completed);
+
+        if (!hasAlert && timeInCycle < pingDurationMs) {
+          const progress = timeInCycle / pingDurationMs; // 0.0 -> 1.0
+          const waveDeg = progress * (spanDeg + 3);
+
+          const fade = Math.max(0, 1.0 - progress * 0.7);
+          const alpha = 0.4 + 0.6 * fade;
+
+          const arcStart = Math.max(startAngle, (centerAngleDeg - waveDeg) * Math.PI / 180);
+          const arcEnd = Math.min(endAngle, (centerAngleDeg + waveDeg) * Math.PI / 180);
+
+          // Glowing Expanding Wavefront
+          c.beginPath();
+          c.arc(cx, cy, arcRadius, arcStart, arcEnd);
+          c.lineWidth = 4.5;
+          c.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+          c.shadowColor = `rgba(0, 255, 136, ${0.8 * fade})`;
+          c.shadowBlur = 6 + 10 * fade;
+          c.stroke();
+
+          // Hot-core highlight at wave peak
+          if (progress < 0.6) {
+            const coreAlpha = 0.9 * (1.0 - progress / 0.6);
+            c.beginPath();
+            c.arc(cx, cy, arcRadius, arcStart, arcEnd);
+            c.lineWidth = 2.0;
+            c.strokeStyle = `rgba(210, 255, 235, ${coreAlpha})`;
+            c.shadowColor = "#00ff88";
+            c.shadowBlur = 8;
+            c.stroke();
+          }
+        }
       } else if (isWifiConn) {
         // Amber Searching / Unpaired
+        c.beginPath();
+        c.arc(cx, cy, arcRadius, startAngle, endAngle);
+        c.lineWidth = 4.5;
         c.strokeStyle = "#f59e0b";
         c.shadowColor = "rgba(245, 158, 11, 0.5)";
         c.shadowBlur = 6;
+        c.stroke();
       } else {
         // Offline Red
+        c.beginPath();
+        c.arc(cx, cy, arcRadius, startAngle, endAngle);
+        c.lineWidth = 4.5;
         c.strokeStyle = "#ef4444";
         c.shadowColor = "rgba(239, 68, 68, 0.4)";
         c.shadowBlur = 4;
+        c.stroke();
       }
-      c.stroke();
       c.restore();
     }
 
@@ -1024,8 +1086,8 @@
       c.fill();
 
       // 3. Quota Ratios
-      const claudePct = Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
-      const antiPct = Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
+      const claudePct = left_gauge_pct !== undefined ? left_gauge_pct : Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
+      const antiPct = right_gauge_pct !== undefined ? right_gauge_pct : Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
 
       // Helper for Curved Clockwise Text along a circular arc
       function drawCurvedTextClockwise(ctx, text, centerX, centerY, radius, centerAngleRad, color, font) {
@@ -1063,15 +1125,19 @@
         ctx.restore();
       }
 
-      // 4. Curved Inside Quota Badges (CLAUDE % and ANTIGRAVITY %)
+      // 4. Curved Inside Quota Badges (Dynamic Left % and Right %)
       const textRadius = 86.5;
       const badgeFont = "900 10.5px 'JetBrains Mono', 'Fira Code', monospace";
 
-      // Claude % Curved along inside of Left Arc (Clockwise around left perimeter)
-      drawCurvedTextClockwise(c, "CLAUDE " + claudePct + "%", cx, cy, textRadius, -Math.PI / 2, "#00E5FF", badgeFont);
+      // Left Gauge % Curved along inside of Left Arc (Clockwise around left perimeter)
+      const leftBadgeText = (left_gauge_mode === "enterprise" && left_gauge_curved)
+        ? left_gauge_curved
+        : `${(left_gauge_name || "CLAUDE").toUpperCase()} ${claudePct}%`;
+      drawCurvedTextClockwise(c, leftBadgeText, cx, cy, textRadius, -Math.PI / 2, left_gauge_color || "#00E5FF", badgeFont);
 
-      // Antigravity % Curved along inside of Right Arc (Clockwise around right perimeter)
-      drawCurvedTextClockwise(c, "ANTIGRAVITY " + antiPct + "%", cx, cy, textRadius, Math.PI / 2, "#FF7A00", badgeFont);
+      // Right Gauge % Curved along inside of Right Arc (Clockwise around right perimeter)
+      const rightBadgeText = `${(right_gauge_name || "ANTIGRAVITY").toUpperCase()} ${antiPct}%`;
+      drawCurvedTextClockwise(c, rightBadgeText, cx, cy, textRadius, Math.PI / 2, right_gauge_color || "#FF7A00", badgeFont);
 
       // 4. Top Crown: Backend Connection Status Arc & Rain Indicator
       const wifiLedEl = document.getElementById("wifiLed");
@@ -1128,7 +1194,7 @@
       if (claudePct > 0) {
         const activeEndLeft = bottomAngleLeft + (claudePct / 100) * totalSweepLeft;
         c.lineWidth = 7;
-        c.strokeStyle = "#00E5FF";
+        c.strokeStyle = left_gauge_color || "#00E5FF";
         c.beginPath();
         c.arc(cx, cy, arcR, bottomAngleLeft, activeEndLeft, false);
         c.stroke();
@@ -1162,7 +1228,7 @@
       if (antiPct > 0) {
         const activeEndRight = bottomAngleRight - (antiPct / 100) * totalSweepRight;
         c.lineWidth = 7;
-        c.strokeStyle = "#FF7A00";
+        c.strokeStyle = right_gauge_color || "#FF7A00";
         c.beginPath();
         c.arc(cx, cy, arcR, bottomAngleRight, activeEndRight, true);
         c.stroke();
@@ -1426,15 +1492,67 @@
 
       // 4. Center Screen: 2x2 Split-Flap Clock OR Multi-Agent Status Dashboard
       if (active_agents && active_agents.length > 0 && has_active_agents) {
-        // Draw Multi-Agent Status Dashboard inside the 102px x 140px safe corridor
         const startY = cy - 65;
-        const visibleRows = Math.min(active_agents.length, 3);
+        const cardW = 98, cardH = 38;
+        const cardX = cx - cardW / 2;
+        const totalAgents = Math.min(active_agents.length, 8);
 
-        for (let i = 0; i < visibleRows; i++) {
-          const rowY = startY + (i * 44);
+        // Ping-pong scrolling math when > 3 agents
+        let scrollY = 0;
+        if (totalAgents > 3) {
+          const maxScroll = (totalAgents - 3) * 44;
+          if (emulatorScrollPhaseStart === 0) emulatorScrollPhaseStart = now;
+          const elapsed = now - emulatorScrollPhaseStart;
+
+          if (emulatorScrollPhase === 0) { // Top Pause (2.5s)
+            scrollY = 0;
+            if (elapsed >= 2500) {
+              emulatorScrollPhase = 1;
+              emulatorScrollPhaseStart = now;
+            }
+          } else if (emulatorScrollPhase === 1) { // Scroll Down (1.8s)
+            if (elapsed >= 1800) {
+              emulatorScrollPhase = 2;
+              emulatorScrollPhaseStart = now;
+              scrollY = maxScroll;
+            } else {
+              const t = elapsed / 1800;
+              const ease = (t < 0.5) ? (4 * t * t * t) : (1 - Math.pow(-2 * t + 2, 3) / 2);
+              scrollY = ease * maxScroll;
+            }
+          } else if (emulatorScrollPhase === 2) { // Bottom Pause (2.5s)
+            scrollY = maxScroll;
+            if (elapsed >= 2500) {
+              emulatorScrollPhase = 3;
+              emulatorScrollPhaseStart = now;
+            }
+          } else if (emulatorScrollPhase === 3) { // Scroll Up (1.8s)
+            if (elapsed >= 1800) {
+              emulatorScrollPhase = 0;
+              emulatorScrollPhaseStart = now;
+              scrollY = 0;
+            } else {
+              const t = elapsed / 1800;
+              const ease = (t < 0.5) ? (4 * t * t * t) : (1 - Math.pow(-2 * t + 2, 3) / 2);
+              scrollY = (1 - ease) * maxScroll;
+            }
+          }
+        } else {
+          scrollY = 0;
+          emulatorScrollPhase = 0;
+          emulatorScrollPhaseStart = 0;
+        }
+
+        // Clip to safe central corridor
+        c.save();
+        c.beginPath();
+        c.rect(cardX - 4, startY, cardW + 8, 128);
+        c.clip();
+
+        for (let i = 0; i < totalAgents; i++) {
+          const rowY = startY + (i * 44) - scrollY;
+          if (rowY + cardH < startY - 10 || rowY > startY + 138) continue;
           const ag = active_agents[i];
-          const cardW = 98, cardH = 38;
-          const cardX = cx - cardW / 2;
 
           // Determine Provider Brand Color (Orange for AGY, Teal for Claude)
           const isAGY = (ag.source === "antigravity" || (ag.name && ag.name.startsWith("AGY")));
@@ -1464,11 +1582,19 @@
           c.fillStyle = brandCol;
           c.fillText(ag.name || "Agent", cardX + 8, rowY + 11);
 
-          // Status Dot
-          c.fillStyle = ag.color || brandCol;
+          // Pulsating Status Badge Dot
+          const pulse = (Math.sin((now * 0.006) + (i * 1.3)) + 1) / 2; // 0..1
+          const dotR = 2.5 + 1.2 * pulse;
+          const dotColor = ag.color || brandCol;
+
+          c.save();
+          c.fillStyle = dotColor;
+          c.shadowColor = dotColor;
+          c.shadowBlur = 3 + 6 * pulse;
           c.beginPath();
-          c.arc(cardX + cardW - 10, rowY + 11, 3.5, 0, Math.PI * 2);
+          c.arc(cardX + cardW - 10, rowY + 11, dotR, 0, Math.PI * 2);
           c.fill();
+          c.restore();
 
           // Row 2: Detail / Action Text
           c.font = "9px 'JetBrains Mono', monospace";
@@ -1477,6 +1603,7 @@
           if (det.length > 14) det = det.substring(0, 13) + "…";
           c.fillText(det, cardX + 8, rowY + 26);
         }
+        c.restore();
       } else {
         // Draw Animated 2x2 Matrix
         draw2x2FlipCard(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);
@@ -1506,17 +1633,17 @@
         c.fillStyle = "#ffffff";
         c.fillText(completion_text || "ALL DONE", cx, cy + 95);
       } else {
-        // Line 1: Claude Reset Countdown in Teal #00E5FF
+        // Line 1: Left Gauge Reset Countdown
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = "#00E5FF";
-        const cldStr = "CLD: " + (claude_reset_str || "READY");
-        c.fillText(cldStr, cx, cy + 81);
+        c.fillStyle = left_gauge_color || "#00E5FF";
+        const leftStr = (left_gauge_label || "CLD") + ": " + (left_gauge_reset || claude_reset_str || "READY");
+        c.fillText(leftStr, cx, cy + 81);
 
-        // Line 2: Antigravity Reset Countdown in Orange #FF7A00
+        // Line 2: Right Gauge Reset Countdown
         c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
-        c.fillStyle = "#FF7A00";
-        const agyStr = "AGY: " + (antigravity_reset_str || "READY");
-        c.fillText(agyStr, cx, cy + 95);
+        c.fillStyle = right_gauge_color || "#FF7A00";
+        const rightStr = (right_gauge_label || "AGY") + ": " + (right_gauge_reset || antigravity_reset_str || "READY");
+        c.fillText(rightStr, cx, cy + 95);
       }
     }
 
@@ -1889,14 +2016,37 @@
         const res = await fetch("http://localhost:5000/data", { method: "GET" });
         if (res.ok) {
           const data = await res.json();
-          if (data.claude) {
+          if (data.left_gauge) {
+            left_gauge_label = data.left_gauge.label || "CLD";
+            left_gauge_name = data.left_gauge.name || "Claude";
+            left_gauge_mode = data.left_gauge.mode || "standard";
+            left_gauge_curved = data.left_gauge.curved_text || "";
+            left_gauge_pct = data.left_gauge.percent !== undefined ? data.left_gauge.percent : 100;
+            left_gauge_reset = data.left_gauge.reset_str || "";
+            if (data.left_gauge.color) {
+              left_gauge_color = data.left_gauge.color.startsWith("0x") ? "#" + data.left_gauge.color.slice(2) : data.left_gauge.color;
+            }
+            document.getElementById("claudeSlider").value = left_gauge_pct;
+            document.getElementById("claudeVal").innerText = left_gauge_pct + "%";
+          } else if (data.claude) {
             claude_limit = data.claude.limit || 500000;
             claude_remaining = data.claude.remaining || 500000;
             claude_reset_str = data.claude.reset_str || "";
             document.getElementById("claudeSlider").value = Math.round((claude_remaining/claude_limit)*100);
             document.getElementById("claudeVal").innerText = Math.round((claude_remaining/claude_limit)*100) + "%";
           }
-          if (data.antigravity) {
+
+          if (data.right_gauge) {
+            right_gauge_label = data.right_gauge.label || "AGY";
+            right_gauge_name = data.right_gauge.name || "Antigravity";
+            right_gauge_pct = data.right_gauge.percent !== undefined ? data.right_gauge.percent : 100;
+            right_gauge_reset = data.right_gauge.reset_str || "";
+            if (data.right_gauge.color) {
+              right_gauge_color = data.right_gauge.color.startsWith("0x") ? "#" + data.right_gauge.color.slice(2) : data.right_gauge.color;
+            }
+            document.getElementById("antiSlider").value = right_gauge_pct;
+            document.getElementById("antiVal").innerText = right_gauge_pct + "%";
+          } else if (data.antigravity) {
             antigravity_limit = data.antigravity.limit || 200;
             antigravity_remaining = data.antigravity.remaining !== undefined ? data.antigravity.remaining : 200;
             antigravity_reset_str = data.antigravity.reset_str || "";
@@ -1940,6 +2090,9 @@
             const compVal = document.getElementById("completionTextVal");
             if (compVal) compVal.innerText = completion_text;
           }
+          if (data.display_rotation !== undefined) {
+            applyRotation(data.display_rotation, false);
+          }
 
           wifiLed.className = "led wifi";
           backendStatus.className = "status-badge";
@@ -1952,6 +2105,32 @@
         backendStatus.className = "status-badge offline";
         backendStatus.innerText = "DISCONNECTED";
       }
+    }
+
+    let currentRotation = 0;
+    const ROT_SHORT_LABELS = ["0° (STD)", "90° (CW)", "180° (INV)", "270° (CCW)"];
+
+    function applyRotation(rot, pushToBackend = false) {
+      currentRotation = ((rot % 4) + 4) % 4;
+      const canvas = document.getElementById("tftCanvas");
+      if (canvas) {
+        canvas.style.transform = `rotate(${currentRotation * 90}deg)`;
+      }
+      const btn = document.getElementById("btnRotate");
+      if (btn) {
+        btn.innerText = `🔄 ${ROT_SHORT_LABELS[currentRotation]}`;
+      }
+      if (pushToBackend) {
+        fetch("http://localhost:5000/api/rotate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rotation: currentRotation })
+        }).catch(err => console.log("Rotate sync error:", err));
+      }
+    }
+
+    function cycleRotation() {
+      applyRotation(currentRotation + 1, true);
     }
 
     function toggleBackendSync(enabled) {
