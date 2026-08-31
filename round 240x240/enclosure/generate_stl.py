@@ -446,20 +446,26 @@ def generate_main_housing():
     hw_in = esp_w / 2.0          # 9.10mm
     hw_out = hw_in + side_thick  # 10.50mm
 
-    # 1. Top Side Guide Rail (CCW Winding):
+    center_gap_half_w = 3.5 # 7.0mm open center gap where the tall pillar was
+
+    # 1. Top L-Shaped Guide Rail & Rear Corner Stop (CCW Winding):
     pts_rail_t = [
         [x_front, hw_in],
         [x_rear, hw_in],
-        [x_rear, hw_out],
+        [x_rear, center_gap_half_w],
+        [x_back, center_gap_half_w],
+        [x_back, hw_out],
         [x_front, hw_out]
     ]
     poly_rail_t = m3d.CrossSection([pts_rail_t])
     wall_top_solid = m3d.Manifold.extrude(poly_rail_t, cradle_h).translate([0, 0, floor_t])
 
-    # 2. Bottom Side Guide Rail (CCW Winding):
+    # 2. Bottom L-Shaped Guide Rail & Rear Corner Stop (CCW Winding):
     pts_rail_b = [
         [x_front, -hw_out],
-        [x_rear, -hw_out],
+        [x_back, -hw_out],
+        [x_back, -center_gap_half_w],
+        [x_rear, -center_gap_half_w],
         [x_rear, -hw_in],
         [x_front, -hw_in]
     ]
