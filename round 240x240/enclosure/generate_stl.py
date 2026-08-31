@@ -426,13 +426,13 @@ def generate_main_housing(include_opposite_dupont=True):
     cs_v2, _, _ = text_to_cross_section("V2.1", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
-    # 11. Corner Mass Coring Pockets (Idea 1: 45° self-supporting conical corner pockets below Z = 11.5mm to lighten lower corners without affecting upper screw threads):
+    # 11. Expanded Corner Mass Coring Pockets (Maximized 45° self-supporting conical corner pockets below Z = 12.5mm):
     corner_core_cuts = m3d.Manifold()
     for cx_sign in [-1, 1]:
         for cy_sign in [-1, 1]:
-            # Cylindrical base (Z = 2.0 to 9.0mm) + 45° conical dome (Z = 9.0 to 11.5mm)
-            c_base = m3d.Manifold.cylinder(7.0, 3.6, 3.6, 32).translate([cx_sign * 17.5, cy_sign * 17.5, floor_t])
-            c_cone = m3d.Manifold.cylinder(2.5, 3.6, 0.5, 32).translate([cx_sign * 17.5, cy_sign * 17.5, floor_t + 7.0])
+            # Cylindrical base (radius 5.2mm, Z = 2.0 to 8.5mm) + 45° conical dome (Z = 8.5 to 12.5mm, r = 5.2 -> 1.0mm)
+            c_base = m3d.Manifold.cylinder(6.5, 5.2, 5.2, 32).translate([cx_sign * 18.0, cy_sign * 18.0, floor_t])
+            c_cone = m3d.Manifold.cylinder(4.0, 5.2, 1.0, 32).translate([cx_sign * 18.0, cy_sign * 18.0, floor_t + 6.5])
             corner_core_cuts = corner_core_cuts + (c_base + c_cone)
 
     cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss + corner_core_cuts

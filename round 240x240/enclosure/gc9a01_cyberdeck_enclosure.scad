@@ -345,13 +345,13 @@ module main_housing(include_opposite_dupont=true) {
             linear_extrude(height = 0.45)
                 text("V2.1", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
 
-        // 9. Corner Mass Coring Pockets (Idea 1: 45° self-supporting conical corner pockets below Z = 11.5mm)
+        // 9. Expanded Corner Mass Coring Pockets (Maximized 45° self-supporting conical corner pockets below Z = 12.5mm)
         for (cx_sign = [-1, 1]) {
             for (cy_sign = [-1, 1]) {
-                translate([cx_sign * 17.5, cy_sign * 17.5, floor_t])
-                    cylinder(r = 3.6, h = 7.0);
-                translate([cx_sign * 17.5, cy_sign * 17.5, floor_t + 7.0])
-                    cylinder(r1 = 3.6, r2 = 0.5, h = 2.5);
+                translate([cx_sign * 18.0, cy_sign * 18.0, floor_t])
+                    cylinder(r = 5.2, h = 6.5);
+                translate([cx_sign * 18.0, cy_sign * 18.0, floor_t + 6.5])
+                    cylinder(r1 = 5.2, r2 = 1.0, h = 4.0);
             }
         }
     }
