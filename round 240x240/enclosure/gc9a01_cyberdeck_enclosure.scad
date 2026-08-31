@@ -357,7 +357,7 @@ module main_housing() {
     side_thick  = 1.4;
     cradle_h    = 3.6;  // Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
-    cur_esp_w   = 18.2; // Snug precision width (+0.2mm per side for exact 17.8mm boards)
+    cur_esp_w   = 18.5; // Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
     cur_esp_l   = 22.8; // Snug precision length (+0.3mm clearance for 22.5mm boards)
     x_front     = -26.0; // Flush USB-C seating directly at 1.2mm outer perimeter wall
     x_rear      = -3.2;
