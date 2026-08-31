@@ -17,7 +17,7 @@
 // ==========================================
 // TIMING & THRESHOLDS
 // ==========================================
-const unsigned long wifiConnectTimeoutMs = 30000;
+const unsigned long wifiConnectTimeoutMs = 8000;
 const unsigned long backendPollInterval = 3000;
 const unsigned long sleepIdleThresholdMs = 15UL * 60UL * 1000UL;
 const long claudeHeavyUsageThreshold = 2500000;
