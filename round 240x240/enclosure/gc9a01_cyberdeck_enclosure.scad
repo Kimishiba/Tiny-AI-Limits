@@ -352,11 +352,10 @@ module main_housing() {
                 text("V2.0", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini Snug U-Cradle (Open Front, Flush Seating at X = -26.0mm)
-    wall_thick  = 2.0;
+    // Fused Internal ESP32-C3 SuperMini Snug Low-Profile U-Cradle (Zero Tall Pillars)
+    wall_thick  = 1.6;
     side_thick  = 1.4;
-    tall_wall_h = 7.5;  // Cantilever rear snap wall
-    side_wall_h = 4.8;  // Clean vertical side guide wall height
+    cradle_h    = 3.6;  // Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
     cur_esp_w   = 18.2; // Snug precision width (+0.2mm per side for exact 17.8mm boards)
     cur_esp_l   = 22.8; // Snug precision length (+0.3mm clearance for 22.5mm boards)
@@ -366,15 +365,15 @@ module main_housing() {
     snap_z      = floor_t + 1.8 + 1.2 + 0.2; // 5.2mm
 
     union() {
-        // 1. Straight Solid Rear Thrust Wall with Snap Lip
+        // 1. Low-Profile Continuous Rear Thrust Wall (flush with side walls)
         translate([x_rear, -(cur_esp_w / 2 + side_thick), floor_t])
-            cube([wall_thick, cur_esp_w + 2 * side_thick, tall_wall_h]);
+            cube([wall_thick, cur_esp_w + 2 * side_thick, cradle_h]);
 
         // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
         translate([x_front, cur_esp_w / 2, floor_t])
-            cube([cur_esp_l, side_thick, side_wall_h]);
+            cube([cur_esp_l, side_thick, cradle_h]);
         translate([x_front, -(cur_esp_w / 2 + side_thick), floor_t])
-            cube([cur_esp_l, side_thick, side_wall_h]);
+            cube([cur_esp_l, side_thick, cradle_h]);
 
         // 3. Integrated 0.6mm Side Edge Support Steps (Supports outer PCB edge outside pin rows)
         translate([x_front, cur_esp_w / 2 - 0.6, floor_t])

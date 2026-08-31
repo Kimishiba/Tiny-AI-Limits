@@ -431,50 +431,36 @@ def generate_main_housing():
     cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
     
-    # 8. SNUG PRECISION ESP32-C3 SUPERMINI U-CRADLE ARCHITECTURE (Zero Slop / Zero Wobble):
+    # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (Zero Tall Pillars / 100% Open Overhead Wire Clearance):
     esp_l = 22.8       # Snug precision length (+0.3mm clearance for 22.5mm SuperMini boards)
     esp_w = 18.2       # Snug precision width (+0.2mm per side for 17.8mm SuperMini boards)
     rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
     side_thick = 1.4
-    side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
-    rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
+    cradle_h = 3.6     # Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
-    # Flush USB-C seating at X = -26.0mm (1.2mm wall to outside perimeter at X = -27.2mm):
+    # Flush USB-C seating at X = -26.0mm:
     x_front = -26.0
     x_rear = -3.2
-    wall_thick = 2.0
-    x_back = x_rear + wall_thick # -1.2mm
+    wall_thick = 1.6
+    x_back = x_rear + wall_thick # -1.6mm
     hw_in = esp_w / 2.0          # 9.10mm
     hw_out = hw_in + side_thick  # 10.50mm
-    snap_w = 6.0
-    slit_w = 1.20
-    cheek_y_min = snap_w / 2.0 + slit_w # 4.20mm
 
-    # 1. Top Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
-    pts_wall_t = [
+    # 1. Monolithic Continuous Low-Profile U-Wall (Side guide walls + continuous rear endstop, CCW Winding):
+    pts_u_wall = [
         [x_front, hw_in],
         [x_rear, hw_in],
-        [x_rear, cheek_y_min],
-        [x_back, cheek_y_min],
+        [x_rear, -hw_in],
+        [x_front, -hw_in],
+        [x_front, -hw_out],
+        [x_back, -hw_out],
         [x_back, hw_out],
         [x_front, hw_out]
     ]
-    poly_wall_t = m3d.CrossSection([pts_wall_t])
-    wall_top_solid = m3d.Manifold.extrude(poly_wall_t, side_wall_h).translate([0, 0, floor_t])
+    poly_u_wall = m3d.CrossSection([pts_u_wall])
+    u_wall_solid = m3d.Manifold.extrude(poly_u_wall, cradle_h).translate([0, 0, floor_t])
 
-    # 2. Bottom Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
-    pts_wall_b = [
-        [x_front, -hw_out],
-        [x_back, -hw_out],
-        [x_back, -cheek_y_min],
-        [x_rear, -cheek_y_min],
-        [x_rear, -hw_in],
-        [x_front, -hw_in]
-    ]
-    poly_wall_b = m3d.CrossSection([pts_wall_b])
-    wall_bot_solid = m3d.Manifold.extrude(poly_wall_b, side_wall_h).translate([0, 0, floor_t])
-
-    # 3. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
+    # 2. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
     pts_ledge_t = [
         [x_front, hw_in - 0.6],
         [x_rear, hw_in - 0.6],
@@ -493,33 +479,13 @@ def generate_main_housing():
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
 
-    # 4. Center Compliant Snap Arm (height Z = 2.0 to 9.5mm, width 6.0mm):
-    snap_arm_body = m3d.Manifold.cube([wall_thick, snap_w, rear_wall_h], center=False).translate([x_rear, -snap_w/2.0, floor_t])
-
-    # Dynamic 35-deg entry ramp on rear snap lip:
-    snap_lip_z = floor_t + rail_h + 1.2 + 1.8 # 6.8mm
-    lip_len = 5.0
-    lip_overhang = 0.50
-    lip_h = 1.3
-    hw_y = lip_len / 2.0
-    hz = lip_h / 2.0
-    v_base = [[0.05, -hw_y, -hz], [0.05, hw_y, -hz], [0.05, hw_y, hz], [0.05, -hw_y, hz]]
-    v_apex = [[-lip_overhang, -hw_y + 0.60, -0.2], [-lip_overhang, hw_y - 0.60, -0.2]]
-    pts = v_base + v_apex
-    snap_lip = m3d.Manifold()
-    for p in pts:
-        snap_lip = snap_lip + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    snap_lip = snap_lip.hull().translate([x_rear, 0, snap_lip_z])
-
-    snap_arm_clean = snap_arm_body + snap_lip
-
-    # 5. Side Snap Clips:
+    # 3. Discrete Side Retention Snap Clips:
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.2 + 0.2  # 5.2mm
     clip_top = make_snap_clip(5.0, 0.45, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
     clip_bot = make_snap_clip(5.0, 0.45, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
-    cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot)
+    cradle_solid = (u_wall_solid + ledge_top + ledge_bot + clip_top + clip_bot)
 
     return housing_hollow + cradle_solid
 
