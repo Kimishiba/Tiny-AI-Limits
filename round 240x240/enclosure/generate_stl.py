@@ -421,36 +421,41 @@ def generate_main_housing():
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    # 9. Reinforced Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -26.0mm shoulder, 45° top ceiling & outer transitions):
-    b1 = m3d.Manifold.cube([0.1, 20.6, 8.0], center=False).translate([-26.1, -10.3, floor_t])
-    b2 = m3d.Manifold.cube([0.1, 23.4, 9.4], center=False).translate([-23.9, -11.7, floor_t])
-    inner_pocket = (b1 + b2).hull()
+    # 9. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm, Y = -11.0 to +11.0mm):
+    usbc_wall_relief = m3d.Manifold.cube([2.2, 22.0, cavity_depth + 0.2], center=False).translate([-26.0, -11.0, floor_t])
+
+    # 9b. Deep Dual Pin Header Clearance Troughs Under ESP32 (Zero Pin Bending, X = -23.5 to -2.5mm, |Y| = 5.2 to 8.6mm):
+    trough_w = 3.4
+    trough_l = 21.0
+    trough_top = m3d.Manifold.cube([trough_l, trough_w, floor_t + 2.0], center=False).translate([-23.5, 5.2, -1.0])
+    trough_bot = m3d.Manifold.cube([trough_l, trough_w, floor_t + 2.0], center=False).translate([-23.5, -8.6, -1.0])
+    pin_troughs = trough_top + trough_bot
 
     # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
     cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
-    cuts = cavity_obj + inner_pocket + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
+    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + pin_troughs + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
     
-    # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE:
-    esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
-    esp_w = 19.9       # Expanded width (+0.5mm on each lateral side for easy board insertion)
-    rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
-    side_thick = 1.6
+    # 8. SNUG PRECISION ESP32-C3 SUPERMINI U-CRADLE ARCHITECTURE (Zero Slop / Zero Wobble):
+    esp_l = 22.8       # Snug precision length (+0.3mm clearance for 22.5mm SuperMini boards)
+    esp_w = 18.2       # Snug precision width (+0.2mm per side for 17.8mm SuperMini boards)
+    rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
+    side_thick = 1.4
     side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
     rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
     
-    # Flush USB-C seating at X = -26.0mm (1.2mm shoulder stop to outside wall at X = -27.2mm):
+    # Flush USB-C seating at X = -26.0mm (1.2mm wall to outside perimeter at X = -27.2mm):
     x_front = -26.0
-    x_rear = -3.4
+    x_rear = -3.2
     wall_thick = 2.0
-    x_back = x_rear + wall_thick # -1.4mm
-    hw_in = esp_w / 2.0         # 9.95mm
-    hw_out = hw_in + side_thick # 11.55mm
+    x_back = x_rear + wall_thick # -1.2mm
+    hw_in = esp_w / 2.0          # 9.10mm
+    hw_out = hw_in + side_thick  # 10.50mm
     snap_w = 6.0
-    slit_w = 1.25
-    cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
+    slit_w = 1.20
+    cheek_y_min = snap_w / 2.0 + slit_w # 4.20mm
 
     # 1. Top Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
     pts_wall_t = [
@@ -476,10 +481,10 @@ def generate_main_housing():
     poly_wall_b = m3d.CrossSection([pts_wall_b])
     wall_bot_solid = m3d.Manifold.extrude(poly_wall_b, side_wall_h).translate([0, 0, floor_t])
 
-    # 3. Integrated Continuous 1.0mm Bottom Support Ledges:
+    # 3. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
     pts_ledge_t = [
-        [x_front, hw_in - 1.0],
-        [x_rear, hw_in - 1.0],
+        [x_front, hw_in - 0.6],
+        [x_rear, hw_in - 0.6],
         [x_rear, hw_in],
         [x_front, hw_in]
     ]
@@ -489,8 +494,8 @@ def generate_main_housing():
     pts_ledge_b = [
         [x_front, -hw_in],
         [x_rear, -hw_in],
-        [x_rear, -(hw_in - 1.0)],
-        [x_front, -(hw_in - 1.0)]
+        [x_rear, -(hw_in - 0.6)],
+        [x_front, -(hw_in - 0.6)]
     ]
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
@@ -498,10 +503,10 @@ def generate_main_housing():
     # 4. Center Compliant Snap Arm (height Z = 2.0 to 9.5mm, width 6.0mm):
     snap_arm_body = m3d.Manifold.cube([wall_thick, snap_w, rear_wall_h], center=False).translate([x_rear, -snap_w/2.0, floor_t])
 
-    # Dynamic 30-deg entry ramp on rear snap lip:
-    snap_lip_z = floor_t + rail_h + 1.4 + 1.8 # 7.0mm
+    # Dynamic 35-deg entry ramp on rear snap lip:
+    snap_lip_z = floor_t + rail_h + 1.2 + 1.8 # 6.8mm
     lip_len = 5.0
-    lip_overhang = 0.55
+    lip_overhang = 0.50
     lip_h = 1.3
     hw_y = lip_len / 2.0
     hz = lip_h / 2.0
@@ -517,9 +522,9 @@ def generate_main_housing():
 
     # 5. Side Snap Clips:
     esp_center_x = (x_front + x_rear) / 2.0
-    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 5.3mm
-    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
-    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
+    snap_side_z = floor_t + rail_h + 1.2 + 0.2  # 5.2mm
+    clip_top = make_snap_clip(5.0, 0.45, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
+    clip_bot = make_snap_clip(5.0, 0.45, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
     cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot)
 

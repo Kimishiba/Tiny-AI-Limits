@@ -342,27 +342,37 @@ module main_housing() {
             linear_extrude(height = 0.45)
                 text("SENTINEL MK-1", size = 3.0, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
 
+        // 7b. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm)
+        translate([-26.0, -11.0, floor_t])
+            cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
+
+        // 7c. Deep Dual Pin Header Clearance Troughs Under ESP32 (Zero Pin Bending)
+        translate([-23.5, 5.2, -1.0])
+            cube([21.0, 3.4, floor_t + 2.0]);
+        translate([-23.5, -8.6, -1.0])
+            cube([21.0, 3.4, floor_t + 2.0]);
+
         // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
         translate([10.5, 0, floor_t - 0.40])
             linear_extrude(height = 0.45)
                 text("V2.0", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front, Recessed Seating at X = -26.0mm)
-    wall_thick  = 3.0;
-    side_thick  = 1.6;
-    tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
-    side_wall_h = 6.2;  // Clean vertical side guide wall height
+    // Fused Internal ESP32-C3 SuperMini Snug U-Cradle (Open Front, Flush Seating at X = -26.0mm)
+    wall_thick  = 2.0;
+    side_thick  = 1.4;
+    tall_wall_h = 7.5;  // Cantilever rear snap wall
+    side_wall_h = 4.8;  // Clean vertical side guide wall height
     
-    cur_esp_w   = 19.9; // Expanded width (+0.5mm on each lateral side for easy board seating)
-    cur_esp_l   = 23.6;
-    x_front     = -26.0; // Flush USB-C seating directly at outer perimeter shoulder
-    x_rear      = -3.4;
-    cur_esp_cx  = (x_front + x_rear) / 2; // -14.7mm
-    snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
+    cur_esp_w   = 18.2; // Snug precision width (+0.2mm per side for exact 17.8mm boards)
+    cur_esp_l   = 22.8; // Snug precision length (+0.3mm clearance for 22.5mm boards)
+    x_front     = -26.0; // Flush USB-C seating directly at 1.2mm outer perimeter wall
+    x_rear      = -3.2;
+    cur_esp_cx  = (x_front + x_rear) / 2; // -14.6mm
+    snap_z      = floor_t + 1.8 + 1.2 + 0.2; // 5.2mm
 
     union() {
-        // 1. Straight Solid Rear Thrust Wall (shifted with board)
+        // 1. Straight Solid Rear Thrust Wall with Snap Lip
         translate([x_rear, -(cur_esp_w / 2 + side_thick), floor_t])
             cube([wall_thick, cur_esp_w + 2 * side_thick, tall_wall_h]);
 
@@ -372,11 +382,11 @@ module main_housing() {
         translate([x_front, -(cur_esp_w / 2 + side_thick), floor_t])
             cube([cur_esp_l, side_thick, side_wall_h]);
 
-        // 3. Integrated 1.0mm Side Edge Support Steps (Z = 2.0 to 5.2)
-        translate([x_front, cur_esp_w / 2 - 1.0, floor_t])
-            cube([cur_esp_l, 1.0, esp_standoff_h]);
+        // 3. Integrated 0.6mm Side Edge Support Steps (Supports outer PCB edge outside pin rows)
+        translate([x_front, cur_esp_w / 2 - 0.6, floor_t])
+            cube([cur_esp_l, 0.6, 1.8]);
         translate([x_front, -cur_esp_w / 2, floor_t])
-            cube([cur_esp_l, 1.0, esp_standoff_h]);
+            cube([cur_esp_l, 0.6, 1.8]);
 
         // 4. Discrete 45-Degree Self-Supporting Snap Retention Clips
         // Top clip
@@ -384,8 +394,8 @@ module main_housing() {
             hull() {
                 translate([-2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
                 translate([ 2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                translate([-1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                translate([ 1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([-1.95, -0.45, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([ 1.95, -0.45, 0.0]) cube([0.01, 0.01, 0.01]);
             }
         
         // Bottom clip
@@ -393,8 +403,8 @@ module main_housing() {
             hull() {
                 translate([-2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
                 translate([ 2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([-1.95, 0.45, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([ 1.95, 0.45, 0.0]) cube([0.01, 0.01, 0.01]);
             }
     }
 }
