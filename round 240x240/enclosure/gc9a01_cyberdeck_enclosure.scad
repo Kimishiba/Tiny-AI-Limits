@@ -22,7 +22,7 @@ display_funnel_top = 38.8; // Wide front opening diameter (36.4° conical anti-s
 display_glass_dia  = 36.6; // Glass / Backlight step (mm)
 display_pcb_dia    = 39.4; // Circular PCB body (38.0mm blueprint + 1.4mm clearance) (mm)
 display_tab_w      = 21.0; // Bottom connector tab width (mm)
-display_tab_h      = 24.2; // Tab height from center (mm) - Leaves 3.0mm solid outer perimeter wall (>= 4 perimeters)
+display_tab_h      = 25.90; // Tab height from center (mm) - Leaves exactly 1.30mm outer wall (3 perimeters)
 display_pcb_depth  = 3.4;  // Bezel rear pocket depth (mm)
 
 // Mid Clamp Sandwich Plate Parameters

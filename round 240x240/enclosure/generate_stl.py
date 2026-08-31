@@ -130,7 +130,7 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
 def make_gc9a01_pcb_pocket(depth_pocket=3.4):
     top_circle = m3d.Manifold.cylinder(depth_pocket, 39.4 / 2.0, 39.4 / 2.0, 64)
     tab_w = 21.0
-    tab_h = 24.2 # Leaves 3.0mm solid outer perimeter wall (>= 4 perimeters on a 0.4mm nozzle, zero 1-line thin walls)
+    tab_h = 25.90 # Leaves exactly 1.30mm outer wall (27.20 - 25.90 = 1.30mm), printing precisely 3 perimeter lines
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
     return top_circle + tab_box
 
