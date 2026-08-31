@@ -7,7 +7,7 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (with Dual DuPont Trenches), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
+part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (V2.0), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
 
 // Outer Dimensions
 enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls
@@ -145,21 +145,27 @@ module rounded_rect_prism(w, d, h, r) {
     }
 }
 
-// Precision Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
+// Precision Classic Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
 module usbc_stadium_cutter() {
+    y_span = 3.0;
+    r_in   = 2.75;
+    r_out  = 4.25;
+    
+    // Outer to inner through-wall tunnel (X = -32.0mm to -25.5mm)
     translate([-32.0, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -3.0, 0]) cylinder(r = 2.75, h = 16.0);
-                translate([0, 3.0, 0])  cylinder(r = 2.75, h = 16.0);
+                translate([0, -y_span, 0]) cylinder(r = r_in, h = 7.0);
+                translate([0,  y_span, 0]) cylinder(r = r_in, h = 7.0);
             }
         }
     }
-    translate([-29.0, 0, usbc_center_z]) {
+    // External lead-in entry chamfer on outside wall (X = -29.2 to -27.2)
+    translate([-29.2, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -3.0, 0]) cylinder(r1 = 4.25, r2 = 2.75, h = 3.5);
-                translate([0, 3.0, 0])  cylinder(r1 = 4.25, r2 = 2.75, h = 3.5);
+                translate([0, -y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
+                translate([0,  y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
             }
         }
     }
@@ -237,7 +243,7 @@ module mid_clamp() {
     }
 }
 
-// 3. MAIN HOUSING POD (Open-Bay U-Cradle Architecture with Dual-Face DuPont Trenches & Entry Screw Chamfers)
+// 3. MAIN HOUSING POD (Support-Free V2.0: Recessed Flat USB-C, Snug Cradle, Dual DuPont Trenches, Debossed V2.0)
 module main_housing(include_opposite_dupont=true) {
     cavity_depth = housing_depth - floor_t;
     
@@ -248,17 +254,33 @@ module main_housing(include_opposite_dupont=true) {
         translate([0, 0, floor_t])
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
-        // 2. Precision USB-C Port Cutout
+        // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter();
+        
+        // 2b. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm)
+        translate([-26.0, -11.0, floor_t])
+            cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
             
-        // 3. DuPont Connector & Wire Clearance Trench (Bottom Wall: Y = -26.0 to -21.0)
-        translate([-13.0, -26.0, floor_t])
-            cube([26.0, 5.0, cavity_depth + 0.1]);
+        // 3. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
+        trench_z0 = 6.0;
+        trench_h  = housing_depth - trench_z0 + 0.1;
+        
+        // 3a. Bottom Wall DuPont Trench (Y = -26.0 to -21.0)
+        hull() {
+            translate([-13.0, -26.0, trench_z0])
+                cube([26.0, 5.0, trench_h]);
+            translate([-13.0, -24.0, trench_z0 - 2.0])
+                cube([26.0, 3.0, trench_h + 2.0]);
+        }
             
-        // 3b. DuPont Connector & Wire Clearance Trench (Right Wall opposite USB-C: X = 21.0 to 26.0)
+        // 3b. Right Wall DuPont Trench (opposite USB-C: X = 21.0 to 26.0)
         if (include_opposite_dupont) {
-            translate([21.0, -13.0, floor_t])
-                cube([5.0, 26.0, cavity_depth + 0.1]);
+            hull() {
+                translate([21.0, -13.0, trench_z0])
+                    cube([5.0, 26.0, trench_h]);
+                translate([21.0, -13.0, trench_z0 - 2.0])
+                    cube([3.0, 26.0, trench_h + 2.0]);
+            }
         }
             
         // 4. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm)
@@ -271,56 +293,30 @@ module main_housing(include_opposite_dupont=true) {
             }
         }
         
-        // 5. Contour-Following Rear Aeration Slits
-        // Top 6 rows
-        translate([-11.0,  10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    10.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,   10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        // 5. Contour-Following Rear Aeration Slits (Widely spaced with solid 2.0mm printed ribs between rows)
+        // Top outer rows (Y = 17.0mm & 20.2mm, leaving 2.0mm solid inter-slot wall)
+        translate([-10.5,  17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    17.0, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.5,   17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-11.0,  12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    12.7, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,   12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([-9.0,   20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    20.2, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([9.0,    20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-11.0,  14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    14.9, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,   14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        // Bottom outer rows (Y = -17.0mm & -20.2mm, leaving 2.0mm solid inter-slot wall)
+        translate([-10.5, -17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -17.0, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.5,  -17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-10.5,  17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    17.1, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.5,   17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
+        translate([-9.0,  -20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -20.2, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([9.0,   -20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-10.0,  19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    19.3, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.0,   19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-9.0,   21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([9.0,    21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
-
-        // Bottom 6 rows
-        translate([-11.0, -10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -10.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,  -10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-11.0, -12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -12.7, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,  -12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-11.0, -14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -14.9, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,  -14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-10.5, -17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -17.1, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.5,  -17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-10.0, -19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -19.3, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.0,  -19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-9.0,  -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([9.0,   -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
+        // 5b. Safe Under-ESP32 Aeration Grille (strictly in central zone X = -19.5 to -7.5, |Y| <= 3.6mm, leaving all retaining walls 100% solid)
+        for (y_pos = [-3.6, -1.2, 1.2, 3.6]) {
+            translate([-17.0, y_pos, -1.0]) cube([5.0, 1.35, floor_t + 2.0], center=true);
+            translate([-10.0, y_pos, -1.0]) cube([5.0, 1.35, floor_t + 2.0], center=true);
+        }
         
         // 6. Top Edge Perimeter Vertical Exhaust Slits with 45-degree peaked roofs
         for (vx = [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]) {
@@ -333,58 +329,76 @@ module main_housing(include_opposite_dupont=true) {
                         ]);
         }
         
-        // 7. Embossed/Debossed Product Name in center area (Z = 0)
-        translate([0, 2.0, -0.05])
+        // 7. Embossed/Debossed Product Name on Underside Backplate (Z = 0, enlarged for crisp 3D printing)
+        translate([11.5, 4.8, -0.05])
             linear_extrude(height = 0.45)
-                text("CYBER-DECK", size = 3.2, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
-        translate([0, -2.0, -0.05])
+                text("TINY AI", size = 4.8, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+        translate([11.5, 0.0, -0.05])
             linear_extrude(height = 0.45)
-                text("UNIT 01", size = 2.5, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+                text("LIMITS", size = 4.8, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+        translate([11.5, -4.2, -0.05])
+            linear_extrude(height = 0.45)
+                text("SENTINEL MK-1", size = 3.0, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+
+        // 7b. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm)
+        translate([-26.0, -11.0, floor_t])
+            cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
+
+        // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
+        translate([10.5, 0, floor_t - 0.40])
+            linear_extrude(height = 0.45)
+                text("V2.0", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
     }
     
-    // Fused Internal ESP32-C3 SuperMini Minimalist U-Cradle (Open Front)
-    wall_thick  = 3.0;
-    side_thick  = 1.6;
-    tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
-    side_wall_h = 6.2;  // Clean vertical side guide wall height
-    x_front     = esp_center_x - esp_l / 2;
-    x_rear      = esp_center_x + esp_l / 2;
-    snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
+    // Fused Internal ESP32-C3 SuperMini Snug Low-Profile U-Cradle (Zero Tall Pillars)
+    wall_thick  = 1.6;
+    side_thick  = 1.4;
+    cradle_h    = 3.6;  // Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
+    
+    cur_esp_w   = 18.5; // Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
+    cur_esp_l   = 22.8; // Snug precision length (+0.3mm clearance for 22.5mm boards)
+    x_front     = -26.0; // Flush USB-C seating directly at 1.2mm outer perimeter wall
+    x_rear      = -3.2;
+    cur_esp_cx  = (x_front + x_rear) / 2; // -14.6mm
+    snap_z      = floor_t + 1.8 + 1.2 + 0.2; // 5.2mm
+
+    center_gap_half_w = 3.5; // 7.0mm open center gap where tall pillar was
 
     union() {
-        // 1. Straight Solid Rear Thrust Wall (opposite of USB-C port, solid all the way to floor)
-        translate([x_rear, -(esp_w / 2 + side_thick), floor_t])
-            cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
+        // 1. Top & Bottom L-Shaped Side Guide Walls with Rear Corner Thrust Stops (Center Gap where pillar was)
+        translate([x_front, cur_esp_w / 2, floor_t])
+            cube([cur_esp_l, side_thick, cradle_h]);
+        translate([x_rear, center_gap_half_w, floor_t])
+            cube([wall_thick, (cur_esp_w / 2 + side_thick) - center_gap_half_w, cradle_h]);
 
-        // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
-        translate([x_front, esp_w / 2, floor_t])
-            cube([esp_l, side_thick, side_wall_h]);
-        translate([x_front, -(esp_w / 2 + side_thick), floor_t])
-            cube([esp_l, side_thick, side_wall_h]);
+        translate([x_front, -(cur_esp_w / 2 + side_thick), floor_t])
+            cube([cur_esp_l, side_thick, cradle_h]);
+        translate([x_rear, -(cur_esp_w / 2 + side_thick), floor_t])
+            cube([wall_thick, (cur_esp_w / 2 + side_thick) - center_gap_half_w, cradle_h]);
 
-        // 3. Integrated 1.0mm Side Edge Support Steps (Z = 2.0 to 5.2)
-        translate([x_front, esp_w / 2 - 1.0, floor_t])
-            cube([esp_l, 1.0, esp_standoff_h]);
-        translate([x_front, -esp_w / 2, floor_t])
-            cube([esp_l, 1.0, esp_standoff_h]);
+        // 2. Integrated 0.6mm Side Edge Support Steps (Supports outer PCB edge outside pin rows)
+        translate([x_front, cur_esp_w / 2 - 0.6, floor_t])
+            cube([cur_esp_l, 0.6, 1.8]);
+        translate([x_front, -cur_esp_w / 2, floor_t])
+            cube([cur_esp_l, 0.6, 1.8]);
 
-        // 4. Discrete 45-Degree Self-Supporting Snap Retention Clips
+        // 3. Discrete 45-Degree Self-Supporting Snap Retention Clips
         // Top clip
-        translate([esp_center_x, esp_w / 2, snap_z])
+        translate([cur_esp_cx, cur_esp_w / 2, snap_z])
             hull() {
                 translate([-2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
                 translate([ 2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                translate([-1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                translate([ 1.95, -0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([-1.95, -0.45, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([ 1.95, -0.45, 0.0]) cube([0.01, 0.01, 0.01]);
             }
         
         // Bottom clip
-        translate([esp_center_x, -esp_w / 2, snap_z])
+        translate([cur_esp_cx, -cur_esp_w / 2, snap_z])
             hull() {
                 translate([-2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
                 translate([ 2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
-                translate([-1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
-                translate([ 1.95, 0.55, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([-1.95, 0.45, 0.0]) cube([0.01, 0.01, 0.01]);
+                translate([ 1.95, 0.45, 0.0]) cube([0.01, 0.01, 0.01]);
             }
     }
 }

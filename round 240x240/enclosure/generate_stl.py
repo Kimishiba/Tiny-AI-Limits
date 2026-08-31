@@ -329,7 +329,7 @@ def generate_main_housing(include_opposite_dupont=True):
     # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 27.5)
     chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False, chamfer_bottom=True)
     
-    # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.0mm perimeter walls)
+    # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.2mm perimeter walls)
     cw = 48.0
     cc = 12.0
     hcw = cw / 2.0
@@ -342,33 +342,34 @@ def generate_main_housing(include_opposite_dupont=True):
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Lowered Extra-Wide High-Clearance Oval USB-C Port on LEFT wall (X = -27.0mm, Z = 7.00mm):
+    # 3. Precision Classic Oval/Stadium USB-C Port on LEFT wall (X = -27.2mm, Z = 7.00mm):
     usbc_z = 7.00
-    y_span = 4.0
-    r_inner = 3.25
-    r_outer = 4.75
+    y_span = 3.0
+    r_inner = 2.75
+    r_outer = 4.25
     
-    c1 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-    c2 = m3d.Manifold.cylinder(18.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
+    c1 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0,  y_span, usbc_z])
     usbc_tunnel = (c1 + c2).hull()
     
-    cone1 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
-    cone2 = m3d.Manifold.cylinder(4.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, y_span, usbc_z])
+    cone1 = m3d.Manifold.cylinder(2.4, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
+    cone2 = m3d.Manifold.cylinder(2.4, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5,  y_span, usbc_z])
     usbc_flare = (cone1 + cone2).hull()
+    usbc_port = usbc_tunnel + usbc_flare
     
-    # Shaved internal relief pocket (X = -25.2 to -23.5mm, 16.0mm wide x 8.0mm tall):
-    shave_cone1 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, -y_span, usbc_z])
-    shave_cone2 = m3d.Manifold.cylinder(2.0, 4.0, 3.25, 32).rotate([0, -90, 0]).translate([-23.8, y_span, usbc_z])
-    usbc_inner_shave = (shave_cone1 + shave_cone2).hull()
+    # 4. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
+    trench_z0 = 6.0
+    trench_h = depth - trench_z0 + 0.1
+    
+    t_base_bot = m3d.Manifold.cube([26.0, 5.0, trench_h]).translate([-13.0, -26.0, trench_z0])
+    t_ramp_bot = m3d.Manifold.cube([26.0, 3.0, trench_h + 2.0]).translate([-13.0, -24.0, trench_z0 - 2.0])
+    dupont_trench_bot = (t_base_bot + t_ramp_bot).hull()
 
-    usbc_port = usbc_tunnel + usbc_flare + usbc_inner_shave
-    
-    # 4. DuPont Connector & Wire Clearance Trenches
-    dupont_trench_bot = m3d.Manifold.cube([26.0, 5.0, cavity_depth + 0.1], center=False).translate([-13.0, -26.0, floor_t])
     dupont_trench = dupont_trench_bot
     if include_opposite_dupont:
-        # Opposite Face (Right Wall: X = +21.0 to +26.0, Y = -13.0 to +13.0)
-        dupont_trench_right = m3d.Manifold.cube([5.0, 26.0, cavity_depth + 0.1], center=False).translate([21.0, -13.0, floor_t])
+        t_base_rt = m3d.Manifold.cube([5.0, 26.0, trench_h]).translate([21.0, -13.0, trench_z0])
+        t_ramp_rt = m3d.Manifold.cube([3.0, 26.0, trench_h + 2.0]).translate([21.0, -13.0, trench_z0 - 2.0])
+        dupont_trench_right = (t_base_rt + t_ramp_rt).hull()
         dupont_trench = dupont_trench_bot + dupont_trench_right
     
     # 5. 4 Corner M3 Screw Pilot Holes with 45-degree Entry Lead-In Chamfers (Z = 27.5mm):
@@ -379,29 +380,32 @@ def generate_main_housing(include_opposite_dupont=True):
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
             
-    # 6. High-Airflow Enlarged Contour-Following Aeration Slits on Backplate (Z = 0)
+    # 6. High-Airflow Aeration Slits strictly placed in outer zones (|Y| >= 16.5mm):
+    # This guarantees 100% solid, continuous floor directly below all ESP32 cradle retaining features (rails, ledges, snap arms, rear thrust wall)
     vent_cuts = m3d.Manifold()
-    top_rows = [
+    outer_rows = [
         # (ry, lw, lcx, cw_v, ccx, rw, rcx)
-        (9.8,  10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
-        (12.3, 10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
-        (14.8, 10.0, -11.0, 9.5, 0.0, 10.0, 11.0),
-        (17.3,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
-        (19.8,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
-        (22.0,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
+        (17.0, 8.0, -10.5, 7.5, 0.0, 8.0, 10.5),
+        (20.2, 6.0,  -9.0, 7.5, 0.0, 6.0,  9.0),
     ]
-    slot_h = 1.50 # Enlarged aperture height (1.50mm vs 1.05mm, +43% opening for maximum airflow)
-    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
+    slot_h = 1.20 # 1.20mm slot height leaves full 2.00mm solid printed wall between rows (5 perimeters)
+    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in outer_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
 
-    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
+    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in outer_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, -ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, -ry, floor_t / 2.0])
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
+
+    # 6b. Safe Under-ESP32 Aeration Grille (strictly in central zone X = -19.5 to -7.5, |Y| <= 3.6mm, leaving all retaining walls 100% solid):
+    for y_pos in [-3.6, -1.2, 1.2, 3.6]:
+        s1 = m3d.Manifold.cube([5.0, 1.35, floor_t + 2.0], center=True).translate([-17.0, y_pos, floor_t / 2.0])
+        s2 = m3d.Manifold.cube([5.0, 1.35, floor_t + 2.0], center=True).translate([-10.0, y_pos, floor_t / 2.0])
+        vent_cuts = vent_cuts + s1 + s2
         
     # Enlarged 1.6mm top vertical exhaust vents with 45-degree peaked roof:
     pts_slot_ccw = [[-0.80, 11.0], [0.80, 11.0], [0.80, 18.2], [0.0, 19.0], [-0.80, 18.2]]
@@ -410,69 +414,69 @@ def generate_main_housing(include_opposite_dupont=True):
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Dedicated Under-MCU Aeration Grille (4 rows under ESP32-C3 cradle, X = -21.0 to -3.5mm):
-    for y_pos in [-5.4, -1.8, 1.8, 5.4]:
-        s_mcu1 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-16.6, y_pos, floor_t / 2.0])
-        s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
-        vent_cuts = vent_cuts + s_mcu1 + s_mcu2
-
-    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (50% Larger Font, X = +11.5mm, Z = 0):
-    cs_l1, _, _ = text_to_cross_section("TINY AI", size=3.6)
-    cs_l2, _, _ = text_to_cross_section("LIMITS", size=3.6)
-    cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.4)
-    # 3-Line stacked layout with +56% larger font size (size 3.6 vs 2.3):
-    cs_stacked = cs_l1.translate([0, 3.6]) + cs_l2.translate([0, 0.0]) + cs_l3.translate([0, -3.6])
+    # 7. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (Enlarged for crisp printing, X = +11.5mm, Z = 0):
+    cs_l1, _, _ = text_to_cross_section("TINY AI", size=4.8)
+    cs_l2, _, _ = text_to_cross_section("LIMITS", size=4.8)
+    cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=3.0)
+    cs_stacked = cs_l1.translate([0, 4.8]) + cs_l2.translate([0, 0.0]) + cs_l3.translate([0, -4.2])
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
+    # 9. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm, Y = -11.0 to +11.0mm):
+    usbc_wall_relief = m3d.Manifold.cube([2.2, 22.0, cavity_depth + 0.2], center=False).translate([-26.0, -11.0, floor_t])
+
+    # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
+    cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
+    v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
+
+    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
     
-    # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE (100% CLEAN 2D EXTRUSION):
-    esp_l = 23.6       # Expanded length (+0.6mm clearance for 22.5-22.8mm boards)
-    esp_w = 18.9       # Expanded width (+0.5mm clearance for 18.0-18.2mm boards)
-    rail_h = 1.8       # Lowered rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
-    side_thick = 1.6
-    side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
-    rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
-    x_front = -24.0
-    x_rear = -0.4      # Rear wall positioned for 23.6mm length
-    wall_thick = 2.0
-    x_back = x_rear + wall_thick # +1.6mm
-    hw_in = esp_w / 2.0         # 9.45mm
-    hw_out = hw_in + side_thick # 11.05mm
-    snap_w = 6.0
-    slit_w = 1.25
-    cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
+    # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (Zero Tall Pillars / 100% Open Overhead Wire Clearance):
+    esp_l = 22.8       # Snug precision length (+0.3mm clearance for 22.5mm SuperMini boards)
+    esp_w = 18.5       # Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
+    rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
+    side_thick = 1.4
+    cradle_h = 3.6     # Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
+    
+    # Flush USB-C seating at X = -26.0mm:
+    x_front = -26.0
+    x_rear = -3.2
+    wall_thick = 1.6
+    x_back = x_rear + wall_thick # -1.6mm
+    hw_in = esp_w / 2.0          # 9.25mm
+    hw_out = hw_in + side_thick  # 10.65mm
 
-    # 1. Top Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
-    pts_wall_t = [
+    center_gap_half_w = 3.5 # 7.0mm open center gap where the tall pillar was
+
+    # 1. Top L-Shaped Guide Rail & Rear Corner Stop (CCW Winding):
+    pts_rail_t = [
         [x_front, hw_in],
         [x_rear, hw_in],
-        [x_rear, cheek_y_min],
-        [x_back, cheek_y_min],
+        [x_rear, center_gap_half_w],
+        [x_back, center_gap_half_w],
         [x_back, hw_out],
         [x_front, hw_out]
     ]
-    poly_wall_t = m3d.CrossSection([pts_wall_t])
-    wall_top_solid = m3d.Manifold.extrude(poly_wall_t, side_wall_h).translate([0, 0, floor_t])
+    poly_rail_t = m3d.CrossSection([pts_rail_t])
+    wall_top_solid = m3d.Manifold.extrude(poly_rail_t, cradle_h).translate([0, 0, floor_t])
 
-    # 2. Bottom Unified Continuous Side+Cheek Wall (Single Continuous Solid 2D Extrusion, CCW Winding):
-    pts_wall_b = [
+    # 2. Bottom L-Shaped Guide Rail & Rear Corner Stop (CCW Winding):
+    pts_rail_b = [
         [x_front, -hw_out],
         [x_back, -hw_out],
-        [x_back, -cheek_y_min],
-        [x_rear, -cheek_y_min],
+        [x_back, -center_gap_half_w],
+        [x_rear, -center_gap_half_w],
         [x_rear, -hw_in],
         [x_front, -hw_in]
     ]
-    poly_wall_b = m3d.CrossSection([pts_wall_b])
-    wall_bot_solid = m3d.Manifold.extrude(poly_wall_b, side_wall_h).translate([0, 0, floor_t])
+    poly_rail_b = m3d.CrossSection([pts_rail_b])
+    wall_bot_solid = m3d.Manifold.extrude(poly_rail_b, cradle_h).translate([0, 0, floor_t])
 
-    # 3. Integrated Continuous 1.0mm Bottom Support Ledges:
+    # 3. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
     pts_ledge_t = [
-        [x_front, hw_in - 1.0],
-        [x_rear, hw_in - 1.0],
+        [x_front, hw_in - 0.6],
+        [x_rear, hw_in - 0.6],
         [x_rear, hw_in],
         [x_front, hw_in]
     ]
@@ -482,41 +486,21 @@ def generate_main_housing(include_opposite_dupont=True):
     pts_ledge_b = [
         [x_front, -hw_in],
         [x_rear, -hw_in],
-        [x_rear, -(hw_in - 1.0)],
-        [x_front, -(hw_in - 1.0)]
+        [x_rear, -(hw_in - 0.6)],
+        [x_front, -(hw_in - 0.6)]
     ]
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
 
-    # 4. Center Compliant Snap Arm (height Z = 2.0 to 9.5mm, width 6.0mm):
-    snap_arm_body = m3d.Manifold.cube([wall_thick, snap_w, rear_wall_h], center=False).translate([x_rear, -snap_w/2.0, floor_t])
-
-    # Dynamic 30-deg entry ramp on rear snap lip:
-    snap_lip_z = floor_t + rail_h + 1.4 + 1.8 # 7.0mm
-    lip_len = 5.0
-    lip_overhang = 0.55
-    lip_h = 1.3
-    hw_y = lip_len / 2.0
-    hz = lip_h / 2.0
-    v_base = [[0.05, -hw_y, -hz], [0.05, hw_y, -hz], [0.05, hw_y, hz], [0.05, -hw_y, hz]]
-    v_apex = [[-lip_overhang, -hw_y + 0.60, -0.2], [-lip_overhang, hw_y - 0.60, -0.2]]
-    pts = v_base + v_apex
-    snap_lip = m3d.Manifold()
-    for p in pts:
-        snap_lip = snap_lip + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    snap_lip = snap_lip.hull().translate([x_rear, 0, snap_lip_z])
-
-    snap_arm_clean = snap_arm_body + snap_lip
-
-    # 5. Side Snap Clips:
+    # 4. Discrete Side Retention Snap Clips:
     esp_center_x = (x_front + x_rear) / 2.0
-    snap_side_z = floor_t + rail_h + 1.2 + 0.3  # 5.3mm
-    clip_top = make_snap_clip(5.0, 0.55, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
-    clip_bot = make_snap_clip(5.0, 0.55, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
+    snap_side_z = floor_t + rail_h + 1.2 + 0.2  # 5.2mm
+    clip_top = make_snap_clip(5.0, 0.45, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
+    clip_bot = make_snap_clip(5.0, 0.45, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
-    cradle_solid = (wall_top_solid + ledge_top + wall_bot_solid + ledge_bot + snap_arm_clean + clip_top + clip_bot)
+    cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + clip_top + clip_bot)
 
-    return (housing_hollow + cradle_solid) - usbc_port
+    return housing_hollow + cradle_solid
 
 def generate_stand_tier1_base():
     base_w = 64.0
@@ -745,7 +729,7 @@ def main():
 
     housing = generate_main_housing(include_opposite_dupont=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (Dual-Face DuPont Trenches)")
+    export_stl(housing, housing_path, "Main Housing Pod (V2.0)")
 
     housing_legacy = generate_main_housing(include_opposite_dupont=False)
     housing_legacy_path = os.path.join(output_dir, "gc9a01_main_housing_legacy.stl")
