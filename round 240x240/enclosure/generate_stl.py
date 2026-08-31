@@ -424,18 +424,11 @@ def generate_main_housing():
     # 9. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm, Y = -11.0 to +11.0mm):
     usbc_wall_relief = m3d.Manifold.cube([2.2, 22.0, cavity_depth + 0.2], center=False).translate([-26.0, -11.0, floor_t])
 
-    # 9b. Deep Dual Pin Header Clearance Troughs Under ESP32 (Zero Pin Bending, X = -23.5 to -2.5mm, |Y| = 5.2 to 8.6mm):
-    trough_w = 3.4
-    trough_l = 21.0
-    trough_top = m3d.Manifold.cube([trough_l, trough_w, floor_t + 2.0], center=False).translate([-23.5, 5.2, -1.0])
-    trough_bot = m3d.Manifold.cube([trough_l, trough_w, floor_t + 2.0], center=False).translate([-23.5, -8.6, -1.0])
-    pin_troughs = trough_top + trough_bot
-
     # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
     cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
-    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + pin_troughs + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
+    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
     
     # 8. SNUG PRECISION ESP32-C3 SUPERMINI U-CRADLE ARCHITECTURE (Zero Slop / Zero Wobble):

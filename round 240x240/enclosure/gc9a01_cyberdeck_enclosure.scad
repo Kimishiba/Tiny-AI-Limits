@@ -346,12 +346,6 @@ module main_housing() {
         translate([-26.0, -11.0, floor_t])
             cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
 
-        // 7c. Deep Dual Pin Header Clearance Troughs Under ESP32 (Zero Pin Bending)
-        translate([-23.5, 5.2, -1.0])
-            cube([21.0, 3.4, floor_t + 2.0]);
-        translate([-23.5, -8.6, -1.0])
-            cube([21.0, 3.4, floor_t + 2.0]);
-
         // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
         translate([10.5, 0, floor_t - 0.40])
             linear_extrude(height = 0.45)
