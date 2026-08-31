@@ -380,25 +380,23 @@ def generate_main_housing():
             cone_m3 = m3d.Manifold.cylinder(1.0, 1.4, 2.4, 32).translate([sx, sy, depth - 0.99])
             screw_pilot_cuts = screw_pilot_cuts + pilot_m3 + cone_m3
             
-    # 6. High-Airflow Enlarged Contour-Following Aeration Slits on Backplate (Z = 0)
+    # 6. High-Airflow Aeration Slits strictly placed in outer zones (|Y| >= 16.5mm):
+    # This guarantees 100% solid, continuous floor directly below all ESP32 cradle retaining features (rails, ledges, snap arms, rear thrust wall)
     vent_cuts = m3d.Manifold()
-    top_rows = [
+    outer_rows = [
         # (ry, lw, lcx, cw_v, ccx, rw, rcx)
-        (9.8,  10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
-        (12.3, 10.5, -11.5, 9.5, 0.0, 10.5, 11.5),
-        (14.8, 10.0, -11.0, 9.5, 0.0, 10.0, 11.0),
-        (17.3,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
-        (19.8,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
-        (22.0,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
+        (17.0,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
+        (19.2,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
+        (21.4,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
     ]
-    slot_h = 1.50 # Enlarged aperture height (1.50mm vs 1.05mm, +43% opening for maximum airflow)
-    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
+    slot_h = 1.50 # 1.50mm aperture height
+    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in outer_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, ry, floor_t / 2.0])
         vent_cuts = vent_cuts + s_l + s_c + s_r
 
-    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in top_rows:
+    for (ry, lw, lcx, cw_v, ccx, rw, rcx) in outer_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, -ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, -ry, floor_t / 2.0])
         s_r = m3d.Manifold.cube([rw, slot_h, floor_t + 2.0], center=True).translate([rcx, -ry, floor_t / 2.0])
@@ -411,13 +409,7 @@ def generate_main_housing():
         slot_solid = m3d.Manifold.extrude(poly_slot, 10.0).rotate([90, 0, 0]).scale([1, -1, 1]).translate([vx, 20.0, 0])
         vent_cuts = vent_cuts + slot_solid
 
-    # 7. Dedicated Under-MCU Aeration Grille (4 rows under ESP32-C3 cradle, X = -21.0 to -3.5mm):
-    for y_pos in [-5.4, -1.8, 1.8, 5.4]:
-        s_mcu1 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-16.6, y_pos, floor_t / 2.0])
-        s_mcu2 = m3d.Manifold.cube([7.2, slot_h, floor_t + 2.0], center=True).translate([-7.6, y_pos, floor_t / 2.0])
-        vent_cuts = vent_cuts + s_mcu1 + s_mcu2
-
-    # 8. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (50% Larger Font, X = +11.5mm, Z = 0):
+    # 7. Embossed/Debossed Product Name on 100% Solid Right Backplate Panel (50% Larger Font, X = +11.5mm, Z = 0):
     cs_l1, _, _ = text_to_cross_section("TINY AI", size=3.6)
     cs_l2, _, _ = text_to_cross_section("LIMITS", size=3.6)
     cs_l3, _, _ = text_to_cross_section("SENTINEL MK-1", size=2.4)

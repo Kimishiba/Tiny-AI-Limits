@@ -291,56 +291,32 @@ module main_housing() {
             }
         }
         
-        // 5. Contour-Following Rear Aeration Slits
-        // Top 6 rows
-        translate([-11.0,  10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    10.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,   10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        // 5. Contour-Following Rear Aeration Slits (Placed strictly in outer upper/lower zones |Y| >= 16.5mm to guarantee 100% solid floor directly below all ESP32 cradle retaining features)
+        // Top 3 rows (Y >= 17.0mm, well clear of top guide rail)
+        translate([-10.5,  17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    17.1, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.5,   17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-11.0,  12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    12.7, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,   12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([-10.0,  19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    19.3, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.0,   19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-11.0,  14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    14.9, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,   14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
+        translate([-9.0,   21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    21.5, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([9.0,    21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-10.5,  17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    17.1, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.5,   17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
+        // Bottom 3 rows (Y <= -17.0mm, well clear of bottom guide rail)
+        translate([-10.5, -17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -17.1, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.5,  -17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-10.0,  19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    19.3, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.0,   19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
+        translate([-10.0, -19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -19.3, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.0,  -19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-9.0,   21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,    21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([9.0,    21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
-
-        // Bottom 6 rows
-        translate([-11.0, -10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -10.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,  -10.5, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-11.0, -12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -12.7, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,  -12.7, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-11.0, -14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -14.9, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([11.0,  -14.9, -1.0]) cube([9.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-10.5, -17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -17.1, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.5,  -17.1, -1.0]) cube([8.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-10.0, -19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -19.3, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([10.0,  -19.3, -1.0]) cube([7.0, 1.05, floor_t + 2.0], center=true);
-
-        translate([-9.0,  -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
-        translate([0.0,   -21.5, -1.0]) cube([7.5, 1.05, floor_t + 2.0], center=true);
-        translate([9.0,   -21.5, -1.0]) cube([5.0, 1.05, floor_t + 2.0], center=true);
+        translate([-9.0,  -21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -21.5, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([9.0,   -21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
         
         // 6. Top Edge Perimeter Vertical Exhaust Slits with 45-degree peaked roofs
         for (vx = [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]) {
