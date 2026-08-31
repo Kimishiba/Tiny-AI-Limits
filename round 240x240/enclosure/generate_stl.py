@@ -316,6 +316,27 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
         combined = combined + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
     return combined.hull()
 
+def make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5):
+    pts = []
+    y_r = y_span + r
+    y_l = - (y_span + r)
+    z_side = z_center + z_side_extra
+    z_apex = z_side + y_r # exact 45 deg slope
+
+    pts.append([y_r, z_side])
+    pts.append([0.0, z_apex]) # 45-deg top apex
+    pts.append([y_l, z_side])
+
+    angles_left = np.linspace(np.pi, 1.5 * np.pi, 16)
+    for a in angles_left:
+        pts.append([-y_span + r * np.cos(a), z_center + r * np.sin(a)])
+
+    angles_right = np.linspace(1.5 * np.pi, 2.0 * np.pi, 16)
+    for a in angles_right:
+        pts.append([y_span + r * np.cos(a), z_center + r * np.sin(a)])
+
+    return m3d.CrossSection([pts])
+
 def generate_main_housing():
     w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
@@ -342,20 +363,14 @@ def generate_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Lowered Extra-Wide High-Clearance Oval USB-C Port on LEFT wall (X = -27.2mm, Z = 7.00mm):
-    usbc_z = 7.00
-    y_span = 4.0
-    r_inner = 3.25
-    r_outer = 4.75
+    # 3. 45-degree Peaked Gothic Arch USB-C Port on LEFT wall (100% Support-Free, Optimized for 0.12mm layers):
+    poly_usbc_in = make_gothic_usbc_polygon(y_span=3.0, r=2.75, z_center=7.00, z_side_extra=0.5)
+    poly_usbc_out = make_gothic_usbc_polygon(y_span=3.0, r=4.25, z_center=7.00, z_side_extra=0.5)
     
-    # Flat on recessed inside wall at X = -25.2mm (leaves sturdy 2.0mm wall)
-    c1 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-    c2 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
-    usbc_tunnel = (c1 + c2).hull()
-    
-    cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
-    cone2 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, y_span, usbc_z])
-    usbc_flare = (cone1 + cone2).hull()
+    usbc_tunnel = m3d.Manifold.extrude(poly_usbc_in, 7.0).rotate([0, 90, 0]).translate([-32.0, 0, 0])
+    flare_out = m3d.Manifold.extrude(poly_usbc_out, 0.1).rotate([0, 90, 0]).translate([-29.2, 0, 0])
+    flare_in = m3d.Manifold.extrude(poly_usbc_in, 0.1).rotate([0, 90, 0]).translate([-27.2, 0, 0])
+    usbc_flare = (flare_out + flare_in).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
     # 4. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
