@@ -9,6 +9,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build_esp32_firmware:
     name: Build ESP32 Firmware
@@ -16,10 +19,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Cache pip & PlatformIO
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/pip
@@ -29,7 +32,7 @@ jobs:
             ${{ runner.os }}-pio-
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
@@ -43,7 +46,7 @@ jobs:
           pio run
 
       - name: Upload ESP32 Binary Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: esp32-firmware
           path: .pio/build/esp32c3/firmware.bin
@@ -71,10 +74,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
@@ -100,7 +103,7 @@ jobs:
           cp ${{ matrix.exe_path }} bin_output/${{ matrix.asset_name }}
 
       - name: Upload Companion App Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: companion-app-${{ matrix.os }}
           path: bin_output/${{ matrix.asset_name }}
@@ -118,7 +121,7 @@ jobs:
 
     steps:
       - name: Download ESP32 Firmware Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: esp32-firmware
           path: release_assets/esp32
@@ -144,19 +147,19 @@ jobs:
 
     steps:
       - name: Download Windows Companion Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: companion-app-windows-latest
           path: release_assets/companion
 
       - name: Download macOS Companion Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: companion-app-macos-latest
           path: release_assets/companion
 
       - name: Download Linux Companion Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: companion-app-ubuntu-latest
           path: release_assets/companion
