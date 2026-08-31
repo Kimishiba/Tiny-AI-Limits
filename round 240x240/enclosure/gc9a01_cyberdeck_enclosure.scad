@@ -253,12 +253,12 @@ module main_housing() {
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter();
         
-        // 2b. Inner Wall Relief Pocket at USB-C Port (leaves sturdy 2.0mm wall, 45-degree transitions)
+        // 2b. Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -25.2mm, 45° top ceiling & outer transitions)
         hull() {
-            translate([-25.3, -7.5, floor_t])
-                cube([0.1, 15.0, 9.0]);
-            translate([-23.9, -9.0, floor_t])
-                cube([0.1, 18.0, 10.5]);
+            translate([-25.3, -10.3, floor_t])
+                cube([0.1, 20.6, 8.0]);
+            translate([-23.9, -11.7, floor_t])
+                cube([0.1, 23.4, 9.4]);
         }
             
         // 3. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)

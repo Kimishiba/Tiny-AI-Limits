@@ -425,9 +425,9 @@ def generate_main_housing():
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    # 9. Reinforced Inner Wall Relief Pocket at USB-C Port (leaves sturdy 2.0mm wall, 45-deg transitions):
-    b1 = m3d.Manifold.cube([0.1, 15.0, 9.0], center=False).translate([-25.3, -7.5, floor_t])
-    b2 = m3d.Manifold.cube([0.1, 18.0, 10.5], center=False).translate([-23.9, -9.0, floor_t])
+    # 9. Reinforced Inner Wall Relief Pocket at USB-C Port (20.6mm flat base at X = -25.2mm, 45° top ceiling & outer transitions):
+    b1 = m3d.Manifold.cube([0.1, 20.6, 8.0], center=False).translate([-25.3, -10.3, floor_t])
+    b2 = m3d.Manifold.cube([0.1, 23.4, 9.4], center=False).translate([-23.9, -11.7, floor_t])
     inner_pocket = (b1 + b2).hull()
 
     # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
