@@ -348,12 +348,12 @@ def generate_main_housing():
     r_inner = 2.75
     r_outer = 4.25
     
-    c1 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-    c2 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0,  y_span, usbc_z])
+    c1 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0,  y_span, usbc_z])
     usbc_tunnel = (c1 + c2).hull()
     
-    cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
-    cone2 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2,  y_span, usbc_z])
+    cone1 = m3d.Manifold.cylinder(2.4, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5, -y_span, usbc_z])
+    cone2 = m3d.Manifold.cylinder(2.4, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.5,  y_span, usbc_z])
     usbc_flare = (cone1 + cone2).hull()
     usbc_port = usbc_tunnel + usbc_flare
     
@@ -430,7 +430,7 @@ def generate_main_housing():
     cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
-    cuts = cavity_obj + inner_pocket + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
+    cuts = cavity_obj + inner_pocket + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
     housing_hollow = chassis - cuts
     
     # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE:
