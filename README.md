@@ -98,6 +98,7 @@ The ultra-compact ESP32-C3 SuperMini board powers the device via USB-C (3.3V log
 All enclosure CAD models are **100% support-free FDM 3D printable** and available in both parametric OpenSCAD sources and verified watertight STLs:
 
 ### Models Included (`round 240x240/enclosure/`):
+* `gc9a01_springlatch_enclosure_flat.stl` — **Springlatch Edition:** 100% Print-in-Place articulated clamshell enclosure with Clockspring-style compliant wavy spring latch, push-button locking tabs, GC9A01 display mount, snap-fit ESP32-C3 cradle, and $18^\circ$ desktop kickstand pads (Flat 180° orientation, zero screws needed).
 * `gc9a01_front_bezel.stl` — Front bezel display carrier with anti-shadow conical bevel and M3 counterbores.
 * `gc9a01_main_housing.stl` — Enclosure bucket with lowered USB-C port and M3 corner pilot holes.
 * `gc9a01_stand_tier1_base.stl` — Tier 1 base plate with 4 alignment pillars and rubber feet recesses (ideal for wood PLA or dark walnut).
