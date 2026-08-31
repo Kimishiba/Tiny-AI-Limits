@@ -349,13 +349,13 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     r_outer = 4.75
     
     if version == "v2":
-        # V2: Flat on inside wall (tunnel stops at X = -24.0mm, no internal shave)
-        c1 = m3d.Manifold.cylinder(8.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-        c2 = m3d.Manifold.cylinder(8.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
+        # V2: Flat on recessed inside wall at X = -26.0mm (tunnel depth 6.2mm from X = -32.0mm)
+        c1 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
+        c2 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
         usbc_tunnel = (c1 + c2).hull()
         
-        cone1 = m3d.Manifold.cylinder(3.2, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
-        cone2 = m3d.Manifold.cylinder(3.2, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, y_span, usbc_z])
+        cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
+        cone2 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, y_span, usbc_z])
         usbc_flare = (cone1 + cone2).hull()
         usbc_port = usbc_tunnel + usbc_flare
     else:
@@ -433,7 +433,12 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    cuts = cavity_obj + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
+    # 9. V2 Inner Wall Relief Pocket at USB-C Port (recesses inside face to 1.2mm wall at X = -26.0mm):
+    inner_pocket = m3d.Manifold()
+    if version == "v2":
+        inner_pocket = m3d.Manifold.cube([2.2, 18.9 + 2 * 1.6 + 0.2, 12.1], center=False).translate([-26.1, -(18.9 / 2.0 + 1.6 + 0.1), floor_t])
+
+    cuts = cavity_obj + inner_pocket + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss
     housing_hollow = chassis - cuts
     
     # 8. CONTINUOUS MONOLITHIC UNIFIED U-CRADLE ARCHITECTURE:
@@ -444,12 +449,11 @@ def generate_main_housing(version="v2", include_opposite_dupont=True):
     side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
     rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
     
-    # V2 shifts cradle 1.2mm closer to the -X wall:
-    x_shift = -1.2 if version == "v2" else 0.0
-    x_front = -24.0 + x_shift # -25.2mm for V2
-    x_rear = -0.4 + x_shift   # -1.6mm for V2
+    # V2 sits board directly at X = -26.0mm (1.2mm from outside edge):
+    x_front = -26.0 if version == "v2" else -24.0
+    x_rear = -2.4 if version == "v2" else -0.4
     wall_thick = 2.0
-    x_back = x_rear + wall_thick # +0.4mm for V2
+    x_back = x_rear + wall_thick # -0.4mm for V2
     hw_in = esp_w / 2.0         # 9.45mm
     hw_out = hw_in + side_thick # 11.05mm
     snap_w = 6.0

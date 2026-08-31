@@ -147,21 +147,21 @@ module rounded_rect_prism(w, d, h, r) {
 
 // Precision Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
 module usbc_stadium_cutter(flat_inside=true) {
-    // Outer to inner through-wall tunnel (stops at flat inside wall X = -24.0)
+    // Outer to inner through-wall tunnel (stops at flat recessed wall X = -26.0)
     translate([-32.0, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -3.0, 0]) cylinder(r = 2.75, h = flat_inside ? 8.2 : 16.0);
-                translate([0, 3.0, 0])  cylinder(r = 2.75, h = flat_inside ? 8.2 : 16.0);
+                translate([0, -3.0, 0]) cylinder(r = 2.75, h = flat_inside ? 6.2 : 16.0);
+                translate([0, 3.0, 0])  cylinder(r = 2.75, h = flat_inside ? 6.2 : 16.0);
             }
         }
     }
-    // External lead-in entry chamfer on outside wall (X = -27.2 to -24.0)
+    // External lead-in entry chamfer on outside wall (X = -27.2 to -26.0)
     translate([-29.2, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -3.0, 0]) cylinder(r1 = 4.25, r2 = 2.75, h = 3.2);
-                translate([0, 3.0, 0])  cylinder(r1 = 4.25, r2 = 2.75, h = 3.2);
+                translate([0, -3.0, 0]) cylinder(r1 = 4.25, r2 = 2.75, h = 2.0);
+                translate([0, 3.0, 0])  cylinder(r1 = 4.25, r2 = 2.75, h = 2.0);
             }
         }
     }
@@ -250,8 +250,14 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
         translate([0, 0, floor_t])
             octagonal_prism(cavity_w, cavity_depth + 0.1, cavity_chamfer);
             
-        // 2. Precision USB-C Port Cutout (Flat Inside Wall)
+        // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter(flat_inside=flat_inside);
+        
+        // 2b. Inner Wall Relief Pocket at USB-C Port (brings inside wall to 1.2mm from outside edge at X = -26.0mm)
+        if (is_v2) {
+            translate([-26.1, -(18.9/2 + 1.6 + 0.1), floor_t])
+                cube([2.2, 18.9 + 2*1.6 + 0.2, 12.1]);
+        }
             
         // 3. DuPont Connector & Wire Clearance Trench (Bottom Wall: Y = -26.0 to -21.0)
         translate([-13.0, -26.0, floor_t])
@@ -350,32 +356,33 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
     tall_wall_h = 12.0; // Solid vertical back thrust wall opposite USB-C
     side_wall_h = 6.2;  // Clean vertical side guide wall height
     
-    c_offset_x  = is_v2 ? -1.2 : 0.0; // V2 shifts 1.2mm closer to left wall
-    cur_esp_cx  = esp_center_x + c_offset_x;
-    x_front     = cur_esp_cx - esp_l / 2;
-    x_rear      = cur_esp_cx + esp_l / 2;
+    cur_esp_w   = 18.9;
+    cur_esp_l   = 23.6;
+    x_front     = is_v2 ? -26.0 : (esp_center_x - esp_l / 2);
+    x_rear      = is_v2 ? -2.4  : (esp_center_x + esp_l / 2);
+    cur_esp_cx  = (x_front + x_rear) / 2;
     snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
 
     union() {
         // 1. Straight Solid Rear Thrust Wall (shifted with board)
-        translate([x_rear, -(esp_w / 2 + side_thick), floor_t])
-            cube([wall_thick, esp_w + 2 * side_thick, tall_wall_h]);
+        translate([x_rear, -(cur_esp_w / 2 + side_thick), floor_t])
+            cube([wall_thick, cur_esp_w + 2 * side_thick, tall_wall_h]);
 
         // 2. Straight Vertical Side Guide Walls (solid all the way to floor)
-        translate([x_front, esp_w / 2, floor_t])
-            cube([esp_l, side_thick, side_wall_h]);
-        translate([x_front, -(esp_w / 2 + side_thick), floor_t])
-            cube([esp_l, side_thick, side_wall_h]);
+        translate([x_front, cur_esp_w / 2, floor_t])
+            cube([cur_esp_l, side_thick, side_wall_h]);
+        translate([x_front, -(cur_esp_w / 2 + side_thick), floor_t])
+            cube([cur_esp_l, side_thick, side_wall_h]);
 
         // 3. Integrated 1.0mm Side Edge Support Steps (Z = 2.0 to 5.2)
-        translate([x_front, esp_w / 2 - 1.0, floor_t])
-            cube([esp_l, 1.0, esp_standoff_h]);
-        translate([x_front, -esp_w / 2, floor_t])
-            cube([esp_l, 1.0, esp_standoff_h]);
+        translate([x_front, cur_esp_w / 2 - 1.0, floor_t])
+            cube([cur_esp_l, 1.0, esp_standoff_h]);
+        translate([x_front, -cur_esp_w / 2, floor_t])
+            cube([cur_esp_l, 1.0, esp_standoff_h]);
 
         // 4. Discrete 45-Degree Self-Supporting Snap Retention Clips
         // Top clip
-        translate([cur_esp_cx, esp_w / 2, snap_z])
+        translate([cur_esp_cx, cur_esp_w / 2, snap_z])
             hull() {
                 translate([-2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
                 translate([ 2.5, 0.05, -0.6]) cube([0.01, 0.01, 1.2]);
@@ -384,7 +391,7 @@ module main_housing(include_opposite_dupont=true, flat_inside=true, is_v2=true) 
             }
         
         // Bottom clip
-        translate([cur_esp_cx, -esp_w / 2, snap_z])
+        translate([cur_esp_cx, -cur_esp_w / 2, snap_z])
             hull() {
                 translate([-2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
                 translate([ 2.5, -0.05, -0.6]) cube([0.01, 0.01, 1.2]);
