@@ -348,9 +348,9 @@ def generate_main_housing():
     r_inner = 3.25
     r_outer = 4.75
     
-    # Flat on recessed inside wall at X = -26.0mm (tunnel depth 6.2mm from X = -32.0mm)
-    c1 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
-    c2 = m3d.Manifold.cylinder(6.2, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
+    # Flat on recessed inside wall at X = -25.2mm (leaves sturdy 2.0mm wall)
+    c1 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(7.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-32.0, y_span, usbc_z])
     usbc_tunnel = (c1 + c2).hull()
     
     cone1 = m3d.Manifold.cylinder(2.0, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-29.2, -y_span, usbc_z])
@@ -425,9 +425,9 @@ def generate_main_housing():
     cs_right_panel = cs_stacked.translate([11.5, 0])
     text_deboss = m3d.Manifold.extrude(cs_right_panel, 0.50 + 0.1).translate([0, 0, -0.05])
 
-    # 9. V2 Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting transitions:
-    b1 = m3d.Manifold.cube([0.1, 21.0, 9.5], center=False).translate([-26.1, -10.5, floor_t])
-    b2 = m3d.Manifold.cube([0.1, 25.2, 11.6], center=False).translate([-23.9, -12.6, floor_t])
+    # 9. Reinforced Inner Wall Relief Pocket at USB-C Port (leaves sturdy 2.0mm wall, 45-deg transitions):
+    b1 = m3d.Manifold.cube([0.1, 15.0, 9.0], center=False).translate([-25.3, -7.5, floor_t])
+    b2 = m3d.Manifold.cube([0.1, 18.0, 10.5], center=False).translate([-23.9, -9.0, floor_t])
     inner_pocket = (b1 + b2).hull()
 
     # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
@@ -445,16 +445,13 @@ def generate_main_housing():
     side_wall_h = 4.8  # Side guide wall height (Z = 2.0 to 6.8mm)
     rear_wall_h = 7.5  # Cantilever snap arm height (Z = 2.0 to 9.5mm)
     
-    # Board seats directly at X = -26.0mm (1.2mm from outside edge):
-    x_front = -26.0
-    x_rear = -2.4
+    # Board seats at X = -25.2mm (leaves sturdy 2.0mm wall to outside edge at X = -27.2mm):
+    x_front = -25.2
+    x_rear = -1.6
     wall_thick = 2.0
-    x_back = x_rear + wall_thick # -0.4mm
+    x_back = x_rear + wall_thick # +0.4mm
     hw_in = esp_w / 2.0         # 9.95mm
     hw_out = hw_in + side_thick # 11.55mm
-    snap_w = 6.0
-    slit_w = 1.25
-    cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm
     snap_w = 6.0
     slit_w = 1.25
     cheek_y_min = snap_w / 2.0 + slit_w # 4.25mm

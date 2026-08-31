@@ -147,16 +147,16 @@ module rounded_rect_prism(w, d, h, r) {
 
 // Precision Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
 module usbc_stadium_cutter() {
-    // Outer to inner through-wall tunnel (stops at flat recessed wall X = -26.0)
+    // Outer to inner through-wall tunnel (stops at sturdy recessed wall X = -25.2mm)
     translate([-32.0, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -3.0, 0]) cylinder(r = 2.75, h = 6.2);
-                translate([0, 3.0, 0])  cylinder(r = 2.75, h = 6.2);
+                translate([0, -3.0, 0]) cylinder(r = 2.75, h = 7.0);
+                translate([0, 3.0, 0])  cylinder(r = 2.75, h = 7.0);
             }
         }
     }
-    // External lead-in entry chamfer on outside wall (X = -27.2 to -26.0)
+    // External lead-in entry chamfer on outside wall (X = -29.2 to -27.2)
     translate([-29.2, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
@@ -253,12 +253,12 @@ module main_housing() {
         // 2. Precision USB-C Port Cutout (Flat Inside Wall at X = -26.0mm)
         usbc_stadium_cutter();
         
-        // 2b. Inner Wall Relief Pocket at USB-C Port with 45-degree self-supporting overhangs & chamfers
+        // 2b. Inner Wall Relief Pocket at USB-C Port (leaves sturdy 2.0mm wall, 45-degree transitions)
         hull() {
-            translate([-26.1, -10.5, floor_t])
-                cube([0.1, 21.0, 9.5]);
-            translate([-23.9, -12.6, floor_t])
-                cube([0.1, 25.2, 11.6]);
+            translate([-25.3, -7.5, floor_t])
+                cube([0.1, 15.0, 9.0]);
+            translate([-23.9, -9.0, floor_t])
+                cube([0.1, 18.0, 10.5]);
         }
             
         // 3. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp for max case strength)
@@ -375,9 +375,9 @@ module main_housing() {
     
     cur_esp_w   = 19.9; // Expanded width (+0.5mm on each lateral side for easy board seating)
     cur_esp_l   = 23.6;
-    x_front     = -26.0;
-    x_rear      = -2.4;
-    cur_esp_cx  = (x_front + x_rear) / 2;
+    x_front     = -25.2; // 2.0mm sturdy wall to outside edge at X = -27.2mm
+    x_rear      = -1.6;
+    cur_esp_cx  = (x_front + x_rear) / 2; // -13.4mm
     snap_z      = floor_t + esp_standoff_h + 1.2 + 0.3; // 6.7mm
 
     union() {
