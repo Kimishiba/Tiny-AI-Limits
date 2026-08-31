@@ -49,66 +49,59 @@ def make_octagonal_prism(w, h, c):
     poly = m3d.CrossSection([pts_2d])
     return m3d.Manifold.extrude(poly, h)
 
-def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True, chamfer_bottom=False):
-    hw = w / 2.0
-    pts_main = [
-        [-hw + c, -hw], [hw - c, -hw],
-        [hw, -hw + c],  [hw, hw - c],
-        [hw - c, hw],   [-hw + c, hw],
-        [-hw, hw - c],  [-hw, -hw + c]
-    ]
-    
-    w_ch = w - 2 * chamfer_outer
-    c_ch = c - chamfer_outer * 0.414
-    hw_ch = w_ch / 2.0
-    pts_ch = [
-        [-hw_ch + c_ch, -hw_ch], [hw_ch - c_ch, -hw_ch],
-        [hw_ch, -hw_ch + c_ch],  [hw_ch, hw_ch - c_ch],
-        [hw_ch - c_ch, hw_ch],   [-hw_ch + c_ch, hw_ch],
-        [-hw_ch, hw_ch - c_ch],  [-hw_ch, -hw_ch + c_ch]
-    ]
-    
-    layers = []
-    if chamfer_bottom:
-        layers.append((pts_ch, 0.0))
-        layers.append((pts_main, chamfer_outer))
-    else:
-        layers.append((pts_main, 0.0))
-        
-    if chamfer_top:
-        layers.append((pts_main, h - chamfer_outer))
-        layers.append((pts_ch, h))
-    else:
-        layers.append((pts_main, h))
-        
+def make_multi_layer_octagonal_solid(layers_desc):
+    """
+    Constructs a 100% watertight multi-layer octagonal manifold from a list of (width, chamfer, z) tuples.
+    """
     verts = []
-    for pts, z in layers:
+    num_layers = len(layers_desc)
+    for w, c, z in layers_desc:
+        hw = w / 2.0
+        pts = [
+            [-hw + c, -hw], [hw - c, -hw],
+            [hw, -hw + c],  [hw, hw - c],
+            [hw - c, hw],   [-hw + c, hw],
+            [-hw, hw - c],  [-hw, -hw + c]
+        ]
         for x, y in pts:
             verts.append([x, y, z])
     verts = np.array(verts, dtype=np.float32)
-    
     faces = []
     # Bottom cap (CCW viewing towards +Z from -Z)
     for i in range(1, 7):
         faces.append([0, i + 1, i])
-        
     # Side bands
-    num_layers = len(layers)
-    for layer in range(num_layers - 1):
-        off1 = layer * 8
-        off2 = (layer + 1) * 8
+    for l in range(num_layers - 1):
+        off1 = l * 8
+        off2 = (l + 1) * 8
         for i in range(8):
             i_next = (i + 1) % 8
             faces.append([off1 + i, off1 + i_next, off2 + i_next])
             faces.append([off1 + i, off2 + i_next, off2 + i])
-            
     # Top cap (CCW viewing towards -Z from +Z)
     top_off = (num_layers - 1) * 8
     for i in range(1, 7):
         faces.append([top_off, top_off + i, top_off + i + 1])
-        
     faces = np.array(faces, dtype=np.int32)
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
+
+def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True, chamfer_bottom=False):
+    w_ch = w - 2 * chamfer_outer
+    c_ch = c - chamfer_outer * 0.414
+    layers = []
+    if chamfer_bottom:
+        layers.append((w_ch, c_ch, 0.0))
+        layers.append((w, c, chamfer_outer))
+    else:
+        layers.append((w, c, 0.0))
+        
+    if chamfer_top:
+        layers.append((w, c, h - chamfer_outer))
+        layers.append((w_ch, c_ch, h))
+    else:
+        layers.append((w, c, h))
+        
+    return make_multi_layer_octagonal_solid(layers)
 
 def make_rounded_rect_2d(w, d, r, fn=32):
     hw = w / 2.0 - r
@@ -171,7 +164,20 @@ def generate_front_bezel():
     r_top = r_front + dr_dz * (oal_t + 1.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, shelf_z - 1.0])
     pcb_recess = make_gc9a01_pcb_pocket(shelf_z).translate([0, 0, -0.1])
-    cuts = window_funnel + pcb_recess
+    
+    # 60-degree female receiving bevel cut on bottom perimeter (Z = -0.1 to 2.0mm) with 0.20mm precision tolerance:
+    bevel_h = 2.0
+    bevel_dx = bevel_h / math.tan(math.radians(60)) # 1.1547mm
+    tol = 0.20
+    tol_dx = tol / math.sin(math.radians(60)) # 0.2309mm
+    
+    cut_layers = [
+        (w + 2 * tol_dx, c + tol_dx * 0.414, -0.1),
+        (w - 2 * bevel_dx + 2 * tol, c - bevel_dx * 0.414 + tol * 0.414, bevel_h)
+    ]
+    female_bevel_cut = make_multi_layer_octagonal_solid(cut_layers)
+
+    cuts = window_funnel + pcb_recess + female_bevel_cut
     
     for sx in [-screw_dist, screw_dist]:
         for sy in [-screw_dist, screw_dist]:
@@ -323,8 +329,18 @@ def generate_main_housing(include_opposite_dupont=True):
     screw_dist = 20.50
     chamfer_outer = 1.2
     
-    # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 27.5)
-    chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False, chamfer_bottom=True)
+    # 1. Main outer solid chassis with 45-degree outer bottom chamfer and 60-degree top mating bevel (z = 0 to 27.5mm):
+    bevel_h = 2.0
+    bevel_dx = bevel_h / math.tan(math.radians(60)) # 1.1547mm
+    w_ch = w - 2 * chamfer_outer
+    c_ch = c - chamfer_outer * 0.414
+    layers_chassis = [
+        (w_ch, c_ch, 0.0),
+        (w, c, chamfer_outer),
+        (w, c, depth - bevel_h),
+        (w - 2 * bevel_dx, c - bevel_dx * 0.414, depth)
+    ]
+    chassis = make_multi_layer_octagonal_solid(layers_chassis)
     
     # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.2mm perimeter walls)
     cw = 48.0

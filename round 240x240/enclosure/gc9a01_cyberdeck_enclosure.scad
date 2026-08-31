@@ -107,24 +107,42 @@ module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
             }
         }
     } else {
-        hull() {
-            linear_extrude(height = 0.001) {
-                polygon([
-                    [-hw2 + c2, -hw2], [hw2 - c2, -hw2],
-                    [hw2, -hw2 + c2],  [hw2, hw2 - c2],
-                    [hw2 - c2, hw2],   [-hw2 + c2, hw2],
-                    [-hw2, hw2 - c2],  [-hw2, -hw2 + c2]
-                ]);
-            }
-            translate([0, 0, ch])
-            linear_extrude(height = h - ch) {
-                polygon([
-                    [-hw1 + c, -hw1], [hw1 - c, -hw1],
-                    [hw1, -hw1 + c],  [hw1, hw1 - c],
-                    [hw1 - c, hw1],   [-hw1 + c, hw1],
-                    [-hw1, hw1 - c],  [-hw1, -hw1 + c]
-                ]);
-            }
+// Multi-Layer Octagonal Base with 45-deg bottom chamfer and 60-deg top mating bevel
+module mating_housing_base(w, h, c, ch, bevel_h=2.0, bevel_angle=60) {
+    bevel_dx = bevel_h / tan(bevel_angle); // 1.155mm
+    hw1 = w / 2;
+    hw_bot = (w - 2 * ch) / 2;
+    c_bot = c - ch * 0.414;
+    hw_top = (w - 2 * bevel_dx) / 2;
+    c_top = c - bevel_dx * 0.414;
+
+    hull() {
+        // Bottom chamfer
+        linear_extrude(height = 0.001) {
+            polygon([
+                [-hw_bot + c_bot, -hw_bot], [hw_bot - c_bot, -hw_bot],
+                [hw_bot, -hw_bot + c_bot],  [hw_bot, hw_bot - c_bot],
+                [hw_bot - c_bot, hw_bot],   [-hw_bot + c_bot, hw_bot],
+                [-hw_bot, hw_bot - c_bot],  [-hw_bot, -hw_bot + c_bot]
+            ]);
+        }
+        translate([0, 0, ch])
+        linear_extrude(height = h - bevel_h - ch) {
+            polygon([
+                [-hw1 + c, -hw1], [hw1 - c, -hw1],
+                [hw1, -hw1 + c],  [hw1, hw1 - c],
+                [hw1 - c, hw1],   [-hw1 + c, hw1],
+                [-hw1, hw1 - c],  [-hw1, -hw1 + c]
+            ]);
+        }
+        translate([0, 0, h - 0.001])
+        linear_extrude(height = 0.001) {
+            polygon([
+                [-hw_top + c_top, -hw_top], [hw_top - c_top, -hw_top],
+                [hw_top, -hw_top + c_top],  [hw_top, hw_top - c_top],
+                [hw_top - c_top, hw_top],   [-hw_top + c_top, hw_top],
+                [-hw_top, hw_top - c_top],  [-hw_top, -hw_top + c_top]
+            ]);
         }
     }
 }
@@ -185,6 +203,39 @@ module front_bezel() {
             cylinder(d = display_pcb_dia, h = display_pcb_depth + 0.1);
         translate([-display_tab_w/2, -display_tab_h, -0.1])
             cube([display_tab_w, display_tab_h, display_pcb_depth + 0.1]);
+
+        // 60-degree female receiving bevel cut (Z = -0.1 to 2.0mm) with 0.20mm precision tolerance
+        hull() {
+            bevel_h = 2.0;
+            bevel_angle = 60;
+            bevel_dx = bevel_h / tan(bevel_angle); // 1.155mm
+            tol = 0.20;
+            tol_dx = tol / sin(bevel_angle); // 0.231mm
+            
+            hw_cut_bot = (enclosure_width + 2 * tol_dx) / 2;
+            c_cut_bot = chamfer_size + tol_dx * 0.414;
+            hw_cut_top = (enclosure_width - 2 * bevel_dx + 2 * tol) / 2;
+            c_cut_top = chamfer_size - bevel_dx * 0.414 + tol * 0.414;
+
+            translate([0, 0, -0.1])
+            linear_extrude(height = 0.001) {
+                polygon([
+                    [-hw_cut_bot + c_cut_bot, -hw_cut_bot], [hw_cut_bot - c_cut_bot, -hw_cut_bot],
+                    [hw_cut_bot, -hw_cut_bot + c_cut_bot],  [hw_cut_bot, hw_cut_bot - c_cut_bot],
+                    [hw_cut_bot - c_cut_bot, hw_cut_bot],   [-hw_cut_bot + c_cut_bot, hw_cut_bot],
+                    [-hw_cut_bot, hw_cut_bot - c_cut_bot],  [-hw_cut_bot, -hw_cut_bot + c_cut_bot]
+                ]);
+            }
+            translate([0, 0, bevel_h])
+            linear_extrude(height = 0.001) {
+                polygon([
+                    [-hw_cut_top + c_cut_top, -hw_cut_top], [hw_cut_top - c_cut_top, -hw_cut_top],
+                    [hw_cut_top, -hw_cut_top + c_cut_top],  [hw_cut_top, hw_cut_top - c_cut_top],
+                    [hw_cut_top - c_cut_top, hw_cut_top],   [-hw_cut_top + c_cut_top, hw_cut_top],
+                    [-hw_cut_top, hw_cut_top - c_cut_top],  [-hw_cut_top, -hw_cut_top + c_cut_top]
+                ]);
+            }
+        }
             
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -244,7 +295,7 @@ module main_housing(include_opposite_dupont=true) {
     cavity_depth = housing_depth - floor_t;
     
     difference() {
-        chamfered_octagonal_base(enclosure_width, housing_depth, chamfer_size, outer_chamfer, chamfer_top=false);
+        mating_housing_base(enclosure_width, housing_depth, chamfer_size, outer_chamfer, bevel_h=2.0, bevel_angle=60);
         
         // 1. Chamfered Open Tub Cavity
         translate([0, 0, floor_t])
