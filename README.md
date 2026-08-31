@@ -128,13 +128,16 @@ python -m platformio run --target upload
 ### 2. Launch the PC Companion Backend
 The companion service monitors your local AI agent transcripts, queries live Antigravity token limits, fetches local weather data, and advertises itself via zero-config mDNS:
 
+* **macOS:** Double-click **`Tiny Screen.app`** (native executable application with dedicated menu bar icon) or run `./TinyScreen.command`.
+* **CLI / Cross-Platform:**
 ```bash
 # Install dependencies
 pip install -r backend/requirements.txt
 
-# Launch backend (or double-click TinyScreen.command on macOS)
+# Launch backend
 python backend/app.py
 ```
+*(To rebuild or customize the macOS application bundle, run `./scripts/build_mac_app.sh`).*
 
 ### 3. USB WiFi Provisioning & Gauge Customization
 With the device plugged in via USB-C, open **[`http://localhost:5000/setup`](http://localhost:5000/setup)** in Google Chrome or Microsoft Edge:

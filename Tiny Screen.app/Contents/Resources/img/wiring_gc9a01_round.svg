@@ -1,0 +1,309 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 640" width="100%" height="100%">
+  <defs>
+    <!-- Gradients & Shadows -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#14171f"/>
+      <stop offset="100%" stop-color="#0d0f14"/>
+    </linearGradient>
+    
+    <linearGradient id="espPcb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="displayPcb" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="50%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+
+    <linearGradient id="goldPin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="940" height="640" rx="16" fill="url(#bgGrad)" stroke="#262b36" stroke-width="2"/>
+  
+  <!-- Subtle Grid Dots Pattern -->
+  <g opacity="0.15">
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#94a3b8"/>
+    </pattern>
+    <rect width="940" height="640" fill="url(#grid)"/>
+  </g>
+
+  <!-- Title & Header Badge -->
+  <g transform="translate(30, 24)">
+    <rect x="0" y="0" width="130" height="26" rx="6" fill="#FF5F1F" filter="url(#shadow)"/>
+    <text x="65" y="17" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1">SPI HARDWARE</text>
+    
+    <text x="145" y="19" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" letter-spacing="-0.5">GC9A01 1.28" ROUND IPS → ESP32-C3 SUPERMINI</text>
+    <text x="0" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="12">High-speed hardware SPI pin mapping with backlight control</text>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- 1. ESP32-C3 SUPERMINI BOARD (LEFT SIDE)                  -->
+  <!-- ======================================================== -->
+  <g transform="translate(50, 105)" filter="url(#shadow)">
+    <!-- Board PCB -->
+    <rect x="0" y="0" width="205" height="430" rx="14" fill="url(#espPcb)" stroke="#4f46e5" stroke-width="2.5"/>
+
+    <!-- Gold Board Edge Castellation Guides -->
+    <rect x="-3" y="10" width="6" height="410" fill="#ca8a04" opacity="0.3"/>
+    <rect x="202" y="10" width="6" height="410" fill="#ca8a04" opacity="0.3"/>
+
+    <!-- Silk Branding Header -->
+    <rect x="22" y="52" width="161" height="42" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+    <text x="102" y="70" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="13" font-weight="900" text-anchor="middle" letter-spacing="0.5">ESP32-C3</text>
+    <text x="102" y="85" fill="#f97316" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800" text-anchor="middle">SUPERMINI • 22.5×18mm</text>
+
+    <!-- USB-C Receptacle (Top Center) -->
+    <rect x="65" y="-14" width="75" height="30" rx="7" fill="url(#metal)" stroke="#1e293b" stroke-width="1.5"/>
+    <rect x="77" y="-6" width="51" height="14" rx="4" fill="#020617"/>
+    <text x="102" y="4" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="700" text-anchor="middle">TYPE-C USB</text>
+
+    <!-- SoC Chip (Center) -->
+    <rect x="52" y="185" width="100" height="100" rx="6" fill="#090d16" stroke="#334155" stroke-width="1.5"/>
+    <rect x="59" y="192" width="86" height="86" rx="4" fill="#121826"/>
+    <!-- Chip Markings -->
+    <circle cx="69" cy="202" r="2.5" fill="#ca8a04"/>
+    <text x="102" y="231" fill="#e2e8f0" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="middle">ESPRESSIF</text>
+    <text x="102" y="245" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="middle">ESP32-C3FN4</text>
+    <text x="102" y="259" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="8" text-anchor="middle">RISC-V • WiFi+BLE</text>
+
+    <!-- Ceramic 3D Antenna & Status LED -->
+    <rect x="42" y="112" width="45" height="24" rx="3" fill="#ca8a04" stroke="#78350f" stroke-width="1"/>
+    <text x="64" y="127" fill="#451a03" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="900" text-anchor="middle">ANTENNA</text>
+    
+    <circle cx="158" cy="124" r="3.5" fill="#10b981" filter="url(#shadow)"/>
+    <text x="158" y="112" fill="#10b981" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" text-anchor="middle">PWR LED</text>
+
+    <!-- Tactile SMD Buttons -->
+    <rect x="28" y="325" width="22" height="26" rx="4" fill="#1e293b" stroke="#475569"/>
+    <circle cx="39" cy="338" r="5" fill="#e2e8f0"/>
+    <text x="39" y="362" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" text-anchor="middle">BOOT</text>
+
+    <rect x="155" y="325" width="22" height="26" rx="4" fill="#1e293b" stroke="#475569"/>
+    <circle cx="166" cy="338" r="5" fill="#e2e8f0"/>
+    <text x="166" y="362" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="7" font-weight="800" text-anchor="middle">RESET</text>
+
+    <!-- ==================== LEFT HEADER PINS ==================== -->
+    <circle cx="16" cy="40" r="7.5" fill="url(#goldPin)" stroke="#78350f" stroke-width="1"/>
+    <text x="30" y="44" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700">5V [1]</text>
+
+    <!-- Pin 2: GND -->
+    <circle id="pin_esp_gnd" cx="16" cy="80" r="7.5" fill="#000000" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="30" y="84" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">GND [2]</text>
+
+    <!-- Pin 3: 3V3 -->
+    <circle id="pin_esp_3v3" cx="16" cy="120" r="7.5" fill="#FF2A2A" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="30" y="124" fill="#FF2A2A" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">3V3 [3]</text>
+
+    <!-- Pin 4: GPIO 0 (BLK) -->
+    <circle id="pin_esp_io0" cx="16" cy="160" r="7.5" fill="#FF1493" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="30" y="164" fill="#FF1493" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">IO0 (BLK) [4]</text>
+
+    <!-- Pin 5: GPIO 1 (RST) -->
+    <circle id="pin_esp_io1" cx="16" cy="200" r="7.5" fill="#FF6B00" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="30" y="204" fill="#FF6B00" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">IO1 (RST) [5]</text>
+
+    <!-- Pin 6: GPIO 2 -->
+    <circle cx="16" cy="240" r="7.5" fill="url(#goldPin)"/>
+    <text x="30" y="244" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9">IO2 [6]</text>
+
+    <!-- Pin 7: GPIO 3 -->
+    <circle cx="16" cy="280" r="7.5" fill="url(#goldPin)"/>
+    <text x="30" y="284" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9">IO3 [7]</text>
+
+    <!-- Pin 8: GPIO 4 (SCK / SCL) -->
+    <circle id="pin_esp_io4" cx="16" cy="320" r="7.5" fill="#FFE600" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="30" y="324" fill="#FFE600" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">IO4 (SCK) [8]</text>
+
+    <!-- Pin 9: GPIO 5 (CS) -->
+    <circle id="pin_esp_io5" cx="16" cy="360" r="7.5" fill="#D000FF" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="30" y="364" fill="#D000FF" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800">IO5 (CS) [9]</text>
+
+    <!-- ==================== RIGHT HEADER PINS ==================== -->
+    <!-- Pin 16: GPIO 6 (MOSI / SDA) -->
+    <circle id="pin_esp_io6" cx="189" cy="40" r="7.5" fill="#00D2FF" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="175" y="44" fill="#00D2FF" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="end">IO6 (MOSI) [16]</text>
+
+    <!-- Pin 15: GPIO 7 (DC) -->
+    <circle id="pin_esp_io7" cx="189" cy="80" r="7.5" fill="#00FF88" stroke="#ffffff" stroke-width="2.5"/>
+    <text x="175" y="84" fill="#00FF88" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="800" text-anchor="end">IO7 (DC) [15]</text>
+
+    <circle cx="175" cy="120" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="124" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">IO8 [14]</text>
+
+    <circle cx="175" cy="160" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="164" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">IO9 [13]</text>
+
+    <circle cx="175" cy="200" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="204" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">IO10 [12]</text>
+
+    <circle cx="175" cy="240" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="244" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">IO20/RX [11]</text>
+
+    <circle cx="175" cy="280" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="284" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">IO21/TX [10]</text>
+
+    <circle cx="175" cy="320" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="324" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">GND [9]</text>
+
+    <circle cx="175" cy="360" r="7" fill="url(#goldPin)"/>
+    <text x="162" y="364" fill="#64748b" font-family="'JetBrains Mono', monospace" font-size="9" text-anchor="end">5V [8]</text>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- 2. GC9A01 1.28" CIRCULAR DISPLAY (CENTER / RIGHT)        -->
+  <!-- ======================================================== -->
+  <g transform="translate(560, 105)" filter="url(#shadow)">
+    <!-- Round Display Board Background -->
+    <circle cx="130" cy="180" r="128" fill="url(#displayPcb)" stroke="#334155" stroke-width="2"/>
+    <circle cx="130" cy="180" r="114" fill="#000000" stroke="#00d2d3" stroke-width="2"/>
+
+    <!-- Screen Glass Graphics Mock -->
+    <circle cx="130" cy="180" r="106" fill="#0a0c10"/>
+    
+    <!-- Gauges & Clock Art -->
+    <path d="M 50 180 A 80 80 0 0 1 130 100" fill="none" stroke="#00D2FF" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 210 180 A 80 80 0 0 0 130 100" fill="none" stroke="#FF5F1F" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- Clock Numbers -->
+    <rect x="94" y="140" width="32" height="36" rx="4" fill="#1e2330" stroke="#384156"/>
+    <rect x="134" y="140" width="32" height="36" rx="4" fill="#1e2330" stroke="#384156"/>
+    <text x="110" y="165" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" text-anchor="middle">1</text>
+    <text x="150" y="165" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" text-anchor="middle">2</text>
+    <rect x="94" y="182" width="32" height="36" rx="4" fill="#1e2330" stroke="#384156"/>
+    <rect x="134" y="182" width="32" height="36" rx="4" fill="#1e2330" stroke="#384156"/>
+    <text x="110" y="207" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" text-anchor="middle">4</text>
+    <text x="150" y="207" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="20" font-weight="900" text-anchor="middle">5</text>
+
+    <text x="130" y="125" fill="#94a3b8" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800" text-anchor="middle">☀️ CLEAR • 23.5°C</text>
+    <text x="130" y="235" fill="#00D2FF" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800" text-anchor="middle">CLD 68% | AGY 42%</text>
+
+    <!-- 8-Pin Header Block (Top/Side Connector) -->
+    <rect x="10" y="320" width="240" height="96" rx="8" fill="#181c24" stroke="#334155" stroke-width="1.5"/>
+    <text x="130" y="336" fill="#cbd5e1" font-family="'JetBrains Mono', monospace" font-size="9" font-weight="800" text-anchor="middle">GC9A01 8-PIN SPI HEADER</text>
+
+    <!-- Display Pin Labels (Placed ABOVE pads with dark chip badges) -->
+    <!-- Pin 1: VCC -->
+    <g transform="translate(25, 390)">
+      <rect x="-14" y="-30" width="28" height="15" rx="3" fill="#232731" stroke="#FF2A2A" stroke-width="1"/>
+      <text x="0" y="-19" fill="#FF2A2A" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">VCC</text>
+      <circle id="disp_vcc" cx="0" cy="0" r="7" fill="#FF2A2A" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 2: GND -->
+    <g transform="translate(56, 390)">
+      <rect x="-14" y="-30" width="28" height="15" rx="3" fill="#232731" stroke="#ffffff" stroke-width="1"/>
+      <text x="0" y="-19" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">GND</text>
+      <circle id="disp_gnd" cx="0" cy="0" r="7" fill="#000000" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 3: SCL -->
+    <g transform="translate(87, 390)">
+      <rect x="-14" y="-30" width="28" height="15" rx="3" fill="#232731" stroke="#FFE600" stroke-width="1"/>
+      <text x="0" y="-19" fill="#FFE600" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">SCL</text>
+      <circle id="disp_scl" cx="0" cy="0" r="7" fill="#FFE600" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 4: SDA -->
+    <g transform="translate(118, 390)">
+      <rect x="-14" y="-30" width="28" height="15" rx="3" fill="#232731" stroke="#00D2FF" stroke-width="1"/>
+      <text x="0" y="-19" fill="#00D2FF" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">SDA</text>
+      <circle id="disp_sda" cx="0" cy="0" r="7" fill="#00D2FF" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 5: DC -->
+    <g transform="translate(149, 390)">
+      <rect x="-12" y="-30" width="24" height="15" rx="3" fill="#232731" stroke="#00FF88" stroke-width="1"/>
+      <text x="0" y="-19" fill="#00FF88" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">DC</text>
+      <circle id="disp_dc" cx="0" cy="0" r="7" fill="#00FF88" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 6: CS -->
+    <g transform="translate(180, 390)">
+      <rect x="-12" y="-30" width="24" height="15" rx="3" fill="#232731" stroke="#D000FF" stroke-width="1"/>
+      <text x="0" y="-19" fill="#D000FF" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">CS</text>
+      <circle id="disp_cs" cx="0" cy="0" r="7" fill="#D000FF" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 7: RST -->
+    <g transform="translate(211, 390)">
+      <rect x="-14" y="-30" width="28" height="15" rx="3" fill="#232731" stroke="#FF6B00" stroke-width="1"/>
+      <text x="0" y="-19" fill="#FF6B00" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">RST</text>
+      <circle id="disp_rst" cx="0" cy="0" r="7" fill="#FF6B00" stroke="#ffffff" stroke-width="2"/>
+    </g>
+
+    <!-- Pin 8: BLK -->
+    <g transform="translate(236, 390)">
+      <rect x="-14" y="-30" width="28" height="15" rx="3" fill="#232731" stroke="#FF1493" stroke-width="1"/>
+      <text x="0" y="-19" fill="#FF1493" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" text-anchor="middle">BLK</text>
+      <circle id="disp_blk" cx="0" cy="0" r="7" fill="#FF1493" stroke="#ffffff" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- ======================================================== -->
+  <!-- 3. COLOR-CODED JUMPER WIRES (90-DEGREE ORTHOGONAL BUS)  -->
+  <!-- ======================================================== -->
+
+  <!-- WIRE 1: GND (WHITE / SOLID SLATE) -> Pin 2 [66, 185] to Disp GND [616, 495] -->
+  <path d="M 66 185 H 16 V 570 H 616 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 66 185 H 16 V 570 H 616 V 495" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 2: VCC (BRIGHT RED) -> Pin 3 [66, 225] to Disp VCC [585, 495] -->
+  <path d="M 66 225 H 22 V 562 H 585 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 66 225 H 22 V 562 H 585 V 495" fill="none" stroke="#FF2A2A" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 3: BLK (HOT PINK) -> Pin 4 [66, 265] to Disp BLK [796, 495] -->
+  <path d="M 66 265 H 28 V 554 H 796 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 66 265 H 28 V 554 H 796 V 495" fill="none" stroke="#FF1493" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 4: RST (SAFETY ORANGE) -> Pin 5 [66, 305] to Disp RST [771, 495] -->
+  <path d="M 66 305 H 34 V 546 H 771 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 66 305 H 34 V 546 H 771 V 495" fill="none" stroke="#FF6B00" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 5: SCL (BRIGHT YELLOW) -> Pin 8 [66, 425] to Disp SCL [647, 495] -->
+  <path d="M 66 425 H 40 V 538 H 647 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 66 425 H 40 V 538 H 647 V 495" fill="none" stroke="#FFE600" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 6: CS (ELECTRIC PURPLE) -> Pin 9 [66, 465] to Disp CS [740, 495] -->
+  <path d="M 66 465 H 46 V 530 H 740 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 66 465 H 46 V 530 H 740 V 495" fill="none" stroke="#D000FF" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 7: SDA (ELECTRIC CYAN/BLUE) -> Pin 16 [239, 145] to Disp SDA [678, 495] -->
+  <path d="M 239 145 H 460 V 415 H 678 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 239 145 H 460 V 415 H 678 V 495" fill="none" stroke="#00D2FF" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- WIRE 8: DC (EMERALD GREEN) -> Pin 15 [239, 185] to Disp DC [709, 495] -->
+  <path d="M 239 185 H 480 V 430 H 709 V 495" fill="none" stroke="#0d0f14" stroke-width="6" stroke-linecap="square"/>
+  <path d="M 239 185 H 480 V 430 H 709 V 495" fill="none" stroke="#00FF88" stroke-width="3" stroke-linecap="square"/>
+
+  <!-- ======================================================== -->
+  <!-- 4. QUICK REFERENCE PINOUT SUMMARY TABLE (BOTTOM)         -->
+  <!-- ======================================================== -->
+  <g transform="translate(60, 590)">
+    <rect x="0" y="0" width="820" height="38" rx="8" fill="#181c24" stroke="#334155" stroke-width="1"/>
+    <text x="20" y="24" fill="#ffffff" font-family="'Anybody', sans-serif" font-size="11" font-weight="900">PIN SUMMARY:</text>
+    
+    <text x="130" y="24" fill="#FF2A2A" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● 3V3 → VCC</text>
+    <text x="230" y="24" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● GND → GND</text>
+    <text x="330" y="24" fill="#FFE600" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● IO4 → SCL</text>
+    <text x="430" y="24" fill="#00D2FF" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● IO6 → SDA</text>
+    <text x="530" y="24" fill="#00FF88" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● IO7 → DC</text>
+    <text x="620" y="24" fill="#D000FF" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● IO5 → CS</text>
+    <text x="710" y="24" fill="#FF6B00" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="700">● IO1 → RST</text>
+  </g>
+</svg>
