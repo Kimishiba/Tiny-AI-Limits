@@ -10,7 +10,7 @@ $fn = 64; // High resolution curves for 3D printing
 part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (with Dual DuPont Trenches), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
 
 // Outer Dimensions
-enclosure_width  = 54.0; // Outer width & height (mm)
+enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls
 housing_depth    = 27.5; // Open-tub housing depth (mm)
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
@@ -457,7 +457,7 @@ module desk_stand() {
 
 // 7. MINIMALIST ANGLED CRADLE DESK STAND (Open Triangular A-Frame)
 module minimalist_stand() {
-    m_stand_w = 54.0;
+    m_stand_w = enclosure_width;
     m_base_l  = 56.0;
     m_base_t  = 6.0;
     m_beam_t  = 5.5;

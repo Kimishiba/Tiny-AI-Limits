@@ -152,7 +152,7 @@ def export_stl(manifold_obj, filepath, name="Model"):
     return tri_mesh
 
 def generate_front_bezel():
-    w = 54.0
+    w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
     ext = 4.0 # Base extended 4.0mm down from original print base
     t = 5.5 + ext # 9.5mm base thickness
@@ -233,7 +233,7 @@ def generate_front_bezel():
     return bezel_hollow + tab_right + tab_left + tab_top
 
 def generate_mid_clamp():
-    w = 54.0
+    w = 54.4
     c = 6.0
     t = 2.0
     lip_h = 0.6
@@ -317,7 +317,7 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
     return combined.hull()
 
 def generate_main_housing(include_opposite_dupont=True):
-    w = 54.0
+    w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
     depth = 27.5
     floor_t = 2.0
@@ -581,7 +581,7 @@ def generate_stand_tier2_trunk():
             sock = m3d.Manifold.cylinder(pin_h + 0.6, (pin_dia + 0.4)/2.0, (pin_dia + 0.4)/2.0, 32).translate([px, py, base_h - 0.1])
             sockets = sockets + sock
             
-    w_c = 54.8
+    w_c = 55.2 # 54.4mm pod + 0.8mm slide clearance
     slot_depth = 36.5
     c_c = 6.0
     hw_c = w_c / 2.0
@@ -638,7 +638,7 @@ def generate_monolithic_desk_stand():
     
     pedestal_solid = m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
     
-    w_c = 54.8
+    w_c = 55.2 # 54.4mm pod + 0.8mm slide clearance
     slot_depth = 36.5
     c_c = 6.0
     hw_c = w_c / 2.0
@@ -670,7 +670,7 @@ def generate_monolithic_desk_stand():
 def generate_minimalist_stand():
     """
     1:1 Exact Parametric Replica of Reference Minimalist Desk Stand (media_1787932520699.jpg):
-    - 54.0mm wide matching pod
+    - 54.4mm wide matching pod
     - 56.0mm base depth on desk
     - 6.0mm base plate with wide 45° front chamfer
     - 22.0° angled front lip matching bezel chamfer
@@ -680,7 +680,7 @@ def generate_minimalist_stand():
     - 4x rubber feet recess pockets (dia 8.0mm x 1.5mm)
     - 100% support-free FDM 3D printable
     """
-    stand_w = 54.0
+    stand_w = 54.4
     tilt_deg = 22.0
     tilt_rad = math.radians(tilt_deg)
     s_t = math.sin(tilt_rad)
