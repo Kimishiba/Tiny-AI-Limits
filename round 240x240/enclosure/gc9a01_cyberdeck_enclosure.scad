@@ -291,32 +291,24 @@ module main_housing() {
             }
         }
         
-        // 5. Contour-Following Rear Aeration Slits (Placed strictly in outer upper/lower zones |Y| >= 16.5mm to guarantee 100% solid floor directly below all ESP32 cradle retaining features)
-        // Top 3 rows (Y >= 17.0mm, well clear of top guide rail)
-        translate([-10.5,  17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
-        translate([0.0,    17.1, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
-        translate([10.5,   17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        // 5. Contour-Following Rear Aeration Slits (Widely spaced with solid 2.0mm printed ribs between rows)
+        // Top outer rows (Y = 17.0mm & 20.2mm, leaving 2.0mm solid inter-slot wall)
+        translate([-10.5,  17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    17.0, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.5,   17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-10.0,  19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
-        translate([0.0,    19.3, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
-        translate([10.0,   19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
+        translate([-9.0,   20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,    20.2, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([9.0,    20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
 
-        translate([-9.0,   21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
-        translate([0.0,    21.5, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
-        translate([9.0,    21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
+        // Bottom outer rows (Y = -17.0mm & -20.2mm, leaving 2.0mm solid inter-slot wall)
+        translate([-10.5, -17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -17.0, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([10.5,  -17.0, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
 
-        // Bottom 3 rows (Y <= -17.0mm, well clear of bottom guide rail)
-        translate([-10.5, -17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
-        translate([0.0,   -17.1, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
-        translate([10.5,  -17.1, -1.0]) cube([8.0, 1.2, floor_t + 2.0], center=true);
-
-        translate([-10.0, -19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
-        translate([0.0,   -19.3, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
-        translate([10.0,  -19.3, -1.0]) cube([7.0, 1.2, floor_t + 2.0], center=true);
-
-        translate([-9.0,  -21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
-        translate([0.0,   -21.5, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
-        translate([9.0,   -21.5, -1.0]) cube([5.0, 1.2, floor_t + 2.0], center=true);
+        translate([-9.0,  -20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
+        translate([0.0,   -20.2, -1.0]) cube([7.5, 1.2, floor_t + 2.0], center=true);
+        translate([9.0,   -20.2, -1.0]) cube([6.0, 1.2, floor_t + 2.0], center=true);
 
         // 5b. Safe Under-ESP32 Aeration Grille (strictly in central zone X = -19.5 to -7.5, |Y| <= 3.6mm, leaving all retaining walls 100% solid)
         for (y_pos = [-3.6, -1.2, 1.2, 3.6]) {

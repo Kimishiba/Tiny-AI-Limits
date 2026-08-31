@@ -385,11 +385,10 @@ def generate_main_housing():
     vent_cuts = m3d.Manifold()
     outer_rows = [
         # (ry, lw, lcx, cw_v, ccx, rw, rcx)
-        (17.0,  8.8, -10.4, 9.5, 0.0,  8.8, 10.4),
-        (19.2,  6.8,  -9.4, 9.5, 0.0,  6.8,  9.4),
-        (21.4,  4.5,  -8.25, 7.5, 0.0, 4.5,  8.25),
+        (17.0, 8.0, -10.5, 7.5, 0.0, 8.0, 10.5),
+        (20.2, 6.0,  -9.0, 7.5, 0.0, 6.0,  9.0),
     ]
-    slot_h = 1.50 # 1.50mm aperture height
+    slot_h = 1.20 # 1.20mm slot height leaves full 2.00mm solid printed wall between rows (5 perimeters)
     for (ry, lw, lcx, cw_v, ccx, rw, rcx) in outer_rows:
         s_l = m3d.Manifold.cube([lw, slot_h, floor_t + 2.0], center=True).translate([lcx, ry, floor_t / 2.0])
         s_c = m3d.Manifold.cube([cw_v, slot_h, floor_t + 2.0], center=True).translate([ccx, ry, floor_t / 2.0])
