@@ -277,11 +277,11 @@ def generate_main_housing(include_opposite_dupont=True):
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Precision Classic Oval/Stadium USB-C Port on LEFT wall (X = -27.2mm, Z = 7.00mm):
-    usbc_z = 7.00
-    y_span = 3.0
-    r_inner = 2.75
-    r_outer = 4.25
+    # 3. Precision Snug Oval/Stadium USB-C Port on LEFT wall (centered at Z = 6.60mm on USB-C port):
+    usbc_z = 6.60
+    y_span = 3.40
+    r_inner = 1.95   # Snug 3.90mm opening height (eliminates top gap above 3.2mm USB-C metal shell)
+    r_outer = 2.85   # 5.70mm outer flare for cable overmold entry
     
     c1 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0, -y_span, usbc_z])
     c2 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0,  y_span, usbc_z])

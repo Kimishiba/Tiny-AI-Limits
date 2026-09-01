@@ -52,7 +52,7 @@ esp_l              = 23.2; // ESP32-C3 PCB length along X (mm)
 esp_w              = 18.70; // ESP32-C3 SuperMini PCB width along Y (mm) (+0.20mm tolerance)
 esp_standoff_h     = 3.2;  // ESP32 standoff rail height (mm)
 esp_center_x       = -10.0;// Center offset along X (mm)
-usbc_center_z      = 9.50; // USB-C port centerline (mm)
+usbc_center_z      = 6.60; // USB-C port centerline (centered on USB-C metal shell at Z=6.60mm)
 
 // Stand Parameters
 stand_base_w       = 64.0; // Tier 1 base width (mm)
@@ -163,16 +163,16 @@ module rounded_rect_prism(w, d, h, r) {
 
 // Precision Classic Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
 module usbc_stadium_cutter() {
-    y_span = 3.0;
-    r_in   = 2.75;
-    r_out  = 4.25;
+    y_span = 3.40;
+    r_in   = 1.95; // Snug 3.90mm opening height (eliminates top gap above USB-C port)
+    r_out  = 2.85; // 5.70mm outer flare for cable overmold entry
     
     // Outer to inner through-wall tunnel (X = -32.0mm to -25.5mm)
     translate([-32.0, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -y_span, 0]) cylinder(r = r_in, h = 7.0);
-                translate([0,  y_span, 0]) cylinder(r = r_in, h = 7.0);
+                translate([0, -y_span, 0]) cylinder(r = r_in, h = 7.0, $fn = 32);
+                translate([0,  y_span, 0]) cylinder(r = r_in, h = 7.0, $fn = 32);
             }
         }
     }
@@ -180,8 +180,8 @@ module usbc_stadium_cutter() {
     translate([-29.2, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
-                translate([0,  y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
+                translate([0, -y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0, $fn = 32);
+                translate([0,  y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0, $fn = 32);
             }
         }
     }
