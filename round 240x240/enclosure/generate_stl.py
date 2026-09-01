@@ -378,7 +378,7 @@ def generate_main_housing(include_opposite_dupont=True):
     
     # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (V2.1 Optimized Flanks & Zero Tall Pillars):
     esp_l = 23.2       # Generous precision length (+0.7mm clearance for 22.5mm SuperMini boards)
-    esp_w = 19.00      # Expanded width (+0.60mm per side nominal, ~0.40mm real-world post-print clearance)
+    esp_w = 18.70      # Precision width (+0.45mm per side nominal, ~0.25mm real-world post-print clearance)
     rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
     side_thick = 1.0   # Idea 4: Slimmed 1.0mm rigid side guide walls (optimized material)
     cradle_h = 3.6     # Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
@@ -388,8 +388,8 @@ def generate_main_housing(include_opposite_dupont=True):
     x_rear = -2.80
     wall_thick = 1.6
     x_back = x_rear + wall_thick # -1.2mm
-    hw_in = esp_w / 2.0          # 9.50mm
-    hw_out = hw_in + side_thick  # 10.50mm
+    hw_in = esp_w / 2.0          # 9.35mm
+    hw_out = hw_in + side_thick  # 10.35mm
 
     center_gap_half_w = 3.6 # 7.2mm open center gap where the tall pillar was
 
