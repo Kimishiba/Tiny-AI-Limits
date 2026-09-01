@@ -151,15 +151,12 @@ def generate_front_bezel():
     screw_dist = 20.50
     chamfer_outer = 1.2
     
-    # 1. Base solid with 60-degree male mating tongue at bottom (Z = 0 to 2.0mm) and 45-degree chamfer at top (Z = 8.3 to 9.5mm):
-    bevel_h = 2.0
-    bevel_dx = bevel_h / math.tan(math.radians(60)) # 1.1547mm
+    # 1. Base solid with 100% Flat Mating Base at bottom (Z = 0) and 45-degree chamfer at top (Z = 8.3 to 9.5mm):
     w_ch = w - 2 * chamfer_outer
     c_ch = c - chamfer_outer * 0.414
 
     layers_bezel = [
-        (w - 2 * bevel_dx, c - bevel_dx * 0.414, 0.0), # Male tongue tip at Z = 0
-        (w, c, bevel_h),                               # Full width at Z = 2.0mm
+        (w, c, 0.0),                                   # 100% Flat mating base at Z = 0
         (w, c, t - chamfer_outer),                     # Body up to Z = 8.3mm
         (w_ch, c_ch, t)                                # Front chamfer at Z = 9.5mm
     ]
@@ -252,17 +249,8 @@ def generate_main_housing(include_opposite_dupont=True):
     ]
     chassis = make_multi_layer_octagonal_solid(layers_chassis)
 
-    # 1b. 60-degree female receiving bevel cut on top rim (Z = 25.5 to 27.5mm) with 0.20mm precision tolerance:
-    bevel_h = 2.0
-    bevel_dx = bevel_h / math.tan(math.radians(60)) # 1.1547mm
-    tol = 0.20
-    tol_dx = tol / math.sin(math.radians(60)) # 0.2309mm
-
-    cut_layers_housing = [
-        (w - 2 * bevel_dx - 2 * tol, c - bevel_dx * 0.414 - tol * 0.414, depth - bevel_h),
-        (w + 10.0, c + 5.0, depth + 5.0)
-    ]
-    female_bevel_cut = make_multi_layer_octagonal_solid(cut_layers_housing)
+    # 1b. 100% Flat Mating Face at Top Rim (Z = 27.5mm) for seamless V2.2 flush joining:
+    # (60-degree female bevel removed in favor of clean flat contact face)
     
     # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.2mm perimeter walls)
     cw = 48.0
@@ -360,8 +348,8 @@ def generate_main_housing(include_opposite_dupont=True):
     # 9. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm, Y = -11.0 to +11.0mm):
     usbc_wall_relief = m3d.Manifold.cube([2.2, 22.0, cavity_depth + 0.2], center=False).translate([-26.0, -11.0, floor_t])
 
-    # 10. Inside Floor Debossed "V2.1" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
-    cs_v2, _, _ = text_to_cross_section("V2.1", size=5.4)
+    # 10. Inside Floor Debossed "V2.2" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
+    cs_v2, _, _ = text_to_cross_section("V2.2", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
     # 11. Expanded Corner Mass Coring Pockets (Maximized 45° self-supporting conical corner pockets below Z = 12.5mm):
@@ -373,7 +361,7 @@ def generate_main_housing(include_opposite_dupont=True):
             c_cone = m3d.Manifold.cylinder(4.0, 5.2, 1.0, 32).translate([cx_sign * 18.0, cy_sign * 18.0, floor_t + 6.5])
             corner_core_cuts = corner_core_cuts + (c_base + c_cone)
 
-    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss + corner_core_cuts + female_bevel_cut
+    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss + corner_core_cuts
     housing_hollow = chassis - cuts
     
     # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (V2.1 Optimized Flanks & Zero Tall Pillars):
