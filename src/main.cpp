@@ -1253,6 +1253,83 @@ void drawGC9A01RoundFaceUI() {
 }
 
 // ==========================================
+// COMPREHENSIVE ESP32-C3 HARDWARE DIAGNOSTICS
+// ==========================================
+void runESP32HardwareDiagnostics() {
+    Serial.println("\n=======================================================");
+    Serial.println("  ESP32-C3 SUPERMINI HARDWARE HEALTH & INTEGRITY REPORT");
+    Serial.println("=======================================================");
+
+    // 1. Silicon & CPU Core
+    Serial.printf("[CPU] Chip Model: %s (Rev %d)\n", ESP.getChipModel(), ESP.getChipRevision());
+    Serial.printf("[CPU] Core Count: %d, Frequency: %d MHz\n", ESP.getChipCores(), ESP.getCpuFreqMHz());
+    Serial.printf("[CPU] SDK Version: %s\n", ESP.getSdkVersion());
+    Serial.printf("[CPU] MAC Address: %s\n", WiFi.macAddress().c_str());
+
+    // 2. SRAM Health & Allocation Stress Test
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint32_t minFreeHeap = ESP.getMinFreeHeap();
+    uint32_t maxAlloc = ESP.getMaxAllocHeap();
+    Serial.printf("[RAM] Free Heap: %u bytes (Min: %u, Max Alloc Block: %u)\n", freeHeap, minFreeHeap, maxAlloc);
+
+    bool ramOk = true;
+    const size_t testSize = 32768; // 32KB buffer test
+    uint8_t *testBuf = (uint8_t *)malloc(testSize);
+    if (testBuf) {
+        for (size_t i = 0; i < testSize; i++) testBuf[i] = (uint8_t)(i ^ 0xA5);
+        for (size_t i = 0; i < testSize; i++) {
+            if (testBuf[i] != (uint8_t)(i ^ 0xA5)) { ramOk = false; break; }
+        }
+        free(testBuf);
+    } else {
+        ramOk = false;
+    }
+    Serial.printf("[RAM] 32KB Memory Pattern Write/Verify: %s\n", ramOk ? "PASS [OK]" : "FAIL [ERROR]");
+
+    // 3. Flash Memory & NVS Non-Volatile Storage Test
+    uint32_t flashSize = ESP.getFlashChipSize();
+    uint32_t flashSpeed = ESP.getFlashChipSpeed();
+    Serial.printf("[Flash] Chip Size: %u bytes (%.1f MB), Speed: %u MHz\n", flashSize, flashSize / (1024.0f * 1024.0f), flashSpeed / 1000000);
+
+    Preferences diagPrefs;
+    diagPrefs.begin("diag", false);
+    diagPrefs.putUInt("test_val", 0x12345678);
+    uint32_t readBack = diagPrefs.getUInt("test_val", 0);
+    diagPrefs.clear();
+    diagPrefs.end();
+    Serial.printf("[NVS] Non-Volatile Storage Read/Write: %s\n", (readBack == 0x12345678) ? "PASS [OK]" : "FAIL [ERROR]");
+
+    // 4. GPIO Logic & Output Driver Verification
+    Serial.println("\n--- [GPIO Drive Level Test] ---");
+    int testPins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 21};
+    int numPins = sizeof(testPins) / sizeof(testPins[0]);
+    int passedPins = 0;
+
+    for (int i = 0; i < numPins; i++) {
+        int pin = testPins[i];
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, HIGH);
+        int readHigh = digitalRead(pin);
+        digitalWrite(pin, LOW);
+        int readLow = digitalRead(pin);
+
+        bool pinPassed = (readHigh == HIGH && readLow == LOW);
+        if (pinPassed) passedPins++;
+        Serial.printf("  GPIO %2d: HighRead=%d, LowRead=%d -> %s\n",
+            pin, readHigh, readLow, pinPassed ? "PASS [OK]" : "WARN");
+    }
+    Serial.printf("[GPIO] Total Pins Verified Working: %d/%d\n", passedPins, numPins);
+
+    // Turn off onboard LED (Active LOW on GPIO 8)
+    pinMode(8, OUTPUT);
+    digitalWrite(8, HIGH);
+
+    // 5. Internal Temperature & Power Rail
+    Serial.printf("[System] Up-Time: %lu ms, Free Heap After Tests: %u bytes\n", millis(), ESP.getFreeHeap());
+    Serial.println("=======================================================\n");
+}
+
+// ==========================================
 // HARDWARE AUTO-DETECTION & INITIALIZATION
 // ==========================================
 void initActiveDisplay() {
@@ -1262,18 +1339,20 @@ void initActiveDisplay() {
     currentDisplayRotation = displayPrefs.getInt("rotation", 0) % 4;
     displayPrefs.end();
 
-    // GC9A01 Round Screen Init
+    // GC9A01 Round Screen Hardware Reset Pulse
     pinMode(GC9A01_RST_PIN, OUTPUT);
     digitalWrite(GC9A01_RST_PIN, HIGH);
-    delay(10);
-    digitalWrite(GC9A01_RST_PIN, LOW);
     delay(20);
+    digitalWrite(GC9A01_RST_PIN, LOW);
+    delay(50);
     digitalWrite(GC9A01_RST_PIN, HIGH);
-    delay(100);
+    delay(150);
 
-    if (gcGfx->begin(40000000)) {
+    // Rock-solid 20MHz Hardware SPI with ESP32-C3
+    if (gcGfx->begin(20000000)) {
         gc9a01Initialized = true;
         gcGfx->setRotation(currentDisplayRotation);
+        gcGfx->fillScreen(GC_COLOR_BLACK);
         gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
         Serial.printf("[Display] GC9A01 Round IPS initialized with rotation %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
     } else {
@@ -2150,6 +2229,8 @@ void handleSerialCommunication() {
 // ==========================================
 void setup() {
     Serial.begin(115200);
+    delay(100);
+    runESP32HardwareDiagnostics();
 
     // Register Improv WiFi as early as physically possible, before the slower
     // display/WiFi init below. Opening a serial connection resets this board,
@@ -2254,8 +2335,6 @@ void loop() {
         lastFrameTime = now;
 
         // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-        // Keeps the blink/gaze state live for drawGC9A01RoundFaceUI(), which
-        // is wired up but not currently selected by the loop.
         updateFacePhysics(now);
         drawGC9A01RoundFlipUI();
     }
@@ -2274,10 +2353,14 @@ void loop() {
         }
     }
 
-    // 4. Offline Demo Clock Tick
+    // 4. Offline Demo Clock Tick & System Heartbeat LED
     static unsigned long lastSecondTick = 0;
+    static bool heartbeatState = false;
     if (now - lastSecondTick >= 1000) {
         lastSecondTick = now;
+        heartbeatState = !heartbeatState;
+        digitalWrite(8, heartbeatState ? LOW : HIGH); // Blink blue LED every second
+
         timeData.seconds++;
         if (timeData.seconds >= 60) {
             timeData.seconds = 0;

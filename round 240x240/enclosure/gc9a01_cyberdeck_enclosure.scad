@@ -7,11 +7,11 @@
 $fn = 64; // High resolution curves for 3D printing
 
 // --- PARAMETERS ---
-part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel, 2 = Main Housing (V2.0), 3 = Mid Clamp, 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
+part = is_undef(part) ? 2 : part; // 0 = Assembly Preview, 1 = Front Bezel (60° Male Tongue), 2 = Main Housing (V2.1, 60° Female Socket), 4 = Stand Tier 1 Base, 5 = Stand Tier 2 Trunk, 6 = Monolithic Pedestal Stand, 7 = Minimalist Cradle Stand, 8 = Main Housing Legacy (Single Trench)
 
 // Outer Dimensions
 enclosure_width  = 54.4; // Outer width & height (mm) — 54.4mm yields exact 1.2mm (3x 0.4mm perimeters) thin walls
-housing_depth    = 27.5; // Open-tub housing depth (mm)
+housing_depth    = 26.84; // Open-tub housing depth (mm) - capped uniformly at 26.84mm
 bezel_thickness  = 5.5;  // Display carrier front bezel plate thickness (mm)
 chamfer_size     = 6.0;  // Cyberdeck corner chamfers (mm)
 outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)
@@ -20,11 +20,9 @@ outer_chamfer    = 1.2;  // Standard perimeter 45-degree outer edge chamfer (mm)
 display_active_dia = 33.0; // Active LCD A.A clearing diameter at glass plane (mm)
 display_funnel_top = 38.8; // Wide front opening diameter (36.4° conical anti-shadow slope) (mm)
 display_glass_dia  = 36.6; // Glass / Backlight step (mm)
-display_pcb_dia    = 39.4; // Circular PCB body (38.0mm blueprint + 1.4mm clearance) (mm)
-display_tab_w      = 24.0; // Bottom connector tab width (mm)
-display_tab_h      = 26.6; // Tab height from center (mm)
-display_top_tab_w  = 24.0; // Top clearance notch width (mm)
-display_top_tab_h  = 26.0; // Top notch height from center (mm)
+display_pcb_dia    = 39.6; // Circular PCB body (38.0mm blueprint + 1.6mm generous clearance) (mm)
+display_tab_w      = 26.0; // Bottom connector tab width (mm) - Expanded for soldered DuPont connector clearance
+display_tab_h      = 25.90; // Tab height from center (mm) - Leaves exactly 1.30mm outer wall (3 perimeters)
 display_pcb_depth  = 3.4;  // Bezel rear pocket depth (mm)
 
 // Mid Clamp Sandwich Plate Parameters
@@ -50,11 +48,11 @@ screw_pilot_dia    = 2.8;  // M3 pilot / self-tapping hole (mm)
 cavity_w           = 48.0; // 48mm wide internal bay (3.0mm slim perimeter walls) (mm)
 cavity_chamfer     = 12.0; // 12.0mm corner chamfers (mm)
 floor_t            = 2.0;  // Rear wall floor thickness (mm)
-esp_l              = 23.0; // ESP32-C3 PCB length along X (mm)
-esp_w              = 18.4; // ESP32-C3 SuperMini PCB width along Y (mm)
+esp_l              = 23.2; // ESP32-C3 PCB length along X (mm)
+esp_w              = 18.70; // ESP32-C3 SuperMini PCB width along Y (mm) (+0.20mm tolerance)
 esp_standoff_h     = 3.2;  // ESP32 standoff rail height (mm)
 esp_center_x       = -10.0;// Center offset along X (mm)
-usbc_center_z      = 9.50; // USB-C port centerline (mm)
+usbc_center_z      = 6.60; // USB-C port centerline (centered on USB-C metal shell at Z=6.60mm)
 
 // Stand Parameters
 stand_base_w       = 64.0; // Tier 1 base width (mm)
@@ -109,6 +107,7 @@ module chamfered_octagonal_base(w, h, c, ch, chamfer_top=true) {
             }
         }
     } else {
+        // Chamfer bottom only (100% flat mating top face at Z=h)
         hull() {
             linear_extrude(height = 0.001) {
                 polygon([
@@ -147,16 +146,16 @@ module rounded_rect_prism(w, d, h, r) {
 
 // Precision Classic Oval/Stadium USB-C Cutter with Accentuated Lead-in Chamfer
 module usbc_stadium_cutter() {
-    y_span = 3.0;
-    r_in   = 2.75;
-    r_out  = 4.25;
+    y_span = 3.40;
+    r_in   = 1.95; // Snug 3.90mm opening height (eliminates top gap above USB-C port)
+    r_out  = 2.85; // 5.70mm outer flare for cable overmold entry
     
     // Outer to inner through-wall tunnel (X = -32.0mm to -25.5mm)
     translate([-32.0, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -y_span, 0]) cylinder(r = r_in, h = 7.0);
-                translate([0,  y_span, 0]) cylinder(r = r_in, h = 7.0);
+                translate([0, -y_span, 0]) cylinder(r = r_in, h = 7.0, $fn = 32);
+                translate([0,  y_span, 0]) cylinder(r = r_in, h = 7.0, $fn = 32);
             }
         }
     }
@@ -164,14 +163,52 @@ module usbc_stadium_cutter() {
     translate([-29.2, 0, usbc_center_z]) {
         rotate([0, 90, 0]) {
             hull() {
-                translate([0, -y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
-                translate([0,  y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0);
+                translate([0, -y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0, $fn = 32);
+                translate([0,  y_span, 0]) cylinder(r1 = r_out, r2 = r_in, h = 2.0, $fn = 32);
             }
         }
     }
 }
 
-// 1. FRONT BEZEL PLATE
+// Front Bezel Base with 60-degree male tongue at bottom (Z = 0 to 2.0mm) and 45-degree chamfer at top
+module bezel_base_with_male_tongue(w, h, c, ch, bevel_h=2.0, bevel_angle=60) {
+    bevel_dx = bevel_h / tan(bevel_angle); // 1.155mm
+    hw1 = w / 2;
+    hw_bot = (w - 2 * bevel_dx) / 2;
+    c_bot = c - bevel_dx * 0.414;
+    hw_top = (w - 2 * ch) / 2;
+    c_top = c - ch * 0.414;
+    hull() {
+        linear_extrude(height = 0.001) {
+            polygon([
+                [-hw_bot + c_bot, -hw_bot], [hw_bot - c_bot, -hw_bot],
+                [hw_bot, -hw_bot + c_bot],  [hw_bot, hw_bot - c_bot],
+                [hw_bot - c_bot, hw_bot],   [-hw_bot + c_bot, hw_bot],
+                [-hw_bot, hw_bot - c_bot],  [-hw_bot, -hw_bot + c_bot]
+            ]);
+        }
+        translate([0, 0, bevel_h])
+        linear_extrude(height = h - ch - bevel_h) {
+            polygon([
+                [-hw1 + c, -hw1], [hw1 - c, -hw1],
+                [hw1, -hw1 + c],  [hw1, hw1 - c],
+                [hw1 - c, hw1],   [-hw1 + c, hw1],
+                [-hw1, hw1 - c],  [-hw1, -hw1 + c]
+            ]);
+        }
+        translate([0, 0, h - 0.001])
+        linear_extrude(height = 0.001) {
+            polygon([
+                [-hw_top + c_top, -hw_top], [hw_top - c_top, -hw_top],
+                [hw_top, -hw_top + c_top],  [hw_top, hw_top - c_top],
+                [hw_top - c_top, hw_top],   [-hw_top + c_top, hw_top],
+                [-hw_top, hw_top - c_top],  [-hw_top, -hw_top + c_top]
+            ]);
+        }
+    }
+}
+
+// 1. FRONT BEZEL PLATE (Flat Mating Base V2.2)
 module front_bezel() {
     difference() {
         union() {
@@ -187,8 +224,6 @@ module front_bezel() {
             cylinder(d = display_pcb_dia, h = display_pcb_depth + 0.1);
         translate([-display_tab_w/2, -display_tab_h, -0.1])
             cube([display_tab_w, display_tab_h, display_pcb_depth + 0.1]);
-        translate([-display_top_tab_w/2, 0, -0.1])
-            cube([display_top_tab_w, display_top_tab_h, display_pcb_depth + 0.1]);
             
         for (sx = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
             for (sy = [-screw_bolt_circle/2, screw_bolt_circle/2]) {
@@ -344,15 +379,25 @@ module main_housing(include_opposite_dupont=true) {
         translate([-26.0, -11.0, floor_t])
             cube([2.2, 22.0, housing_depth - floor_t + 0.2]);
 
-        // 8. Inside Floor Debossed "V2.0" (150% larger size = 5.4mm, 0.4mm deep into floor)
+        // 8. Inside Floor Debossed "V2.2" (150% larger size = 5.4mm, 0.4mm deep into floor)
         translate([10.5, 0, floor_t - 0.40])
             linear_extrude(height = 0.45)
-                text("V2.0", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+                text("V2.2", size = 5.4, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+
+        // 9. Expanded Corner Mass Coring Pockets (Maximized 45° self-supporting conical corner pockets below Z = 12.5mm)
+        for (cx_sign = [-1, 1]) {
+            for (cy_sign = [-1, 1]) {
+                translate([cx_sign * 18.0, cy_sign * 18.0, floor_t])
+                    cylinder(r = 5.2, h = 6.5);
+                translate([cx_sign * 18.0, cy_sign * 18.0, floor_t + 6.5])
+                    cylinder(r1 = 5.2, r2 = 1.0, h = 4.0);
+            }
+        }
     }
     
-    // Fused Internal ESP32-C3 SuperMini Snug Low-Profile U-Cradle (Zero Tall Pillars)
+    // Fused Internal ESP32-C3 SuperMini Snug Low-Profile U-Cradle (V2.1 Optimized Flanks & Zero Tall Pillars)
     wall_thick  = 1.6;
-    side_thick  = 1.4;
+    side_thick  = 1.0;  // Idea 4: Slimmed 1.0mm rigid side guide walls (optimized material)
     cradle_h    = 3.6;  // Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
     cur_esp_w   = 18.5; // Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)

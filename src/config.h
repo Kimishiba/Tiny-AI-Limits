@@ -6,13 +6,13 @@
 // ==========================================
 // PIN CONFIGURATION (ESP32-C3 SuperMini)
 // ==========================================
-// SPI Bus for GC9A01 Circular IPS (240x240)
-#define GC9A01_SCK_PIN  4
-#define GC9A01_MOSI_PIN 6
-#define GC9A01_CS_PIN   5
-#define GC9A01_DC_PIN   7
-#define GC9A01_RST_PIN  1
-#define GC9A01_BLK_PIN  0
+// SPI Bus for GC9A01 Circular IPS (240x240) - Standard Pinout
+#define GC9A01_SCK_PIN  4   // SCL -> GPIO 4 (Left Pin 4)
+#define GC9A01_MOSI_PIN 6   // SDA -> GPIO 6 (Right Pin 2)
+#define GC9A01_DC_PIN   7   // DC  -> GPIO 7 (Right Pin 3)
+#define GC9A01_CS_PIN   5   // CS  -> GPIO 5 (Right Pin 1)
+#define GC9A01_RST_PIN  1   // RST -> GPIO 1 (Left Pin 7)
+#define GC9A01_BLK_PIN  -1  // Backlight hardwired to VCC on 7-pin display
 
 // ==========================================
 // TIMING & THRESHOLDS

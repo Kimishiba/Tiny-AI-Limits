@@ -49,66 +49,59 @@ def make_octagonal_prism(w, h, c):
     poly = m3d.CrossSection([pts_2d])
     return m3d.Manifold.extrude(poly, h)
 
-def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True, chamfer_bottom=False):
-    hw = w / 2.0
-    pts_main = [
-        [-hw + c, -hw], [hw - c, -hw],
-        [hw, -hw + c],  [hw, hw - c],
-        [hw - c, hw],   [-hw + c, hw],
-        [-hw, hw - c],  [-hw, -hw + c]
-    ]
-    
-    w_ch = w - 2 * chamfer_outer
-    c_ch = c - chamfer_outer * 0.414
-    hw_ch = w_ch / 2.0
-    pts_ch = [
-        [-hw_ch + c_ch, -hw_ch], [hw_ch - c_ch, -hw_ch],
-        [hw_ch, -hw_ch + c_ch],  [hw_ch, hw_ch - c_ch],
-        [hw_ch - c_ch, hw_ch],   [-hw_ch + c_ch, hw_ch],
-        [-hw_ch, hw_ch - c_ch],  [-hw_ch, -hw_ch + c_ch]
-    ]
-    
-    layers = []
-    if chamfer_bottom:
-        layers.append((pts_ch, 0.0))
-        layers.append((pts_main, chamfer_outer))
-    else:
-        layers.append((pts_main, 0.0))
-        
-    if chamfer_top:
-        layers.append((pts_main, h - chamfer_outer))
-        layers.append((pts_ch, h))
-    else:
-        layers.append((pts_main, h))
-        
+def make_multi_layer_octagonal_solid(layers_desc):
+    """
+    Constructs a 100% watertight multi-layer octagonal manifold from a list of (width, chamfer, z) tuples.
+    """
     verts = []
-    for pts, z in layers:
+    num_layers = len(layers_desc)
+    for w, c, z in layers_desc:
+        hw = w / 2.0
+        pts = [
+            [-hw + c, -hw], [hw - c, -hw],
+            [hw, -hw + c],  [hw, hw - c],
+            [hw - c, hw],   [-hw + c, hw],
+            [-hw, hw - c],  [-hw, -hw + c]
+        ]
         for x, y in pts:
             verts.append([x, y, z])
     verts = np.array(verts, dtype=np.float32)
-    
     faces = []
     # Bottom cap (CCW viewing towards +Z from -Z)
     for i in range(1, 7):
         faces.append([0, i + 1, i])
-        
     # Side bands
-    num_layers = len(layers)
-    for layer in range(num_layers - 1):
-        off1 = layer * 8
-        off2 = (layer + 1) * 8
+    for l in range(num_layers - 1):
+        off1 = l * 8
+        off2 = (l + 1) * 8
         for i in range(8):
             i_next = (i + 1) % 8
             faces.append([off1 + i, off1 + i_next, off2 + i_next])
             faces.append([off1 + i, off2 + i_next, off2 + i])
-            
     # Top cap (CCW viewing towards -Z from +Z)
     top_off = (num_layers - 1) * 8
     for i in range(1, 7):
         faces.append([top_off, top_off + i, top_off + i + 1])
-        
     faces = np.array(faces, dtype=np.int32)
     return m3d.Manifold(m3d.Mesh(vert_properties=verts, tri_verts=faces))
+
+def make_chamfered_octagonal_base(w, h, c, chamfer_outer=1.2, chamfer_top=True, chamfer_bottom=False):
+    w_ch = w - 2 * chamfer_outer
+    c_ch = c - chamfer_outer * 0.414
+    layers = []
+    if chamfer_bottom:
+        layers.append((w_ch, c_ch, 0.0))
+        layers.append((w, c, chamfer_outer))
+    else:
+        layers.append((w, c, 0.0))
+        
+    if chamfer_top:
+        layers.append((w, c, h - chamfer_outer))
+        layers.append((w_ch, c_ch, h))
+    else:
+        layers.append((w, c, h))
+        
+    return make_multi_layer_octagonal_solid(layers)
 
 def make_rounded_rect_2d(w, d, r, fn=32):
     hw = w / 2.0 - r
@@ -128,14 +121,11 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
     return m3d.Manifold.extrude(poly, h)
 
 def make_gc9a01_pcb_pocket(depth_pocket=3.4):
-    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.4 / 2.0, 39.4 / 2.0, 64)
-    tab_w = 24.0
-    tab_h = 26.6
+    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.6 / 2.0, 39.6 / 2.0, 64)
+    tab_w = 26.0 # Expanded to 26.0mm for generous soldered DuPont connector/pin header clearance
+    tab_h = 25.90 # Leaves exactly 1.30mm outer wall (27.20 - 25.90 = 1.30mm), printing precisely 3 perimeter lines
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
-    top_notch_w = 24.0
-    top_notch_h = 26.0
-    top_box = m3d.Manifold.cube([top_notch_w, top_notch_h, depth_pocket], center=False).translate([-top_notch_w / 2.0, 0, 0])
-    return top_circle + tab_box + top_box
+    return top_circle + tab_box
 
 def export_stl(manifold_obj, filepath, name="Model"):
     mesh_data = manifold_obj.to_mesh()
@@ -152,7 +142,7 @@ def export_stl(manifold_obj, filepath, name="Model"):
     return tri_mesh
 
 def generate_front_bezel():
-    w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
+    w = 54.4 # 54.4mm outer profile
     c = 6.0
     ext = 4.0 # Base extended 4.0mm down from original print base
     t = 5.5 + ext # 9.5mm base thickness
@@ -161,7 +151,16 @@ def generate_front_bezel():
     screw_dist = 20.50
     chamfer_outer = 1.2
     
-    base = make_chamfered_octagonal_base(w, t, c, chamfer_outer=chamfer_outer, chamfer_top=True)
+    # 1. Base solid with 100% Flat Mating Base at bottom (Z = 0) and 45-degree chamfer at top (Z = 8.3 to 9.5mm):
+    w_ch = w - 2 * chamfer_outer
+    c_ch = c - chamfer_outer * 0.414
+
+    layers_bezel = [
+        (w, c, 0.0),                                   # 100% Flat mating base at Z = 0
+        (w, c, t - chamfer_outer),                     # Body up to Z = 8.3mm
+        (w_ch, c_ch, t)                                # Front chamfer at Z = 9.5mm
+    ]
+    base = make_multi_layer_octagonal_solid(layers_bezel)
     ring_chamfered = m3d.Manifold.cylinder(ring_h, 22.0, 20.5, 64).translate([0, 0, t])
     bezel_solid = base + ring_chamfered
     
@@ -174,6 +173,7 @@ def generate_front_bezel():
     r_top = r_front + dr_dz * (oal_t + 1.0 - oal_t)
     window_funnel = m3d.Manifold.cylinder(funnel_h, r_bot, r_top, 64).translate([0, 0, shelf_z - 1.0])
     pcb_recess = make_gc9a01_pcb_pocket(shelf_z).translate([0, 0, -0.1])
+    
     cuts = window_funnel + pcb_recess
     
     for sx in [-screw_dist, screw_dist]:
@@ -191,96 +191,9 @@ def generate_front_bezel():
             
     bezel_hollow = bezel_solid - cuts
 
-    # Screen Retaining Snap Tabs originating at Z = 0 (with 1.5mm support clearance tolerance):
-    tab_w = 5.0
-    tab_arm_h = 4.30 # Arm height from Z = 0 to snap lip apex (7.4mm shelf - 3.1mm gap)
-    lip_overhang = 0.65
-    lip_h = 1.10
-    
-    # Right tab (+X):
-    arm_r = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([19.7 - 0.2, -tab_w/2.0, 0])
-    v_base = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
-    v_apex = [[-lip_overhang, -tab_w/2.0 + 0.5, lip_h], [-lip_overhang, tab_w/2.0 - 0.5, lip_h]]
-    pts_lip = v_base + v_apex
-    lip_r = m3d.Manifold()
-    for p in pts_lip:
-        lip_r = lip_r + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_r = lip_r.hull().translate([19.7 - 0.2, 0, tab_arm_h - lip_h])
-    tab_right = arm_r + lip_r
+    return bezel_hollow
 
-    # Left tab (-X):
-    arm_l = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([-19.7 - 1.2, -tab_w/2.0, 0])
-    v_base_l = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
-    v_apex_l = [[lip_overhang, -tab_w/2.0 + 0.5, lip_h], [lip_overhang, tab_w/2.0 - 0.5, lip_h]]
-    pts_lip_l = v_base_l + v_apex_l
-    lip_l = m3d.Manifold()
-    for p in pts_lip_l:
-        lip_l = lip_l + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_l = lip_l.hull().translate([-19.7 + 0.2, 0, tab_arm_h - lip_h])
-    tab_left = arm_l + lip_l
 
-    # Top tab (+Y):
-    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 23.8 - 0.2, 0])
-    v_base_t = [[-tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, lip_h], [-tab_w/2.0, 0.0, lip_h]]
-    v_apex_t = [[-tab_w/2.0 + 0.5, -lip_overhang, lip_h], [tab_w/2.0 - 0.5, -lip_overhang, lip_h]]
-    pts_lip_t = v_base_t + v_apex_t
-    lip_t = m3d.Manifold()
-    for p in pts_lip_t:
-        lip_t = lip_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_t = lip_t.hull().translate([0, 23.8 - 0.2, tab_arm_h - lip_h])
-    tab_top = arm_t + lip_t
-
-    return bezel_hollow + tab_right + tab_left + tab_top
-
-def generate_mid_clamp():
-    w = 54.4
-    c = 6.0
-    t = 2.0
-    lip_h = 0.6
-    arm_w = 7.0
-    center_hole_d = 14.0
-    outer_dia = 38.6
-    screw_dist = 20.50
-    total_h = t + lip_h
-
-    hw = w / 2.0
-    oct_pts = [
-        [-hw + c, -hw], [hw - c, -hw],
-        [hw, -hw + c],  [hw, hw - c],
-        [hw - c, hw],   [-hw + c, hw],
-        [-hw, hw - c],  [-hw, -hw + c]
-    ]
-    oct_outer = m3d.CrossSection([oct_pts])
-    
-    cw, cc = 48.0, 12.0
-    hcw = cw / 2.0
-    cav_pts = [
-        [-hcw + cc, -hcw], [hcw - cc, -hcw],
-        [hcw, -hcw + cc],  [hcw, hw := hcw - cc],
-        [hcw - cc, hcw],   [-hcw + cc, hcw],
-        [-hcw, hcw - cc],  [-hcw, -hcw + cc]
-    ]
-    oct_inner = m3d.CrossSection([cav_pts])
-    border_2d = oct_outer - oct_inner
-    
-    arm45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(45)
-    arm_m45 = m3d.CrossSection.square([arm_w, 80.0], center=True).rotate(-45)
-    x_arms = (arm45 + arm_m45) ^ oct_outer
-    
-    base_2d = (border_2d + x_arms) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
-    base_3d = m3d.Manifold.extrude(base_2d, t)
-    
-    lip_2d = ((arm45 + arm_m45) ^ m3d.CrossSection.circle(outer_dia / 2.0, 64)) - m3d.CrossSection.circle(center_hole_d / 2.0, 32)
-    pads_3d = m3d.Manifold.extrude(lip_2d, lip_h).translate([0, 0, t])
-    
-    solid = base_3d + pads_3d
-    cut_h = total_h + 2.0
-    cuts = m3d.Manifold()
-    for sx in [-screw_dist, screw_dist]:
-        for sy in [-screw_dist, screw_dist]:
-            cuts = cuts + m3d.Manifold.cylinder(cut_h, 1.7, 1.7, 32).translate([sx, sy, -1.0])
-            
-    return solid - cuts
 
 def text_to_cross_section(text, size=3.2, font_family='sans-serif', font_weight='bold'):
     fp = FontProperties(family=font_family, weight=font_weight)
@@ -319,15 +232,25 @@ def make_snap_clip(length=5.0, width=0.55, height=1.2, side='+Y'):
 def generate_main_housing(include_opposite_dupont=True):
     w = 54.4 # 54.4mm outer profile for 1.2mm (3x 0.4mm) thin walls
     c = 6.0
-    depth = 27.5
+    depth = 26.84 # Top rim capped uniformly at 26.84mm
     floor_t = 2.0
 
     cavity_depth = depth - floor_t
     screw_dist = 20.50
     chamfer_outer = 1.2
     
-    # 1. Main outer solid chassis with 45-degree outer bottom perimeter chamfer (z = 0 to 27.5)
-    chassis = make_chamfered_octagonal_base(w, depth, c, chamfer_outer=chamfer_outer, chamfer_top=False, chamfer_bottom=True)
+    # 1. Main outer solid chassis with 45-degree outer bottom chamfer (z = 0 to 26.84mm):
+    w_ch = w - 2 * chamfer_outer
+    c_ch = c - chamfer_outer * 0.414
+    layers_chassis = [
+        (w_ch, c_ch, 0.0),
+        (w, c, chamfer_outer),
+        (w, c, depth)
+    ]
+    chassis = make_multi_layer_octagonal_solid(layers_chassis)
+
+    # 1b. 100% Flat Mating Face at Top Rim (Z = 27.5mm) for seamless V2.2 flush joining:
+    # (60-degree female bevel removed in favor of clean flat contact face)
     
     # 2. Main Internal Chamfered Cavity (expanded to 48.0mm width with 3.2mm perimeter walls)
     cw = 48.0
@@ -342,11 +265,11 @@ def generate_main_housing(include_opposite_dupont=True):
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
     
-    # 3. Precision Classic Oval/Stadium USB-C Port on LEFT wall (X = -27.2mm, Z = 7.00mm):
-    usbc_z = 7.00
-    y_span = 3.0
-    r_inner = 2.75
-    r_outer = 4.25
+    # 3. Precision Snug Oval/Stadium USB-C Port on LEFT wall (centered at Z = 6.60mm on USB-C port):
+    usbc_z = 6.60
+    y_span = 3.40
+    r_inner = 1.95   # Snug 3.90mm opening height (eliminates top gap above 3.2mm USB-C metal shell)
+    r_outer = 2.85   # 5.70mm outer flare for cable overmold entry
     
     c1 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0, -y_span, usbc_z])
     c2 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-33.0,  y_span, usbc_z])
@@ -425,29 +348,38 @@ def generate_main_housing(include_opposite_dupont=True):
     # 9. Slim 1.2mm USB-C Port Wall with Full-Height Vertical Drop-in Clearance (Z = 2.0 to 27.6mm, Y = -11.0 to +11.0mm):
     usbc_wall_relief = m3d.Manifold.cube([2.2, 22.0, cavity_depth + 0.2], center=False).translate([-26.0, -11.0, floor_t])
 
-    # 10. Inside Floor Debossed "V2.0" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
-    cs_v2, _, _ = text_to_cross_section("V2.0", size=5.4)
+    # 10. Inside Floor Debossed "V2.2" text (150% larger size = 5.4mm, sunken 0.4mm into inside floor):
+    cs_v2, _, _ = text_to_cross_section("V2.2", size=5.4)
     v2_deboss = m3d.Manifold.extrude(cs_v2.translate([10.5, 0]), 0.45).translate([0, 0, floor_t - 0.40])
 
-    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss
+    # 11. Expanded Corner Mass Coring Pockets (Maximized 45° self-supporting conical corner pockets below Z = 12.5mm):
+    corner_core_cuts = m3d.Manifold()
+    for cx_sign in [-1, 1]:
+        for cy_sign in [-1, 1]:
+            # Cylindrical base (radius 5.2mm, Z = 2.0 to 8.5mm) + 45° conical dome (Z = 8.5 to 12.5mm, r = 5.2 -> 1.0mm)
+            c_base = m3d.Manifold.cylinder(6.5, 5.2, 5.2, 32).translate([cx_sign * 18.0, cy_sign * 18.0, floor_t])
+            c_cone = m3d.Manifold.cylinder(4.0, 5.2, 1.0, 32).translate([cx_sign * 18.0, cy_sign * 18.0, floor_t + 6.5])
+            corner_core_cuts = corner_core_cuts + (c_base + c_cone)
+
+    cuts = cavity_obj + usbc_wall_relief + usbc_port + dupont_trench + screw_pilot_cuts + vent_cuts + text_deboss + v2_deboss + corner_core_cuts
     housing_hollow = chassis - cuts
     
-    # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (Zero Tall Pillars / 100% Open Overhead Wire Clearance):
-    esp_l = 22.8       # Snug precision length (+0.3mm clearance for 22.5mm SuperMini boards)
-    esp_w = 18.5       # Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
+    # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (V2.1 Optimized Flanks & Zero Tall Pillars):
+    esp_l = 23.2       # Generous precision length (+0.7mm clearance for 22.5mm SuperMini boards)
+    esp_w = 18.70      # Precision width (+0.45mm per side nominal, ~0.25mm real-world post-print clearance)
     rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
-    side_thick = 1.4
+    side_thick = 1.0   # Idea 4: Slimmed 1.0mm rigid side guide walls (optimized material)
     cradle_h = 3.6     # Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
     # Flush USB-C seating at X = -26.0mm:
     x_front = -26.0
-    x_rear = -3.2
+    x_rear = -2.80
     wall_thick = 1.6
-    x_back = x_rear + wall_thick # -1.6mm
-    hw_in = esp_w / 2.0          # 9.25mm
-    hw_out = hw_in + side_thick  # 10.65mm
+    x_back = x_rear + wall_thick # -1.2mm
+    hw_in = esp_w / 2.0          # 9.35mm
+    hw_out = hw_in + side_thick  # 10.35mm
 
-    center_gap_half_w = 3.5 # 7.0mm open center gap where the tall pillar was
+    center_gap_half_w = 3.6 # 7.2mm open center gap where the tall pillar was
 
     # 1. Top L-Shaped Guide Rail & Rear Corner Stop (CCW Winding):
     pts_rail_t = [
@@ -473,10 +405,10 @@ def generate_main_housing(include_opposite_dupont=True):
     poly_rail_b = m3d.CrossSection([pts_rail_b])
     wall_bot_solid = m3d.Manifold.extrude(poly_rail_b, cradle_h).translate([0, 0, floor_t])
 
-    # 3. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
+    # 3. Outer Edge Support Ledges (Supports 0.7mm edge of PCB outside pin headers):
     pts_ledge_t = [
-        [x_front, hw_in - 0.6],
-        [x_rear, hw_in - 0.6],
+        [x_front, hw_in - 0.7],
+        [x_rear, hw_in - 0.7],
         [x_rear, hw_in],
         [x_front, hw_in]
     ]
@@ -486,17 +418,17 @@ def generate_main_housing(include_opposite_dupont=True):
     pts_ledge_b = [
         [x_front, -hw_in],
         [x_rear, -hw_in],
-        [x_rear, -(hw_in - 0.6)],
-        [x_front, -(hw_in - 0.6)]
+        [x_rear, -(hw_in - 0.7)],
+        [x_front, -(hw_in - 0.7)]
     ]
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
 
-    # 4. Discrete Side Retention Snap Clips:
+    # 4. Discrete Side Retention Snap Clips (Relaxed 0.28mm lip overhang):
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.2 + 0.2  # 5.2mm
-    clip_top = make_snap_clip(5.0, 0.45, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
-    clip_bot = make_snap_clip(5.0, 0.45, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
+    clip_top = make_snap_clip(4.5, 0.28, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
+    clip_bot = make_snap_clip(4.5, 0.28, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
     cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + clip_top + clip_bot)
 
@@ -723,13 +655,9 @@ def main():
     bezel_path = os.path.join(output_dir, "gc9a01_front_bezel.stl")
     export_stl(bezel, bezel_path, "Front Bezel Plate")
 
-    mid_clamp = generate_mid_clamp()
-    mid_clamp_path = os.path.join(output_dir, "gc9a01_mid_clamp.stl")
-    export_stl(mid_clamp, mid_clamp_path, "Mid Clamp Sandwich Bracket")
-
     housing = generate_main_housing(include_opposite_dupont=True)
     housing_path = os.path.join(output_dir, "gc9a01_main_housing.stl")
-    export_stl(housing, housing_path, "Main Housing Pod (V2.0)")
+    export_stl(housing, housing_path, "Main Housing Pod (V2.1 Lightened Edition)")
 
     housing_legacy = generate_main_housing(include_opposite_dupont=False)
     housing_legacy_path = os.path.join(output_dir, "gc9a01_main_housing_legacy.stl")
