@@ -121,7 +121,7 @@ def make_rounded_rect_prism(w, d, h, r, fn=32):
     return m3d.Manifold.extrude(poly, h)
 
 def make_gc9a01_pcb_pocket(depth_pocket=3.4):
-    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.4 / 2.0, 39.4 / 2.0, 64)
+    top_circle = m3d.Manifold.cylinder(depth_pocket, 39.6 / 2.0, 39.6 / 2.0, 64)
     tab_w = 21.0
     tab_h = 25.90 # Leaves exactly 1.30mm outer wall (27.20 - 25.90 = 1.30mm), printing precisely 3 perimeter lines
     tab_box = m3d.Manifold.cube([tab_w, tab_h, depth_pocket], center=False).translate([-tab_w / 2.0, -tab_h, 0])
@@ -194,46 +194,7 @@ def generate_front_bezel():
             
     bezel_hollow = bezel_solid - cuts
 
-    # Screen Retaining Snap Tabs originating at Z = 0 (with 1.5mm support clearance tolerance):
-    tab_w = 5.0
-    tab_arm_h = 4.30 # Arm height from Z = 0 to snap lip apex (7.4mm shelf - 3.1mm gap)
-    lip_overhang = 0.65
-    lip_h = 1.10
-    
-    # Right tab (+X):
-    arm_r = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([19.7 - 0.2, -tab_w/2.0, 0])
-    v_base = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
-    v_apex = [[-lip_overhang, -tab_w/2.0 + 0.5, lip_h], [-lip_overhang, tab_w/2.0 - 0.5, lip_h]]
-    pts_lip = v_base + v_apex
-    lip_r = m3d.Manifold()
-    for p in pts_lip:
-        lip_r = lip_r + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_r = lip_r.hull().translate([19.7 - 0.2, 0, tab_arm_h - lip_h])
-    tab_right = arm_r + lip_r
-
-    # Left tab (-X):
-    arm_l = m3d.Manifold.cube([1.4, tab_w, tab_arm_h], center=False).translate([-19.7 - 1.2, -tab_w/2.0, 0])
-    v_base_l = [[0.0, -tab_w/2.0, 0], [0.0, tab_w/2.0, 0], [0.0, tab_w/2.0, lip_h], [0.0, -tab_w/2.0, lip_h]]
-    v_apex_l = [[lip_overhang, -tab_w/2.0 + 0.5, lip_h], [lip_overhang, tab_w/2.0 - 0.5, lip_h]]
-    pts_lip_l = v_base_l + v_apex_l
-    lip_l = m3d.Manifold()
-    for p in pts_lip_l:
-        lip_l = lip_l + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_l = lip_l.hull().translate([-19.7 + 0.2, 0, tab_arm_h - lip_h])
-    tab_left = arm_l + lip_l
-
-    # Top tab (+Y):
-    arm_t = m3d.Manifold.cube([tab_w, 1.4, tab_arm_h], center=False).translate([-tab_w/2.0, 19.7 - 0.2, 0])
-    v_base_t = [[-tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, 0], [tab_w/2.0, 0.0, lip_h], [-tab_w/2.0, 0.0, lip_h]]
-    v_apex_t = [[-tab_w/2.0 + 0.5, -lip_overhang, lip_h], [tab_w/2.0 - 0.5, -lip_overhang, lip_h]]
-    pts_lip_t = v_base_t + v_apex_t
-    lip_t = m3d.Manifold()
-    for p in pts_lip_t:
-        lip_t = lip_t + m3d.Manifold.cube([0.01, 0.01, 0.01]).translate(p)
-    lip_t = lip_t.hull().translate([0, 19.7 - 0.2, tab_arm_h - lip_h])
-    tab_top = arm_t + lip_t
-
-    return bezel_hollow + tab_right + tab_left + tab_top
+    return bezel_hollow
 
 
 
