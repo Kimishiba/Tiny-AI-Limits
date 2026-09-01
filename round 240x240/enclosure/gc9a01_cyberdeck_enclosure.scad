@@ -21,7 +21,7 @@ display_active_dia = 33.0; // Active LCD A.A clearing diameter at glass plane (m
 display_funnel_top = 38.8; // Wide front opening diameter (36.4° conical anti-shadow slope) (mm)
 display_glass_dia  = 36.6; // Glass / Backlight step (mm)
 display_pcb_dia    = 39.6; // Circular PCB body (38.0mm blueprint + 1.6mm generous clearance) (mm)
-display_tab_w      = 21.0; // Bottom connector tab width (mm)
+display_tab_w      = 26.0; // Bottom connector tab width (mm) - Expanded for soldered DuPont connector clearance
 display_tab_h      = 25.90; // Tab height from center (mm) - Leaves exactly 1.30mm outer wall (3 perimeters)
 display_pcb_depth  = 3.4;  // Bezel rear pocket depth (mm)
 
