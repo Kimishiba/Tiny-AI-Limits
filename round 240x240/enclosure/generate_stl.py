@@ -377,21 +377,21 @@ def generate_main_housing(include_opposite_dupont=True):
     housing_hollow = chassis - cuts
     
     # 8. SNUG LOW-PROFILE PRECISION ESP32-C3 SUPERMINI U-CRADLE (V2.1 Optimized Flanks & Zero Tall Pillars):
-    esp_l = 22.8       # Snug precision length (+0.3mm clearance for 22.5mm SuperMini boards)
-    esp_w = 18.5       # Precision width (+0.35mm per side nominal, ~0.20mm real-world post-print clearance)
+    esp_l = 23.2       # Generous precision length (+0.7mm clearance for 22.5mm SuperMini boards)
+    esp_w = 19.00      # Expanded width (+0.60mm per side nominal, ~0.40mm real-world post-print clearance)
     rail_h = 1.8       # Rail height (PCB bottom sits at Z = 3.8mm, PCB top at Z = 5.0mm)
     side_thick = 1.0   # Idea 4: Slimmed 1.0mm rigid side guide walls (optimized material)
     cradle_h = 3.6     # Low-profile cradle height (Z = 2.0 to 5.6mm, flush with top of PCB)
     
     # Flush USB-C seating at X = -26.0mm:
     x_front = -26.0
-    x_rear = -3.2
+    x_rear = -2.80
     wall_thick = 1.6
-    x_back = x_rear + wall_thick # -1.6mm
-    hw_in = esp_w / 2.0          # 9.25mm
-    hw_out = hw_in + side_thick  # 10.25mm
+    x_back = x_rear + wall_thick # -1.2mm
+    hw_in = esp_w / 2.0          # 9.50mm
+    hw_out = hw_in + side_thick  # 10.50mm
 
-    center_gap_half_w = 3.5 # 7.0mm open center gap where the tall pillar was
+    center_gap_half_w = 3.6 # 7.2mm open center gap where the tall pillar was
 
     # 1. Top L-Shaped Guide Rail & Rear Corner Stop (CCW Winding):
     pts_rail_t = [
@@ -417,10 +417,10 @@ def generate_main_housing(include_opposite_dupont=True):
     poly_rail_b = m3d.CrossSection([pts_rail_b])
     wall_bot_solid = m3d.Manifold.extrude(poly_rail_b, cradle_h).translate([0, 0, floor_t])
 
-    # 3. Outer Edge Support Ledges (Supports 0.6mm edge of PCB outside pin headers):
+    # 3. Outer Edge Support Ledges (Supports 0.7mm edge of PCB outside pin headers):
     pts_ledge_t = [
-        [x_front, hw_in - 0.6],
-        [x_rear, hw_in - 0.6],
+        [x_front, hw_in - 0.7],
+        [x_rear, hw_in - 0.7],
         [x_rear, hw_in],
         [x_front, hw_in]
     ]
@@ -430,17 +430,17 @@ def generate_main_housing(include_opposite_dupont=True):
     pts_ledge_b = [
         [x_front, -hw_in],
         [x_rear, -hw_in],
-        [x_rear, -(hw_in - 0.6)],
-        [x_front, -(hw_in - 0.6)]
+        [x_rear, -(hw_in - 0.7)],
+        [x_front, -(hw_in - 0.7)]
     ]
     poly_ledge_b = m3d.CrossSection([pts_ledge_b])
     ledge_bot = m3d.Manifold.extrude(poly_ledge_b, rail_h).translate([0, 0, floor_t])
 
-    # 4. Discrete Side Retention Snap Clips:
+    # 4. Discrete Side Retention Snap Clips (Relaxed 0.28mm lip overhang):
     esp_center_x = (x_front + x_rear) / 2.0
     snap_side_z = floor_t + rail_h + 1.2 + 0.2  # 5.2mm
-    clip_top = make_snap_clip(5.0, 0.45, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
-    clip_bot = make_snap_clip(5.0, 0.45, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
+    clip_top = make_snap_clip(4.5, 0.28, 1.2, '+Y').translate([esp_center_x, hw_in, snap_side_z])
+    clip_bot = make_snap_clip(4.5, 0.28, 1.2, '-Y').translate([esp_center_x, -hw_in, snap_side_z])
 
     cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + clip_top + clip_bot)
 
