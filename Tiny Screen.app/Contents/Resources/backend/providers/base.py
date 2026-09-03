@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import sqlite3
 import time
@@ -79,11 +80,17 @@ import logging
 
 logger = logging.getLogger("tinyscreen.providers")
 
+VALID_SQL_IDENTIFIER = re.compile(r"^[A-Za-z0-9_]+$")
+
 def read_sqlite_kv_safe(db_path: str, table: str, key_col: str, val_col: str, key_val: str) -> Optional[str]:
     """Safe read-only key-value query for SQLite databases (e.g. Cursor state.vscdb).
     Uses SQLite URI read-only mode and guarantees connection closure to prevent resource leaks."""
     if not db_path or not os.path.exists(db_path):
         return None
+    for identifier in (table, key_col, val_col):
+        if not identifier or not VALID_SQL_IDENTIFIER.match(identifier):
+            logger.warning("Invalid SQL identifier rejected: %s", identifier)
+            return None
     conn = None
     try:
         abs_path = os.path.abspath(db_path)

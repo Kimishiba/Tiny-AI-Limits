@@ -1,3 +1,5 @@
+import re
+import hmac
 from flask import Blueprint, jsonify, request, current_app
 from backend.services.geocoding import geocode_city
 from backend.services.agent_tracker import get_antigravity_accounts
@@ -12,7 +14,12 @@ def mask_key(val):
     return f"{val[:4]}...{val[-4:]}"
 
 def client_is_local():
-    return request.remote_addr in ("127.0.0.1", "::1", "localhost")
+    if request.remote_addr not in ("127.0.0.1", "::1", "localhost"):
+        return False
+    origin = request.headers.get("Origin")
+    if origin and not any(h in origin for h in ("localhost", "127.0.0.1", "chrome-extension://")):
+        return False
+    return True
 
 def caller_is_paired(allow_unpaired=True):
     cfg = current_app.config.get("COMPANION_CONFIG", {})
@@ -23,8 +30,8 @@ def caller_is_paired(allow_unpaired=True):
     if not pair_id:
         return True
     
-    caller_pair = request.args.get("pair_id") or request.headers.get("X-Pair-ID")
-    return caller_pair == pair_id
+    caller_pair = request.args.get("pair_id") or request.headers.get("X-Pair-ID", "")
+    return hmac.compare_digest(str(caller_pair or ""), str(pair_id or ""))
 
 @bp.route('/config', methods=['GET', 'POST'])
 @bp.route('/api/config', methods=['GET', 'POST'])
@@ -59,14 +66,15 @@ def handle_config():
             if "provider_keys" in data and isinstance(data["provider_keys"], dict):
                 cfg.setdefault("provider_keys", {})
                 for k, v in data["provider_keys"].items():
-                    if v:
-                        cfg["provider_keys"][k] = str(v)
-                        cfg[f"{k}_api_key"] = str(v)
+                    if v and re.match(r"^[a-zA-Z0-9_]{1,32}$", str(k)):
+                        cfg["provider_keys"][str(k)] = str(v)[:256]
+                        cfg[f"{k}_api_key"] = str(v)[:256]
             if "provider_plans" in data and isinstance(data["provider_plans"], dict):
                 cfg.setdefault("provider_plans", {})
                 for k, v in data["provider_plans"].items():
-                    cfg["provider_plans"][str(k)] = str(v)
-                    cfg[f"{k}_plan"] = str(v)
+                    if re.match(r"^[a-zA-Z0-9_]{1,32}$", str(k)):
+                        cfg["provider_plans"][str(k)] = str(v)[:64]
+                        cfg[f"{k}_plan"] = str(v)[:64]
             if "claude_plan" in data:
                 cfg["claude_plan"] = str(data["claude_plan"])
                 cfg.setdefault("provider_plans", {})["claude"] = str(data["claude_plan"])

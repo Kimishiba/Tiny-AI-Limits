@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiny AI Screen - 10 FreeLLMAPI Companion Logos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;600;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0c10;
+    --bg-surface: rgba(20, 24, 33, 0.7);
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --accent-emerald: #10b981;
+    --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+    --accent-cyan: #00dbe9;
+    --accent-blue: #3b82f6;
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    padding: 40px 24px;
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(0, 219, 233, 0.08) 0%, transparent 40%);
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--accent-emerald);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--accent-emerald);
+    box-shadow: 0 0 10px var(--accent-emerald);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  h1 {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, #10b981, #00dbe9, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+
+  p.subtitle {
+    font-size: 18px;
+    color: var(--text-muted);
+    max-width: 700px;
+    margin: 0 auto 24px;
+    line-height: 1.6;
+  }
+
+  .controls-bar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+
+  .btn-filter {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+  }
+
+  .btn-filter:hover, .btn-filter.active {
+    border-color: var(--accent-emerald);
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-emerald);
+    box-shadow: 0 0 12px var(--accent-emerald-glow);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 28px;
+  }
+
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 24px;
+    backdrop-filter: blur(16px);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 219, 233, 0.3);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .preview-wrapper {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #06080c;
+    border-radius: 16px;
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preview-wrapper svg {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+  }
+
+  .preview-wrapper.light-mode {
+    background: #e2e8f0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .card-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent-cyan);
+    font-weight: 700;
+  }
+
+  .card-model {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-emerald);
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .card-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    flex-grow: 1;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 16px;
+  }
+
+  .action-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 10px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover {
+    background: rgba(0, 219, 233, 0.15);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal-box {
+    background: #0d1117;
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    max-width: 800px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.8);
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  pre code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #a7f3d0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">
+      <div class="pulse-dot"></div>
+      GENERATED EXCLUSIVELY BY FREEELLMAPI MODELS
+    </div>
+    <h1>Tiny AI Screen Companion Logos</h1>
+    <p class="subtitle">
+      10 bespoke vector marks designed for the Tiny AI desktop companion application.
+      Created using FreeLLMAPI models (<code style="color:var(--accent-cyan)">codestral-latest</code> &amp; <code style="color:var(--accent-emerald)">openai/gpt-oss-120b</code>) with high-contrast industrial cyber aesthetics.
+    </p>
+    <div class="controls-bar">
+      <button class="btn-filter active" onclick="toggleTheme('dark')">Dark Theme</button>
+      <button class="btn-filter" onclick="toggleTheme('light')">Light Theme Preview</button>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- GEMINI MODEL EDITION -->
+    <div class="card" style="border: 4px solid #000000; box-shadow: 8px 8px 0px #000000; background: #ffffff; color: #000000; border-radius: 0;">
+      <div class="card-header">
+        <span class="card-num" style="color: #ffffff; background: #ff5f1f; padding: 4px 10px; font-weight: 900; font-family: 'Anybody', sans-serif;">GEMINI MODEL EDITION</span>
+        <span class="card-model" style="color: #000000; background: #ffffff; border: 2px solid #000000; border-radius: 0; font-weight: 800;">Google Gemini 3.8 Flash</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_neobrutalist_gemini" style="background: #ffffff; border: 3px solid #000000; border-radius: 0;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <clipPath id="screenClip">
+      <rect x="118" y="118" width="268" height="210" rx="22" ry="22" />
+    </clipPath>
+  </defs>
+
+  <!-- CANVAS: Pure White (#ffffff) -->
+  <rect width="512" height="512" fill="#ffffff" rx="0" />
+
+  <!-- OUTER FRAME HARD SHADOW (+8px, +8px, 0px blur) -->
+  <rect x="44" y="44" width="432" height="432" fill="#000000" rx="0" />
+  <!-- OUTER FRAME: Clean Light Surface (#f9f9f9) with 5px Black Stroke -->
+  <rect x="36" y="36" width="432" height="432" fill="#f9f9f9" stroke="#000000" stroke-width="5" rx="0" />
+
+  <!-- STRUCTURAL ARCHITECTURAL GRID LINES (Subtle 0.10 opacity) -->
+  <g stroke="#000000" stroke-width="1" opacity="0.10">
+    <line x1="36" y1="120" x2="468" y2="120" />
+    <line x1="36" y1="204" x2="468" y2="204" />
+    <line x1="36" y1="288" x2="468" y2="288" />
+    <line x1="36" y1="372" x2="468" y2="372" />
+    <line x1="120" y1="36" x2="120" y2="468" />
+    <line x1="204" y1="36" x2="204" y2="468" />
+    <line x1="288" y1="36" x2="288" y2="468" />
+    <line x1="372" y1="36" x2="372" y2="468" />
+  </g>
+
+  <!-- DESKTOP PEDESTAL BASE (HARD SHADOW) -->
+  <rect x="174" y="408" width="172" height="20" fill="#000000" rx="0" />
+  <!-- DESKTOP PEDESTAL BASE (MAIN) -->
+  <rect x="168" y="402" width="172" height="20" fill="#000000" stroke="#000000" stroke-width="4" rx="0" />
+  <!-- STAND NECK: Vibrant Orange (#ff5f1f) -->
+  <rect x="232" y="356" width="48" height="48" fill="#ff5f1f" stroke="#000000" stroke-width="5" rx="0" />
+
+  <!-- MONITOR CHASSIS HARD SHADOW (+8px, +8px, 0px blur) -->
+  <rect x="104" y="104" width="312" height="254" fill="#000000" rx="28" ry="28" />
+  <!-- MONITOR CHASSIS: Pure White (#ffffff) with 5px Solid Black Border & Round Corners -->
+  <rect x="96" y="96" width="312" height="254" fill="#ffffff" stroke="#000000" stroke-width="5" rx="28" ry="28" />
+
+  <!-- SCREEN VIEWPORT CONTAINER: Vibrant Orange (#ff5f1f) with 4px Black Border & Round Corners -->
+  <rect x="118" y="118" width="268" height="210" fill="#ff5f1f" stroke="#000000" stroke-width="4" rx="20" ry="20" />
+
+  <!-- CLIPPED SCREEN CONTENT (Clean inside rounded screen) -->
+  <g clip-path="url(#screenClip)">
+    <!-- SCREEN HEADER DIVIDER (4px Solid Black) -->
+    <line x1="118" y1="152" x2="386" y2="152" stroke="#000000" stroke-width="4" />
+    <!-- Status Micro-Chips in Screen Header -->
+    <rect x="136" y="131" width="10" height="10" fill="#000000" rx="0" />
+    <rect x="152" y="131" width="10" height="10" fill="#000000" rx="0" />
+    <text x="368" y="141" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="800" fill="#000000" text-anchor="end">SYS: LIVE</text>
+
+    <!-- GEOMETRIC AI NEURAL SPARK (Pure White with 4px Solid Black Border & Hard Shadow) -->
+    <polygon points="262,176 278,218 320,234 278,250 262,292 246,250 204,234 246,218" fill="#000000" />
+    <polygon points="256,170 272,212 314,228 272,244 256,286 240,244 198,228 240,212" fill="#ffffff" stroke="#000000" stroke-width="4" stroke-linejoin="miter" />
+    <!-- Center Core Square (Vibrant Orange) -->
+    <rect x="249" y="221" width="14" height="14" fill="#ff5f1f" stroke="#000000" stroke-width="3" rx="0" />
+
+    <!-- SEGMENTED QUOTA TELEMETRY BAR: [ ■■■■■■■□ 94% ] -->
+    <g transform="translate(136, 290)">
+      <rect x="4" y="4" width="232" height="26" fill="#000000" rx="0" />
+      <rect x="0" y="0" width="232" height="26" fill="#ffffff" stroke="#000000" stroke-width="4" rx="0" />
+      <!-- 7 Active Segments (Solid Black) -->
+      <rect x="8" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <rect x="30" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <rect x="52" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <rect x="74" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <rect x="96" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <rect x="118" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <rect x="140" y="5" width="18" height="16" fill="#000000" rx="0" />
+      <!-- 1 Inactive Segment (Hollow) -->
+      <rect x="162" y="5" width="18" height="16" fill="none" stroke="#000000" stroke-width="3" rx="0" />
+      <!-- Telemetry Readout -->
+      <text x="218" y="18" font-family="'JetBrains Mono', monospace" font-weight="800" font-size="12" fill="#000000" text-anchor="end">94%</text>
+    </g>
+  </g>
+
+  <!-- TOP-LEFT STAMPED BADGE: "TINY AI" (Neo-Brutalist Sharp Tag) -->
+  <rect x="56" y="56" width="140" height="46" fill="#000000" rx="0" />
+  <rect x="50" y="50" width="140" height="46" fill="#ff5f1f" stroke="#000000" stroke-width="4" rx="0" />
+  <text x="120" y="81" text-anchor="middle" font-family="'Anybody', sans-serif" font-weight="900" font-size="24" fill="#000000" letter-spacing="-0.03em">TINY AI</text>
+
+  <!-- BOTTOM-RIGHT SPEC CHIP: "240×240 // COMPANION" (Neo-Brutalist Sharp Chip) -->
+  <rect x="206" y="426" width="254" height="40" fill="#000000" rx="0" />
+  <rect x="200" y="420" width="254" height="40" fill="#ffffff" stroke="#000000" stroke-width="3" rx="0" />
+  <rect x="214" y="432" width="16" height="16" fill="#ff5f1f" stroke="#000000" stroke-width="2.5" rx="0" />
+  <text x="240" y="446" font-family="'JetBrains Mono', monospace" font-weight="800" font-size="13" fill="#000000" letter-spacing="0.04em">240×240 // COMPANION</text>
+</svg>
+      </div>
+      <h2 class="card-title" style="color: #000000; font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 26px;">Neo-Raw: Gemini Edition</h2>
+      <p class="card-desc" style="color: #333333; font-family: 'Hanken Grotesk', sans-serif; font-weight: 500;">
+        Strict adherence to the Neo-Raw Design System. Features an architectural desktop monitor housing with solid black hard shadows (+8px), pure white canvas, vibrant orange (#ff5f1f) screen container, a 4-point neural spark, and a segmented quota bar [ ■■■■■■■□ 94% ].
+      </p>
+      <div class="card-actions" style="border-top: 3px solid #000000;">
+        <a href="logo_neobrutalist_gemini.svg" download="logo_neobrutalist_gemini.svg" class="action-btn" style="background: #ff5f1f; color: #000000; border: 2px solid #000000; font-weight: 800; border-radius: 0;">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_neobrutalist_gemini')" style="border: 2px solid #000000; color: #000000; font-weight: 700; border-radius: 0;">View Code</button>
+      </div>
+    </div>
+
+    <!-- FREEELLMAPI MODEL EDITION -->
+    <div class="card" style="border: 4px solid #000000; box-shadow: 8px 8px 0px #000000; background: #ffffff; color: #000000; border-radius: 0;">
+      <div class="card-header">
+        <span class="card-num" style="color: #000000; background: #eeeeee; border: 2px solid #000000; padding: 4px 10px; font-weight: 900; font-family: 'Anybody', sans-serif;">FREEELLMAPI EDITION</span>
+        <span class="card-model" style="color: #000000; background: #ff5f1f; border: 2px solid #000000; border-radius: 0; font-weight: 800;">codestral-latest (FreeLLMAPI)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_neobrutalist_freellm" style="background: #ffffff; border: 3px solid #000000; border-radius: 0;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Canvas -->
+  <rect width="512" height="512" fill="#ffffff" rx="0"/>
+
+  <!-- Outer Container Hard Shadow (+8px, +8px) -->
+  <rect x="44" y="44" width="432" height="432" rx="0" fill="#000000"/>
+  <!-- Outer Container Surface -->
+  <rect x="36" y="36" width="432" height="432" rx="0" fill="#ffffff" stroke="#000000" stroke-width="6"/>
+
+  <!-- Desktop Stand Hard Shadow -->
+  <rect x="186" y="374" width="152" height="24" rx="0" fill="#000000"/>
+  <!-- Desktop Stand -->
+  <rect x="180" y="368" width="152" height="24" rx="0" fill="#eeeeee" stroke="#000000" stroke-width="4"/>
+
+  <!-- Monitor Chassis Hard Shadow (+8px, +8px) -->
+  <rect x="128" y="116" width="272" height="240" rx="0" fill="#000000"/>
+  <!-- Monitor Chassis (Light Gray) -->
+  <rect x="120" y="108" width="272" height="240" rx="0" fill="#f4f4f4" stroke="#000000" stroke-width="5"/>
+
+  <!-- Screen Viewport Hard Shadow (+6px, +6px) -->
+  <rect x="146" y="132" width="232" height="170" rx="0" fill="#000000"/>
+  <!-- Screen Viewport (Pure White) -->
+  <rect x="140" y="126" width="232" height="170" rx="0" fill="#ffffff" stroke="#000000" stroke-width="4"/>
+
+  <!-- AI Geometric Spark Node (Square Concentric Encasement) -->
+  <rect x="220" y="160" width="72" height="72" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="3"/>
+  <rect x="232" y="172" width="48" height="48" rx="0" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <rect x="244" y="184" width="24" height="24" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="3"/>
+
+  <!-- Quota Status Bar -->
+  <rect x="140" y="272" width="232" height="24" rx="0" fill="#eeeeee" stroke="#000000" stroke-width="3"/>
+  <rect x="140" y="272" width="168" height="24" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="3"/>
+  <text x="256" y="289" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="12" text-anchor="middle" fill="#000000">72% QUOTA</text>
+
+  <!-- "TINY AI" Tag Hard Shadow -->
+  <rect x="166" y="406" width="192" height="46" rx="0" fill="#000000"/>
+  <!-- "TINY AI" Tag Main: Vibrant Orange (#ff5f1f) -->
+  <rect x="160" y="400" width="192" height="46" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="4"/>
+  <text x="256" y="432" text-anchor="middle" font-family="'Anybody', sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="0.02em">TINY AI</text>
+
+  <!-- Corner Spec Chip -->
+  <rect x="48" y="48" width="156" height="30" rx="0" fill="#000000"/>
+  <rect x="44" y="44" width="156" height="30" rx="0" fill="#ffffff" stroke="#000000" stroke-width="2.5"/>
+  <text x="122" y="64" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="12" fill="#000000" letter-spacing="0.05em">240×240 // COMPANION</text>
+</svg>
+      </div>
+      <h2 class="card-title" style="color: #000000; font-family: 'Anybody', sans-serif; font-weight: 900; font-size: 26px;">Neo-Raw: FreeLLMAPI Edition</h2>
+      <p class="card-desc" style="color: #333333; font-family: 'Hanken Grotesk', sans-serif; font-weight: 500;">
+        Built with Codestral from the FreeLLMAPI pool. Sharp rectangular monitor on a desk stand, concentric square AI spark node, flat 72% quota indicator bar, stamped bottom 'TINY AI' tag, and corner tech chip '240×240 // COMPANION'.
+      </p>
+      <div class="card-actions" style="border-top: 3px solid #000000;">
+        <a href="logo_neobrutalist_freellm.svg" download="logo_neobrutalist_freellm.svg" class="action-btn" style="background: #eeeeee; color: #000000; border: 2px solid #000000; font-weight: 800; border-radius: 0;">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_neobrutalist_freellm')" style="border: 2px solid #000000; color: #000000; font-weight: 700; border-radius: 0;">View Code</button>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#01</span>
+        <span class="card-model">codestral-latest (FreeLLMAPI)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_01_orbital_gauge">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="appBaseGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0c10" />
+      <stop offset="100%" stop-color="#1f293d" />
+    </linearGradient>
+    <radialGradient id="screenGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#1f293d" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0a0c10" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#00dbe9" />
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="coreGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <rect x="64" y="64" width="384" height="384" rx="48" fill="url(#appBaseGradient)" stroke="#1f293d" stroke-width="4" />
+
+  <circle cx="256" cy="256" r="140" fill="#0a0c10" stroke="#1f293d" stroke-width="3" filter="url(#screenGlow)" />
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#1f293d" stroke-width="1" stroke-dasharray="2,4" />
+
+  <path d="M256 126v-20" stroke="#1f293d" stroke-width="2" stroke-linecap="round" />
+  <path d="M256 386v20" stroke="#1f293d" stroke-width="2" stroke-linecap="round" />
+  <path d="M126 256h-20" stroke="#1f293d" stroke-width="2" stroke-linecap="round" />
+  <path d="M386 256h20" stroke="#1f293d" stroke-width="2" stroke-linecap="round" />
+
+  <path d="M256 146v-10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+  <path d="M256 366v10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+  <path d="M146 256h-10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+  <path d="M366 256h10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+
+  <path d="M256 136v-10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+  <path d="M256 376v10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+  <path d="M136 256h-10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+  <path d="M376 256h10" stroke="#1f293d" stroke-width="1" stroke-linecap="round" />
+
+  <path d="M256 126a120 120 0 0 1 0 240 120 120 0 0 1 0 -240" fill="none" stroke="url(#progressGradient)" stroke-width="12" stroke-dasharray="754" stroke-dashoffset="504" />
+
+  <g filter="url(#coreGlow)">
+    <path d="M256 256l-10 20 20 -10 10 -20 -20 10z" fill="#00dbe9" />
+    <circle cx="256" cy="256" r="6" fill="#10b981" />
+  </g>
+
+  <text x="256" y="440" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="32" font-weight="800" fill="#00dbe9" text-anchor="middle" letter-spacing="3">TINY AI</text>
+</svg>
+      </div>
+      <h2 class="card-title">The Orbital Telemetry Gauge</h2>
+      <p class="card-desc">Precision circular telemetry screen (GC9A01 240x240 homage) with dual concentric Neon Emerald & Electric Cyan progress rings, radial tick marks, and central AI spark node.</p>
+      <div class="card-actions">
+        <a href="logo_01_orbital_gauge.svg" download="logo_01_orbital_gauge.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_01_orbital_gauge')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#02</span>
+        <span class="card-model">openai/gpt-oss-120b (FreeLLMAPI auto)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_02_silicon_cyclops">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="monitorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1e26"/>
+      <stop offset="100%" stop-color="#0a0c10"/>
+    </linearGradient>
+    <radialGradient id="eyeGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="70%" stop-color="#00dbe9"/>
+      <stop offset="100%" stop-color="#0a0c10"/>
+    </radialGradient>
+    <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00dbe9"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="chassisShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="antennaGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <rect x="96" y="120" width="320" height="240" rx="48" ry="48" fill="url(#monitorGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#chassisShadow)"/>
+  <rect x="236" y="360" width="40" height="60" rx="8" ry="8" fill="#1c1e26"/>
+  <rect x="206" y="415" width="100" height="12" rx="6" fill="#161b24"/>
+
+  <line x1="256" y1="120" x2="256" y2="80" stroke="#10b981" stroke-width="4" filter="url(#antennaGlow)"/>
+  <circle cx="256" cy="80" r="10" fill="#10b981" filter="url(#antennaGlow)"/>
+
+  <circle cx="256" cy="240" r="80" fill="url(#eyeGrad)" filter="url(#glow)"/>
+  <circle cx="256" cy="240" r="40" fill="url(#irisGrad)"/>
+  <circle cx="256" cy="240" r="14" fill="#ffffff"/>
+
+  <g stroke="#10b981" stroke-width="2" fill="none" opacity="0.6">
+    <circle cx="256" cy="240" r="52"/>
+    <circle cx="256" cy="240" r="64"/>
+    <circle cx="256" cy="240" r="76"/>
+  </g>
+
+  <path d="M200 200 A60 60 0 0 1 312 200" stroke="#ffffff" stroke-opacity="0.35" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+  <text x="256" y="465" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="36" font-weight="800" text-anchor="middle" fill="#ffffff" letter-spacing="2">TINY AI</text>
+</svg>
+      </div>
+      <h2 class="card-title">The Silicon Cyclops</h2>
+      <p class="card-desc">Playful desktop robot companion chassis with a luminous cybernetic cyclops screen eye, friendly telemetry rings, and status antenna.</p>
+      <div class="card-actions">
+        <a href="logo_02_silicon_cyclops.svg" download="logo_02_silicon_cyclops.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_02_silicon_cyclops')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#03</span>
+        <span class="card-model">codestral-latest (FreeLLMAPI)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_03_neural_micro_die">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0c10" />
+      <stop offset="50%" stop-color="#141a24" />
+      <stop offset="100%" stop-color="#0a0c10" />
+    </linearGradient>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d020" />
+      <stop offset="100%" stop-color="#d4af37" />
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="pulse" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+      <feFlood flood-color="#10b981" result="glowColor" />
+      <feComposite in="glowColor" in2="blur" operator="in" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10" />
+
+  <!-- IC Chip Package Base -->
+  <rect x="136" y="116" width="240" height="240" rx="16" fill="url(#chipGradient)" stroke="#d4af37" stroke-width="2" />
+
+  <!-- Gold Contact Pins -->
+  <g fill="url(#goldGradient)">
+    <!-- Top Pins -->
+    <rect x="170" y="96" width="16" height="20" rx="2" />
+    <rect x="206" y="96" width="16" height="20" rx="2" />
+    <rect x="248" y="96" width="16" height="20" rx="2" />
+    <rect x="290" y="96" width="16" height="20" rx="2" />
+    <rect x="326" y="96" width="16" height="20" rx="2" />
+    <!-- Bottom Pins -->
+    <rect x="170" y="356" width="16" height="20" rx="2" />
+    <rect x="206" y="356" width="16" height="20" rx="2" />
+    <rect x="248" y="356" width="16" height="20" rx="2" />
+    <rect x="290" y="356" width="16" height="20" rx="2" />
+    <rect x="326" y="356" width="16" height="20" rx="2" />
+    <!-- Left Pins -->
+    <rect x="116" y="150" width="20" height="16" rx="2" />
+    <rect x="116" y="186" width="20" height="16" rx="2" />
+    <rect x="116" y="228" width="20" height="16" rx="2" />
+    <rect x="116" y="270" width="20" height="16" rx="2" />
+    <rect x="116" y="306" width="20" height="16" rx="2" />
+    <!-- Right Pins -->
+    <rect x="376" y="150" width="20" height="16" rx="2" />
+    <rect x="376" y="186" width="20" height="16" rx="2" />
+    <rect x="376" y="228" width="20" height="16" rx="2" />
+    <rect x="376" y="270" width="20" height="16" rx="2" />
+    <rect x="376" y="306" width="20" height="16" rx="2" />
+  </g>
+
+  <!-- Embedded Micro Screen Bezel -->
+  <rect x="166" y="156" width="180" height="160" rx="8" fill="#040608" stroke="#1f293d" stroke-width="2" />
+
+  <!-- AI Waveforms -->
+  <path d="M180 236 Q195 190, 210 236 T240 236 T270 200 T300 260 T330 236" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" filter="url(#glow)" />
+  <path d="M180 246 Q195 210, 210 246 T240 246 T270 220 T300 270 T330 246" fill="none" stroke="#00dbe9" stroke-width="2" stroke-linecap="round" filter="url(#glow)" opacity="0.8" />
+
+  <!-- Status Indicators -->
+  <circle cx="186" cy="176" r="4" fill="#10b981" filter="url(#pulse)" />
+  <circle cx="202" cy="176" r="4" fill="#f59e0b" filter="url(#pulse)" />
+  <circle cx="218" cy="176" r="4" fill="#00dbe9" filter="url(#pulse)" />
+
+  <text x="256" y="420" font-family="'JetBrains Mono', monospace" font-size="28" font-weight="700" fill="#d4af37" text-anchor="middle" letter-spacing="3">TINY AI</text>
+  <text x="256" y="450" font-family="'JetBrains Mono', monospace" font-size="14" fill="#10b981" text-anchor="middle" letter-spacing="2">// ESP32 HARDWARE</text>
+</svg>
+      </div>
+      <h2 class="card-title">Neural Micro-Die</h2>
+      <p class="card-desc">ESP32/RP2040 hardware package with gold edge contact pads, dark silicon housing, and embedded OLED screen displaying an AI pulse frequency waveform.</p>
+      <div class="card-actions">
+        <a href="logo_03_neural_micro_die.svg" download="logo_03_neural_micro_die.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_03_neural_micro_die')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#04</span>
+        <span class="card-model">openai/gpt-oss-120b (FreeLLMAPI auto)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_04_infinite_limits">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradRibbon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#3b82f6"/>
+      <stop offset="50%"  stop-color="#00dbe9"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <path d="M256,140 C 110,140 110,360 256,360 S 402,360 256,140" fill="none" stroke="url(#gradRibbon)" stroke-width="32" stroke-linecap="round"/>
+
+  <!-- Telemetry notches -->
+  <g stroke="#ffffff" stroke-width="2.5" stroke-linecap="round">
+    <line x1="176" y1="210" x2="176" y2="228"/>
+    <line x1="144" y1="250" x2="162" y2="250"/>
+    <line x1="176" y1="290" x2="176" y2="308"/>
+    <line x1="336" y1="210" x2="336" y2="228"/>
+    <line x1="368" y1="250" x2="350" y2="250"/>
+    <line x1="336" y1="290" x2="336" y2="308"/>
+  </g>
+
+  <!-- Central glowing node -->
+  <circle cx="256" cy="250" r="14" fill="#ffffff" filter="url(#glow)"/>
+  <circle cx="256" cy="250" r="6" fill="#00dbe9"/>
+
+  <text x="256" y="425" text-anchor="middle" fill="#ffffff" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="42" font-weight="800" letter-spacing="3">TINY AI</text>
+  <text x="256" y="465" text-anchor="middle" fill="#00dbe9" font-family="'JetBrains Mono', monospace" font-size="20" font-weight="600" letter-spacing="4">LIMITS // STREAM</text>
+</svg>
+      </div>
+      <h2 class="card-title">Infinite Limits</h2>
+      <p class="card-desc">Sleek Möbius display ribbon in Cobalt-to-Emerald gradient, mapping token usage checkpoints along an endless data loop.</p>
+      <div class="card-actions">
+        <a href="logo_04_infinite_limits.svg" download="logo_04_infinite_limits.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_04_infinite_limits')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#05</span>
+        <span class="card-model">codestral-latest (FreeLLMAPI)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_05_monogram_t_screen">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f17" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#141a24" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="aiGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00dbe9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.8"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="#0a0c10" rx="48"/>
+  <rect x="64" y="64" width="384" height="384" fill="url(#glassGradient)" rx="48" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+
+  <!-- T Top Bar (Screen Bezel) -->
+  <path d="M156 160h200" stroke="#00dbe9" stroke-width="24" stroke-linecap="round" filter="url(#glow)"/>
+  <rect x="156" y="148" width="200" height="24" fill="#0b0f17" rx="4"/>
+
+  <!-- T Stem (Segmented Gauge) -->
+  <path d="M256 160v160" stroke="#1f293d" stroke-width="28" stroke-linecap="round"/>
+  <rect x="244" y="172" width="24" height="36" fill="#00dbe9" rx="4" filter="url(#glow)"/>
+  <rect x="244" y="218" width="24" height="36" fill="#00dbe9" rx="4" filter="url(#glow)"/>
+  <rect x="244" y="264" width="24" height="36" fill="#10b981" rx="4" filter="url(#glow)"/>
+
+  <!-- Central AI Orb in Notch -->
+  <circle cx="256" cy="160" r="18" fill="url(#aiGlow)" filter="url(#glow)"/>
+  <circle cx="256" cy="160" r="6" fill="#ffffff"/>
+
+  <text x="256" y="375" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="34" font-weight="800" text-anchor="middle" fill="#ffffff" letter-spacing="3">TINY</text>
+  <text x="256" y="410" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="600" letter-spacing="3" text-anchor="middle" fill="#00dbe9">AI SCREEN</text>
+</svg>
+      </div>
+      <h2 class="card-title">Monogram T-Screen</h2>
+      <p class="card-desc">Ultra-clean geometric brand monogram fusing letter 'T' with a micro-screen top bezel and vertical segmented token gauge with glowing core.</p>
+      <div class="card-actions">
+        <a href="logo_05_monogram_t_screen.svg" download="logo_05_monogram_t_screen.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_05_monogram_t_screen')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#06</span>
+        <span class="card-model">openai/gpt-oss-120b (FreeLLMAPI auto)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_06_quantum_prism">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="caseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141824"/>
+      <stop offset="100%" stop-color="#1e2433"/>
+    </linearGradient>
+    <radialGradient id="prismGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#00dbe9" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.2"/>
+    </radialGradient>
+    <filter id="caseShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <g filter="url(#caseShadow)">
+    <polygon points="410,166 410,346 256,436 102,346 102,166 256,76" fill="url(#caseGrad)" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+  </g>
+
+  <!-- Central Quantum Prism Screen -->
+  <polygon points="318,220 318,290 256,326 194,290 194,220 256,184" fill="url(#prismGrad)" stroke="#0a0c10" stroke-width="2" filter="url(#glow)"/>
+
+  <!-- Refractive Laser Beams -->
+  <g stroke-width="3.5" stroke-linecap="round" filter="url(#glow)">
+    <line x1="256" y1="255" x2="350" y2="120" stroke="#10b981" />
+    <line x1="256" y1="255" x2="162" y2="120" stroke="#00dbe9" />
+    <line x1="256" y1="255" x2="256" y2="390" stroke="#3b82f6" />
+  </g>
+
+  <!-- Metric Threshold Marks -->
+  <g stroke="#10b981" stroke-width="2" opacity="0.6">
+    <line x1="310" y1="120" x2="310" y2="136"/>
+    <line x1="256" y1="90"  x2="256" y2="106"/>
+    <line x1="202" y1="120" x2="202" y2="136"/>
+    <line x1="380" y1="300" x2="365" y2="300"/>
+    <line x1="132" y1="300" x2="147" y2="300"/>
+  </g>
+
+  <text x="256" y="475" text-anchor="middle" fill="#ffffff" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="34" font-weight="800" letter-spacing="3">HEX // PRISM.AI</text>
+</svg>
+      </div>
+      <h2 class="card-title">The Quantum Prism</h2>
+      <p class="card-desc">Faceted 3D isometric hexagonal hardware enclosure emitting refractive laser telemetry beams and quota threshold markers.</p>
+      <div class="card-actions">
+        <a href="logo_06_quantum_prism.svg" download="logo_06_quantum_prism.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_06_quantum_prism')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#07</span>
+        <span class="card-model">codestral-latest (FreeLLMAPI)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_07_scanline_pulse">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="512" height="4">
+      <rect width="512" height="1" fill="#000000" opacity="0.4"/>
+      <rect y="1" width="512" height="3" fill="#ffffff" opacity="0.02"/>
+    </pattern>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#00dbe9" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <!-- Screen Chassis -->
+  <rect x="56" y="56" width="400" height="400" rx="20" fill="#060910" stroke="#1f293d" stroke-width="3"/>
+  <rect x="72" y="72" width="368" height="368" rx="12" fill="#04060a"/>
+  <rect x="72" y="72" width="368" height="368" rx="12" fill="url(#scanlines)"/>
+
+  <!-- Corner Screws -->
+  <circle cx="72" cy="72" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+  <circle cx="440" cy="72" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+  <circle cx="72" cy="440" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+  <circle cx="440" cy="440" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+
+  <!-- Top Status HUD -->
+  <circle cx="106" cy="110" r="6" fill="#10b981" filter="url(#glow)"/>
+  <text x="122" y="115" font-family="'JetBrains Mono', monospace" font-size="12" fill="#10b981" font-weight="700">ONLINE // 60FPS</text>
+  
+  <rect x="360" y="102" width="42" height="16" rx="3" fill="#0e141f" stroke="#00dbe9" stroke-width="1.5"/>
+  <rect x="364" y="106" width="28" height="8" rx="1" fill="#00dbe9"/>
+
+  <!-- High-energy Waveform -->
+  <path d="M90 256 Q130 180, 170 256 T250 256 T330 210 T410 256" fill="none" stroke="url(#waveGradient)" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- Frequency Equalizer Bars -->
+  <g fill="#10b981" opacity="0.8">
+    <rect x="100" y="340" width="8" height="24" rx="2"/>
+    <rect x="114" y="332" width="8" height="32" rx="2" fill="#00dbe9"/>
+    <rect x="128" y="324" width="8" height="40" rx="2"/>
+    <rect x="142" y="344" width="8" height="20" rx="2" fill="#00dbe9"/>
+    <rect x="156" y="336" width="8" height="28" rx="2"/>
+  </g>
+
+  <text x="270" y="356" font-family="'Space Grotesk', monospace" font-size="22" font-weight="700" fill="#00dbe9" text-anchor="middle" letter-spacing="2">TINY SCREEN // LIVE</text>
+</svg>
+      </div>
+      <h2 class="card-title">Scanline Pulse</h2>
+      <p class="card-desc">Retro-cyber CRT terminal screen with industrial hex screws, phosphor scanlines, battery/status HUD, and audio/token pulse waveform.</p>
+      <div class="card-actions">
+        <a href="logo_07_scanline_pulse.svg" download="logo_07_scanline_pulse.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_07_scanline_pulse')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#08</span>
+        <span class="card-model">openai/gpt-oss-120b (FreeLLMAPI auto)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_08_desk_beacon">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2233"/>
+      <stop offset="100%" stop-color="#0e131d"/>
+    </linearGradient>
+    <radialGradient id="displayGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00dbe9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.2"/>
+    </radialGradient>
+    <linearGradient id="signalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#00dbe9"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="dockShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <!-- Dock Base Pedestal -->
+  <g transform="translate(256,360)">
+    <ellipse cx="0" cy="0" rx="160" ry="36" fill="url(#dockGrad)" filter="url(#dockShadow)" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+  </g>
+
+  <!-- Central Antenna Beam -->
+  <g transform="translate(256,230)">
+    <line x1="0" y1="20" x2="0" y2="-100" stroke="#00dbe9" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+    <circle cx="0" cy="-105" r="10" fill="#10b981" filter="url(#glow)"/>
+  </g>
+
+  <!-- Tilted Micro-Display -->
+  <g transform="translate(256,240)">
+    <ellipse cx="0" cy="0" rx="84" ry="76" fill="#0a0c10" stroke="#2a3342" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="74" ry="66" fill="url(#displayGlow)"/>
+    <circle cx="44" cy="-24" r="5" fill="#10b981" filter="url(#glow)"/>
+  </g>
+
+  <!-- Wireless Broadcast Arcs -->
+  <g filter="url(#glow)" opacity="0.8">
+    <path d="M256,130 C200,90 140,80 90,90" stroke="url(#signalGrad)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M256,130 C312,90 372,80 422,90" stroke="url(#signalGrad)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M256,100 C220,60 170,50 120,60" stroke="url(#signalGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+    <path d="M256,100 C292,60 342,50 392,60" stroke="url(#signalGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <text x="256" y="440" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="3">BEACON.AI</text>
+  <text x="256" y="470" font-family="'JetBrains Mono', monospace" font-size="14" fill="#00dbe9" text-anchor="middle" letter-spacing="3">CONNECTED // 240x240</text>
+</svg>
+      </div>
+      <h2 class="card-title">The Desk Beacon</h2>
+      <p class="card-desc">Machined aluminum desktop pedestal dock with tilted circular micro-display broadcasting telemetry signal arcs to AI cloud providers.</p>
+      <div class="card-actions">
+        <a href="logo_08_desk_beacon.svg" download="logo_08_desk_beacon.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_08_desk_beacon')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#09</span>
+        <span class="card-model">codestral-latest (FreeLLMAPI)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_09_voxel_core">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="monitorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2533" />
+      <stop offset="100%" stop-color="#0a0c10" />
+    </linearGradient>
+    <linearGradient id="pixelGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#00dbe9" />
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#000000" flood-opacity="0.7"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10" />
+
+  <!-- Floating Isometric Cube -->
+  <g transform="translate(256, 210)" filter="url(#softShadow)">
+    <!-- Top Face -->
+    <polygon points="0,-100 100,-45 0,10 -100,-45" fill="#242c3d" stroke="#333f57" stroke-width="2"/>
+    <!-- Left Face -->
+    <polygon points="-100,-45 0,10 0,120 -100,65" fill="#141a24" stroke="#222b3d" stroke-width="2"/>
+    <!-- Right Screen Face -->
+    <polygon points="0,10 100,-45 100,65 0,120" fill="url(#monitorGradient)" stroke="#222b3d" stroke-width="2"/>
+
+    <!-- Active Pixel Matrix Grid on Right Face -->
+    <g transform="translate(15, 20) skewY(-28) scale(0.85)">
+      <rect x="0" y="0" width="12" height="12" fill="#10b981" rx="2" filter="url(#glow)"/>
+      <rect x="16" y="0" width="12" height="12" fill="#00dbe9" rx="2" filter="url(#glow)"/>
+      <rect x="32" y="0" width="12" height="12" fill="#10b981" rx="2" filter="url(#glow)"/>
+      <rect x="0" y="16" width="12" height="12" fill="#00dbe9" rx="2" filter="url(#glow)"/>
+      <rect x="16" y="16" width="12" height="12" fill="#ffffff" rx="2" filter="url(#glow)"/>
+      <rect x="32" y="16" width="12" height="12" fill="#00dbe9" rx="2" filter="url(#glow)"/>
+      <rect x="0" y="32" width="12" height="12" fill="#10b981" rx="2" filter="url(#glow)"/>
+      <rect x="16" y="32" width="12" height="12" fill="#00dbe9" rx="2" filter="url(#glow)"/>
+      <rect x="32" y="32" width="12" height="12" fill="#10b981" rx="2" filter="url(#glow)"/>
+    </g>
+
+    <!-- Detached Floating Voxels -->
+    <rect x="-120" y="-80" width="10" height="10" rx="2" fill="#10b981" filter="url(#glow)"/>
+    <rect x="110" y="-70" width="8" height="8" rx="2" fill="#00dbe9" filter="url(#glow)"/>
+    <rect x="120" y="20" width="12" height="12" rx="2" fill="#10b981" filter="url(#glow)"/>
+  </g>
+
+  <text x="256" y="415" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="34" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="3">TINY VOXEL</text>
+  <text x="256" y="450" font-family="'JetBrains Mono', monospace" font-size="14" fill="#00dbe9" text-anchor="middle" letter-spacing="3">PIXEL COMPANION // AI</text>
+</svg>
+      </div>
+      <h2 class="card-title">Voxel Core Matrix</h2>
+      <p class="card-desc">3D isometric cube monitor casing floating in space with an active pixel matrix display forming a glowing AI spark.</p>
+      <div class="card-actions">
+        <a href="logo_09_voxel_core.svg" download="logo_09_voxel_core.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_09_voxel_core')">View Code</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-num">#10</span>
+        <span class="card-model">openai/gpt-oss-120b (FreeLLMAPI auto)</span>
+      </div>
+      <div class="preview-wrapper" id="prev-logo_10_aura_shield">
+        <svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="outerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#00dbe9"/>
+    </linearGradient>
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#10b981" flood-opacity="0.8"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#00dbe9" flood-opacity="0.6"/>
+    </filter>
+    <radialGradient id="lockGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00dbe9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.2"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <!-- Outer Shield Curved Arcs -->
+  <g filter="url(#neonGlow)">
+    <path d="M 100 240 A 160 160 0 0 1 412 240" stroke="url(#outerGrad)" stroke-width="20" fill="none" stroke-linecap="round"/>
+    <path d="M 412 260 A 160 160 0 0 1 100 260" stroke="url(#outerGrad)" stroke-width="20" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Outer Threshold Scale Markers -->
+  <g stroke="#10b981" stroke-width="2.5" opacity="0.8">
+    <line x1="256" y1="56" x2="256" y2="76"/>
+    <line x1="140" y1="100" x2="152" y2="114"/>
+    <line x1="372" y1="100" x2="360" y2="114"/>
+    <line x1="256" y1="424" x2="256" y2="444"/>
+    <line x1="140" y1="400" x2="152" y2="386"/>
+    <line x1="372" y1="400" x2="360" y2="386"/>
+  </g>
+
+  <!-- Central 240x240 Display Core -->
+  <circle cx="256" cy="250" r="90" fill="#0a0c10" stroke="#1f293d" stroke-width="4"/>
+  <circle cx="256" cy="250" r="82" fill="#06090e"/>
+
+  <!-- Core Safeguard Lock Icon -->
+  <g filter="url(#neonGlow)">
+    <circle cx="256" cy="250" r="40" fill="url(#lockGlow)"/>
+    <rect x="236" y="244" width="40" height="32" rx="6" fill="#0a0c10" stroke="#00dbe9" stroke-width="2"/>
+    <path d="M246 244 v-14 a10 10 0 0 1 20 0 v14" fill="none" stroke="#00dbe9" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="256" cy="260" r="3" fill="#10b981"/>
+  </g>
+
+  <text x="256" y="475" text-anchor="middle" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="34" font-weight="800" fill="#10b981" letter-spacing="3">SENTRY // LIMITS</text>
+</svg>
+      </div>
+      <h2 class="card-title">Aura Shield & Quota Sentry</h2>
+      <p class="card-desc">Protective cybernetic shield formed by curved micro-screen arcs guarding a central 240x240 limit lock and neon quota meter.</p>
+      <div class="card-actions">
+        <a href="logo_10_aura_shield.svg" download="logo_10_aura_shield.svg" class="action-btn">Download SVG</a>
+        <button class="action-btn" onclick="openModal('logo_10_aura_shield')">View Code</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="modal-overlay" id="codeModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle" style="font-family: 'Space Grotesk', sans-serif;">SVG Source</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <pre><code id="modalCode"></code></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+  const logoData = {"logo_01_orbital_gauge": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"appBaseGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#0a0c10\" />\n      <stop offset=\"100%\" stop-color=\"#1f293d\" />\n    </linearGradient>\n    <radialGradient id=\"screenGlow\" cx=\"50%\" cy=\"50%\" r=\"50%\" fx=\"50%\" fy=\"50%\">\n      <stop offset=\"0%\" stop-color=\"#1f293d\" stop-opacity=\"0.8\" />\n      <stop offset=\"100%\" stop-color=\"#0a0c10\" stop-opacity=\"0\" />\n    </radialGradient>\n    <linearGradient id=\"progressGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#10b981\" />\n      <stop offset=\"100%\" stop-color=\"#00dbe9\" />\n    </linearGradient>\n    <filter id=\"glow\" x=\"-30%\" y=\"-30%\" width=\"160%\" height=\"160%\">\n      <feGaussianBlur stdDeviation=\"4\" result=\"blur\" />\n      <feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\" />\n    </filter>\n    <filter id=\"coreGlow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur stdDeviation=\"8\" result=\"blur\" />\n      <feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\" />\n    </filter>\n  </defs>\n\n  <rect x=\"64\" y=\"64\" width=\"384\" height=\"384\" rx=\"48\" fill=\"url(#appBaseGradient)\" stroke=\"#1f293d\" stroke-width=\"4\" />\n\n  <circle cx=\"256\" cy=\"256\" r=\"140\" fill=\"#0a0c10\" stroke=\"#1f293d\" stroke-width=\"3\" filter=\"url(#screenGlow)\" />\n  <circle cx=\"256\" cy=\"256\" r=\"130\" fill=\"none\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-dasharray=\"2,4\" />\n\n  <path d=\"M256 126v-20\" stroke=\"#1f293d\" stroke-width=\"2\" stroke-linecap=\"round\" />\n  <path d=\"M256 386v20\" stroke=\"#1f293d\" stroke-width=\"2\" stroke-linecap=\"round\" />\n  <path d=\"M126 256h-20\" stroke=\"#1f293d\" stroke-width=\"2\" stroke-linecap=\"round\" />\n  <path d=\"M386 256h20\" stroke=\"#1f293d\" stroke-width=\"2\" stroke-linecap=\"round\" />\n\n  <path d=\"M256 146v-10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n  <path d=\"M256 366v10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n  <path d=\"M146 256h-10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n  <path d=\"M366 256h10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n\n  <path d=\"M256 136v-10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n  <path d=\"M256 376v10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n  <path d=\"M136 256h-10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n  <path d=\"M376 256h10\" stroke=\"#1f293d\" stroke-width=\"1\" stroke-linecap=\"round\" />\n\n  <path d=\"M256 126a120 120 0 0 1 0 240 120 120 0 0 1 0 -240\" fill=\"none\" stroke=\"url(#progressGradient)\" stroke-width=\"12\" stroke-dasharray=\"754\" stroke-dashoffset=\"504\" />\n\n  <g filter=\"url(#coreGlow)\">\n    <path d=\"M256 256l-10 20 20 -10 10 -20 -20 10z\" fill=\"#00dbe9\" />\n    <circle cx=\"256\" cy=\"256\" r=\"6\" fill=\"#10b981\" />\n  </g>\n\n  <text x=\"256\" y=\"440\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"32\" font-weight=\"800\" fill=\"#00dbe9\" text-anchor=\"middle\" letter-spacing=\"3\">TINY AI</text>\n</svg>", "logo_02_silicon_cyclops": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"monitorGrad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#1c1e26\"/>\n      <stop offset=\"100%\" stop-color=\"#0a0c10\"/>\n    </linearGradient>\n    <radialGradient id=\"eyeGrad\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n      <stop offset=\"0%\" stop-color=\"#10b981\"/>\n      <stop offset=\"70%\" stop-color=\"#00dbe9\"/>\n      <stop offset=\"100%\" stop-color=\"#0a0c10\"/>\n    </radialGradient>\n    <radialGradient id=\"irisGrad\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n      <stop offset=\"0%\" stop-color=\"#00dbe9\"/>\n      <stop offset=\"100%\" stop-color=\"#3b82f6\"/>\n    </radialGradient>\n    <filter id=\"glow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"4\" result=\"blur\"/>\n      <feMerge>\n        <feMergeNode in=\"blur\"/>\n        <feMergeNode in=\"SourceGraphic\"/>\n      </feMerge>\n    </filter>\n    <filter id=\"chassisShadow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      <feDropShadow dx=\"0\" dy=\"6\" stdDeviation=\"8\" flood-color=\"#000000\" flood-opacity=\"0.6\"/>\n    </filter>\n    <filter id=\"antennaGlow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"3\" result=\"blur\"/>\n      <feMerge>\n        <feMergeNode in=\"blur\"/>\n        <feMergeNode in=\"SourceGraphic\"/>\n      </feMerge>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\"/>\n\n  <rect x=\"96\" y=\"120\" width=\"320\" height=\"240\" rx=\"48\" ry=\"48\" fill=\"url(#monitorGrad)\" stroke=\"rgba(255,255,255,0.08)\" stroke-width=\"2\" filter=\"url(#chassisShadow)\"/>\n  <rect x=\"236\" y=\"360\" width=\"40\" height=\"60\" rx=\"8\" ry=\"8\" fill=\"#1c1e26\"/>\n  <rect x=\"206\" y=\"415\" width=\"100\" height=\"12\" rx=\"6\" fill=\"#161b24\"/>\n\n  <line x1=\"256\" y1=\"120\" x2=\"256\" y2=\"80\" stroke=\"#10b981\" stroke-width=\"4\" filter=\"url(#antennaGlow)\"/>\n  <circle cx=\"256\" cy=\"80\" r=\"10\" fill=\"#10b981\" filter=\"url(#antennaGlow)\"/>\n\n  <circle cx=\"256\" cy=\"240\" r=\"80\" fill=\"url(#eyeGrad)\" filter=\"url(#glow)\"/>\n  <circle cx=\"256\" cy=\"240\" r=\"40\" fill=\"url(#irisGrad)\"/>\n  <circle cx=\"256\" cy=\"240\" r=\"14\" fill=\"#ffffff\"/>\n\n  <g stroke=\"#10b981\" stroke-width=\"2\" fill=\"none\" opacity=\"0.6\">\n    <circle cx=\"256\" cy=\"240\" r=\"52\"/>\n    <circle cx=\"256\" cy=\"240\" r=\"64\"/>\n    <circle cx=\"256\" cy=\"240\" r=\"76\"/>\n  </g>\n\n  <path d=\"M200 200 A60 60 0 0 1 312 200\" stroke=\"#ffffff\" stroke-opacity=\"0.35\" stroke-width=\"6\" fill=\"none\" stroke-linecap=\"round\"/>\n\n  <text x=\"256\" y=\"465\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"36\" font-weight=\"800\" text-anchor=\"middle\" fill=\"#ffffff\" letter-spacing=\"2\">TINY AI</text>\n</svg>", "logo_03_neural_micro_die": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"chipGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#0a0c10\" />\n      <stop offset=\"50%\" stop-color=\"#141a24\" />\n      <stop offset=\"100%\" stop-color=\"#0a0c10\" />\n    </linearGradient>\n    <linearGradient id=\"goldGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#f5d020\" />\n      <stop offset=\"100%\" stop-color=\"#d4af37\" />\n    </linearGradient>\n    <filter id=\"glow\" x=\"-30%\" y=\"-30%\" width=\"160%\" height=\"160%\">\n      <feGaussianBlur stdDeviation=\"4\" result=\"blur\" />\n      <feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\" />\n    </filter>\n    <filter id=\"pulse\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"3\" result=\"blur\" />\n      <feFlood flood-color=\"#10b981\" result=\"glowColor\" />\n      <feComposite in=\"glowColor\" in2=\"blur\" operator=\"in\" result=\"coloredBlur\" />\n      <feMerge>\n        <feMergeNode in=\"coloredBlur\" />\n        <feMergeNode in=\"SourceGraphic\" />\n      </feMerge>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\" />\n\n  <!-- IC Chip Package Base -->\n  <rect x=\"136\" y=\"116\" width=\"240\" height=\"240\" rx=\"16\" fill=\"url(#chipGradient)\" stroke=\"#d4af37\" stroke-width=\"2\" />\n\n  <!-- Gold Contact Pins -->\n  <g fill=\"url(#goldGradient)\">\n    <!-- Top Pins -->\n    <rect x=\"170\" y=\"96\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"206\" y=\"96\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"248\" y=\"96\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"290\" y=\"96\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"326\" y=\"96\" width=\"16\" height=\"20\" rx=\"2\" />\n    <!-- Bottom Pins -->\n    <rect x=\"170\" y=\"356\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"206\" y=\"356\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"248\" y=\"356\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"290\" y=\"356\" width=\"16\" height=\"20\" rx=\"2\" />\n    <rect x=\"326\" y=\"356\" width=\"16\" height=\"20\" rx=\"2\" />\n    <!-- Left Pins -->\n    <rect x=\"116\" y=\"150\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"116\" y=\"186\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"116\" y=\"228\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"116\" y=\"270\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"116\" y=\"306\" width=\"20\" height=\"16\" rx=\"2\" />\n    <!-- Right Pins -->\n    <rect x=\"376\" y=\"150\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"376\" y=\"186\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"376\" y=\"228\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"376\" y=\"270\" width=\"20\" height=\"16\" rx=\"2\" />\n    <rect x=\"376\" y=\"306\" width=\"20\" height=\"16\" rx=\"2\" />\n  </g>\n\n  <!-- Embedded Micro Screen Bezel -->\n  <rect x=\"166\" y=\"156\" width=\"180\" height=\"160\" rx=\"8\" fill=\"#040608\" stroke=\"#1f293d\" stroke-width=\"2\" />\n\n  <!-- AI Waveforms -->\n  <path d=\"M180 236 Q195 190, 210 236 T240 236 T270 200 T300 260 T330 236\" fill=\"none\" stroke=\"#10b981\" stroke-width=\"3\" stroke-linecap=\"round\" filter=\"url(#glow)\" />\n  <path d=\"M180 246 Q195 210, 210 246 T240 246 T270 220 T300 270 T330 246\" fill=\"none\" stroke=\"#00dbe9\" stroke-width=\"2\" stroke-linecap=\"round\" filter=\"url(#glow)\" opacity=\"0.8\" />\n\n  <!-- Status Indicators -->\n  <circle cx=\"186\" cy=\"176\" r=\"4\" fill=\"#10b981\" filter=\"url(#pulse)\" />\n  <circle cx=\"202\" cy=\"176\" r=\"4\" fill=\"#f59e0b\" filter=\"url(#pulse)\" />\n  <circle cx=\"218\" cy=\"176\" r=\"4\" fill=\"#00dbe9\" filter=\"url(#pulse)\" />\n\n  <text x=\"256\" y=\"420\" font-family=\"'JetBrains Mono', monospace\" font-size=\"28\" font-weight=\"700\" fill=\"#d4af37\" text-anchor=\"middle\" letter-spacing=\"3\">TINY AI</text>\n  <text x=\"256\" y=\"450\" font-family=\"'JetBrains Mono', monospace\" font-size=\"14\" fill=\"#10b981\" text-anchor=\"middle\" letter-spacing=\"2\">// ESP32 HARDWARE</text>\n</svg>", "logo_04_infinite_limits": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"gradRibbon\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\">\n      <stop offset=\"0%\"   stop-color=\"#3b82f6\"/>\n      <stop offset=\"50%\"  stop-color=\"#00dbe9\"/>\n      <stop offset=\"100%\" stop-color=\"#10b981\"/>\n    </linearGradient>\n    <filter id=\"glow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"8\" result=\"blur\"/>\n      <feMerge>\n        <feMergeNode in=\"blur\"/>\n        <feMergeNode in=\"SourceGraphic\"/>\n      </feMerge>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\"/>\n\n  <path d=\"M256,140 C 110,140 110,360 256,360 S 402,360 256,140\" fill=\"none\" stroke=\"url(#gradRibbon)\" stroke-width=\"32\" stroke-linecap=\"round\"/>\n\n  <!-- Telemetry notches -->\n  <g stroke=\"#ffffff\" stroke-width=\"2.5\" stroke-linecap=\"round\">\n    <line x1=\"176\" y1=\"210\" x2=\"176\" y2=\"228\"/>\n    <line x1=\"144\" y1=\"250\" x2=\"162\" y2=\"250\"/>\n    <line x1=\"176\" y1=\"290\" x2=\"176\" y2=\"308\"/>\n    <line x1=\"336\" y1=\"210\" x2=\"336\" y2=\"228\"/>\n    <line x1=\"368\" y1=\"250\" x2=\"350\" y2=\"250\"/>\n    <line x1=\"336\" y1=\"290\" x2=\"336\" y2=\"308\"/>\n  </g>\n\n  <!-- Central glowing node -->\n  <circle cx=\"256\" cy=\"250\" r=\"14\" fill=\"#ffffff\" filter=\"url(#glow)\"/>\n  <circle cx=\"256\" cy=\"250\" r=\"6\" fill=\"#00dbe9\"/>\n\n  <text x=\"256\" y=\"425\" text-anchor=\"middle\" fill=\"#ffffff\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"42\" font-weight=\"800\" letter-spacing=\"3\">TINY AI</text>\n  <text x=\"256\" y=\"465\" text-anchor=\"middle\" fill=\"#00dbe9\" font-family=\"'JetBrains Mono', monospace\" font-size=\"20\" font-weight=\"600\" letter-spacing=\"4\">LIMITS // STREAM</text>\n</svg>", "logo_05_monogram_t_screen": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"glassGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#0b0f17\" stop-opacity=\"0.95\"/>\n      <stop offset=\"100%\" stop-color=\"#141a24\" stop-opacity=\"0.95\"/>\n    </linearGradient>\n    <radialGradient id=\"aiGlow\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n      <stop offset=\"0%\" stop-color=\"#00dbe9\" stop-opacity=\"0.9\"/>\n      <stop offset=\"100%\" stop-color=\"#10b981\" stop-opacity=\"0.8\"/>\n    </radialGradient>\n    <filter id=\"glow\" x=\"-30%\" y=\"-30%\" width=\"160%\" height=\"160%\">\n      <feGaussianBlur stdDeviation=\"4\" result=\"blur\"/>\n      <feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" fill=\"#0a0c10\" rx=\"48\"/>\n  <rect x=\"64\" y=\"64\" width=\"384\" height=\"384\" fill=\"url(#glassGradient)\" rx=\"48\" stroke=\"rgba(255,255,255,0.08)\" stroke-width=\"2\"/>\n\n  <!-- T Top Bar (Screen Bezel) -->\n  <path d=\"M156 160h200\" stroke=\"#00dbe9\" stroke-width=\"24\" stroke-linecap=\"round\" filter=\"url(#glow)\"/>\n  <rect x=\"156\" y=\"148\" width=\"200\" height=\"24\" fill=\"#0b0f17\" rx=\"4\"/>\n\n  <!-- T Stem (Segmented Gauge) -->\n  <path d=\"M256 160v160\" stroke=\"#1f293d\" stroke-width=\"28\" stroke-linecap=\"round\"/>\n  <rect x=\"244\" y=\"172\" width=\"24\" height=\"36\" fill=\"#00dbe9\" rx=\"4\" filter=\"url(#glow)\"/>\n  <rect x=\"244\" y=\"218\" width=\"24\" height=\"36\" fill=\"#00dbe9\" rx=\"4\" filter=\"url(#glow)\"/>\n  <rect x=\"244\" y=\"264\" width=\"24\" height=\"36\" fill=\"#10b981\" rx=\"4\" filter=\"url(#glow)\"/>\n\n  <!-- Central AI Orb in Notch -->\n  <circle cx=\"256\" cy=\"160\" r=\"18\" fill=\"url(#aiGlow)\" filter=\"url(#glow)\"/>\n  <circle cx=\"256\" cy=\"160\" r=\"6\" fill=\"#ffffff\"/>\n\n  <text x=\"256\" y=\"375\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"34\" font-weight=\"800\" text-anchor=\"middle\" fill=\"#ffffff\" letter-spacing=\"3\">TINY</text>\n  <text x=\"256\" y=\"410\" font-family=\"'JetBrains Mono', monospace\" font-size=\"18\" font-weight=\"600\" letter-spacing=\"3\" text-anchor=\"middle\" fill=\"#00dbe9\">AI SCREEN</text>\n</svg>", "logo_06_quantum_prism": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"caseGrad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#141824\"/>\n      <stop offset=\"100%\" stop-color=\"#1e2433\"/>\n    </linearGradient>\n    <radialGradient id=\"prismGrad\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n      <stop offset=\"0%\" stop-color=\"#10b981\" stop-opacity=\"0.9\"/>\n      <stop offset=\"70%\" stop-color=\"#00dbe9\" stop-opacity=\"0.5\"/>\n      <stop offset=\"100%\" stop-color=\"#3b82f6\" stop-opacity=\"0.2\"/>\n    </radialGradient>\n    <filter id=\"caseShadow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      <feDropShadow dx=\"0\" dy=\"4\" stdDeviation=\"6\" flood-color=\"#000000\" flood-opacity=\"0.6\"/>\n    </filter>\n    <filter id=\"glow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"4\" result=\"blur\"/>\n      <feMerge>\n        <feMergeNode in=\"blur\"/>\n        <feMergeNode in=\"SourceGraphic\"/>\n      </feMerge>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\"/>\n\n  <g filter=\"url(#caseShadow)\">\n    <polygon points=\"410,166 410,346 256,436 102,346 102,166 256,76\" fill=\"url(#caseGrad)\" stroke=\"rgba(255,255,255,0.08)\" stroke-width=\"2\"/>\n  </g>\n\n  <!-- Central Quantum Prism Screen -->\n  <polygon points=\"318,220 318,290 256,326 194,290 194,220 256,184\" fill=\"url(#prismGrad)\" stroke=\"#0a0c10\" stroke-width=\"2\" filter=\"url(#glow)\"/>\n\n  <!-- Refractive Laser Beams -->\n  <g stroke-width=\"3.5\" stroke-linecap=\"round\" filter=\"url(#glow)\">\n    <line x1=\"256\" y1=\"255\" x2=\"350\" y2=\"120\" stroke=\"#10b981\" />\n    <line x1=\"256\" y1=\"255\" x2=\"162\" y2=\"120\" stroke=\"#00dbe9\" />\n    <line x1=\"256\" y1=\"255\" x2=\"256\" y2=\"390\" stroke=\"#3b82f6\" />\n  </g>\n\n  <!-- Metric Threshold Marks -->\n  <g stroke=\"#10b981\" stroke-width=\"2\" opacity=\"0.6\">\n    <line x1=\"310\" y1=\"120\" x2=\"310\" y2=\"136\"/>\n    <line x1=\"256\" y1=\"90\"  x2=\"256\" y2=\"106\"/>\n    <line x1=\"202\" y1=\"120\" x2=\"202\" y2=\"136\"/>\n    <line x1=\"380\" y1=\"300\" x2=\"365\" y2=\"300\"/>\n    <line x1=\"132\" y1=\"300\" x2=\"147\" y2=\"300\"/>\n  </g>\n\n  <text x=\"256\" y=\"475\" text-anchor=\"middle\" fill=\"#ffffff\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"34\" font-weight=\"800\" letter-spacing=\"3\">HEX // PRISM.AI</text>\n</svg>", "logo_07_scanline_pulse": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <pattern id=\"scanlines\" patternUnits=\"userSpaceOnUse\" width=\"512\" height=\"4\">\n      <rect width=\"512\" height=\"1\" fill=\"#000000\" opacity=\"0.4\"/>\n      <rect y=\"1\" width=\"512\" height=\"3\" fill=\"#ffffff\" opacity=\"0.02\"/>\n    </pattern>\n    <filter id=\"glow\" x=\"-30%\" y=\"-30%\" width=\"160%\" height=\"160%\">\n      <feGaussianBlur stdDeviation=\"4\" result=\"blur\"/>\n      <feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\"/>\n    </filter>\n    <linearGradient id=\"waveGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\">\n      <stop offset=\"0%\" stop-color=\"#10b981\" stop-opacity=\"0.8\"/>\n      <stop offset=\"50%\" stop-color=\"#00dbe9\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"#10b981\" stop-opacity=\"0.8\"/>\n    </linearGradient>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\"/>\n\n  <!-- Screen Chassis -->\n  <rect x=\"56\" y=\"56\" width=\"400\" height=\"400\" rx=\"20\" fill=\"#060910\" stroke=\"#1f293d\" stroke-width=\"3\"/>\n  <rect x=\"72\" y=\"72\" width=\"368\" height=\"368\" rx=\"12\" fill=\"#04060a\"/>\n  <rect x=\"72\" y=\"72\" width=\"368\" height=\"368\" rx=\"12\" fill=\"url(#scanlines)\"/>\n\n  <!-- Corner Screws -->\n  <circle cx=\"72\" cy=\"72\" r=\"5\" fill=\"#1f293d\" stroke=\"#00dbe9\" stroke-width=\"1.5\"/>\n  <circle cx=\"440\" cy=\"72\" r=\"5\" fill=\"#1f293d\" stroke=\"#00dbe9\" stroke-width=\"1.5\"/>\n  <circle cx=\"72\" cy=\"440\" r=\"5\" fill=\"#1f293d\" stroke=\"#00dbe9\" stroke-width=\"1.5\"/>\n  <circle cx=\"440\" cy=\"440\" r=\"5\" fill=\"#1f293d\" stroke=\"#00dbe9\" stroke-width=\"1.5\"/>\n\n  <!-- Top Status HUD -->\n  <circle cx=\"106\" cy=\"110\" r=\"6\" fill=\"#10b981\" filter=\"url(#glow)\"/>\n  <text x=\"122\" y=\"115\" font-family=\"'JetBrains Mono', monospace\" font-size=\"12\" fill=\"#10b981\" font-weight=\"700\">ONLINE // 60FPS</text>\n  \n  <rect x=\"360\" y=\"102\" width=\"42\" height=\"16\" rx=\"3\" fill=\"#0e141f\" stroke=\"#00dbe9\" stroke-width=\"1.5\"/>\n  <rect x=\"364\" y=\"106\" width=\"28\" height=\"8\" rx=\"1\" fill=\"#00dbe9\"/>\n\n  <!-- High-energy Waveform -->\n  <path d=\"M90 256 Q130 180, 170 256 T250 256 T330 210 T410 256\" fill=\"none\" stroke=\"url(#waveGradient)\" stroke-width=\"5\" stroke-linecap=\"round\" filter=\"url(#glow)\"/>\n\n  <!-- Frequency Equalizer Bars -->\n  <g fill=\"#10b981\" opacity=\"0.8\">\n    <rect x=\"100\" y=\"340\" width=\"8\" height=\"24\" rx=\"2\"/>\n    <rect x=\"114\" y=\"332\" width=\"8\" height=\"32\" rx=\"2\" fill=\"#00dbe9\"/>\n    <rect x=\"128\" y=\"324\" width=\"8\" height=\"40\" rx=\"2\"/>\n    <rect x=\"142\" y=\"344\" width=\"8\" height=\"20\" rx=\"2\" fill=\"#00dbe9\"/>\n    <rect x=\"156\" y=\"336\" width=\"8\" height=\"28\" rx=\"2\"/>\n  </g>\n\n  <text x=\"270\" y=\"356\" font-family=\"'Space Grotesk', monospace\" font-size=\"22\" font-weight=\"700\" fill=\"#00dbe9\" text-anchor=\"middle\" letter-spacing=\"2\">TINY SCREEN // LIVE</text>\n</svg>", "logo_08_desk_beacon": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"dockGrad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#1a2233\"/>\n      <stop offset=\"100%\" stop-color=\"#0e131d\"/>\n    </linearGradient>\n    <radialGradient id=\"displayGlow\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n      <stop offset=\"0%\" stop-color=\"#00dbe9\" stop-opacity=\"0.9\"/>\n      <stop offset=\"100%\" stop-color=\"#10b981\" stop-opacity=\"0.2\"/>\n    </radialGradient>\n    <linearGradient id=\"signalGrad\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#10b981\"/>\n      <stop offset=\"100%\" stop-color=\"#00dbe9\"/>\n    </linearGradient>\n    <filter id=\"glow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feGaussianBlur stdDeviation=\"4\" result=\"coloredBlur\"/>\n      <feMerge>\n        <feMergeNode in=\"coloredBlur\"/>\n        <feMergeNode in=\"SourceGraphic\"/>\n      </feMerge>\n    </filter>\n    <filter id=\"dockShadow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      <feDropShadow dx=\"0\" dy=\"6\" stdDeviation=\"8\" flood-color=\"#000000\" flood-opacity=\"0.6\"/>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\"/>\n\n  <!-- Dock Base Pedestal -->\n  <g transform=\"translate(256,360)\">\n    <ellipse cx=\"0\" cy=\"0\" rx=\"160\" ry=\"36\" fill=\"url(#dockGrad)\" filter=\"url(#dockShadow)\" stroke=\"rgba(255,255,255,0.08)\" stroke-width=\"2\"/>\n  </g>\n\n  <!-- Central Antenna Beam -->\n  <g transform=\"translate(256,230)\">\n    <line x1=\"0\" y1=\"20\" x2=\"0\" y2=\"-100\" stroke=\"#00dbe9\" stroke-width=\"5\" stroke-linecap=\"round\" filter=\"url(#glow)\"/>\n    <circle cx=\"0\" cy=\"-105\" r=\"10\" fill=\"#10b981\" filter=\"url(#glow)\"/>\n  </g>\n\n  <!-- Tilted Micro-Display -->\n  <g transform=\"translate(256,240)\">\n    <ellipse cx=\"0\" cy=\"0\" rx=\"84\" ry=\"76\" fill=\"#0a0c10\" stroke=\"#2a3342\" stroke-width=\"3\"/>\n    <ellipse cx=\"0\" cy=\"0\" rx=\"74\" ry=\"66\" fill=\"url(#displayGlow)\"/>\n    <circle cx=\"44\" cy=\"-24\" r=\"5\" fill=\"#10b981\" filter=\"url(#glow)\"/>\n  </g>\n\n  <!-- Wireless Broadcast Arcs -->\n  <g filter=\"url(#glow)\" opacity=\"0.8\">\n    <path d=\"M256,130 C200,90 140,80 90,90\" stroke=\"url(#signalGrad)\" stroke-width=\"6\" fill=\"none\" stroke-linecap=\"round\"/>\n    <path d=\"M256,130 C312,90 372,80 422,90\" stroke=\"url(#signalGrad)\" stroke-width=\"6\" fill=\"none\" stroke-linecap=\"round\"/>\n    <path d=\"M256,100 C220,60 170,50 120,60\" stroke=\"url(#signalGrad)\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\" opacity=\"0.6\"/>\n    <path d=\"M256,100 C292,60 342,50 392,60\" stroke=\"url(#signalGrad)\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\" opacity=\"0.6\"/>\n  </g>\n\n  <text x=\"256\" y=\"440\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"36\" font-weight=\"800\" fill=\"#ffffff\" text-anchor=\"middle\" letter-spacing=\"3\">BEACON.AI</text>\n  <text x=\"256\" y=\"470\" font-family=\"'JetBrains Mono', monospace\" font-size=\"14\" fill=\"#00dbe9\" text-anchor=\"middle\" letter-spacing=\"3\">CONNECTED // 240x240</text>\n</svg>", "logo_09_voxel_core": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"monitorGradient\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#1e2533\" />\n      <stop offset=\"100%\" stop-color=\"#0a0c10\" />\n    </linearGradient>\n    <linearGradient id=\"pixelGlow\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"100%\">\n      <stop offset=\"0%\" stop-color=\"#10b981\" />\n      <stop offset=\"100%\" stop-color=\"#00dbe9\" />\n    </linearGradient>\n    <filter id=\"glow\" x=\"-30%\" y=\"-30%\" width=\"160%\" height=\"160%\">\n      <feGaussianBlur stdDeviation=\"4\" result=\"blur\" />\n      <feComposite in=\"SourceGraphic\" in2=\"blur\" operator=\"over\" />\n    </filter>\n    <filter id=\"softShadow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      <feDropShadow dx=\"0\" dy=\"16\" stdDeviation=\"12\" flood-color=\"#000000\" flood-opacity=\"0.7\"/>\n    </filter>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\" />\n\n  <!-- Floating Isometric Cube -->\n  <g transform=\"translate(256, 210)\" filter=\"url(#softShadow)\">\n    <!-- Top Face -->\n    <polygon points=\"0,-100 100,-45 0,10 -100,-45\" fill=\"#242c3d\" stroke=\"#333f57\" stroke-width=\"2\"/>\n    <!-- Left Face -->\n    <polygon points=\"-100,-45 0,10 0,120 -100,65\" fill=\"#141a24\" stroke=\"#222b3d\" stroke-width=\"2\"/>\n    <!-- Right Screen Face -->\n    <polygon points=\"0,10 100,-45 100,65 0,120\" fill=\"url(#monitorGradient)\" stroke=\"#222b3d\" stroke-width=\"2\"/>\n\n    <!-- Active Pixel Matrix Grid on Right Face -->\n    <g transform=\"translate(15, 20) skewY(-28) scale(0.85)\">\n      <rect x=\"0\" y=\"0\" width=\"12\" height=\"12\" fill=\"#10b981\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"16\" y=\"0\" width=\"12\" height=\"12\" fill=\"#00dbe9\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"32\" y=\"0\" width=\"12\" height=\"12\" fill=\"#10b981\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"0\" y=\"16\" width=\"12\" height=\"12\" fill=\"#00dbe9\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"16\" y=\"16\" width=\"12\" height=\"12\" fill=\"#ffffff\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"32\" y=\"16\" width=\"12\" height=\"12\" fill=\"#00dbe9\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"0\" y=\"32\" width=\"12\" height=\"12\" fill=\"#10b981\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"16\" y=\"32\" width=\"12\" height=\"12\" fill=\"#00dbe9\" rx=\"2\" filter=\"url(#glow)\"/>\n      <rect x=\"32\" y=\"32\" width=\"12\" height=\"12\" fill=\"#10b981\" rx=\"2\" filter=\"url(#glow)\"/>\n    </g>\n\n    <!-- Detached Floating Voxels -->\n    <rect x=\"-120\" y=\"-80\" width=\"10\" height=\"10\" rx=\"2\" fill=\"#10b981\" filter=\"url(#glow)\"/>\n    <rect x=\"110\" y=\"-70\" width=\"8\" height=\"8\" rx=\"2\" fill=\"#00dbe9\" filter=\"url(#glow)\"/>\n    <rect x=\"120\" y=\"20\" width=\"12\" height=\"12\" rx=\"2\" fill=\"#10b981\" filter=\"url(#glow)\"/>\n  </g>\n\n  <text x=\"256\" y=\"415\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"34\" font-weight=\"800\" fill=\"#ffffff\" text-anchor=\"middle\" letter-spacing=\"3\">TINY VOXEL</text>\n  <text x=\"256\" y=\"450\" font-family=\"'JetBrains Mono', monospace\" font-size=\"14\" fill=\"#00dbe9\" text-anchor=\"middle\" letter-spacing=\"3\">PIXEL COMPANION // AI</text>\n</svg>", "logo_10_aura_shield": "<svg viewBox=\"0 0 512 512\" width=\"512\" height=\"512\" xmlns=\"http://www.w3.org/2000/svg\">\n  <defs>\n    <linearGradient id=\"outerGrad\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\">\n      <stop offset=\"0%\"   stop-color=\"#10b981\"/>\n      <stop offset=\"100%\" stop-color=\"#00dbe9\"/>\n    </linearGradient>\n    <filter id=\"neonGlow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\">\n      <feDropShadow dx=\"0\" dy=\"0\" stdDeviation=\"6\" flood-color=\"#10b981\" flood-opacity=\"0.8\"/>\n      <feDropShadow dx=\"0\" dy=\"0\" stdDeviation=\"12\" flood-color=\"#00dbe9\" flood-opacity=\"0.6\"/>\n    </filter>\n    <radialGradient id=\"lockGlow\" cx=\"50%\" cy=\"50%\" r=\"50%\">\n      <stop offset=\"0%\"   stop-color=\"#00dbe9\" stop-opacity=\"0.9\"/>\n      <stop offset=\"100%\" stop-color=\"#10b981\" stop-opacity=\"0.2\"/>\n    </radialGradient>\n  </defs>\n\n  <rect width=\"512\" height=\"512\" rx=\"48\" fill=\"#0a0c10\"/>\n\n  <!-- Outer Shield Curved Arcs -->\n  <g filter=\"url(#neonGlow)\">\n    <path d=\"M 100 240 A 160 160 0 0 1 412 240\" stroke=\"url(#outerGrad)\" stroke-width=\"20\" fill=\"none\" stroke-linecap=\"round\"/>\n    <path d=\"M 412 260 A 160 160 0 0 1 100 260\" stroke=\"url(#outerGrad)\" stroke-width=\"20\" fill=\"none\" stroke-linecap=\"round\"/>\n  </g>\n\n  <!-- Outer Threshold Scale Markers -->\n  <g stroke=\"#10b981\" stroke-width=\"2.5\" opacity=\"0.8\">\n    <line x1=\"256\" y1=\"56\" x2=\"256\" y2=\"76\"/>\n    <line x1=\"140\" y1=\"100\" x2=\"152\" y2=\"114\"/>\n    <line x1=\"372\" y1=\"100\" x2=\"360\" y2=\"114\"/>\n    <line x1=\"256\" y1=\"424\" x2=\"256\" y2=\"444\"/>\n    <line x1=\"140\" y1=\"400\" x2=\"152\" y2=\"386\"/>\n    <line x1=\"372\" y1=\"400\" x2=\"360\" y2=\"386\"/>\n  </g>\n\n  <!-- Central 240x240 Display Core -->\n  <circle cx=\"256\" cy=\"250\" r=\"90\" fill=\"#0a0c10\" stroke=\"#1f293d\" stroke-width=\"4\"/>\n  <circle cx=\"256\" cy=\"250\" r=\"82\" fill=\"#06090e\"/>\n\n  <!-- Core Safeguard Lock Icon -->\n  <g filter=\"url(#neonGlow)\">\n    <circle cx=\"256\" cy=\"250\" r=\"40\" fill=\"url(#lockGlow)\"/>\n    <rect x=\"236\" y=\"244\" width=\"40\" height=\"32\" rx=\"6\" fill=\"#0a0c10\" stroke=\"#00dbe9\" stroke-width=\"2\"/>\n    <path d=\"M246 244 v-14 a10 10 0 0 1 20 0 v14\" fill=\"none\" stroke=\"#00dbe9\" stroke-width=\"4\" stroke-linecap=\"round\"/>\n    <circle cx=\"256\" cy=\"260\" r=\"3\" fill=\"#10b981\"/>\n  </g>\n\n  <text x=\"256\" y=\"475\" text-anchor=\"middle\" font-family=\"'Outfit', 'Space Grotesk', sans-serif\" font-size=\"34\" font-weight=\"800\" fill=\"#10b981\" letter-spacing=\"3\">SENTRY // LIMITS</text>\n</svg>"};
+
+  function toggleTheme(mode) {
+    document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.preview-wrapper').forEach(el => {
+      if (mode === 'light') {
+        el.classList.add('light-mode');
+      } else {
+        el.classList.remove('light-mode');
+      }
+    });
+  }
+
+  function openModal(id) {
+    document.getElementById('modalTitle').innerText = id + '.svg';
+    document.getElementById('modalCode').innerText = logoData[id];
+    document.getElementById('codeModal').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('codeModal').classList.remove('active');
+  }
+</script>
+</body>
+</html>

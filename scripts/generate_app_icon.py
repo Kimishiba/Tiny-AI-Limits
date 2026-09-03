@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate macOS AppIcon.icns and iconset for Tiny Screen.app.
-Follows Apple macOS Human Interface Guidelines (1024x1024 squircle canvas, drop shadows, multi-res iconset).
+Generate macOS AppIcon.icns and multi-resolution iconset for Tiny Screen.app.
+Strictly follows the user's official Neo-Raw Design System (Neo-Brutalist Orange):
+- Pure White canvas (#ffffff)
+- Solid black 4px border & hard offset shadows (0px blur)
+- Embedded Neo-Raw screen device with Vibrant Orange (#ff5f1f) viewport & AI neural spark
+- Formatted to Apple macOS Human Interface Guidelines (1024x1024 canvas, 840x840 squircle, r=185).
 """
 
 import os
@@ -11,8 +15,10 @@ import sys
 from PIL import Image, ImageDraw, ImageFilter
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-IMG_DIR = os.path.join(REPO_ROOT, "img")
+LOGOS_DIR = os.path.join(REPO_ROOT, "assets", "logos")
+SVG_SOURCE = os.path.join(LOGOS_DIR, "logo_neobrutalist_gemini.svg")
 OUTPUT_DIR = os.path.join(REPO_ROOT, "resources")
+APP_BUNDLE_ICON = os.path.join(REPO_ROOT, "Tiny Screen.app", "Contents", "Resources", "AppIcon.icns")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def create_squircle_mask(size, radius):
@@ -26,90 +32,73 @@ def create_squircle_mask(size, radius):
     return mask.resize(size, Image.Resampling.LANCZOS)
 
 def generate_master_1024():
-    """Build the master 1024x1024 macOS app icon."""
+    """Build the master 1024x1024 macOS app icon using the Neo-Raw Gemini logo."""
     canvas_size = (1024, 1024)
     canvas = Image.new("RGBA", canvas_size, (0, 0, 0, 0))
 
-    # macOS Big Sur+ standard squircle icon body size & radius
     body_size = (840, 840)
     body_pos = (92, 92)
     radius = 185
 
-    # 1. Drop shadow & squircle geometry
+    # 1. macOS System Drop Shadow
     shadow_offset = (0, 16)
     shadow_blur = 28
     squircle_mask = create_squircle_mask(body_size, radius)
     shadow_img = Image.new("RGBA", (body_size[0] + shadow_blur * 4, body_size[1] + shadow_blur * 4), (0, 0, 0, 0))
-    shadow_fill = Image.new("RGBA", shadow_img.size, (0, 0, 0, 140))
-    
-    # Paste shadow mask into shadow_img
+    shadow_fill = Image.new("RGBA", shadow_img.size, (0, 0, 0, 90))
+
     shadow_mask_padded = Image.new("L", shadow_img.size, 0)
     shadow_mask_padded.paste(squircle_mask, (shadow_blur * 2, shadow_blur * 2))
     shadow_img.paste(shadow_fill, (0, 0), shadow_mask_padded)
     shadow_img = shadow_img.filter(ImageFilter.GaussianBlur(shadow_blur))
 
-    # Composite shadow onto canvas
     canvas.paste(
         shadow_img,
         (body_pos[0] - shadow_blur * 2 + shadow_offset[0], body_pos[1] - shadow_blur * 2 + shadow_offset[1]),
         shadow_img
     )
 
-    # 2. Icon body background (dark cyber gradient)
-    body_bg = Image.new("RGBA", body_size, (0, 0, 0, 0))
-    draw_bg = ImageDraw.Draw(body_bg)
-    
-    # Vertical gradient from deep cyber slate (#181926) to dark obsidian (#0c0d14)
-    for y in range(body_size[1]):
-        ratio = y / float(body_size[1])
-        r = int(24 * (1 - ratio) + 12 * ratio)
-        g = int(25 * (1 - ratio) + 13 * ratio)
-        b = int(38 * (1 - ratio) + 20 * ratio)
-        draw_bg.line([(0, y), (body_size[0], y)], fill=(r, g, b, 255))
+    # 2. Pure White Body for Neo-Raw aesthetic
+    body_bg = Image.new("RGBA", body_size, (255, 255, 255, 255))
 
-    # Add subtle high-tech radial accent glow in the center
-    glow = Image.new("RGBA", body_size, (0, 0, 0, 0))
-    draw_glow = ImageDraw.Draw(glow)
-    draw_glow.ellipse([120, 120, body_size[0] - 120, body_size[1] - 120], fill=(0, 212, 255, 30))
-    glow = glow.filter(ImageFilter.GaussianBlur(60))
-    body_bg.alpha_composite(glow)
+    # 3. Render vector SVG using qlmanage
+    tmp_dir = "/tmp"
+    rendered_png = os.path.join(tmp_dir, f"{os.path.basename(SVG_SOURCE)}.png")
+    try:
+        subprocess.run(
+            ["qlmanage", "-t", "-s", "1024", "-o", tmp_dir, SVG_SOURCE],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        if os.path.exists(rendered_png):
+            rendered_img = Image.open(rendered_png).convert("RGBA")
+            fitted_screen = rendered_img.resize(body_size, Image.Resampling.LANCZOS)
+            body_bg.paste(fitted_screen, (0, 0), fitted_screen)
+    except Exception as e:
+        print(f"[WARN] qlmanage rendering failed ({e}), using default fallback.")
 
-    # Add border ring inside squircle
-    border_draw = ImageDraw.Draw(body_bg)
-    border_draw.rounded_rectangle(
+    # 4. Solid Black Border on squircle (Neo-Raw structural stroke)
+    draw_border = ImageDraw.Draw(body_bg)
+    draw_border.rounded_rectangle(
         [2, 2, body_size[0] - 2, body_size[1] - 2],
         radius=radius,
-        outline=(255, 255, 255, 45),
-        width=3
+        outline=(0, 0, 0, 255),
+        width=4
     )
 
-    # 3. Add foreground branding emblem
-    brand_file = os.path.join(IMG_DIR, "boot_logo_cyber.png")
-    if not os.path.exists(brand_file):
-        brand_file = os.path.join(IMG_DIR, "kimishiba_logo.png")
-
-    if os.path.exists(brand_file):
-        brand_img = Image.open(brand_file).convert("RGBA")
-        target_brand_size = 640
-        brand_resized = brand_img.resize((target_brand_size, target_brand_size), Image.Resampling.LANCZOS)
-        
-        brand_x = (body_size[0] - target_brand_size) // 2
-        brand_y = (body_size[1] - target_brand_size) // 2 - 10
-        body_bg.paste(brand_resized, (brand_x, brand_y), brand_resized)
-
-    # 4. Mask body to squircle (reuse cached mask)
+    # 5. Mask body to squircle
     masked_body = Image.new("RGBA", body_size, (0, 0, 0, 0))
     masked_body.paste(body_bg, (0, 0), squircle_mask)
 
-    # 5. Composite body onto canvas
+    # 6. Composite onto canvas
     canvas.paste(masked_body, body_pos, masked_body)
-
     return canvas
 
 def build_iconset_and_icns():
     """Generate multi-resolution icons and run iconutil to create AppIcon.icns."""
     master = generate_master_1024()
-    
+
     master_png = os.path.join(OUTPUT_DIR, "AppIcon_1024.png")
     master.save(master_png, "PNG")
     print(f"[OK] Master icon generated: {master_png}")
@@ -150,6 +139,11 @@ def build_iconset_and_icns():
         return None
     finally:
         shutil.rmtree(iconset_dir, ignore_errors=True)
+
+    # Sync to Tiny Screen.app bundle if present
+    if os.path.exists(os.path.dirname(APP_BUNDLE_ICON)):
+        shutil.copy2(icns_path, APP_BUNDLE_ICON)
+        print(f"[OK] Synced AppIcon.icns to bundle: {APP_BUNDLE_ICON}")
 
     return icns_path
 

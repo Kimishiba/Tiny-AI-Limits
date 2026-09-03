@@ -6,7 +6,7 @@
 	<dict>
 		<key>Resources/AppIcon.icns</key>
 		<data>
-		IRG32YXOYT/1kFep+/IxFEOUAMI=
+		rzxLbUMuhsGz8EOtil2vIWwl35g=
 		</data>
 		<key>Resources/backend/api/__init__.py</key>
 		<data>
@@ -18,7 +18,7 @@
 		</data>
 		<key>Resources/backend/api/config.py</key>
 		<data>
-		gDmHViU6r8+QoLZQBbQbJaHxYkk=
+		go9Bxp2kg/3e6J12R/WERe0GOJ8=
 		</data>
 		<key>Resources/backend/api/ota.py</key>
 		<data>
@@ -30,35 +30,35 @@
 		</data>
 		<key>Resources/backend/api/telemetry.py</key>
 		<data>
-		0AOLirA85ddeneUsKJlThfbauEk=
+		rgYpHQVnyo+q++tJHdn364F5OfU=
 		</data>
 		<key>Resources/backend/app.py</key>
 		<data>
-		v0tYHbNvjzpW/dS4ImgZj7oybIE=
+		ZdiqJVOD90VL7L67zhcA8bhK7D0=
 		</data>
 		<key>Resources/backend/claude_statusline.py</key>
 		<data>
-		RAhaV8XnFMPzIva4Klu1kHveV0s=
+		nV/8bfab4gZ0SDri7amF3WGGebI=
 		</data>
 		<key>Resources/backend/providers/__init__.py</key>
 		<data>
-		u0iPuxNhe48/Wm27Opx3S3CWdnI=
+		H0/UvgO86og5JjY6n4WCd2FM0rM=
 		</data>
 		<key>Resources/backend/providers/antigravity.py</key>
 		<data>
-		YovnVg7ImUNeLREp1UhhGkTt/Fw=
+		RjGn/XjN13alLRKH1kVZbaMOewc=
 		</data>
 		<key>Resources/backend/providers/base.py</key>
 		<data>
-		+qAKOfQ/YtdC/JF4A1IIHCd4GfI=
+		t3fhIzqVO8T4ZPLJVrfIDKDV69g=
 		</data>
 		<key>Resources/backend/providers/claude.py</key>
 		<data>
-		YF6h7kNFzUYbpRfxBVNM8RVCjXU=
+		2ezJgiqgo+qCWDzSN7o8lPFZKXM=
 		</data>
 		<key>Resources/backend/providers/codex.py</key>
 		<data>
-		qwcfYHZwz7rSeB19I86PhVWps2A=
+		KS4uGvdiyAGuhg/Kwh1BhDVWJf8=
 		</data>
 		<key>Resources/backend/providers/copilot.py</key>
 		<data>
@@ -66,7 +66,7 @@
 		</data>
 		<key>Resources/backend/providers/cursor.py</key>
 		<data>
-		RU2n2lXoxTpuPMTNld6pmPz5ezU=
+		zpOkJy3MYrIJD6WhBgPFwpaP1ew=
 		</data>
 		<key>Resources/backend/providers/deepseek.py</key>
 		<data>
@@ -74,11 +74,11 @@
 		</data>
 		<key>Resources/backend/providers/gemini.py</key>
 		<data>
-		+z8t0rdciclcup2DL1YczF76i/k=
+		dbarI9lwJwc8odv1SJplNjuAKuA=
 		</data>
 		<key>Resources/backend/providers/groq.py</key>
 		<data>
-		/UZC9kpfRj6YyLsoK44pzfO+/3M=
+		SPTXwPkV8GS5HTPrbPW5tjGFk3E=
 		</data>
 		<key>Resources/backend/providers/mistral.py</key>
 		<data>
@@ -98,15 +98,15 @@
 		</data>
 		<key>Resources/backend/services/agent_tracker.py</key>
 		<data>
-		ep0tSFfLP+iVEXZwrTlBABa6z14=
+		XbuzQ6g62M2gCrDBV0FkTYHadTQ=
 		</data>
 		<key>Resources/backend/services/firmware_cache.py</key>
 		<data>
-		qzaowVQKz4AlNHNJyqETSNX5u/U=
+		Ti/uoUhKKv47T1Ipd1z7K1sPdAA=
 		</data>
 		<key>Resources/backend/services/geocoding.py</key>
 		<data>
-		ltrD9Ky+SQ3TGPrmifTScFXVw44=
+		PfMAKupyyGE058sD3aAAGWmL30Q=
 		</data>
 		<key>Resources/backend/services/zeroconf_svc.py</key>
 		<data>
@@ -114,11 +114,11 @@
 		</data>
 		<key>Resources/backend/tests/test_agent_status.py</key>
 		<data>
-		BoYyHVOXUTFPfgN532Gtw60rl0U=
+		dYXi0Fjk4jHgqFM7KCODsbs4Ilg=
 		</data>
 		<key>Resources/backend/tests/test_app_endpoints.py</key>
 		<data>
-		rWk4/nctqzCLUuAEHOx7WpqY/uM=
+		ZUbnDaBwX0j/RudL0qvZatY2nYk=
 		</data>
 		<key>Resources/backend/tests/test_claude_statusline.py</key>
 		<data>
@@ -132,6 +132,10 @@
 		<data>
 		EvkCZBikh31yPKnv0ZNaO2z2IA0=
 		</data>
+		<key>Resources/backend/tests/test_phase2_fusion_hardening.py</key>
+		<data>
+		MI6NHCZzRXrqWtQeuA/ExHePlRs=
+		</data>
 		<key>Resources/backend/tests/test_providers.py</key>
 		<data>
 		XBhhTKkSFloirVLZtRniS1g5nfA=
@@ -142,7 +146,7 @@
 		</data>
 		<key>Resources/backend/tests/test_weather_geo.py</key>
 		<data>
-		oDKGH0UFqdG7aKx9LECtU3KjkXY=
+		dEn3tDoe+uEzDnH4rnDaj9PktRM=
 		</data>
 		<key>Resources/emulator/index.html</key>
 		<data>
@@ -150,7 +154,7 @@
 		</data>
 		<key>Resources/emulator/setup.html</key>
 		<data>
-		pkjZjkeE0hQ91hRate3wDIgA7wI=
+		pGwO9FWqORJqJYgMMzPF/WxRmOM=
 		</data>
 		<key>Resources/emulator/vendor/README.md</key>
 		<data>
@@ -283,7 +287,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			EkyislkMJjotvQT/U1eAm+4Vmffpvc69WmgYscaN+Xg=
+			0gSqvM7+Lfjfdw8lzWBm4fI7q8sqhfwkloq/lggDvV0=
 			</data>
 		</dict>
 		<key>Resources/backend/api/__init__.py</key>
@@ -304,7 +308,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			NzJmwZbOAUAZ9EULJOaGlbOdw0MLVIifDlCWV4hrM8k=
+			Wxujr0ejYnCtqJsJl3tqoxRP+U6Lb+3t5zlKDyX5eNY=
 			</data>
 		</dict>
 		<key>Resources/backend/api/ota.py</key>
@@ -325,56 +329,56 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			Ckv7bCkOCiXZkvBE8ap1Mt8aRbAEpoe9fazOek1oU0I=
+			69R1ThLjR8UP48q1wpuZYcUFqA6FsUonyDEI5bYV1tA=
 			</data>
 		</dict>
 		<key>Resources/backend/app.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Tt7ETKGC7ZQIF1CbVBKTO7mKEMsMwvPmT5FjqO/q7Jk=
+			j9b5hGkw/ML1XwtfgdQvKPex/4c4ylvnDtsPOdsWyWg=
 			</data>
 		</dict>
 		<key>Resources/backend/claude_statusline.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			1JshXOXOV7dTaaOSGSGRb91vhBdi9lv9MLrv050Hd7w=
+			j1HycTBjTU1XQcPkUwKuSUSnOUzU3WuA5fvBDFCowgw=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/__init__.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			2RrCEfQQtcGPSKPlb0YYGEMj5DvgraWdZCa+wNbal70=
+			J9RTN6Oz366i+BCWnFiHFCAYlxPb0daSA13i63FrpCU=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/antigravity.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			0Z/aCqFzbvyRFQb1IYnuw8ngh1xc5aOTpV9YMZSlFY0=
+			wN0GFWnCoEiA/kVtvsU3unWhMjaipH6SE6PjfbtZ81w=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/base.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			kLKBCcFoXpnG2BrahNP80IXmIC2jPGFmFkDoO7o3IX0=
+			gOSHZzCsQtIJ6dEIBSXfwELFVq9aN9fHfehrXpETbPs=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/claude.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			rNvKyr5gv3rgRS2U0mAv1QbuzNOCDiyiJxq9KCA80P8=
+			YxEVBQm/aEo3LudwF4POU3UTmmaYm5i+rZfhARPlrl8=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/codex.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			q7etLdj2B5g3zsiav+zGCegyDTuD6U7geELrC29qlJQ=
+			t5zTsgmTZdedLnL7HwGfT4dBs94uQ1mA9hlt1EPN9RU=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/copilot.py</key>
@@ -388,7 +392,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			t6fsDmL+b5w+FmGgfAZ22S/66V1qgCdIGR1N10BcFHo=
+			6jJNKqdtM3Tv7vpqx0ThpG+XMVipBbe54chZmtX/+m8=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/deepseek.py</key>
@@ -402,14 +406,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			k8FgFkBhz3K7o6f9ddoeqBt/moe0eUBtxMEYddqIoTA=
+			8FuSASEnZfKdqaoDdYZhsKDDqVcKEyrZTECPlTvdCj0=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/groq.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			HIAF/7BT4VLz22l7fgCt673TF8yuZU8WzyqWZZoxO1Q=
+			dFv2D9khQ//518M6/lIm7X/jpUey3n8neX73FBgPvgI=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/mistral.py</key>
@@ -444,21 +448,21 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			N94BbfNIZmuVxXWmkP9FR1jrK5190cr3c1coUBFZxHw=
+			LGptMbrUF4gLE8LfAzGdawtB7RqT49aeuAEAWze/0tM=
 			</data>
 		</dict>
 		<key>Resources/backend/services/firmware_cache.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			UqGeqQRlC23UaKelZsQ/2g050emtQU1q7+P63cngsU8=
+			dOTSkHMZs1cHmvtb9hwhlNCxz8XLnFit5dXB33ETb1c=
 			</data>
 		</dict>
 		<key>Resources/backend/services/geocoding.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			AVxffZEawFrtg5uDIgvjXJOWxN4wygmjBGh+wD1binU=
+			a3k3H4FuzOI7YXVSQJMWwuhzmDtp13giflVKQEJ/348=
 			</data>
 		</dict>
 		<key>Resources/backend/services/zeroconf_svc.py</key>
@@ -472,14 +476,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			ldGF+anneCQXyDEvQZqMTIUVGsJKsihQlemAqNZewDo=
+			es++nu7iy3Adr4NWnY0Ukeyu5tJFnL7qmaRGn1Rg/aQ=
 			</data>
 		</dict>
 		<key>Resources/backend/tests/test_app_endpoints.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			JtzEvjpumINR66CtFvEkNrtlEvdiNo/BdHs/zdLi8uk=
+			cyZjwy45AMgRjvKmkhBtXj8P90cWlA0radeQULbYEAI=
 			</data>
 		</dict>
 		<key>Resources/backend/tests/test_claude_statusline.py</key>
@@ -503,6 +507,13 @@
 			18JADqT8pyQ3xMjDPL4KggCCtKV3CyxN+4jdDbaGyR0=
 			</data>
 		</dict>
+		<key>Resources/backend/tests/test_phase2_fusion_hardening.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			i0nOfkk4rYJNH3Nyy2mA3bXXrxZTSC0dF9DcsDn1HiA=
+			</data>
+		</dict>
 		<key>Resources/backend/tests/test_providers.py</key>
 		<dict>
 			<key>hash2</key>
@@ -521,7 +532,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			E8kHWs5GD9ip+8cHuAOSoPDYKUsfAXAvVgiB77+kdTM=
+			VxTdPda4jffY2/7LLYjLcMsNs/pwDR9ujw/OdTTzJPM=
 			</data>
 		</dict>
 		<key>Resources/emulator/index.html</key>
@@ -535,7 +546,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			0LNm6r2oB34Y8D1+Is5XAp/JQaR5mrwDyInMTCQDNxE=
+			K7qZ/xEyxnRolNJ+EnbkmaAug+q7Yf1E72fsy8Tg+MA=
 			</data>
 		</dict>
 		<key>Resources/emulator/vendor/README.md</key>
