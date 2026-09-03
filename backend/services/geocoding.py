@@ -66,8 +66,9 @@ def get_weather(cfg=None):
 
             try:
                 current_index = hourly_times.index(current_hour_str)
-                for i in range(current_index, len(hourly_precip)):
-                    if hourly_precip[i] > 0:
+                # Cap the rain forecast horizon to next 24 hours and >= 0.1mm
+                for i in range(current_index, min(current_index + 24, len(hourly_precip))):
+                    if hourly_precip[i] >= 0.1:
                         hours_until_rain = i - current_index
                         break
             except (ValueError, IndexError):
