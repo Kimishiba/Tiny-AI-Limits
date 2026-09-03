@@ -1,5 +1,6 @@
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 from .base import BaseProvider, UsageSnapshot, RateWindow
 from .antigravity import AntigravityProvider
@@ -48,40 +49,52 @@ class ProviderPoller:
         if self._thread:
             self._thread.join(timeout=timeout)
 
+    def _poll_one_provider(self, pid: str, provider: BaseProvider, cfg: Dict[str, Any]):
+        try:
+            snapshot = provider.fetch_usage(cfg)
+            with self._lock:
+                self._cache[pid] = snapshot
+                self._last_refresh[pid] = time.time()
+        except Exception as e:
+            with self._lock:
+                prev = self._cache.get(pid)
+                self._cache[pid] = UsageSnapshot(
+                    provider_id=pid,
+                    provider_name=provider.provider_name,
+                    badge=provider.badge,
+                    color=provider.color,
+                    status="degraded" if prev else "error",
+                    error_message=str(e),
+                    primary_window=prev.primary_window if prev else None
+                )
+                self._last_refresh[pid] = time.time()
+
     def _poll_loop(self):
         time.sleep(0.5)
-        while self._running:
-            try:
-                cfg = self._config_getter()
-                now = time.time()
+        with ThreadPoolExecutor(max_workers=4, thread_name_prefix="PollerWorker") as executor:
+            while self._running:
+                try:
+                    cfg = self._config_getter()
+                    now = time.time()
+                    futures = []
 
-                for pid, provider in self.providers.items():
-                    if not self._running:
-                        break
-                    last_time = self._last_refresh.get(pid, 0)
-                    if now - last_time >= provider.ttl_seconds:
+                    for pid, provider in self.providers.items():
+                        if not self._running:
+                            break
+                        last_time = self._last_refresh.get(pid, 0)
+                        if now - last_time >= provider.ttl_seconds:
+                            futures.append(executor.submit(self._poll_one_provider, pid, provider, cfg))
+
+                    for f in futures:
                         try:
-                            snapshot = provider.fetch_usage(cfg)
-                            with self._lock:
-                                self._cache[pid] = snapshot
-                                self._last_refresh[pid] = time.time()
-                        except Exception as e:
-                            with self._lock:
-                                if pid not in self._cache:
-                                    self._cache[pid] = UsageSnapshot(
-                                        provider_id=pid,
-                                        provider_name=provider.provider_name,
-                                        badge=provider.badge,
-                                        color=provider.color,
-                                        status="error",
-                                        error_message=str(e)
-                                    )
-                                self._last_refresh[pid] = time.time()
+                            f.result(timeout=10.0)
+                        except Exception:
+                            pass
 
-            except Exception as e:
-                print(f"[ProviderPoller] Error in loop: {e}")
+                except Exception as e:
+                    print(f"[ProviderPoller] Error in loop: {e}")
 
-            time.sleep(2.0)
+                time.sleep(2.0)
 
     def get_snapshot(self, provider_id: str) -> Optional[UsageSnapshot]:
         with self._lock:

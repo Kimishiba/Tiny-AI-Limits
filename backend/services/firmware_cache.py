@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import copy
 import requests
@@ -37,13 +38,35 @@ def get_latest_firmware(force_check=False):
                         ver_clean = tag.replace("firmware-v", "").replace("v", "")
                         for asset in r.get("assets", []):
                             if asset.get("name") == "firmware.bin":
-                                download_url = asset.get("browser_download_url")
-                                dest_path = os.path.join(FIRMWARE_CACHE_DIR, f"firmware_{tag}.bin")
+                                safe_tag = re.sub(r"[^a-zA-Z0-9_.-]", "", tag)
+                                if not safe_tag or ".." in safe_tag:
+                                    continue
+                                dest_path = os.path.abspath(os.path.join(FIRMWARE_CACHE_DIR, f"firmware_{safe_tag}.bin"))
+                                if os.path.commonpath([FIRMWARE_CACHE_DIR, dest_path]) != FIRMWARE_CACHE_DIR:
+                                    continue
+
                                 if not os.path.exists(dest_path) or os.path.getsize(dest_path) == 0:
-                                    d_res = requests.get(download_url, timeout=30)
-                                    if d_res.status_code == 200:
-                                        with open(dest_path, "wb") as f:
-                                            f.write(d_res.content)
+                                    tmp_dest = dest_path + f".tmp.{os.getpid()}"
+                                    try:
+                                        with requests.get(download_url, stream=True, timeout=20) as d_res:
+                                            if d_res.status_code == 200:
+                                                downloaded = 0
+                                                with open(tmp_dest, "wb") as f:
+                                                    for chunk in d_res.iter_content(chunk_size=65536):
+                                                        if not chunk:
+                                                            continue
+                                                        downloaded += len(chunk)
+                                                        if downloaded > 4 * 1024 * 1024:  # 4MB flash limit
+                                                            raise ValueError("Firmware exceeds 4MB limit")
+                                                        f.write(chunk)
+                                                os.replace(tmp_dest, dest_path)
+                                    except Exception as dl_err:
+                                        logger.debug("Failed downloading firmware: %s", dl_err)
+                                        if os.path.exists(tmp_dest):
+                                            try:
+                                                os.remove(tmp_dest)
+                                            except Exception:
+                                                pass
                                 if os.path.exists(dest_path) and os.path.getsize(dest_path) > 0:
                                     _firmware_cache = {
                                         "version": ver_clean,

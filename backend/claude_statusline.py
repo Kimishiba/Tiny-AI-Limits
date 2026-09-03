@@ -27,16 +27,41 @@ Credit: adapted from https://github.com/kbo-maker-works/ESP32-C3-desktop-compani
 """
 import json
 import os
+import io
+import select
 import sys
-
 import uuid
 
 CACHE_PATH = os.path.expanduser(os.path.join("~", ".tiny_ai_screen", "claude_rate_limits.json"))
 
 
 def main():
+    payload = {}
     try:
-        payload = json.load(sys.stdin)
+        is_tty = False
+        try:
+            is_tty = sys.stdin.isatty()
+        except Exception:
+            pass
+
+        if is_tty:
+            payload = {}
+        else:
+            can_select = False
+            if hasattr(sys.stdin, "fileno"):
+                try:
+                    sys.stdin.fileno()
+                    can_select = True
+                except Exception:
+                    can_select = False
+
+            if can_select:
+                if select.select([sys.stdin], [], [], 2.0)[0]:
+                    payload = json.load(sys.stdin)
+                else:
+                    payload = {}
+            else:
+                payload = json.load(sys.stdin)
     except Exception:
         payload = {}
 
