@@ -12,6 +12,7 @@ import sys
 import uuid
 import threading
 import logging
+import webbrowser
 from datetime import datetime
 from flask import Flask, jsonify, request, send_file
 from threading import Thread
