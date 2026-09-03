@@ -12,6 +12,7 @@ import requests
 import sys
 import uuid
 import threading
+import sqlite3
 import logging
 import webbrowser
 from datetime import datetime
@@ -1084,7 +1085,12 @@ def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tool
             return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
         else:
             return "IDLE", "idle", "IDLE", "#94A3B8"
-    elif has_in_flight_tools or age < IN_FLIGHT_TIMEOUT_SECONDS:
+    elif has_in_flight_tools:
+        if age < IN_FLIGHT_TIMEOUT_SECONDS:
+            return "WORKING", "working", "EXECUTING...", working_color
+        else:
+            return "WAITING", "waiting_approval", turn_pending_prompt if turn_pending_prompt != "INPUT REQ" else "GRANT PERM", "#FFB800"
+    elif age < IN_FLIGHT_TIMEOUT_SECONDS:
         return "WORKING", "working", "EXECUTING...", working_color
     else:
         return "IDLE", "idle", "IDLE", "#94A3B8"
@@ -1349,6 +1355,51 @@ def uninstall_claude_hooks(app_path=None):
     except Exception:
         return False
 
+def _get_antigravity_db_step(session_id, brain_dir=None):
+    candidates = []
+    if brain_dir:
+        parent = os.path.dirname(os.path.abspath(brain_dir))
+        candidates.append(os.path.join(parent, "conversations", f"{session_id}.db"))
+    home = os.path.expanduser("~")
+    candidates.append(os.path.join(home, ".gemini", "antigravity", "conversations", f"{session_id}.db"))
+    candidates.append(os.path.join(home, ".antigravity", "conversations", f"{session_id}.db"))
+
+    for db_path in candidates:
+        if not os.path.isfile(db_path):
+            continue
+        try:
+            con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=0.1)
+            try:
+                row = con.execute("SELECT idx, step_type, status, metadata FROM steps ORDER BY idx DESC LIMIT 1").fetchone()
+                if row:
+                    return {"idx": row[0], "step_type": row[1], "status": row[2], "metadata": row[3]}
+            finally:
+                con.close()
+        except Exception:
+            continue
+    return None
+
+def _format_antigravity_pending_prompt(tool_name: str = "", tool_args: dict = None, raw_meta: bytes = None) -> str:
+    name_lower = (tool_name or "").lower()
+    args_str = str(tool_args or "").lower()
+    if not name_lower and raw_meta:
+        for candidate in ("read_url_content", "read_browser_page", "search_web", "run_command", "write_to_file", "replace_file_content", "ask_question"):
+            if candidate.encode("utf-8") in raw_meta:
+                name_lower = candidate
+                break
+
+    if "url" in name_lower or "web" in name_lower or "browser" in name_lower or "url" in args_str or "http" in args_str:
+        return "VISIT URL"
+    if "command" in name_lower or "cmd" in name_lower or "bash" in name_lower or "terminal" in name_lower or "exec" in name_lower:
+        return "RUN CMD"
+    if "write" in name_lower or "edit" in name_lower or "replace" in name_lower or "file" in name_lower:
+        return "EDIT FILE"
+    if "question" in name_lower:
+        return "ANSWER Q"
+    if "plan" in name_lower:
+        return "APPROVE PLAN"
+    return "GRANT PERM"
+
 def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
     if brain_dirs is None:
         brain_dirs = _antigravity_brain_dirs()
@@ -1394,9 +1445,24 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
             label = get_stable_agent_label("antigravity", session_id, transcript_lines=lines)
 
+            # Check SQLite database for real-time step status (CORTEX_STEP_STATUS_WAITING = 9)
+            db_step = _get_antigravity_db_step(session_id, brain_dir)
+            db_status = db_step.get("status") if db_step else None
+
             if last_user_idx == len(lines) - 1:
-                # User just sent a prompt; assistant is currently thinking/executing
-                if age < 45:
+                if db_status == 9:
+                    sessions.append({
+                        "id": session_id,
+                        "name": label,
+                        "source": "antigravity",
+                        "state": "WAITING",
+                        "code": "waiting_approval",
+                        "detail": _format_antigravity_pending_prompt(raw_meta=db_step.get("metadata")),
+                        "color": "#FFB800",
+                        "age_seconds": int(age),
+                        "mtime": mtime
+                    })
+                elif age < 45:
                     sessions.append({
                         "id": session_id,
                         "name": label,
@@ -1427,7 +1493,16 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             is_final_turn_response = False
             has_in_flight_tools = False
 
-            if step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
+            if db_status == 9:
+                found_pending = True
+                tool_name = ""
+                tool_args = {}
+                tool_calls = last_step_entry.get("tool_calls", []) or []
+                if tool_calls and isinstance(tool_calls[0], dict):
+                    tool_name = tool_calls[0].get("name", "")
+                    tool_args = tool_calls[0].get("args", {}) or {}
+                turn_pending_prompt = _format_antigravity_pending_prompt(tool_name, tool_args, db_step.get("metadata"))
+            elif step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
                 found_pending = True
                 turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
             elif step_type == "PLANNER_RESPONSE":
