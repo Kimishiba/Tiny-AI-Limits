@@ -6,6 +6,7 @@ from backend.services.firmware_cache import get_latest_firmware, pop_ota_trigger
 from backend.api.config import caller_is_paired
 import backend.services.agent_tracker as tracker
 from backend.providers.base import format_reset_time
+from backend.providers import ALL_PROVIDERS
 
 bp = Blueprint("telemetry", __name__)
 

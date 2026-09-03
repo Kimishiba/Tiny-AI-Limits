@@ -57,7 +57,10 @@ class CursorProvider(BaseProvider):
         try:
             gpt4 = data.get("gpt-4") or data.get("premiumUsage") or {}
             num_requests = gpt4.get("numRequests", 0)
-            max_requests = gpt4.get("maxRequestUsage") or gpt4.get("limit") or 500
+            max_req_val = gpt4.get("maxRequestUsage")
+            if max_req_val is None:
+                max_req_val = gpt4.get("limit")
+            max_requests = 500 if max_req_val is None else int(max_req_val)
 
             remaining = max(0, max_requests - num_requests)
             pct_left = float(round((remaining / max_requests) * 100.0)) if max_requests > 0 else 0.0

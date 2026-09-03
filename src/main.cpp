@@ -27,6 +27,15 @@ Arduino_GFX *gcGfx = createGC9A01Display(gcBus);
 bool gc9a01Initialized = false;
 int currentDisplayRotation = 0;
 bool globalForceRedraw = false;
+static SemaphoreHandle_t spiMutex = NULL;
+static volatile bool isOTAInProgress = false;
+
+void safeGfxOperation(std::function<void()> gfxFunc) {
+    if (!spiMutex || xSemaphoreTake(spiMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        gfxFunc();
+        if (spiMutex) xSemaphoreGive(spiMutex);
+    }
+}
 
 WebServer server(80);
 
@@ -1367,11 +1376,14 @@ void handleSerialCommunication();
 // ==========================================
 // HTTP SERVER (Companion App Screen Provisioning)
 // ==========================================
+static bool webServerInitialized = false;
 void setupWebServer() {
-    // The setup page is served from the companion app's origin
-    // (http://localhost:5000), so pairing calls to the board are
-    // cross-origin and are preflighted.
-    server.enableCORS(true);
+    if (!webServerInitialized) {
+        webServerInitialized = true;
+        // The setup page is served from the companion app's origin
+        // (http://localhost:5000), so pairing calls to the board are
+        // cross-origin and are preflighted.
+        server.enableCORS(true);
 
     // Pair over HTTP as well as over serial. Improv provisioning carries only
     // an SSID and password -- the protocol has no room for a host address --
@@ -1427,6 +1439,7 @@ void setupWebServer() {
         serializeJson(doc, out);
         server.send(200, "application/json", out);
     });
+    }
 
     server.begin();
     Serial.println("[HTTP] Provisioning Web Server started on port 80");
@@ -1600,56 +1613,59 @@ bool resolveBackendUrl() {
 // ==========================================
 void drawOTAProgressScreen(int percent, const char* statusMsg, const char* verStr) {
     if (!gc9a01Initialized) return;
-    int cx = 120, cy = 120;
+    safeGfxOperation([=]() {
+        int cx = 120, cy = 120;
 
-    // Outer circle
-    if (percent <= 0) {
-        gcGfx->fillScreen(GC_COLOR_BLACK);
-        gcGfx->drawCircle(cx, cy, 118, GC_COLOR_AMBER);
-    }
+        // Outer circle
+        if (percent <= 0) {
+            gcGfx->fillScreen(GC_COLOR_BLACK);
+            gcGfx->drawCircle(cx, cy, 118, GC_COLOR_AMBER);
+        }
 
-    // Center card background
-    gcGfx->fillRect(cx - 90, cy - 60, 180, 120, GC_COLOR_BLACK);
+        // Center card background
+        gcGfx->fillRect(cx - 90, cy - 60, 180, 120, GC_COLOR_BLACK);
 
-    // Dynamic progress arc
-    if (percent >= 0) {
-        float maxDeg = (constrain(percent, 0, 100) / 100.0f) * 360.0f;
-        for (float deg = 0; deg <= maxDeg; deg += 1.5f) {
-            float rad = (deg - 90.0f) * 0.0174532925f;
-            float cosR = cosf(rad);
-            float sinR = sinf(rad);
-            for (int r = 112; r <= 116; r++) {
-                gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_AMBER);
+        // Dynamic progress arc
+        if (percent >= 0) {
+            float maxDeg = (constrain(percent, 0, 100) / 100.0f) * 360.0f;
+            for (float deg = 0; deg <= maxDeg; deg += 1.5f) {
+                float rad = (deg - 90.0f) * 0.0174532925f;
+                float cosR = cosf(rad);
+                float sinR = sinf(rad);
+                for (int r = 112; r <= 116; r++) {
+                    gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_AMBER);
+                }
             }
         }
-    }
 
-    // Title
-    gcGfx->setTextSize(1);
-    gcPrintCentered("FIRMWARE OTA", cx, cy - 40, GC_COLOR_CYAN);
+        // Title
+        gcGfx->setTextSize(1);
+        gcPrintCentered("FIRMWARE OTA", cx, cy - 40, GC_COLOR_CYAN);
 
-    // Version jump tag
-    if (verStr && strlen(verStr) > 0) {
-        String verDisplay = "v" + String(FIRMWARE_VERSION) + " -> v" + String(verStr);
-        gcPrintCentered(verDisplay.c_str(), cx, cy - 25, GC_COLOR_SLATE_GRAY);
-    }
+        // Version jump tag
+        if (verStr && strlen(verStr) > 0) {
+            String verDisplay = "v" + String(FIRMWARE_VERSION) + " -> v" + String(verStr);
+            gcPrintCentered(verDisplay.c_str(), cx, cy - 25, GC_COLOR_SLATE_GRAY);
+        }
 
-    // Main Percentage or Error
-    gcGfx->setTextSize(2);
-    if (percent >= 0) {
-        String pctStr = String(percent) + "%";
-        gcPrintCentered(pctStr.c_str(), cx, cy + 2, GC_COLOR_WHITE);
-    } else {
-        gcPrintCentered("ERROR", cx, cy + 2, GC_COLOR_RED);
-    }
+        // Main Percentage or Error
+        gcGfx->setTextSize(2);
+        if (percent >= 0) {
+            String pctStr = String(percent) + "%";
+            gcPrintCentered(pctStr.c_str(), cx, cy + 2, GC_COLOR_WHITE);
+        } else {
+            gcPrintCentered("ERROR", cx, cy + 2, GC_COLOR_RED);
+        }
 
-    // Sub-status
-    gcGfx->setTextSize(1);
-    gcPrintCentered(statusMsg, cx, cy + 28, GC_COLOR_AMBER);
-    gcPrintCentered("DO NOT UNPLUG", cx, cy + 45, gcGfx->color565(150, 150, 150));
+        // Sub-status
+        gcGfx->setTextSize(1);
+        gcPrintCentered(statusMsg, cx, cy + 28, GC_COLOR_AMBER);
+        gcPrintCentered("DO NOT UNPLUG", cx, cy + 45, gcGfx->color565(150, 150, 150));
+    });
 }
 
 bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
+    isOTAInProgress = true;
     String fullUrl;
     if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
         fullUrl = pathOrUrl;
@@ -1673,6 +1689,7 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "HTTP ERROR", newVersion);
         delay(3000);
         http.end();
+        isOTAInProgress = false;
         return false;
     }
 
@@ -1683,6 +1700,7 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "INVALID SIZE", newVersion);
         delay(3000);
         http.end();
+        isOTAInProgress = false;
         return false;
     }
 
@@ -1691,6 +1709,7 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "PARTITION FULL", newVersion);
         delay(3000);
         http.end();
+        isOTAInProgress = false;
         return false;
     }
 
@@ -1721,6 +1740,7 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
                 delay(3000);
                 Update.abort();
                 http.end();
+                isOTAInProgress = false;
                 return false;
             }
             delay(5);
@@ -1734,6 +1754,7 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "INCOMPLETE", newVersion);
         delay(3000);
         Update.abort();
+        isOTAInProgress = false;
         return false;
     }
 
@@ -1747,6 +1768,7 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         Serial.printf("[OTA] Update.end() failed: error %d\n", Update.getError());
         drawOTAProgressScreen(-1, "FLASH ERROR", newVersion);
         delay(3000);
+        isOTAInProgress = false;
         return false;
     }
 }
@@ -1802,9 +1824,8 @@ void fetchBackendData() {
         backendConnected = true;
         lastBackendPollSuccessMs = millis();
         consecutiveBackendFailures = 0;
-        String payload = http.getString();
-        StaticJsonDocument<4096> doc;
-        DeserializationError error = deserializeJson(doc, payload);
+        DynamicJsonDocument doc(4096);
+        DeserializationError error = deserializeJson(doc, http.getStream());
 
         if (!error) {
             if (doc.containsKey("claude")) {
@@ -1955,6 +1976,10 @@ void fetchBackendData() {
 // WIFI CONNECTION
 // ==========================================
 bool connectToWifi(const char* ssid, const char* password) {
+    static bool isConnecting = false;
+    if (isConnecting) return false;
+    isConnecting = true;
+
     // Array of TX power levels to try: KPN / European routers and ESP32-C3 ceramic
     // antennas are prone to failing at 19.5dBm when close to the router due to RF
     // overload and voltage sag. We step through low to max power for universal compatibility.
@@ -1985,12 +2010,12 @@ bool connectToWifi(const char* ssid, const char* password) {
             if (attempts % 30 == 0) {
                 Serial.printf("  [WiFi] In progress... status: %d\n", WiFi.status());
             }
-            handleSerialCommunication();
         }
 
         if (WiFi.status() == WL_CONNECTED) {
             Serial.printf("[WiFi] SUCCESS! Connected with TX power %s. Local IP: %s\n", txPowerNames[pIdx], WiFi.localIP().toString().c_str());
             onWifiConnected();
+            isConnecting = false;
             return true;
         }
 
@@ -2000,6 +2025,7 @@ bool connectToWifi(const char* ssid, const char* password) {
     Serial.printf("[WiFi] All connection attempts to '%s' failed.\n", ssid);
     WiFi.disconnect(true, false);
     delay(50);
+    isConnecting = false;
     return false;
 }
 
@@ -2075,15 +2101,28 @@ String percentDecode(const String& in) {
 }
 
 void handleSerialCommunication() {
+    static bool inImprovStream = false;
+    static unsigned long lastImprovByte = 0;
+
     while (Serial.available()) {
-        int peekByte = Serial.peek();
-        if (peekByte == 'I' && serialBuffer.length() == 0) {
-            // handleSerial() consumes exactly one byte per call -- drain everything
-            // waiting so a full Improv packet doesn't take multiple loop() ticks to parse.
+        if (!inImprovStream && Serial.peek() == 'I' && serialBuffer.length() == 0) {
+            inImprovStream = true;
+            lastImprovByte = millis();
+        }
+
+        if (inImprovStream) {
             while (Serial.available()) {
+                lastImprovByte = millis();
                 improvSerial.handleSerial();
             }
+            if (millis() - lastImprovByte > 500) {
+                inImprovStream = false;
+            }
             return;
+        }
+
+        if (millis() - lastImprovByte > 500) {
+            inImprovStream = false;
         }
 
         char c = (char)Serial.read();
@@ -2230,6 +2269,11 @@ void handleSerialCommunication() {
 void setup() {
     Serial.begin(115200);
     delay(100);
+
+    if (spiMutex == NULL) {
+        spiMutex = xSemaphoreCreateMutex();
+    }
+
     runESP32HardwareDiagnostics();
 
     // Register Improv WiFi as early as physically possible, before the slower
@@ -2322,6 +2366,11 @@ unsigned long lastFrameTime = 0;
 const unsigned long frameIntervalMs = 33; // ~30 FPS
 
 void loop() {
+    if (isOTAInProgress || !gc9a01Initialized) {
+        vTaskDelay(pdMS_TO_TICKS(50));
+        return;
+    }
+
     unsigned long now = millis();
 
     // 1. Unified Serial Listener (Direct & Improv) & Web Server
@@ -2335,8 +2384,10 @@ void loop() {
         lastFrameTime = now;
 
         // GC9A01 Round IPS HUD (Render full cyberpunk flip clock HUD)
-        updateFacePhysics(now);
-        drawGC9A01RoundFlipUI();
+        safeGfxOperation([now]() {
+            updateFacePhysics(now);
+            drawGC9A01RoundFlipUI();
+        });
     }
 
     // 3. Auto-reconnect Wi-Fi

@@ -1,6 +1,7 @@
 import json
 import re
 import glob
+import hmac
 import getpass
 import os
 import platform
@@ -159,17 +160,25 @@ def get_pair_id(cfg):
     return pair_id
 
 def client_is_local():
-    """Requests from this machine: the emulator, the setup page, local curl."""
-    return request.remote_addr in ("127.0.0.1", "::1", "localhost")
+    """Requests from this machine: local tools, local browser, local curl."""
+    if request.remote_addr not in ("127.0.0.1", "::1", "localhost"):
+        return False
+    origin = request.headers.get("Origin")
+    if origin and not any(h in origin for h in ("localhost", "127.0.0.1", "chrome-extension://")):
+        return False
+    return True
 
 def caller_is_paired(allow_unpaired=True):
     """Whether the caller proved it belongs to this companion."""
+    pair_id = get_pair_id(config)
+    pair_token = request.args.get("pair_id") or request.headers.get("X-Pair-ID", "")
+    if pair_token and hmac.compare_digest(str(pair_token), str(pair_id)):
+        return True
     if client_is_local():
         return True
     if allow_unpaired and config.get("allow_unpaired_clients", False):
         return True
-    pair_token = request.args.get("pair_id") or request.headers.get("X-Pair-ID", "")
-    return bool(pair_token and pair_token == get_pair_id(config))
+    return False
 
 def mask_key(k_val):
     """Safely mask secrets without exposing critical key entropy."""
@@ -184,9 +193,17 @@ app = Flask(__name__)
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    origin = request.headers.get("Origin")
+    if origin:
+        if any(h in origin for h in ("localhost", "127.0.0.1", "chrome-extension://")):
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Pair-ID'
+            response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+            response.headers['Vary'] = 'Origin'
+    else:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Pair-ID'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
 @app.route('/')

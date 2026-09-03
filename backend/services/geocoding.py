@@ -1,12 +1,21 @@
 import time
 import logging
+import threading
 import requests
 from datetime import datetime
 
 logger = logging.getLogger("tinyscreen.services.geocoding")
 
+_weather_cache_lock = threading.Lock()
 _weather_cache = {"data": None, "timestamp": 0}
 _WEATHER_CACHE_TTL_SECONDS = 600
+
+def _sanitize_coord(val, min_val, max_val, default):
+    try:
+        f = float(val)
+        return f if min_val <= f <= max_val else default
+    except (TypeError, ValueError):
+        return default
 
 def geocode_city(city_name):
     try:
@@ -26,23 +35,41 @@ def geocode_city(city_name):
 def get_location(cfg=None):
     cfg = cfg or {}
     if not cfg.get("auto_location", True):
-        return cfg.get("lat", 52.5200), cfg.get("lon", 13.4050), cfg.get("manual_location_name", "BERLIN")
+        lat = _sanitize_coord(cfg.get("lat"), -90.0, 90.0, 52.5200)
+        lon = _sanitize_coord(cfg.get("lon"), -180.0, 180.0, 13.4050)
+        return lat, lon, cfg.get("manual_location_name", "BERLIN")
     
+    try:
+        res = requests.get('https://ipapi.co/json/', timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            city = data.get('city', 'DETECTED').upper()
+            lat = _sanitize_coord(data.get('latitude'), -90.0, 90.0, 51.5074)
+            lon = _sanitize_coord(data.get('longitude'), -180.0, 180.0, -0.1278)
+            return lat, lon, city
+    except Exception:
+        pass
+
     try:
         res = requests.get('http://ip-api.com/json/', timeout=5)
         data = res.json()
         city = data.get('city', 'DETECTED').upper()
-        return data['lat'], data['lon'], city
+        lat = _sanitize_coord(data.get('lat'), -90.0, 90.0, 51.5074)
+        lon = _sanitize_coord(data.get('lon'), -180.0, 180.0, -0.1278)
+        return lat, lon, city
     except Exception:
         return 51.5074, -0.1278, "LONDON"
 
 def get_weather(cfg=None):
     global _weather_cache
     now = time.time()
-    if _weather_cache["data"] is not None and (now - _weather_cache["timestamp"]) < _WEATHER_CACHE_TTL_SECONDS:
-        return dict(_weather_cache["data"])
+    with _weather_cache_lock:
+        if _weather_cache["data"] is not None and (now - _weather_cache["timestamp"]) < _WEATHER_CACHE_TTL_SECONDS:
+            return dict(_weather_cache["data"])
 
     lat, lon, loc_name = get_location(cfg)
+    lat = _sanitize_coord(lat, -90.0, 90.0, 51.5074)
+    lon = _sanitize_coord(lon, -180.0, 180.0, -0.1278)
     try:
         url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&hourly=precipitation"
         res = requests.get(url, timeout=5)

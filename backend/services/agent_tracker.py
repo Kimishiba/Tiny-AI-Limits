@@ -6,6 +6,12 @@ import glob
 import platform
 import threading
 import logging
+import shlex
+import pathlib
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 
 logger = logging.getLogger("tinyscreen.services.agent_tracker")
 
@@ -207,6 +213,7 @@ def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tool
         return "IDLE", "idle", "IDLE", "#94A3B8"
 
 _HOOK_STATE_FILE = os.path.expanduser("~/.claude/tinyscreen_hook_state.json")
+_HOOK_LOCK_FILE = _HOOK_STATE_FILE + ".lock"
 _hook_sessions = {}
 _hook_lock = threading.Lock()
 
@@ -216,22 +223,41 @@ def _load_hook_state():
         _hook_sessions = {}
         return
     try:
-        with open(_HOOK_STATE_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            if isinstance(data, dict):
-                _hook_sessions = data
-            else:
-                _hook_sessions = {}
+        if fcntl:
+            os.makedirs(os.path.dirname(_HOOK_LOCK_FILE), exist_ok=True)
+            with open(_HOOK_LOCK_FILE, "a") as lf:
+                fcntl.flock(lf, fcntl.LOCK_SH)
+                try:
+                    with open(_HOOK_STATE_FILE, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        _hook_sessions = data if isinstance(data, dict) else {}
+                finally:
+                    fcntl.flock(lf, fcntl.LOCK_UN)
+        else:
+            with open(_HOOK_STATE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                _hook_sessions = data if isinstance(data, dict) else {}
     except Exception:
         _hook_sessions = {}
 
 def _save_hook_state():
     try:
         os.makedirs(os.path.dirname(_HOOK_STATE_FILE), exist_ok=True)
-        tmp = _HOOK_STATE_FILE + f".tmp.{os.getpid()}"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(_hook_sessions, f)
-        os.replace(tmp, _HOOK_STATE_FILE)
+        if fcntl:
+            with open(_HOOK_LOCK_FILE, "a") as lf:
+                fcntl.flock(lf, fcntl.LOCK_EX)
+                try:
+                    tmp = _HOOK_STATE_FILE + f".tmp.{os.getpid()}"
+                    with open(tmp, "w", encoding="utf-8") as f:
+                        json.dump(_hook_sessions, f)
+                    os.replace(tmp, _HOOK_STATE_FILE)
+                finally:
+                    fcntl.flock(lf, fcntl.LOCK_UN)
+        else:
+            tmp = _HOOK_STATE_FILE + f".tmp.{os.getpid()}"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(_hook_sessions, f)
+            os.replace(tmp, _HOOK_STATE_FILE)
     except Exception:
         pass
 
@@ -403,7 +429,8 @@ def install_claude_hooks(app_path=None):
     
     hooks = settings.setdefault("hooks", {})
     hook_events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "Stop", "Notification", "SessionEnd"]
-    hook_cmd = f"python3 \"{app_path}\" --hook"
+    resolved_path = str(pathlib.Path(app_path).resolve())
+    hook_cmd = f"python3 {shlex.quote(resolved_path)} --hook"
     
     for event in hook_events:
         event_hooks = hooks.setdefault(event, [])

@@ -70,10 +70,21 @@ class GroqProvider(BaseProvider):
             if rem_req and lim_req and float(lim_req) > 0:
                 pct_left = float(round((float(rem_req) / float(lim_req)) * 100.0, 1))
 
+            def _safe_int(val, default=0):
+                if not val:
+                    return default
+                try:
+                    return int(float(val))
+                except (ValueError, TypeError):
+                    return default
+
+            i_lim_req = _safe_int(lim_req, 100)
+            i_rem_req = _safe_int(rem_req, 100)
+
             primary_window = RateWindow(
-                limit=int(lim_req) if lim_req else 100,
-                used=int(lim_req) - int(rem_req) if lim_req and rem_req else 0,
-                remaining=int(rem_req) if rem_req else 100,
+                limit=i_lim_req,
+                used=max(0, i_lim_req - i_rem_req) if lim_req and rem_req else 0,
+                remaining=i_rem_req,
                 percent_left=pct_left,
                 period_desc="minute rate limit"
             )
