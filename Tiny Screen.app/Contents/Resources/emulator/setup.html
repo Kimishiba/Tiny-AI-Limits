@@ -1247,8 +1247,33 @@
       gaugeRightBudgetRow.style.display = (gaugeRightPlan.value === 'enterprise') ? 'block' : 'none';
     }
 
-    gaugeLeftPlan.addEventListener('change', updatePlanUiVisibility);
-    gaugeRightPlan.addEventListener('change', updatePlanUiVisibility);
+    gaugeLeftPlan.addEventListener('change', () => {
+      updatePlanUiVisibility();
+      if (gaugeLeftSelect.value === 'claude') {
+        const cldSelect = document.getElementById('claude-plan-select');
+        if (cldSelect) cldSelect.value = gaugeLeftPlan.value;
+      }
+      saveGaugesBtn.click();
+    });
+
+    gaugeRightPlan.addEventListener('change', () => {
+      updatePlanUiVisibility();
+      if (gaugeRightSelect.value === 'claude') {
+        const cldSelect = document.getElementById('claude-plan-select');
+        if (cldSelect) cldSelect.value = gaugeRightPlan.value;
+      }
+      saveGaugesBtn.click();
+    });
+
+    const claudePlanSelect = document.getElementById('claude-plan-select');
+    if (claudePlanSelect) {
+      claudePlanSelect.addEventListener('change', () => {
+        if (gaugeLeftSelect.value === 'claude') gaugeLeftPlan.value = claudePlanSelect.value;
+        if (gaugeRightSelect.value === 'claude') gaugeRightPlan.value = claudePlanSelect.value;
+        updatePlanUiVisibility();
+        saveGaugesBtn.click();
+      });
+    }
 
     function renderProviderStatus(provider) {
       if (!provider) return "Unknown";
@@ -1275,10 +1300,43 @@
 
       const plans = savedConfig.provider_plans || {};
       const budgets = savedConfig.provider_daily_budgets || {};
-      if (plans[leftId]) gaugeLeftPlan.value = plans[leftId];
-      if (plans[rightId]) gaugeRightPlan.value = plans[rightId];
-      if (budgets[leftId] !== undefined) gaugeLeftBudget.value = budgets[leftId];
-      if (budgets[rightId] !== undefined) gaugeRightBudget.value = budgets[rightId];
+
+      if (plans[leftId]) {
+        gaugeLeftPlan.value = plans[leftId];
+      } else if (leftId === 'claude' && savedConfig.claude_plan) {
+        gaugeLeftPlan.value = savedConfig.claude_plan;
+      } else {
+        gaugeLeftPlan.value = 'standard';
+      }
+
+      if (plans[rightId]) {
+        gaugeRightPlan.value = plans[rightId];
+      } else if (rightId === 'claude' && savedConfig.claude_plan) {
+        gaugeRightPlan.value = savedConfig.claude_plan;
+      } else {
+        gaugeRightPlan.value = 'standard';
+      }
+
+      if (budgets[leftId] !== undefined) {
+        gaugeLeftBudget.value = budgets[leftId];
+      } else if (leftId === 'claude' && savedConfig.claude_daily_budget_usd) {
+        gaugeLeftBudget.value = savedConfig.claude_daily_budget_usd;
+      }
+
+      if (budgets[rightId] !== undefined) {
+        gaugeRightBudget.value = budgets[rightId];
+      } else if (rightId === 'claude' && savedConfig.claude_daily_budget_usd) {
+        gaugeRightBudget.value = savedConfig.claude_daily_budget_usd;
+      }
+
+      if (claudePlanSelect) {
+        if (savedConfig.claude_plan) {
+          claudePlanSelect.value = savedConfig.claude_plan;
+        } else if (plans.claude) {
+          claudePlanSelect.value = plans.claude;
+        }
+      }
+
       updatePlanUiVisibility();
     }
 
@@ -1290,7 +1348,8 @@
         ]);
         if (!resProv.ok) return;
         const data = await resProv.json();
-        savedConfig = resCfg.ok ? ((await resCfg.json()).config || {}) : {};
+        const rawCfg = resCfg.ok ? await resCfg.json() : {};
+        savedConfig = rawCfg.config || rawCfg;
 
         allProvidersList = data.providers || [];
         const selected = data.selected_gauges || { left: 'claude', right: 'antigravity' };
@@ -1313,19 +1372,13 @@
           gaugeRightSelect.appendChild(optRight);
         });
 
-        // Load Claude Plan config
-        try {
-          const cfgRes = await fetch('/api/config');
-          if (cfgRes.ok) {
-            const cfg = await cfgRes.json();
-            if (cfg.claude_plan) {
-              document.getElementById('claude-plan-select').value = cfg.claude_plan;
-            }
-            if (cfg.claude_daily_budget_usd) {
-              document.getElementById('claude-budget-input').value = cfg.claude_daily_budget_usd;
-            }
-          }
-        } catch (e) {}
+        if (savedConfig.claude_plan && claudePlanSelect) {
+          claudePlanSelect.value = savedConfig.claude_plan;
+        }
+        if (savedConfig.claude_daily_budget_usd) {
+          const budgetInput = document.getElementById('claude-budget-input');
+          if (budgetInput) budgetInput.value = savedConfig.claude_daily_budget_usd;
+        }
 
         updateGaugeStatusDisplay();
       } catch (err) {
