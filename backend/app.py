@@ -646,7 +646,6 @@ def _find_antigravity_language_servers():
     return servers
 
 def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
-    url = f"https://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
     headers = {
         "Content-Type": "application/json",
         "Connect-Protocol-Version": "1",
@@ -657,15 +656,20 @@ def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
         "metadata": {"ideName": "antigravity", "extensionName": "antigravity", "locale": "en"}
     }).encode("utf-8")
 
-    # The language server's HTTPS listener uses a self-signed cert (it's
-    # loopback-only, protected by the CSRF token instead of TLS trust).
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-    with urllib.request.urlopen(req, context=ctx, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    for scheme in ["https", "http"]:
+        url = f"{scheme}://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
+        try:
+            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+            with urllib.request.urlopen(req, context=ctx if scheme == "https" else None, timeout=timeout) as resp:
+                if resp.status == 200:
+                    return json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            continue
+    return None
 
 def get_antigravity_accounts(use_cache=True):
     """Returns one entry per signed-in Antigravity account currently running
