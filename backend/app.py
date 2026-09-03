@@ -12,6 +12,7 @@ import sys
 import uuid
 import threading
 import logging
+import webbrowser
 from datetime import datetime
 from flask import Flask, jsonify, request, send_file
 from threading import Thread
@@ -290,8 +291,9 @@ def get_weather():
 
             try:
                 current_index = hourly_times.index(current_hour_str)
-                for i in range(current_index, len(hourly_precip)):
-                    if hourly_precip[i] > 0:
+                # Cap the rain forecast horizon to next 24 hours and >= 0.1mm
+                for i in range(current_index, min(current_index + 24, len(hourly_precip))):
+                    if hourly_precip[i] >= 0.1:
                         hours_until_rain = i - current_index
                         break
             except (ValueError, IndexError):
@@ -2400,13 +2402,13 @@ class TinyScreenMacStatusBarApp(object):
                     value = response.text.strip()
                     config["antigravity_account_email"] = None if (not value or value.upper() == "AUTO") else value
                     save_config(config)
-                    rumps.alert("Saved", f"Antigravity account set to: {config['antigravity_account_email'] or 'Auto'}")
+                    rumps.notification("Tiny Screen", "Antigravity Account Saved", f"Account set to: {config['antigravity_account_email'] or 'Auto'}")
 
             @rumps.clicked("⚙️ Set Location...")
             def set_location(self, _):
-                current_loc = config.get("manual_location_name", "Berlin")
+                current_loc = config.get("manual_location_name", "Amsterdam")
                 response = rumps.Window(
-                    message="Enter city name (e.g. 'Rome', 'New York') or type 'AUTO' for IP detection:",
+                    message="Enter city name (e.g. 'Rome', 'Amsterdam', 'New York') or type 'AUTO' for IP detection:",
                     title="Location Settings",
                     default_text=current_loc,
                     ok="Save",
@@ -2415,10 +2417,19 @@ class TinyScreenMacStatusBarApp(object):
 
                 if response.clicked:
                     city = response.text.strip()
+                    global _weather_cache
+                    _weather_cache["data"] = None
+                    _weather_cache["timestamp"] = 0
+                    try:
+                        import services.geocoding as gc_svc
+                        gc_svc._weather_cache["data"] = None
+                        gc_svc._weather_cache["timestamp"] = 0
+                    except Exception:
+                        pass
                     if not city or city.upper() == "AUTO":
                         config["auto_location"] = True
                         save_config(config)
-                        rumps.alert("Location Saved", "Location set to Auto-detect via IP.")
+                        rumps.notification("Tiny Screen", "Location Saved", "Location set to Auto-detect via IP.")
                     else:
                         lat, lon, full_name = geocode_city(city)
                         if lat and lon:
@@ -2427,9 +2438,9 @@ class TinyScreenMacStatusBarApp(object):
                             config["lon"] = lon
                             config["manual_location_name"] = full_name
                             save_config(config)
-                            rumps.alert("Location Saved", f"Successfully set location to {full_name} ({lat:.2f}, {lon:.2f})")
+                            rumps.notification("Tiny Screen", "Location Saved", f"Set location to {full_name}")
                         else:
-                            rumps.alert("Location Error", f"Could not find coordinates for city: '{city}'")
+                            rumps.notification("Tiny Screen", "Location Error", f"Could not find coordinates for: '{city}'")
 
             @rumps.clicked("⚡ Flash Latest Firmware (OTA)")
             def check_updates(self, _):

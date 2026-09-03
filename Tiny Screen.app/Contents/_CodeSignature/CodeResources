@@ -8,9 +8,33 @@
 		<data>
 		IRG32YXOYT/1kFep+/IxFEOUAMI=
 		</data>
+		<key>Resources/backend/api/__init__.py</key>
+		<data>
+		2jmj7l5rSw0yVb/vlWAYkK/YBwk=
+		</data>
+		<key>Resources/backend/api/agents.py</key>
+		<data>
+		ekrfkBu6ItYX5EHUdjJMplIxNwk=
+		</data>
+		<key>Resources/backend/api/config.py</key>
+		<data>
+		gDmHViU6r8+QoLZQBbQbJaHxYkk=
+		</data>
+		<key>Resources/backend/api/ota.py</key>
+		<data>
+		5hWZjCiIbbM8lw0/12brhcZC+CI=
+		</data>
+		<key>Resources/backend/api/system.py</key>
+		<data>
+		/sv40Von1iKAdpgIgIuZr1Jg7+k=
+		</data>
+		<key>Resources/backend/api/telemetry.py</key>
+		<data>
+		0AOLirA85ddeneUsKJlThfbauEk=
+		</data>
 		<key>Resources/backend/app.py</key>
 		<data>
-		DYWGU9n6q4UY7lpJj00CLjBAVvE=
+		v0tYHbNvjzpW/dS4ImgZj7oybIE=
 		</data>
 		<key>Resources/backend/claude_statusline.py</key>
 		<data>
@@ -22,7 +46,7 @@
 		</data>
 		<key>Resources/backend/providers/antigravity.py</key>
 		<data>
-		4/tTxAeL3X6OcZ8VbThJcZ56CFo=
+		YovnVg7ImUNeLREp1UhhGkTt/Fw=
 		</data>
 		<key>Resources/backend/providers/base.py</key>
 		<data>
@@ -67,6 +91,26 @@
 		<key>Resources/backend/requirements.txt</key>
 		<data>
 		Dw8HqjfEoj63v1xlJTnS26dO4Z4=
+		</data>
+		<key>Resources/backend/services/__init__.py</key>
+		<data>
+		2jmj7l5rSw0yVb/vlWAYkK/YBwk=
+		</data>
+		<key>Resources/backend/services/agent_tracker.py</key>
+		<data>
+		ep0tSFfLP+iVEXZwrTlBABa6z14=
+		</data>
+		<key>Resources/backend/services/firmware_cache.py</key>
+		<data>
+		qzaowVQKz4AlNHNJyqETSNX5u/U=
+		</data>
+		<key>Resources/backend/services/geocoding.py</key>
+		<data>
+		ltrD9Ky+SQ3TGPrmifTScFXVw44=
+		</data>
+		<key>Resources/backend/services/zeroconf_svc.py</key>
+		<data>
+		AM1S1HqOizoiF9+i7xyiYGgL+2k=
 		</data>
 		<key>Resources/backend/tests/test_agent_status.py</key>
 		<data>
@@ -242,11 +286,53 @@
 			EkyislkMJjotvQT/U1eAm+4Vmffpvc69WmgYscaN+Xg=
 			</data>
 		</dict>
+		<key>Resources/backend/api/__init__.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+			</data>
+		</dict>
+		<key>Resources/backend/api/agents.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			+0zC3AXRMUr4Mylf4o3hFqs1egp1ux+eGHlpx/dW4Fo=
+			</data>
+		</dict>
+		<key>Resources/backend/api/config.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			NzJmwZbOAUAZ9EULJOaGlbOdw0MLVIifDlCWV4hrM8k=
+			</data>
+		</dict>
+		<key>Resources/backend/api/ota.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			IEnpMUcapnuz+58RbpOKDu0igoaBI2oIL4fI+IcMg50=
+			</data>
+		</dict>
+		<key>Resources/backend/api/system.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			GsMU/fie/3tQogDKg591E9PmMIBFGyECcjYx8MGdzjQ=
+			</data>
+		</dict>
+		<key>Resources/backend/api/telemetry.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			Ckv7bCkOCiXZkvBE8ap1Mt8aRbAEpoe9fazOek1oU0I=
+			</data>
+		</dict>
 		<key>Resources/backend/app.py</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			QAMq6aV8gRuZ+JAXx0rKbaAPQTnBcpfKydLVfnfEWBI=
+			Tt7ETKGC7ZQIF1CbVBKTO7mKEMsMwvPmT5FjqO/q7Jk=
 			</data>
 		</dict>
 		<key>Resources/backend/claude_statusline.py</key>
@@ -267,7 +353,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			NrkSjOwHOXYOqXDOeb7+eVLJ03/MrZTAPpgGDNfeHOM=
+			0Z/aCqFzbvyRFQb1IYnuw8ngh1xc5aOTpV9YMZSlFY0=
 			</data>
 		</dict>
 		<key>Resources/backend/providers/base.py</key>
@@ -345,6 +431,41 @@
 			<key>hash2</key>
 			<data>
 			KCjcsyTY1dQJXqGOdM1OFuOv85JQvyi8Zt+mEtbSCZA=
+			</data>
+		</dict>
+		<key>Resources/backend/services/__init__.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+			</data>
+		</dict>
+		<key>Resources/backend/services/agent_tracker.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			N94BbfNIZmuVxXWmkP9FR1jrK5190cr3c1coUBFZxHw=
+			</data>
+		</dict>
+		<key>Resources/backend/services/firmware_cache.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			UqGeqQRlC23UaKelZsQ/2g050emtQU1q7+P63cngsU8=
+			</data>
+		</dict>
+		<key>Resources/backend/services/geocoding.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			AVxffZEawFrtg5uDIgvjXJOWxN4wygmjBGh+wD1binU=
+			</data>
+		</dict>
+		<key>Resources/backend/services/zeroconf_svc.py</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			iBrYQL4sk5+KvXaopqAN9zBSjNUFWbo2c3swutxwpJs=
 			</data>
 		</dict>
 		<key>Resources/backend/tests/test_agent_status.py</key>

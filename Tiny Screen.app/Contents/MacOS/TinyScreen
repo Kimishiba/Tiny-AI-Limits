@@ -31,30 +31,41 @@ fi
 
 cd "$WORK_DIR"
 
-# Locate Python 3 interpreter
+# Locate Python 3 interpreter (prioritize environment with working dependencies)
+CANDIDATES=(
+    "$VIRTUAL_ENV/bin/python3"
+    "$WORK_DIR/.venv/bin/python3"
+    "$HOME/.tiny_ai_screen/venv/bin/python3"
+    "/opt/homebrew/bin/python3"
+    "/usr/local/bin/python3"
+    "$(command -v python3 2>/dev/null || true)"
+    "/usr/bin/python3"
+)
+
 PYTHON_BIN=""
 
-# 1. Active virtual environment
-if [ -n "$VIRTUAL_ENV" ] && [ -x "$VIRTUAL_ENV/bin/python3" ]; then
-    PYTHON_BIN="$VIRTUAL_ENV/bin/python3"
-# 2. Local repo virtualenv
-elif [ -x "$WORK_DIR/.venv/bin/python3" ]; then
-    PYTHON_BIN="$WORK_DIR/.venv/bin/python3"
-# 3. User app cache virtualenv
-elif [ -x "$HOME/.tiny_ai_screen/venv/bin/python3" ]; then
-    PYTHON_BIN="$HOME/.tiny_ai_screen/venv/bin/python3"
-# 4. Apple Silicon Homebrew
-elif [ -x "/opt/homebrew/bin/python3" ]; then
-    PYTHON_BIN="/opt/homebrew/bin/python3"
-# 5. Intel Homebrew
-elif [ -x "/usr/local/bin/python3" ]; then
-    PYTHON_BIN="/usr/local/bin/python3"
-# 6. System PATH
-elif command -v python3 >/dev/null 2>&1; then
-    PYTHON_BIN="$(command -v python3)"
-# 7. macOS system python
-elif [ -x "/usr/bin/python3" ]; then
-    PYTHON_BIN="/usr/bin/python3"
+# Dynamic user site-packages resolution (portable across any macOS user/account)
+for CANDIDATE in "${CANDIDATES[@]}"; do
+    if [ -n "$CANDIDATE" ] && [ -x "$CANDIDATE" ]; then
+        USER_SITE="$("$CANDIDATE" -m site --user-site 2>/dev/null || true)"
+        if [ -n "$USER_SITE" ] && [ -d "$USER_SITE" ]; then
+            export PYTHONPATH="$USER_SITE:$PYTHONPATH"
+        fi
+        if "$CANDIDATE" -c "import flask, requests, rumps, zeroconf" >/dev/null 2>&1; then
+            PYTHON_BIN="$CANDIDATE"
+            break
+        fi
+    fi
+done
+
+# Fallback pass if none had dependencies pre-installed
+if [ -z "$PYTHON_BIN" ]; then
+    for CANDIDATE in "${CANDIDATES[@]}"; do
+        if [ -n "$CANDIDATE" ] && [ -x "$CANDIDATE" ]; then
+            PYTHON_BIN="$CANDIDATE"
+            break
+        fi
+    done
 fi
 
 if [ -z "$PYTHON_BIN" ]; then
@@ -62,17 +73,14 @@ if [ -z "$PYTHON_BIN" ]; then
     exit 1
 fi
 
-# Verify dependencies
-MISSING_DEPS=0
-"$PYTHON_BIN" -c "import flask, requests, rumps, zeroconf" >/dev/null 2>&1 || MISSING_DEPS=1
-
-if [ "$MISSING_DEPS" -eq 1 ]; then
+# Dependency verification & automated installation attempt
+if ! "$PYTHON_BIN" -c "import flask, requests, rumps, zeroconf" >/dev/null 2>&1; then
     if [ -f "$BACKEND_DIR/requirements.txt" ]; then
         osascript -e 'display notification "Installing required dependencies (flask, rumps, zeroconf)..." with title "Tiny Screen Companion"'
         "$PYTHON_BIN" -m pip install -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || \
         "$PYTHON_BIN" -m pip install --break-system-packages -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || \
         "$PYTHON_BIN" -m pip install --user -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || {
-            osascript -e 'display alert "Tiny Screen Dependency Error" message "Could not automatically install Python dependencies. Run: pip3 install -r backend/requirements.txt" as critical'
+            osascript -e 'display alert "Tiny Screen Dependency Error" message "Could not automatically install Python dependencies. Please run: pip3 install -r backend/requirements.txt" as critical'
             exit 1
         }
     fi

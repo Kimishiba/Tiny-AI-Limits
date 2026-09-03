@@ -181,6 +181,42 @@ class TestWeather(unittest.TestCase):
 
     @patch('app.get_location', return_value=(41.9, 12.5, "ROME"))
     @patch('app.requests.get')
+    def test_get_weather_rain_beyond_24h_returns_negative_one(self, mock_get, mock_loc):
+        times = [f"2026-08-30T{h:02d}:00" for h in range(12, 24)] + [f"2026-08-31T{h:02d}:00" for h in range(0, 24)] + [f"2026-09-01T{h:02d}:00" for h in range(0, 24)]
+        precip = [0.0] * len(times)
+        # Rain occurs at index 36 (36 hours away, e.g. 86h bug)
+        precip[36] = 5.0
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "current_weather": {"temperature": 20.0, "weathercode": 0, "time": "2026-08-30T12:00"},
+            "hourly": {"time": times, "precipitation": precip}
+        }
+        mock_get.return_value = mock_response
+
+        weather = app.get_weather()
+        self.assertEqual(weather["hours_until_rain"], -1)
+
+    @patch('app.get_location', return_value=(41.9, 12.5, "ROME"))
+    @patch('app.requests.get')
+    def test_get_weather_trace_rain_under_point_one_ignored(self, mock_get, mock_loc):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "current_weather": {"temperature": 20.0, "weathercode": 0, "time": "2026-08-30T12:00"},
+            "hourly": {
+                "time": ["2026-08-30T12:00", "2026-08-30T13:00", "2026-08-30T14:00"],
+                "precipitation": [0.0, 0.04, 0.08]  # All below 0.1mm threshold
+            }
+        }
+        mock_get.return_value = mock_response
+
+        weather = app.get_weather()
+        self.assertEqual(weather["hours_until_rain"], -1)
+
+    @patch('app.get_location', return_value=(41.9, 12.5, "ROME"))
+    @patch('app.requests.get')
     def test_get_weather_http_error(self, mock_get, mock_loc):
         mock_response = MagicMock()
         mock_response.status_code = 429
