@@ -147,36 +147,28 @@ def get_data():
             elif "cost_usd" in custom_data: cost_usd = float(custom_data["cost_usd"])
 
         if mode == "enterprise":
-            if not cost_str:
-                if custom_data and "cost_today_usd" in custom_data:
-                    cost_usd = float(custom_data["cost_today_usd"])
-                    cost_str = f"${cost_usd:.2f}"
-                elif snap and hasattr(snap, "metadata") and snap.metadata and "cost_today_usd" in snap.metadata:
-                    cost_usd = float(snap.metadata["cost_today_usd"])
-                    cost_str = f"${cost_usd:.2f}"
-                elif custom_data and "cost_usd" in custom_data:
-                    cost_usd = float(custom_data["cost_usd"])
-                    cost_str = f"${cost_usd:.2f}"
-                else:
-                    cost_str = "$0.00"
+            tok = 0
+            if custom_data and "tokens_today" in custom_data:
+                tok = custom_data["tokens_today"]
+            elif snap and hasattr(snap, "metadata") and snap.metadata and "tokens_today" in snap.metadata:
+                tok = snap.metadata["tokens_today"]
 
-            if not tokens_str:
-                if custom_data and "tokens_today" in custom_data:
-                    tok = custom_data["tokens_today"]
-                    tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
-                elif snap and hasattr(snap, "metadata") and snap.metadata and "tokens_today" in snap.metadata:
-                    tok = snap.metadata["tokens_today"]
-                    tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
-                else:
-                    tokens_str = "0"
-
-            if daily_budget > 0:
-                pct_used = min(100, int(round((cost_usd / daily_budget) * 100)))
-                percent = max(1, pct_used)
+            if tok >= 1_000_000:
+                compact_tok = f"{tok / 1_000_000:.1f}M"
+            elif tok >= 1_000:
+                compact_tok = f"{int(round(tok / 1_000))}k"
             else:
-                percent = 100
+                compact_tok = str(tok)
 
-            reset_str = f"{tokens_str} TOK"
+            tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
+            # Stop showing USD amount for enterprise use; only display tokens
+            cost_str = compact_tok
+            cost_usd = 0.0
+            percent = 100
+            curved_text = f"{compact_tok} TOK"
+            # Preserve reset_str for the rolling quota reset countdown timer (e.g. "12m", "5h", "READY")
+            if not reset_str:
+                reset_str = "READY"
 
         return {
             "id": provider_id,
@@ -188,7 +180,7 @@ def get_data():
             "tokens_str": tokens_str,
             "cost_usd": cost_usd,
             "daily_budget_usd": daily_budget,
-            "curved_text": f"{cost_str} SPENT" if cost_str else "",
+            "curved_text": curved_text if mode == "enterprise" else (f"{cost_str} SPENT" if cost_str else ""),
             "percent": percent,
             "reset_str": reset_str
         }

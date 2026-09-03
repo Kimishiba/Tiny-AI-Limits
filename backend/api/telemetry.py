@@ -165,8 +165,10 @@ def get_data():
             cost_str = compact_tok
             cost_usd = 0.0
             percent = 100
-            reset_str = f"{tokens_str} TOK"
             curved_text = f"{compact_tok} TOK"
+            # Preserve reset_str for the rolling quota reset countdown timer (e.g. "12m", "5h", "READY")
+            if not reset_str:
+                reset_str = "READY"
 
         return {
             "id": provider_id,
