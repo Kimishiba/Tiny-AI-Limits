@@ -797,12 +797,20 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 etype = entry.get("type")
                 esubtype = entry.get("subtype")
 
-                # Claude Desktop App permission requests & responses
+                # Claude Desktop App permission requests & responses (with 30-min TTL bound)
                 if etype == "system" and esubtype in ("permission_request", "confirm_request"):
-                    p_id = entry.get("uuid") or entry.get("id") or "req"
+                    ts_str = entry.get("timestamp")
+                    if ts_str:
+                        try:
+                            req_ts = datetime.fromisoformat(str(ts_str).replace("Z", "+00:00")).timestamp()
+                            if (now_ts - req_ts) > 1800:
+                                continue
+                        except Exception:
+                            pass
+                    p_id = str(entry.get("uuid") or entry.get("id") or "req")[:64]
                     pending_permissions[p_id] = entry
                 elif etype == "system" and esubtype in ("permission_response", "permission_auto_approved"):
-                    p_id = entry.get("uuid") or entry.get("id") or "req"
+                    p_id = str(entry.get("uuid") or entry.get("id") or "req")[:64]
                     pending_permissions.pop(p_id, None)
 
                 # Final result marker (Desktop App / CLI completion)
