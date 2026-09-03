@@ -31,11 +31,59 @@ fi
 
 cd "$WORK_DIR"
 
-# Locate Python 3 interpreter
-export PYTHONPATH="/Users/alessandro.longoni/Library/Python/3.9/lib/python/site-packages:$PYTHONPATH"
-PYTHON_BIN="$HOME/.tiny_ai_screen/venv/bin/python3"
-if [ ! -x "$PYTHON_BIN" ]; then
-    PYTHON_BIN="/usr/bin/python3"
+# Locate Python 3 interpreter (prioritize environment with working dependencies)
+CANDIDATES=(
+    "$VIRTUAL_ENV/bin/python3"
+    "$WORK_DIR/.venv/bin/python3"
+    "$HOME/.tiny_ai_screen/venv/bin/python3"
+    "/opt/homebrew/bin/python3"
+    "/usr/local/bin/python3"
+    "$(command -v python3 2>/dev/null || true)"
+    "/usr/bin/python3"
+)
+
+PYTHON_BIN=""
+
+# Dynamic user site-packages resolution (portable across any macOS user/account)
+for CANDIDATE in "${CANDIDATES[@]}"; do
+    if [ -n "$CANDIDATE" ] && [ -x "$CANDIDATE" ]; then
+        USER_SITE="$("$CANDIDATE" -m site --user-site 2>/dev/null || true)"
+        if [ -n "$USER_SITE" ] && [ -d "$USER_SITE" ]; then
+            export PYTHONPATH="$USER_SITE:$PYTHONPATH"
+        fi
+        if "$CANDIDATE" -c "import flask, requests, rumps, zeroconf" >/dev/null 2>&1; then
+            PYTHON_BIN="$CANDIDATE"
+            break
+        fi
+    fi
+done
+
+# Fallback pass if none had dependencies pre-installed
+if [ -z "$PYTHON_BIN" ]; then
+    for CANDIDATE in "${CANDIDATES[@]}"; do
+        if [ -n "$CANDIDATE" ] && [ -x "$CANDIDATE" ]; then
+            PYTHON_BIN="$CANDIDATE"
+            break
+        fi
+    done
+fi
+
+if [ -z "$PYTHON_BIN" ]; then
+    osascript -e 'display alert "Tiny Screen Error" message "Python 3 could not be found on this system. Please install Python 3 or Homebrew to run the companion app." as critical'
+    exit 1
+fi
+
+# Dependency verification & automated installation attempt
+if ! "$PYTHON_BIN" -c "import flask, requests, rumps, zeroconf" >/dev/null 2>&1; then
+    if [ -f "$BACKEND_DIR/requirements.txt" ]; then
+        osascript -e 'display notification "Installing required dependencies (flask, rumps, zeroconf)..." with title "Tiny Screen Companion"'
+        "$PYTHON_BIN" -m pip install -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || \
+        "$PYTHON_BIN" -m pip install --break-system-packages -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || \
+        "$PYTHON_BIN" -m pip install --user -r "$BACKEND_DIR/requirements.txt" >/dev/null 2>&1 || {
+            osascript -e 'display alert "Tiny Screen Dependency Error" message "Could not automatically install Python dependencies. Please run: pip3 install -r backend/requirements.txt" as critical'
+            exit 1
+        }
+    fi
 fi
 
 # Execute backend companion application

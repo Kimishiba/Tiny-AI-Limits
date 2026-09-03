@@ -2420,6 +2420,12 @@ class TinyScreenMacStatusBarApp(object):
                     global _weather_cache
                     _weather_cache["data"] = None
                     _weather_cache["timestamp"] = 0
+                    try:
+                        import services.geocoding as gc_svc
+                        gc_svc._weather_cache["data"] = None
+                        gc_svc._weather_cache["timestamp"] = 0
+                    except Exception:
+                        pass
                     if not city or city.upper() == "AUTO":
                         config["auto_location"] = True
                         save_config(config)
