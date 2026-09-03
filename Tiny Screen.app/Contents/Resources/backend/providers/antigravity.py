@@ -4,6 +4,7 @@ import json
 import time
 import re
 import ssl
+import socket
 import subprocess
 import urllib.request
 import urllib.error
@@ -116,6 +117,13 @@ class AntigravityProvider(BaseProvider):
                 "X-Codeium-Csrf-Token": token,
             }
             for port in server["ports"]:
+                # Fast socket connectivity probe (200ms) to prevent blocking the poller
+                try:
+                    with socket.create_connection(('127.0.0.1', int(port)), timeout=0.2):
+                        pass
+                except (socket.timeout, socket.error, OSError, ConnectionRefusedError):
+                    continue
+
                 for scheme in ["https", "http"]:
                     url = f"{scheme}://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
                     try:

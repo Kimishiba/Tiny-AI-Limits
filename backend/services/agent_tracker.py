@@ -8,6 +8,7 @@ import threading
 import logging
 import shlex
 import pathlib
+import sqlite3
 try:
     import fcntl
 except ImportError:
@@ -154,13 +155,40 @@ def _extract_antigravity_context(transcript_lines=None, role=None, objective=Non
     return ""
 
 def _extract_claude_context(cwd=None, transcript_lines=None):
+    if transcript_lines:
+        generic_words = {"please", "help", "project", "work", "start", "working", "need", "make", "file"}
+        stop_words = {"the", "and", "for", "with", "this", "that", "from", "also", "into", "we"}
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("type") == "user":
+                msg = entry.get("message", {})
+                content = msg.get("content", "") if isinstance(msg, dict) else entry.get("content", "")
+                if isinstance(content, list):
+                    content = " ".join(c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text")
+                if isinstance(content, str) and content.strip():
+                    words = re.findall(r"[A-Za-z0-9]+", content)
+                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and len(w) >= 3]
+                    if filtered:
+                        phrase = _format_context_phrase(filtered, max_len=12)
+                        if phrase:
+                            return phrase
     if cwd:
         base = os.path.basename(os.path.normpath(cwd))
-        words = re.findall(r"[A-Za-z0-9]+", base)
-        if words:
-            phrase = _format_context_phrase(words, max_len=12)
-            if phrase:
-                return phrase
+        if not base.startswith("local_"):
+            words = re.findall(r"[A-Za-z0-9]+", base)
+            if words:
+                phrase = _format_context_phrase(words, max_len=12)
+                if phrase:
+                    return phrase
     return ""
 
 def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
@@ -207,7 +235,12 @@ def resolve_session_state(found_pending, turn_pending_prompt, has_in_flight_tool
             return "COMPLETE", "work_complete", "WORK COMPLETE", "#00FF88"
         else:
             return "IDLE", "idle", "IDLE", "#94A3B8"
-    elif has_in_flight_tools or age < IN_FLIGHT_TIMEOUT_SECONDS:
+    elif has_in_flight_tools:
+        if age < IN_FLIGHT_TIMEOUT_SECONDS:
+            return "WORKING", "working", "EXECUTING...", working_color
+        else:
+            return "WAITING", "waiting_approval", turn_pending_prompt if turn_pending_prompt != "INPUT REQ" else "GRANT PERM", "#FFB800"
+    elif age < IN_FLIGHT_TIMEOUT_SECONDS:
         return "WORKING", "working", "EXECUTING...", working_color
     else:
         return "IDLE", "idle", "IDLE", "#94A3B8"
@@ -516,6 +549,51 @@ def get_claude_dirs():
         dirs.append(os.path.join(user_home, "Library", "Application Support", "claude-code"))
     return [d for d in dirs if os.path.exists(d)]
 
+def _get_antigravity_db_step(session_id, brain_dir=None):
+    candidates = []
+    if brain_dir:
+        parent = os.path.dirname(os.path.abspath(brain_dir))
+        candidates.append(os.path.join(parent, "conversations", f"{session_id}.db"))
+    home = os.path.expanduser("~")
+    candidates.append(os.path.join(home, ".gemini", "antigravity", "conversations", f"{session_id}.db"))
+    candidates.append(os.path.join(home, ".antigravity", "conversations", f"{session_id}.db"))
+
+    for db_path in candidates:
+        if not os.path.isfile(db_path):
+            continue
+        try:
+            con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=0.1)
+            try:
+                row = con.execute("SELECT idx, step_type, status, metadata FROM steps ORDER BY idx DESC LIMIT 1").fetchone()
+                if row:
+                    return {"idx": row[0], "step_type": row[1], "status": row[2], "metadata": row[3]}
+            finally:
+                con.close()
+        except Exception:
+            continue
+    return None
+
+def _format_antigravity_pending_prompt(tool_name: str = "", tool_args: dict = None, raw_meta: bytes = None) -> str:
+    name_lower = (tool_name or "").lower()
+    args_str = str(tool_args or "").lower()
+    if not name_lower and raw_meta:
+        for candidate in ("read_url_content", "read_browser_page", "search_web", "run_command", "write_to_file", "replace_file_content", "ask_question"):
+            if candidate.encode("utf-8") in raw_meta:
+                name_lower = candidate
+                break
+
+    if "url" in name_lower or "web" in name_lower or "browser" in name_lower or "url" in args_str or "http" in args_str:
+        return "VISIT URL"
+    if "command" in name_lower or "cmd" in name_lower or "bash" in name_lower or "terminal" in name_lower or "exec" in name_lower:
+        return "RUN CMD"
+    if "write" in name_lower or "edit" in name_lower or "replace" in name_lower or "file" in name_lower:
+        return "EDIT FILE"
+    if "question" in name_lower:
+        return "ANSWER Q"
+    if "plan" in name_lower:
+        return "APPROVE PLAN"
+    return "GRANT PERM"
+
 def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
     if brain_dirs is None:
         brain_dirs = _antigravity_brain_dirs()
@@ -559,8 +637,24 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             session_id = parts[-4] if len(parts) >= 4 and parts[-3] == ".system_generated" else os.path.basename(root)
             label = get_stable_agent_label("antigravity", session_id, transcript_lines=lines)
 
+            # Check SQLite database for real-time step status (CORTEX_STEP_STATUS_WAITING = 9)
+            db_step = _get_antigravity_db_step(session_id, brain_dir)
+            db_status = db_step.get("status") if db_step else None
+
             if last_user_idx == len(lines) - 1:
-                if age < 45:
+                if db_status == 9:
+                    sessions.append({
+                        "id": session_id,
+                        "name": label,
+                        "source": "antigravity",
+                        "state": "WAITING",
+                        "code": "waiting_approval",
+                        "detail": _format_antigravity_pending_prompt(raw_meta=db_step.get("metadata")),
+                        "color": "#FFB800",
+                        "age_seconds": int(age),
+                        "mtime": mtime
+                    })
+                elif age < 45:
                     sessions.append({
                         "id": session_id,
                         "name": label,
@@ -591,7 +685,16 @@ def scan_antigravity_sessions(brain_dirs=None, now_ts=None):
             is_final_turn_response = False
             has_in_flight_tools = False
 
-            if step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
+            if db_status == 9:
+                found_pending = True
+                tool_name = ""
+                tool_args = {}
+                tool_calls = last_step_entry.get("tool_calls", []) or []
+                if tool_calls and isinstance(tool_calls[0], dict):
+                    tool_name = tool_calls[0].get("name", "")
+                    tool_args = tool_calls[0].get("args", {}) or {}
+                turn_pending_prompt = _format_antigravity_pending_prompt(tool_name, tool_args, db_step.get("metadata"))
+            elif step_type in ("ASK_QUESTION", "ASK_PERMISSION"):
                 found_pending = True
                 turn_pending_prompt = "ANSWER Q" if step_type == "ASK_QUESTION" else "GRANT PERM"
             elif step_type == "PLANNER_RESPONSE":
@@ -700,6 +803,8 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 continue
             if not lines:
                 continue
+            if len(lines) > 2000:
+                lines = lines[-2000:]
 
             last_user_idx = -1
             for idx in range(len(lines) - 1, -1, -1):
@@ -719,7 +824,12 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 except Exception:
                     pass
 
-            session_id = os.path.splitext(os.path.basename(fp))[0]
+            if os.path.basename(fp) == "audit.jsonl":
+                parent_dir = os.path.basename(os.path.dirname(fp))
+                session_id = (parent_dir[6:] if parent_dir.startswith("local_") else parent_dir) or parent_dir
+            else:
+                session_id = os.path.splitext(os.path.basename(fp))[0]
+
             label = get_stable_agent_label("claude", session_id, cwd=os.path.dirname(fp), transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
@@ -741,37 +851,86 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
             if not turn_lines:
                 continue
 
-            last_entry = {}
-            try:
-                last_entry = json.loads(turn_lines[-1])
-            except Exception:
-                pass
-
             found_pending = False
-            turn_pending_prompt = "CLAUDE PROMPT"
+            turn_pending_prompt = "GRANT PERM"
             has_in_flight_tools = False
             is_final_turn_response = False
 
-            if last_entry.get("type") == "assistant":
-                msg = last_entry.get("message", {})
-                content = msg.get("content", [])
-                if isinstance(content, list):
-                    for item in content:
-                        if isinstance(item, dict) and item.get("type") == "tool_use":
-                            t_name = (item.get("name") or "").lower()
-                            if t_name in ("askuserquestion", "ask_user_question"):
-                                found_pending = True
-                                turn_pending_prompt = "ANSWER Q"
-                                break
-                            elif t_name in ("ask_permission", "request_permission") or "permission" in t_name or "confirm" in t_name:
-                                found_pending = True
-                                turn_pending_prompt = "GRANT PERM"
-                                break
-                            else:
-                                has_in_flight_tools = True
-                    if not found_pending and not has_in_flight_tools:
-                        is_final_turn_response = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
-                elif isinstance(content, str) and content.strip():
+            pending_permissions = {}
+            unanswered_tool_calls = {}
+            has_result_success = False
+            last_assistant_has_text = False
+            last_assistant_has_tools = False
+
+            for tl in turn_lines:
+                try:
+                    entry = json.loads(tl) if isinstance(tl, str) else tl
+                except Exception:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+
+                etype = entry.get("type")
+                esubtype = entry.get("subtype")
+
+                # Claude Desktop App permission requests & responses
+                if etype == "system" and esubtype in ("permission_request", "confirm_request"):
+                    p_id = entry.get("uuid") or entry.get("id") or "req"
+                    pending_permissions[p_id] = entry
+                elif etype == "system" and esubtype in ("permission_response", "permission_auto_approved"):
+                    p_id = entry.get("uuid") or entry.get("id") or "req"
+                    pending_permissions.pop(p_id, None)
+
+                # Final result marker (Desktop App / CLI completion)
+                elif etype == "result" and esubtype in ("success", "completed"):
+                    has_result_success = True
+
+                # Assistant messages and tool calls
+                elif etype == "assistant":
+                    msg = entry.get("message", {})
+                    content = msg.get("content", [])
+                    has_tools_in_entry = False
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "tool_use":
+                                has_tools_in_entry = True
+                                tu_id = item.get("id") or item.get("tool_use_id") or "tu"
+                                tu_name = (item.get("name") or "").lower()
+                                unanswered_tool_calls[tu_id] = tu_name
+                        last_assistant_has_text = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
+                    elif isinstance(content, str) and content.strip():
+                        last_assistant_has_text = True
+                    last_assistant_has_tools = has_tools_in_entry
+
+                # User messages / tool results answering prior tool uses
+                elif etype == "user":
+                    msg = entry.get("message", {})
+                    content = msg.get("content", [])
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "tool_result":
+                                tu_id = item.get("tool_use_id") or item.get("id")
+                                if tu_id:
+                                    unanswered_tool_calls.pop(tu_id, None)
+
+            if pending_permissions:
+                found_pending = True
+                turn_pending_prompt = "GRANT PERM"
+            else:
+                for tu_id, tu_name in list(unanswered_tool_calls.items()):
+                    if tu_name in ("askuserquestion", "ask_user_question", "ask_question"):
+                        found_pending = True
+                        turn_pending_prompt = "ANSWER Q"
+                        break
+                    elif tu_name in ("ask_permission", "request_permission") or "permission" in tu_name or "confirm" in tu_name:
+                        found_pending = True
+                        turn_pending_prompt = "GRANT PERM"
+                        break
+
+            if not found_pending:
+                if unanswered_tool_calls:
+                    has_in_flight_tools = True
+                elif has_result_success or (last_assistant_has_text and not last_assistant_has_tools):
                     is_final_turn_response = True
 
             state, code, detail, color = resolve_session_state(

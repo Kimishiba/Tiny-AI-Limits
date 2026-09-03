@@ -199,6 +199,51 @@ class TestAgentStatus(unittest.TestCase):
             self.assertTrue(status["waiting_for_input"])
             self.assertEqual(status["prompt_text"], "GRANT PERM")
 
+    def test_antigravity_sqlite_waiting_for_permission_website(self):
+        import tempfile
+        import sqlite3
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            brain_dir = os.path.join(tmp_dir, "brain")
+            conv_dir = os.path.join(tmp_dir, "conversations")
+            session_id = "test-session-web"
+            session_logs = os.path.join(brain_dir, session_id, ".system_generated", "logs")
+            os.makedirs(session_logs, exist_ok=True)
+            os.makedirs(conv_dir, exist_ok=True)
+            transcript_file = os.path.join(session_logs, "transcript.jsonl")
+
+            with open(transcript_file, "w") as f:
+                f.write(json.dumps({
+                    "type": "USER_INPUT",
+                    "content": "check this website"
+                }) + "\n")
+                f.write(json.dumps({
+                    "type": "PLANNER_RESPONSE",
+                    "created_at": "2026-09-03T14:14:04Z",
+                    "tool_calls": [
+                        {
+                            "name": "read_url_content",
+                            "args": {"Url": "https://example.com"}
+                        }
+                    ]
+                }) + "\n")
+
+            db_file = os.path.join(conv_dir, f"{session_id}.db")
+            con = sqlite3.connect(db_file)
+            con.execute("CREATE TABLE steps (idx integer, step_type integer, status integer, metadata blob, PRIMARY KEY (idx))")
+            con.execute("INSERT INTO steps VALUES (1, 132, 9, ?)", (b'read_url_content',))
+            con.commit()
+            con.close()
+
+            status = check_agent_status(antigravity_dirs=[brain_dir], claude_dirs=[], now_ts=time.time())
+            self.assertTrue(status["waiting_for_input"])
+            self.assertEqual(status["prompt_text"], "VISIT URL")
+
+            sessions = scan_antigravity_sessions(brain_dirs=[brain_dir], now_ts=time.time())
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "VISIT URL")
+            self.assertEqual(sessions[0]["color"], "#FFB800")
+
     def test_claude_permission_prompt(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -601,6 +646,46 @@ class TestAgentStatus(unittest.TestCase):
         data = json.loads(res.data.decode("utf-8"))
         self.assertEqual(data["display_rotation"], 3)
         self.assertEqual(data["rotation_deg"], 270)
+
+    def test_claude_desktop_audit_permission_and_completion(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session_dir = os.path.join(tmpdir, "local-agent-mode-sessions", "proj", "sess", "local_123456")
+            os.makedirs(session_dir, exist_ok=True)
+            audit_fp = os.path.join(session_dir, "audit.jsonl")
+            
+            # Scenario 1: User prompt followed by permission_request
+            lines = [
+                json.dumps({"type": "user", "message": {"role": "user", "content": "Deploy changes to production"}}),
+                json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "tu_1", "name": "deploy"}]}}),
+                json.dumps({"type": "system", "subtype": "permission_request", "uuid": "perm_1", "tool_name": "deploy"})
+            ]
+            with open(audit_fp, "w") as f:
+                f.write("\n".join(lines) + "\n")
+            
+            now_ts = os.path.getmtime(audit_fp) + 1.0
+            sessions = scan_claude_sessions([tmpdir], now_ts=now_ts)
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0]["state"], "WAITING")
+            self.assertEqual(sessions[0]["detail"], "GRANT PERM")
+            self.assertEqual(sessions[0]["color"], "#FFB800")
+            self.assertEqual(sessions[0]["name"], "Deploy")
+
+            # Scenario 2: Permission granted and tool execution completed with result success
+            lines.extend([
+                json.dumps({"type": "system", "subtype": "permission_response", "uuid": "perm_1", "decision": "once", "granted": True}),
+                json.dumps({"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "tu_1", "content": [{"type": "text", "text": "deployed"}]}]}}),
+                json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Deployment finished."}]}}),
+                json.dumps({"type": "result", "subtype": "success"})
+            ])
+            with open(audit_fp, "w") as f:
+                f.write("\n".join(lines) + "\n")
+            
+            now_ts = os.path.getmtime(audit_fp) + 2.0
+            sessions = scan_claude_sessions([tmpdir], now_ts=now_ts)
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0]["state"], "COMPLETE")
+            self.assertEqual(sessions[0]["detail"], "WORK COMPLETE")
+            self.assertEqual(sessions[0]["color"], "#00FF88")
 
 if __name__ == "__main__":
     unittest.main()
