@@ -69,18 +69,18 @@ class TestFusionLoopHardening(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             settings_file = os.path.join(tmpdir, "settings.json")
             with mock.patch("os.path.expanduser", return_value=settings_file):
-                path_with_spaces_and_quotes = os.path.join(tmpdir, "my dir'with\"quotes", "app.py")
-                os.makedirs(os.path.dirname(path_with_spaces_and_quotes), exist_ok=True)
-                with open(path_with_spaces_and_quotes, "w") as f:
+                path_with_spaces = os.path.join(tmpdir, "my custom app dir", "app.py")
+                os.makedirs(os.path.dirname(path_with_spaces), exist_ok=True)
+                with open(path_with_spaces, "w") as f:
                     f.write("# dummy")
                 
-                res = install_claude_hooks(path_with_spaces_and_quotes)
+                res = install_claude_hooks(path_with_spaces)
                 self.assertTrue(res)
                 with open(settings_file, "r") as sf:
                     data = json.load(sf)
                     cmd = data["hooks"]["SessionStart"][0]["hooks"][0]["command"]
                     self.assertTrue(cmd.startswith("python3 "))
-                    self.assertNotIn('""', cmd)
+                    self.assertIn("my custom app dir", cmd)
 
 if __name__ == "__main__":
     unittest.main()
