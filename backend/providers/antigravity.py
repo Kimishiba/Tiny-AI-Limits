@@ -118,14 +118,11 @@ class AntigravityProvider(BaseProvider):
             }
             for port in server["ports"]:
                 # Fast socket connectivity probe (200ms) to prevent blocking the poller
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.2)
                 try:
-                    s.connect(('127.0.0.1', int(port)))
-                except Exception:
+                    with socket.create_connection(('127.0.0.1', int(port)), timeout=0.2):
+                        pass
+                except (socket.timeout, socket.error, OSError, ConnectionRefusedError):
                     continue
-                finally:
-                    s.close()
 
                 for scheme in ["https", "http"]:
                     url = f"{scheme}://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"

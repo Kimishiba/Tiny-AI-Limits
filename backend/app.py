@@ -1542,6 +1542,8 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 continue
             if not lines:
                 continue
+            if len(lines) > 2000:
+                lines = lines[-2000:]
 
             last_user_idx = -1
             for idx in range(len(lines) - 1, -1, -1):
@@ -1563,7 +1565,7 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
 
             if os.path.basename(fp) == "audit.jsonl":
                 parent_dir = os.path.basename(os.path.dirname(fp))
-                session_id = parent_dir[6:] if parent_dir.startswith("local_") else parent_dir
+                session_id = (parent_dir[6:] if parent_dir.startswith("local_") else parent_dir) or parent_dir
             else:
                 session_id = os.path.splitext(os.path.basename(fp))[0]
 
