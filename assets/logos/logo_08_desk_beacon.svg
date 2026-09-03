@@ -1,0 +1,57 @@
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a2233"/>
+      <stop offset="100%" stop-color="#0e131d"/>
+    </linearGradient>
+    <radialGradient id="displayGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00dbe9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.2"/>
+    </radialGradient>
+    <linearGradient id="signalGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#00dbe9"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="dockShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <!-- Dock Base Pedestal -->
+  <g transform="translate(256,360)">
+    <ellipse cx="0" cy="0" rx="160" ry="36" fill="url(#dockGrad)" filter="url(#dockShadow)" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+  </g>
+
+  <!-- Central Antenna Beam -->
+  <g transform="translate(256,230)">
+    <line x1="0" y1="20" x2="0" y2="-100" stroke="#00dbe9" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+    <circle cx="0" cy="-105" r="10" fill="#10b981" filter="url(#glow)"/>
+  </g>
+
+  <!-- Tilted Micro-Display -->
+  <g transform="translate(256,240)">
+    <ellipse cx="0" cy="0" rx="84" ry="76" fill="#0a0c10" stroke="#2a3342" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="74" ry="66" fill="url(#displayGlow)"/>
+    <circle cx="44" cy="-24" r="5" fill="#10b981" filter="url(#glow)"/>
+  </g>
+
+  <!-- Wireless Broadcast Arcs -->
+  <g filter="url(#glow)" opacity="0.8">
+    <path d="M256,130 C200,90 140,80 90,90" stroke="url(#signalGrad)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M256,130 C312,90 372,80 422,90" stroke="url(#signalGrad)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M256,100 C220,60 170,50 120,60" stroke="url(#signalGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+    <path d="M256,100 C292,60 342,50 392,60" stroke="url(#signalGrad)" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+  </g>
+
+  <text x="256" y="440" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="36" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="3">BEACON.AI</text>
+  <text x="256" y="470" font-family="'JetBrains Mono', monospace" font-size="14" fill="#00dbe9" text-anchor="middle" letter-spacing="3">CONNECTED // 240x240</text>
+</svg>

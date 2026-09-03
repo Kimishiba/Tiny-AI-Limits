@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Canvas -->
+  <rect width="512" height="512" fill="#ffffff" rx="0"/>
+
+  <!-- Outer Container Hard Shadow (+8px, +8px) -->
+  <rect x="44" y="44" width="432" height="432" rx="0" fill="#000000"/>
+  <!-- Outer Container Surface -->
+  <rect x="36" y="36" width="432" height="432" rx="0" fill="#ffffff" stroke="#000000" stroke-width="6"/>
+
+  <!-- Desktop Stand Hard Shadow -->
+  <rect x="186" y="374" width="152" height="24" rx="0" fill="#000000"/>
+  <!-- Desktop Stand -->
+  <rect x="180" y="368" width="152" height="24" rx="0" fill="#eeeeee" stroke="#000000" stroke-width="4"/>
+
+  <!-- Monitor Chassis Hard Shadow (+8px, +8px) -->
+  <rect x="128" y="116" width="272" height="240" rx="0" fill="#000000"/>
+  <!-- Monitor Chassis (Light Gray) -->
+  <rect x="120" y="108" width="272" height="240" rx="0" fill="#f4f4f4" stroke="#000000" stroke-width="5"/>
+
+  <!-- Screen Viewport Hard Shadow (+6px, +6px) -->
+  <rect x="146" y="132" width="232" height="170" rx="0" fill="#000000"/>
+  <!-- Screen Viewport (Pure White) -->
+  <rect x="140" y="126" width="232" height="170" rx="0" fill="#ffffff" stroke="#000000" stroke-width="4"/>
+
+  <!-- AI Geometric Spark Node (Square Concentric Encasement) -->
+  <rect x="220" y="160" width="72" height="72" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="3"/>
+  <rect x="232" y="172" width="48" height="48" rx="0" fill="#ffffff" stroke="#000000" stroke-width="3"/>
+  <rect x="244" y="184" width="24" height="24" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="3"/>
+
+  <!-- Quota Status Bar -->
+  <rect x="140" y="272" width="232" height="24" rx="0" fill="#eeeeee" stroke="#000000" stroke-width="3"/>
+  <rect x="140" y="272" width="168" height="24" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="3"/>
+  <text x="256" y="289" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="12" text-anchor="middle" fill="#000000">72% QUOTA</text>
+
+  <!-- "TINY AI" Tag Hard Shadow -->
+  <rect x="166" y="406" width="192" height="46" rx="0" fill="#000000"/>
+  <!-- "TINY AI" Tag Main: Vibrant Orange (#ff5f1f) -->
+  <rect x="160" y="400" width="192" height="46" rx="0" fill="#ff5f1f" stroke="#000000" stroke-width="4"/>
+  <text x="256" y="432" text-anchor="middle" font-family="'Anybody', sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="0.02em">TINY AI</text>
+
+  <!-- Corner Spec Chip -->
+  <rect x="48" y="48" width="156" height="30" rx="0" fill="#000000"/>
+  <rect x="44" y="44" width="156" height="30" rx="0" fill="#ffffff" stroke="#000000" stroke-width="2.5"/>
+  <text x="122" y="64" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="12" fill="#000000" letter-spacing="0.05em">240×240 // COMPANION</text>
+</svg>

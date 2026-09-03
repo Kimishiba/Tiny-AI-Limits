@@ -4,6 +4,7 @@ import json
 import time
 import re
 import ssl
+import socket
 import subprocess
 import urllib.request
 import urllib.error
@@ -59,8 +60,13 @@ class AntigravityProvider(BaseProvider):
             return servers
 
         try:
-            ps_output = subprocess.check_output(["ps", "aux"], text=True, timeout=3)
-        except Exception as e:
+            ps_output = subprocess.check_output(
+                ["ps", "aux"],
+                text=True,
+                timeout=2.0,
+                stderr=subprocess.DEVNULL
+            )
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError, PermissionError, OSError) as e:
             logger.debug("Failed executing ps to locate language server: %s", e)
             return servers
 
@@ -68,24 +74,27 @@ class AntigravityProvider(BaseProvider):
             if "language_server" not in line:
                 continue
             parts = line.split(None, 10)
-            if len(parts) < 2:
+            if len(parts) < 2 or not parts[1].isdigit():
                 continue
             pid = parts[1]
-            token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9-]+)", line)
+            token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9_-]+)", line)
             if not token_match:
                 continue
             csrf_token = token_match.group(1)
+            if not re.match(r'^[a-zA-Z0-9_-]+$', csrf_token):
+                continue
 
             try:
                 lsof_output = subprocess.check_output(
                     ["lsof", "-a", "-p", pid, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
-                    text=True, stderr=subprocess.DEVNULL, timeout=3
+                    text=True, stderr=subprocess.DEVNULL, timeout=2.0
                 )
                 ports = sorted(set(
                     int(m.group(1))
                     for m in re.finditer(r":(\d+)\s*\(LISTEN\)", lsof_output)
+                    if 1024 <= int(m.group(1)) <= 65535
                 ))
-            except Exception:
+            except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError, PermissionError, OSError):
                 ports = []
 
             if ports:
@@ -117,14 +126,11 @@ class AntigravityProvider(BaseProvider):
             }
             for port in server["ports"]:
                 # Fast socket connectivity probe (200ms) to prevent blocking the poller
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.settimeout(0.2)
                 try:
-                    s.connect(('127.0.0.1', int(port)))
-                except Exception:
+                    with socket.create_connection(('127.0.0.1', int(port)), timeout=0.2):
+                        pass
+                except (socket.timeout, socket.error, OSError, ConnectionRefusedError):
                     continue
-                finally:
-                    s.close()
 
                 for scheme in ["https", "http"]:
                     url = f"{scheme}://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"

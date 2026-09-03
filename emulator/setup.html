@@ -707,11 +707,11 @@
               <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 1 Mode / Plan:</label>
               <select id="gauge-left-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
                 <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
-                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+                <option value="enterprise">Enterprise (24h Tokens)</option>
               </select>
             </div>
-            <div id="gauge-left-budget-row" style="margin-top: 0.5rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+            <div id="gauge-left-budget-row" style="margin-top: 0.5rem; display: none;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget:</label>
               <input type="number" step="0.5" min="1" id="gauge-left-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
             </div>
           </div>
@@ -734,11 +734,11 @@
               <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 2 Mode / Plan:</label>
               <select id="gauge-right-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
                 <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
-                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+                <option value="enterprise">Enterprise (24h Tokens)</option>
               </select>
             </div>
-            <div id="gauge-right-budget-row" style="margin-top: 0.5rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+            <div id="gauge-right-budget-row" style="margin-top: 0.5rem; display: none;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget:</label>
               <input type="number" step="0.5" min="1" id="gauge-right-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
             </div>
           </div>
@@ -754,11 +754,11 @@
             <div>
               <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Claude Account Plan:</label>
               <select id="claude-plan-select" style="width: 100%; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #fff; cursor: pointer;">
-                <option value="enterprise">Enterprise / Team / PAYG ($ Cost & Tokens)</option>
+                <option value="enterprise">Enterprise / Team (24h Token Volume)</option>
                 <option value="standard">Standard Free / Pro (5h Quota Countdown)</option>
               </select>
               <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
-                Enterprise mode displays live USD ($ spent) and 24h token volume on the left HUD gauge.
+                Enterprise mode displays live 24h token volume on the HUD gauge.
               </div>
             </div>
             <div>
@@ -1247,8 +1247,33 @@
       gaugeRightBudgetRow.style.display = (gaugeRightPlan.value === 'enterprise') ? 'block' : 'none';
     }
 
-    gaugeLeftPlan.addEventListener('change', updatePlanUiVisibility);
-    gaugeRightPlan.addEventListener('change', updatePlanUiVisibility);
+    gaugeLeftPlan.addEventListener('change', () => {
+      updatePlanUiVisibility();
+      if (gaugeLeftSelect.value === 'claude') {
+        const cldSelect = document.getElementById('claude-plan-select');
+        if (cldSelect) cldSelect.value = gaugeLeftPlan.value;
+      }
+      saveGaugesBtn.click();
+    });
+
+    gaugeRightPlan.addEventListener('change', () => {
+      updatePlanUiVisibility();
+      if (gaugeRightSelect.value === 'claude') {
+        const cldSelect = document.getElementById('claude-plan-select');
+        if (cldSelect) cldSelect.value = gaugeRightPlan.value;
+      }
+      saveGaugesBtn.click();
+    });
+
+    const claudePlanSelect = document.getElementById('claude-plan-select');
+    if (claudePlanSelect) {
+      claudePlanSelect.addEventListener('change', () => {
+        if (gaugeLeftSelect.value === 'claude') gaugeLeftPlan.value = claudePlanSelect.value;
+        if (gaugeRightSelect.value === 'claude') gaugeRightPlan.value = claudePlanSelect.value;
+        updatePlanUiVisibility();
+        saveGaugesBtn.click();
+      });
+    }
 
     function renderProviderStatus(provider) {
       if (!provider) return "Unknown";
@@ -1275,10 +1300,43 @@
 
       const plans = savedConfig.provider_plans || {};
       const budgets = savedConfig.provider_daily_budgets || {};
-      if (plans[leftId]) gaugeLeftPlan.value = plans[leftId];
-      if (plans[rightId]) gaugeRightPlan.value = plans[rightId];
-      if (budgets[leftId] !== undefined) gaugeLeftBudget.value = budgets[leftId];
-      if (budgets[rightId] !== undefined) gaugeRightBudget.value = budgets[rightId];
+
+      if (plans[leftId]) {
+        gaugeLeftPlan.value = plans[leftId];
+      } else if (leftId === 'claude' && savedConfig.claude_plan) {
+        gaugeLeftPlan.value = savedConfig.claude_plan;
+      } else {
+        gaugeLeftPlan.value = 'standard';
+      }
+
+      if (plans[rightId]) {
+        gaugeRightPlan.value = plans[rightId];
+      } else if (rightId === 'claude' && savedConfig.claude_plan) {
+        gaugeRightPlan.value = savedConfig.claude_plan;
+      } else {
+        gaugeRightPlan.value = 'standard';
+      }
+
+      if (budgets[leftId] !== undefined) {
+        gaugeLeftBudget.value = budgets[leftId];
+      } else if (leftId === 'claude' && savedConfig.claude_daily_budget_usd) {
+        gaugeLeftBudget.value = savedConfig.claude_daily_budget_usd;
+      }
+
+      if (budgets[rightId] !== undefined) {
+        gaugeRightBudget.value = budgets[rightId];
+      } else if (rightId === 'claude' && savedConfig.claude_daily_budget_usd) {
+        gaugeRightBudget.value = savedConfig.claude_daily_budget_usd;
+      }
+
+      if (claudePlanSelect) {
+        if (savedConfig.claude_plan) {
+          claudePlanSelect.value = savedConfig.claude_plan;
+        } else if (plans.claude) {
+          claudePlanSelect.value = plans.claude;
+        }
+      }
+
       updatePlanUiVisibility();
     }
 
@@ -1290,7 +1348,8 @@
         ]);
         if (!resProv.ok) return;
         const data = await resProv.json();
-        savedConfig = resCfg.ok ? ((await resCfg.json()).config || {}) : {};
+        const rawCfg = resCfg.ok ? await resCfg.json() : {};
+        savedConfig = rawCfg.config || rawCfg;
 
         allProvidersList = data.providers || [];
         const selected = data.selected_gauges || { left: 'claude', right: 'antigravity' };
@@ -1313,19 +1372,13 @@
           gaugeRightSelect.appendChild(optRight);
         });
 
-        // Load Claude Plan config
-        try {
-          const cfgRes = await fetch('/api/config');
-          if (cfgRes.ok) {
-            const cfg = await cfgRes.json();
-            if (cfg.claude_plan) {
-              document.getElementById('claude-plan-select').value = cfg.claude_plan;
-            }
-            if (cfg.claude_daily_budget_usd) {
-              document.getElementById('claude-budget-input').value = cfg.claude_daily_budget_usd;
-            }
-          }
-        } catch (e) {}
+        if (savedConfig.claude_plan && claudePlanSelect) {
+          claudePlanSelect.value = savedConfig.claude_plan;
+        }
+        if (savedConfig.claude_daily_budget_usd) {
+          const budgetInput = document.getElementById('claude-budget-input');
+          if (budgetInput) budgetInput.value = savedConfig.claude_daily_budget_usd;
+        }
 
         updateGaugeStatusDisplay();
       } catch (err) {

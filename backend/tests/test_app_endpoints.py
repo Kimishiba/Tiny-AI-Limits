@@ -5,6 +5,8 @@ import socket
 import unittest
 from unittest.mock import patch, MagicMock
 
+import tempfile
+
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import app
@@ -13,6 +15,12 @@ class TestAppEndpoints(unittest.TestCase):
     def setUp(self):
         self.client = app.app.test_client()
         self.orig_config = dict(app.config)
+        self.orig_config_file = app.CONFIG_FILE
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        app.CONFIG_FILE = os.path.join(self.tmp_dir.name, "config.json")
+        # Save current config to temp file
+        with open(app.CONFIG_FILE, "w") as f:
+            json.dump(self.orig_config, f)
         # Reset test overrides
         app.test_agents_override = None
         app.test_idle_override = False
@@ -21,6 +29,11 @@ class TestAppEndpoints(unittest.TestCase):
 
     def tearDown(self):
         app.config = dict(self.orig_config)
+        app.CONFIG_FILE = self.orig_config_file
+        try:
+            self.tmp_dir.cleanup()
+        except Exception:
+            pass
         app.test_agents_override = None
         app.test_idle_override = False
         app.test_alert_override = False

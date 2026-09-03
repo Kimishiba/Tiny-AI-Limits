@@ -154,13 +154,40 @@ def _extract_antigravity_context(transcript_lines=None, role=None, objective=Non
     return ""
 
 def _extract_claude_context(cwd=None, transcript_lines=None):
+    if transcript_lines:
+        generic_words = {"please", "help", "project", "work", "start", "working", "need", "make", "file"}
+        stop_words = {"the", "and", "for", "with", "this", "that", "from", "also", "into", "we"}
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("type") == "user":
+                msg = entry.get("message", {})
+                content = msg.get("content", "") if isinstance(msg, dict) else entry.get("content", "")
+                if isinstance(content, list):
+                    content = " ".join(c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text")
+                if isinstance(content, str) and content.strip():
+                    words = re.findall(r"[A-Za-z0-9]+", content)
+                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and len(w) >= 3]
+                    if filtered:
+                        phrase = _format_context_phrase(filtered, max_len=12)
+                        if phrase:
+                            return phrase
     if cwd:
         base = os.path.basename(os.path.normpath(cwd))
-        words = re.findall(r"[A-Za-z0-9]+", base)
-        if words:
-            phrase = _format_context_phrase(words, max_len=12)
-            if phrase:
-                return phrase
+        if not base.startswith("local_"):
+            words = re.findall(r"[A-Za-z0-9]+", base)
+            if words:
+                phrase = _format_context_phrase(words, max_len=12)
+                if phrase:
+                    return phrase
     return ""
 
 def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
@@ -700,6 +727,8 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 continue
             if not lines:
                 continue
+            if len(lines) > 2000:
+                lines = lines[-2000:]
 
             last_user_idx = -1
             for idx in range(len(lines) - 1, -1, -1):
@@ -719,7 +748,12 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 except Exception:
                     pass
 
-            session_id = os.path.splitext(os.path.basename(fp))[0]
+            if os.path.basename(fp) == "audit.jsonl":
+                parent_dir = os.path.basename(os.path.dirname(fp))
+                session_id = (parent_dir[6:] if parent_dir.startswith("local_") else parent_dir) or parent_dir
+            else:
+                session_id = os.path.splitext(os.path.basename(fp))[0]
+
             label = get_stable_agent_label("claude", session_id, cwd=os.path.dirname(fp), transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
@@ -741,37 +775,94 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
             if not turn_lines:
                 continue
 
-            last_entry = {}
-            try:
-                last_entry = json.loads(turn_lines[-1])
-            except Exception:
-                pass
-
             found_pending = False
-            turn_pending_prompt = "CLAUDE PROMPT"
+            turn_pending_prompt = "GRANT PERM"
             has_in_flight_tools = False
             is_final_turn_response = False
 
-            if last_entry.get("type") == "assistant":
-                msg = last_entry.get("message", {})
-                content = msg.get("content", [])
-                if isinstance(content, list):
-                    for item in content:
-                        if isinstance(item, dict) and item.get("type") == "tool_use":
-                            t_name = (item.get("name") or "").lower()
-                            if t_name in ("askuserquestion", "ask_user_question"):
-                                found_pending = True
-                                turn_pending_prompt = "ANSWER Q"
-                                break
-                            elif t_name in ("ask_permission", "request_permission") or "permission" in t_name or "confirm" in t_name:
-                                found_pending = True
-                                turn_pending_prompt = "GRANT PERM"
-                                break
-                            else:
-                                has_in_flight_tools = True
-                    if not found_pending and not has_in_flight_tools:
-                        is_final_turn_response = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
-                elif isinstance(content, str) and content.strip():
+            pending_permissions = {}
+            unanswered_tool_calls = {}
+            has_result_success = False
+            last_assistant_has_text = False
+            last_assistant_has_tools = False
+
+            for tl in turn_lines:
+                try:
+                    entry = json.loads(tl) if isinstance(tl, str) else tl
+                except Exception:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+
+                etype = entry.get("type")
+                esubtype = entry.get("subtype")
+
+                # Claude Desktop App permission requests & responses (with 30-min TTL bound)
+                if etype == "system" and esubtype in ("permission_request", "confirm_request"):
+                    ts_str = entry.get("timestamp")
+                    if ts_str:
+                        try:
+                            req_ts = datetime.fromisoformat(str(ts_str).replace("Z", "+00:00")).timestamp()
+                            if (now_ts - req_ts) > 1800:
+                                continue
+                        except Exception:
+                            pass
+                    p_id = str(entry.get("uuid") or entry.get("id") or "req")[:64]
+                    pending_permissions[p_id] = entry
+                elif etype == "system" and esubtype in ("permission_response", "permission_auto_approved"):
+                    p_id = str(entry.get("uuid") or entry.get("id") or "req")[:64]
+                    pending_permissions.pop(p_id, None)
+
+                # Final result marker (Desktop App / CLI completion)
+                elif etype == "result" and esubtype in ("success", "completed"):
+                    has_result_success = True
+
+                # Assistant messages and tool calls
+                elif etype == "assistant":
+                    msg = entry.get("message", {})
+                    content = msg.get("content", [])
+                    has_tools_in_entry = False
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "tool_use":
+                                has_tools_in_entry = True
+                                tu_id = item.get("id") or item.get("tool_use_id") or "tu"
+                                tu_name = (item.get("name") or "").lower()
+                                unanswered_tool_calls[tu_id] = tu_name
+                        last_assistant_has_text = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
+                    elif isinstance(content, str) and content.strip():
+                        last_assistant_has_text = True
+                    last_assistant_has_tools = has_tools_in_entry
+
+                # User messages / tool results answering prior tool uses
+                elif etype == "user":
+                    msg = entry.get("message", {})
+                    content = msg.get("content", [])
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "tool_result":
+                                tu_id = item.get("tool_use_id") or item.get("id")
+                                if tu_id:
+                                    unanswered_tool_calls.pop(tu_id, None)
+
+            if pending_permissions:
+                found_pending = True
+                turn_pending_prompt = "GRANT PERM"
+            else:
+                for tu_id, tu_name in list(unanswered_tool_calls.items()):
+                    if tu_name in ("askuserquestion", "ask_user_question", "ask_question"):
+                        found_pending = True
+                        turn_pending_prompt = "ANSWER Q"
+                        break
+                    elif tu_name in ("ask_permission", "request_permission") or "permission" in tu_name or "confirm" in tu_name:
+                        found_pending = True
+                        turn_pending_prompt = "GRANT PERM"
+                        break
+
+            if not found_pending:
+                if unanswered_tool_calls:
+                    has_in_flight_tools = True
+                elif has_result_success or (last_assistant_has_text and not last_assistant_has_tools):
                     is_final_turn_response = True
 
             state, code, detail, color = resolve_session_state(

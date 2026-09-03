@@ -1,0 +1,74 @@
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0c10" />
+      <stop offset="50%" stop-color="#141a24" />
+      <stop offset="100%" stop-color="#0a0c10" />
+    </linearGradient>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5d020" />
+      <stop offset="100%" stop-color="#d4af37" />
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="pulse" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+      <feFlood flood-color="#10b981" result="glowColor" />
+      <feComposite in="glowColor" in2="blur" operator="in" result="coloredBlur" />
+      <feMerge>
+        <feMergeNode in="coloredBlur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10" />
+
+  <!-- IC Chip Package Base -->
+  <rect x="136" y="116" width="240" height="240" rx="16" fill="url(#chipGradient)" stroke="#d4af37" stroke-width="2" />
+
+  <!-- Gold Contact Pins -->
+  <g fill="url(#goldGradient)">
+    <!-- Top Pins -->
+    <rect x="170" y="96" width="16" height="20" rx="2" />
+    <rect x="206" y="96" width="16" height="20" rx="2" />
+    <rect x="248" y="96" width="16" height="20" rx="2" />
+    <rect x="290" y="96" width="16" height="20" rx="2" />
+    <rect x="326" y="96" width="16" height="20" rx="2" />
+    <!-- Bottom Pins -->
+    <rect x="170" y="356" width="16" height="20" rx="2" />
+    <rect x="206" y="356" width="16" height="20" rx="2" />
+    <rect x="248" y="356" width="16" height="20" rx="2" />
+    <rect x="290" y="356" width="16" height="20" rx="2" />
+    <rect x="326" y="356" width="16" height="20" rx="2" />
+    <!-- Left Pins -->
+    <rect x="116" y="150" width="20" height="16" rx="2" />
+    <rect x="116" y="186" width="20" height="16" rx="2" />
+    <rect x="116" y="228" width="20" height="16" rx="2" />
+    <rect x="116" y="270" width="20" height="16" rx="2" />
+    <rect x="116" y="306" width="20" height="16" rx="2" />
+    <!-- Right Pins -->
+    <rect x="376" y="150" width="20" height="16" rx="2" />
+    <rect x="376" y="186" width="20" height="16" rx="2" />
+    <rect x="376" y="228" width="20" height="16" rx="2" />
+    <rect x="376" y="270" width="20" height="16" rx="2" />
+    <rect x="376" y="306" width="20" height="16" rx="2" />
+  </g>
+
+  <!-- Embedded Micro Screen Bezel -->
+  <rect x="166" y="156" width="180" height="160" rx="8" fill="#040608" stroke="#1f293d" stroke-width="2" />
+
+  <!-- AI Waveforms -->
+  <path d="M180 236 Q195 190, 210 236 T240 236 T270 200 T300 260 T330 236" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" filter="url(#glow)" />
+  <path d="M180 246 Q195 210, 210 246 T240 246 T270 220 T300 270 T330 246" fill="none" stroke="#00dbe9" stroke-width="2" stroke-linecap="round" filter="url(#glow)" opacity="0.8" />
+
+  <!-- Status Indicators -->
+  <circle cx="186" cy="176" r="4" fill="#10b981" filter="url(#pulse)" />
+  <circle cx="202" cy="176" r="4" fill="#f59e0b" filter="url(#pulse)" />
+  <circle cx="218" cy="176" r="4" fill="#00dbe9" filter="url(#pulse)" />
+
+  <text x="256" y="420" font-family="'JetBrains Mono', monospace" font-size="28" font-weight="700" fill="#d4af37" text-anchor="middle" letter-spacing="3">TINY AI</text>
+  <text x="256" y="450" font-family="'JetBrains Mono', monospace" font-size="14" fill="#10b981" text-anchor="middle" letter-spacing="2">// ESP32 HARDWARE</text>
+</svg>

@@ -1,0 +1,36 @@
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="glassGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f17" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#141a24" stop-opacity="0.95"/>
+    </linearGradient>
+    <radialGradient id="aiGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00dbe9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.8"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="#0a0c10" rx="48"/>
+  <rect x="64" y="64" width="384" height="384" fill="url(#glassGradient)" rx="48" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+
+  <!-- T Top Bar (Screen Bezel) -->
+  <path d="M156 160h200" stroke="#00dbe9" stroke-width="24" stroke-linecap="round" filter="url(#glow)"/>
+  <rect x="156" y="148" width="200" height="24" fill="#0b0f17" rx="4"/>
+
+  <!-- T Stem (Segmented Gauge) -->
+  <path d="M256 160v160" stroke="#1f293d" stroke-width="28" stroke-linecap="round"/>
+  <rect x="244" y="172" width="24" height="36" fill="#00dbe9" rx="4" filter="url(#glow)"/>
+  <rect x="244" y="218" width="24" height="36" fill="#00dbe9" rx="4" filter="url(#glow)"/>
+  <rect x="244" y="264" width="24" height="36" fill="#10b981" rx="4" filter="url(#glow)"/>
+
+  <!-- Central AI Orb in Notch -->
+  <circle cx="256" cy="160" r="18" fill="url(#aiGlow)" filter="url(#glow)"/>
+  <circle cx="256" cy="160" r="6" fill="#ffffff"/>
+
+  <text x="256" y="375" font-family="'Outfit', 'Space Grotesk', sans-serif" font-size="34" font-weight="800" text-anchor="middle" fill="#ffffff" letter-spacing="3">TINY</text>
+  <text x="256" y="410" font-family="'JetBrains Mono', monospace" font-size="18" font-weight="600" letter-spacing="3" text-anchor="middle" fill="#00dbe9">AI SCREEN</text>
+</svg>

@@ -79,8 +79,11 @@ class CodexProvider(BaseProvider):
 
             pw_raw = rate_limit.get("primary_window") or {}
             pw_pct_left = pw_raw.get("percent_left")
-            if pw_pct_left is None and "used_percent" in pw_raw:
-                pw_pct_left = max(0, 100 - pw_raw["used_percent"])
+            if pw_pct_left is None and pw_raw.get("used_percent") is not None:
+                try:
+                    pw_pct_left = max(0.0, 100.0 - float(pw_raw["used_percent"]))
+                except (ValueError, TypeError):
+                    pw_pct_left = 100.0
             pw_pct_left = 100.0 if pw_pct_left is None else float(pw_pct_left)
 
             primary_window = RateWindow(
@@ -97,8 +100,11 @@ class CodexProvider(BaseProvider):
             sw_raw = rate_limit.get("secondary_window")
             if sw_raw:
                 sw_pct_left = sw_raw.get("percent_left")
-                if sw_pct_left is None and "used_percent" in sw_raw:
-                    sw_pct_left = max(0, 100 - sw_raw["used_percent"])
+                if sw_pct_left is None and sw_raw.get("used_percent") is not None:
+                    try:
+                        sw_pct_left = max(0.0, 100.0 - float(sw_raw["used_percent"]))
+                    except (ValueError, TypeError):
+                        sw_pct_left = 100.0
                 sw_pct_left = 100.0 if sw_pct_left is None else float(sw_pct_left)
 
                 secondary_window = RateWindow(

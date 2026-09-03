@@ -1,0 +1,51 @@
+<svg viewBox="0 0 512 512" width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="512" height="4">
+      <rect width="512" height="1" fill="#000000" opacity="0.4"/>
+      <rect y="1" width="512" height="3" fill="#ffffff" opacity="0.02"/>
+    </pattern>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#00dbe9" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="48" fill="#0a0c10"/>
+
+  <!-- Screen Chassis -->
+  <rect x="56" y="56" width="400" height="400" rx="20" fill="#060910" stroke="#1f293d" stroke-width="3"/>
+  <rect x="72" y="72" width="368" height="368" rx="12" fill="#04060a"/>
+  <rect x="72" y="72" width="368" height="368" rx="12" fill="url(#scanlines)"/>
+
+  <!-- Corner Screws -->
+  <circle cx="72" cy="72" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+  <circle cx="440" cy="72" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+  <circle cx="72" cy="440" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+  <circle cx="440" cy="440" r="5" fill="#1f293d" stroke="#00dbe9" stroke-width="1.5"/>
+
+  <!-- Top Status HUD -->
+  <circle cx="106" cy="110" r="6" fill="#10b981" filter="url(#glow)"/>
+  <text x="122" y="115" font-family="'JetBrains Mono', monospace" font-size="12" fill="#10b981" font-weight="700">ONLINE // 60FPS</text>
+  
+  <rect x="360" y="102" width="42" height="16" rx="3" fill="#0e141f" stroke="#00dbe9" stroke-width="1.5"/>
+  <rect x="364" y="106" width="28" height="8" rx="1" fill="#00dbe9"/>
+
+  <!-- High-energy Waveform -->
+  <path d="M90 256 Q130 180, 170 256 T250 256 T330 210 T410 256" fill="none" stroke="url(#waveGradient)" stroke-width="5" stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- Frequency Equalizer Bars -->
+  <g fill="#10b981" opacity="0.8">
+    <rect x="100" y="340" width="8" height="24" rx="2"/>
+    <rect x="114" y="332" width="8" height="32" rx="2" fill="#00dbe9"/>
+    <rect x="128" y="324" width="8" height="40" rx="2"/>
+    <rect x="142" y="344" width="8" height="20" rx="2" fill="#00dbe9"/>
+    <rect x="156" y="336" width="8" height="28" rx="2"/>
+  </g>
+
+  <text x="270" y="356" font-family="'Space Grotesk', monospace" font-size="22" font-weight="700" fill="#00dbe9" text-anchor="middle" letter-spacing="2">TINY SCREEN // LIVE</text>
+</svg>

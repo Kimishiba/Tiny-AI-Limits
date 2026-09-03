@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Canvas -->
+  <rect width="512" height="512" fill="#ffffff" rx="0" />
+
+  <!-- Outer Frame Hard Shadow (+10px, +10px) -->
+  <rect x="51" y="51" width="430" height="430" fill="#000000" rx="0" />
+
+  <!-- Outer Frame Surface (Stark White / Light Neutral) -->
+  <rect x="41" y="41" width="430" height="430" fill="#f9f9f9" stroke="#000000" stroke-width="6" rx="0" />
+
+  <!-- Structural Grid Matrix (Subtle 0.12 opacity) -->
+  <g stroke="#000000" stroke-width="1" opacity="0.12">
+    <line x1="41" y1="126" x2="471" y2="126" />
+    <line x1="41" y1="211" x2="471" y2="211" />
+    <line x1="41" y1="296" x2="471" y2="296" />
+    <line x1="41" y1="381" x2="471" y2="381" />
+    <line x1="126" y1="41" x2="126" y2="471" />
+    <line x1="211" y1="41" x2="211" y2="471" />
+    <line x1="296" y1="41" x2="296" y2="471" />
+    <line x1="381" y1="41" x2="381" y2="471" />
+  </g>
+
+  <!-- Desktop Stand Base Hard Shadow -->
+  <polygon points="186,416 326,416 346,436 166,436" fill="#000000" />
+  <!-- Desktop Stand Base -->
+  <polygon points="181,411 321,411 341,431 161,431" fill="#eeeeee" stroke="#000000" stroke-width="5" />
+
+  <!-- Stand Neck -->
+  <rect x="226" y="361" width="60" height="50" fill="#ff5f1f" stroke="#000000" stroke-width="5" rx="0" />
+
+  <!-- Monitor Chassis Hard Shadow (+8px, +8px) -->
+  <rect x="116" y="116" width="280" height="255" fill="#000000" rx="0" />
+  <!-- Monitor Chassis (Pure White) -->
+  <rect x="108" y="108" width="280" height="255" fill="#ffffff" stroke="#000000" stroke-width="6" rx="0" />
+
+  <!-- Screen Bezel Container (Vibrant Orange #FF5F1F) -->
+  <rect x="128" y="128" width="240" height="215" fill="#ff5f1f" stroke="#000000" stroke-width="5" rx="0" />
+
+  <!-- Screen Header Dividing Line (4px Black) -->
+  <line x1="128" y1="158" x2="368" y2="158" stroke="#000000" stroke-width="4" />
+  
+  <!-- Status Indicator Square Dots -->
+  <rect x="142" y="141" width="9" height="9" fill="#000000" rx="0" />
+  <rect x="157" y="141" width="9" height="9" fill="#000000" rx="0" />
+  <rect x="172" y="141" width="9" height="9" fill="#000000" rx="0" />
+
+  <!-- Geometric AI Neural Spark (Pure White on Orange with Hard Shadow) -->
+  <polygon points="252,177 267,222 312,237 267,252 252,297 237,252 192,237 237,222" fill="#000000" />
+  <polygon points="248,173 263,218 308,233 263,248 248,293 233,248 188,233 233,218" fill="#ffffff" stroke="#000000" stroke-width="4" stroke-linejoin="miter" />
+  <!-- Center Core -->
+  <rect x="242" y="227" width="12" height="12" fill="#ff5f1f" stroke="#000000" stroke-width="3" rx="0" />
+
+  <!-- Quota Status Bar [ ■■■■■■■□ ] -->
+  <g transform="translate(144, 301)">
+    <rect x="4" y="4" width="208" height="26" fill="#000000" rx="0" />
+    <rect x="0" y="0" width="208" height="26" fill="#ffffff" stroke="#000000" stroke-width="4" rx="0" />
+    <!-- 7 Active Blocks -->
+    <rect x="8" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <rect x="28" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <rect x="48" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <rect x="68" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <rect x="88" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <rect x="108" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <rect x="128" y="6" width="16" height="14" fill="#000000" rx="0" />
+    <!-- 1 Inactive Block -->
+    <rect x="148" y="6" width="16" height="14" fill="none" stroke="#000000" stroke-width="3" rx="0" />
+    <!-- Readout -->
+    <text x="172" y="18" font-family="'JetBrains Mono', monospace" font-weight="900" font-size="11" fill="#000000">92%</text>
+  </g>
+
+  <!-- Top-Left Stamped Badge: "TINY AI" -->
+  <rect x="58" y="58" width="126" height="44" fill="#000000" rx="0" />
+  <rect x="52" y="52" width="126" height="44" fill="#ff5f1f" stroke="#000000" stroke-width="4" rx="0" />
+  <text x="115" y="81" text-anchor="middle" font-family="'Anybody', sans-serif" font-weight="900" font-size="22" fill="#000000" letter-spacing="-0.04em">TINY AI</text>
+
+  <!-- Bottom-Right Spec Chip: "240×240 // ONLINE" -->
+  <rect x="216" y="424" width="248" height="38" fill="#000000" rx="0" />
+  <rect x="210" y="418" width="248" height="38" fill="#ffffff" stroke="#000000" stroke-width="3" rx="0" />
+  <rect x="222" y="429" width="14" height="14" fill="#ff5f1f" stroke="#000000" stroke-width="2" rx="0" />
+  <text x="246" y="442" font-family="'JetBrains Mono', monospace" font-weight="700" font-size="13" fill="#000000" letter-spacing="0.05em">240×240 // ONLINE</text>
+</svg>

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <pattern id="polkaDots" patternUnits="userSpaceOnUse" width="18" height="18">
+      <circle cx="9" cy="9" r="2" fill="#000000" opacity="0.12"/>
+    </pattern>
+  </defs>
+
+  <!-- Background with canvas border -->
+  <rect width="512" height="512" fill="#fffdf0"/>
+  <rect width="512" height="512" fill="url(#polkaDots)"/>
+
+  <!-- Squircle App Icon Frame (Solid Black Drop Shadow) -->
+  <rect x="42" y="42" width="448" height="448" rx="80" fill="#000000"/>
+  <!-- Squircle Frame Main Body -->
+  <rect x="32" y="32" width="448" height="448" rx="80" fill="#fffdf0" stroke="#000000" stroke-width="6"/>
+
+  <!-- Antenna (Hard Shadow) -->
+  <rect x="258" y="70" width="8" height="42" fill="#000000" rx="4"/>
+  <circle cx="262" cy="70" r="14" fill="#000000"/>
+  <!-- Antenna (Main) -->
+  <rect x="250" y="62" width="8" height="42" fill="#000000" rx="4"/>
+  <circle cx="254" cy="62" r="14" fill="#ff3366" stroke="#000000" stroke-width="5"/>
+
+  <!-- Desk Stand (Hard Shadow) -->
+  <rect x="226" y="370" width="80" height="50" rx="12" fill="#000000"/>
+  <!-- Desk Stand (Main) -->
+  <rect x="216" y="360" width="80" height="50" rx="12" fill="#ffe600" stroke="#000000" stroke-width="6"/>
+
+  <!-- Monitor Chassis (Hard Shadow) -->
+  <rect x="106" y="120" width="320" height="250" rx="28" fill="#000000"/>
+  <!-- Monitor Chassis (Main) -->
+  <rect x="96" y="110" width="320" height="250" rx="28" fill="#00f0ff" stroke="#000000" stroke-width="6"/>
+
+  <!-- Screen (Hard Shadow) -->
+  <rect x="136" y="146" width="260" height="186" rx="16" fill="#000000"/>
+  <!-- Screen (Main) -->
+  <rect x="126" y="138" width="260" height="186" rx="16" fill="#00ff88" stroke="#000000" stroke-width="6"/>
+
+  <!-- AI Companion Face -->
+  <!-- Left Eye -->
+  <circle cx="198" cy="196" r="22" fill="#000000"/>
+  <circle cx="192" cy="190" r="8" fill="#ffffff"/>
+  <circle cx="204" cy="202" r="3" fill="#ffffff"/>
+  <!-- Right Eye -->
+  <circle cx="278" cy="196" r="22" fill="#000000"/>
+  <circle cx="272" cy="190" r="8" fill="#ffffff"/>
+  <circle cx="284" cy="202" r="3" fill="#ffffff"/>
+  <!-- Happy Mouth -->
+  <path d="M222 236 Q238 256 254 236" stroke="#000000" stroke-width="7" fill="none" stroke-linecap="round"/>
+
+  <!-- Quota Meter (Hard Shadow) -->
+  <rect x="146" y="278" width="230" height="32" rx="16" fill="#000000"/>
+  <!-- Quota Meter (Main) -->
+  <rect x="140" y="272" width="230" height="32" rx="16" fill="#ffffff" stroke="#000000" stroke-width="4"/>
+  <rect x="144" y="276" width="180" height="24" rx="12" fill="#ffe600" stroke="#000000" stroke-width="3"/>
+  <text x="358" y="293" font-family="'JetBrains Mono', monospace" font-weight="900" font-size="13" fill="#000000" text-anchor="end">92%</text>
+
+  <!-- Sparkle Star Badge (Hard Shadow) -->
+  <polygon points="414,78 424,98 444,103 429,118 434,138 414,128 394,138 399,118 384,103 404,98" fill="#000000"/>
+  <!-- Sparkle Star Badge (Main) -->
+  <polygon points="406,70 416,90 436,95 421,110 426,130 406,120 386,130 391,110 376,95 396,90" fill="#ffe600" stroke="#000000" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Tilted Pill Sticker: TINY AI (Hard Shadow) -->
+  <g transform="rotate(-8 116 414)">
+    <rect x="64" y="394" width="134" height="46" rx="23" fill="#000000"/>
+    <rect x="56" y="386" width="134" height="46" rx="23" fill="#ff3366" stroke="#000000" stroke-width="5"/>
+    <text x="123" y="416" font-family="'Outfit', 'Space Grotesk', sans-serif" font-weight="900" font-size="18" fill="#ffffff" text-anchor="middle" letter-spacing="2">TINY AI</text>
+  </g>
+
+  <!-- Rectangular Chip Badge: 240x240 (Hard Shadow) -->
+  <g transform="rotate(4 424 404)">
+    <rect x="372" y="386" width="104" height="36" rx="8" fill="#000000"/>
+    <rect x="366" y="380" width="104" height="36" rx="8" fill="#ffe600" stroke="#000000" stroke-width="4"/>
+    <text x="418" y="403" font-family="'JetBrains Mono', monospace" font-weight="900" font-size="13" fill="#000000" text-anchor="middle" letter-spacing="1">240×240</text>
+  </g>
+</svg>

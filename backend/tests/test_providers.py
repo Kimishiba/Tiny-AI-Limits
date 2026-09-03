@@ -20,15 +20,26 @@ from providers.mistral import MistralProvider
 from providers.groq import GroqProvider
 from providers import poller, ALL_PROVIDERS, ProviderPoller
 
+import tempfile
+import app as backend_app
 from app import app, load_config, save_config
 
 class TestProviders(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
         self.orig_config = dict(load_config())
+        self.orig_config_file = backend_app.CONFIG_FILE
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        backend_app.CONFIG_FILE = os.path.join(self.tmp_dir.name, "config.json")
+        with open(backend_app.CONFIG_FILE, "w") as f:
+            json.dump(self.orig_config, f)
 
     def tearDown(self):
-        save_config(self.orig_config)
+        backend_app.CONFIG_FILE = self.orig_config_file
+        try:
+            self.tmp_dir.cleanup()
+        except Exception:
+            pass
 
     def test_provider_registry(self):
         self.assertEqual(len(ALL_PROVIDERS), 10)
@@ -390,8 +401,8 @@ class TestProviders(unittest.TestCase):
         
         self.assertIn("left_gauge", data)
         self.assertEqual(data["left_gauge"]["mode"], "enterprise")
-        self.assertIn("SPENT", data["left_gauge"]["curved_text"])
-        self.assertTrue(data["left_gauge"]["reset_str"].endswith("TOK"))
+        self.assertIn("TOK", data["left_gauge"]["curved_text"])
+        self.assertTrue(len(data["left_gauge"]["reset_str"]) > 0)
         self.assertIn("cost_usd", data["left_gauge"])
         self.assertIn("daily_budget_usd", data["left_gauge"])
 

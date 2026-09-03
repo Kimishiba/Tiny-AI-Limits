@@ -67,8 +67,9 @@ class GeminiProvider(BaseProvider):
             if not primary_model and models:
                 primary_model = models[0]
 
-            quota_info = (primary_model or {}).get("quotaInfo", {})
-            rem_frac = quota_info.get("remainingFraction", 1.0)
+            quota_info = (primary_model or {}).get("quotaInfo") or {}
+            rem_frac = quota_info.get("remainingFraction")
+            rem_frac = 1.0 if rem_frac is None else float(rem_frac)
             pct_left = float(round(rem_frac * 100.0, 1))
 
             primary_window = RateWindow(

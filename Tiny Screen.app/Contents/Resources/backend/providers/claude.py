@@ -252,7 +252,12 @@ class ClaudeProvider(BaseProvider):
 
         try:
             pw_raw = data.get("five_hour") or {}
-            pw_used = float(pw_raw.get("utilization", 0.0)) * 100.0 if "utilization" in pw_raw else float(pw_raw.get("used_percent", 0.0))
+            u_val = pw_raw.get("utilization")
+            if u_val is not None:
+                pw_used = float(u_val) * 100.0
+            else:
+                up_val = pw_raw.get("used_percent")
+                pw_used = float(up_val) if up_val is not None else 0.0
             pw_pct_left = max(0.0, min(100.0, 100.0 - pw_used))
 
             primary_window = RateWindow(
@@ -268,7 +273,12 @@ class ClaudeProvider(BaseProvider):
             secondary_window = None
             sw_raw = data.get("seven_day")
             if sw_raw:
-                sw_used = float(sw_raw.get("utilization", 0.0)) * 100.0 if "utilization" in sw_raw else float(sw_raw.get("used_percent", 0.0))
+                su_val = sw_raw.get("utilization")
+                if su_val is not None:
+                    sw_used = float(su_val) * 100.0
+                else:
+                    sup_val = sw_raw.get("used_percent")
+                    sw_used = float(sup_val) if sup_val is not None else 0.0
                 sw_pct_left = max(0.0, min(100.0, 100.0 - sw_used))
                 secondary_window = RateWindow(
                     limit=100,

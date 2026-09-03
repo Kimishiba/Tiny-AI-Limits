@@ -1,6 +1,7 @@
 import json
 import re
 import glob
+import hmac
 import getpass
 import os
 import platform
@@ -159,17 +160,25 @@ def get_pair_id(cfg):
     return pair_id
 
 def client_is_local():
-    """Requests from this machine: the emulator, the setup page, local curl."""
-    return request.remote_addr in ("127.0.0.1", "::1", "localhost")
+    """Requests from this machine: local tools, local browser, local curl."""
+    if request.remote_addr not in ("127.0.0.1", "::1", "localhost"):
+        return False
+    origin = request.headers.get("Origin")
+    if origin and not any(h in origin for h in ("localhost", "127.0.0.1", "chrome-extension://")):
+        return False
+    return True
 
 def caller_is_paired(allow_unpaired=True):
     """Whether the caller proved it belongs to this companion."""
+    pair_id = get_pair_id(config)
+    pair_token = request.args.get("pair_id") or request.headers.get("X-Pair-ID", "")
+    if pair_token and hmac.compare_digest(str(pair_token), str(pair_id)):
+        return True
     if client_is_local():
         return True
     if allow_unpaired and config.get("allow_unpaired_clients", False):
         return True
-    pair_token = request.args.get("pair_id") or request.headers.get("X-Pair-ID", "")
-    return bool(pair_token and pair_token == get_pair_id(config))
+    return False
 
 def mask_key(k_val):
     """Safely mask secrets without exposing critical key entropy."""
@@ -184,9 +193,17 @@ app = Flask(__name__)
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    origin = request.headers.get("Origin")
+    if origin:
+        if any(h in origin for h in ("localhost", "127.0.0.1", "chrome-extension://")):
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Pair-ID'
+            response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+            response.headers['Vary'] = 'Origin'
+    else:
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,X-Pair-ID'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
     return response
 
 @app.route('/')
@@ -595,32 +612,40 @@ def _find_antigravity_language_servers():
         return servers
 
     try:
-        ps_output = subprocess.check_output(["ps", "aux"], text=True)
-    except Exception:
+        ps_output = subprocess.check_output(
+            ["ps", "aux"],
+            text=True,
+            timeout=2.0,
+            stderr=subprocess.DEVNULL
+        )
+    except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError, PermissionError, OSError):
         return servers
 
     for line in ps_output.splitlines():
         if "language_server" not in line:
             continue
         parts = line.split(None, 10)
-        if len(parts) < 2:
+        if len(parts) < 2 or not parts[1].isdigit():
             continue
         pid = parts[1]
-        token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9-]+)", line)
+        token_match = re.search(r"--csrf_token[= ]([a-zA-Z0-9_-]+)", line)
         if not token_match:
             continue
         csrf_token = token_match.group(1)
+        if not re.match(r'^[a-zA-Z0-9_-]+$', csrf_token):
+            continue
 
         try:
             lsof_output = subprocess.check_output(
                 ["lsof", "-a", "-p", pid, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
-                text=True, stderr=subprocess.DEVNULL
+                text=True, stderr=subprocess.DEVNULL, timeout=2.0
             )
             ports = sorted(set(
                 int(m.group(1))
                 for m in re.finditer(r":(\d+)\s*\(LISTEN\)", lsof_output)
+                if 1024 <= int(m.group(1)) <= 65535
             ))
-        except Exception:
+        except (subprocess.SubprocessError, subprocess.TimeoutExpired, FileNotFoundError, PermissionError, OSError):
             ports = []
 
         if ports:
@@ -629,7 +654,6 @@ def _find_antigravity_language_servers():
     return servers
 
 def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
-    url = f"https://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
     headers = {
         "Content-Type": "application/json",
         "Connect-Protocol-Version": "1",
@@ -640,15 +664,20 @@ def _fetch_antigravity_user_status(port, csrf_token, timeout=3):
         "metadata": {"ideName": "antigravity", "extensionName": "antigravity", "locale": "en"}
     }).encode("utf-8")
 
-    # The language server's HTTPS listener uses a self-signed cert (it's
-    # loopback-only, protected by the CSRF token instead of TLS trust).
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-    with urllib.request.urlopen(req, context=ctx, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    for scheme in ["https", "http"]:
+        url = f"{scheme}://127.0.0.1:{port}/exa.language_server_pb.LanguageServerService/GetUserStatus"
+        try:
+            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+            with urllib.request.urlopen(req, context=ctx if scheme == "https" else None, timeout=timeout) as resp:
+                if resp.status == 200:
+                    return json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            continue
+    return None
 
 def get_antigravity_accounts(use_cache=True):
     """Returns one entry per signed-in Antigravity account currently running
@@ -984,13 +1013,40 @@ def _extract_antigravity_context(transcript_lines=None, role=None, objective=Non
 
 def _extract_claude_context(cwd=None, transcript_lines=None):
     """Extract a concise context tag for Claude."""
+    if transcript_lines:
+        generic_words = {"please", "help", "project", "work", "start", "working", "need", "make", "file"}
+        stop_words = {"the", "and", "for", "with", "this", "that", "from", "also", "into", "we"}
+        for line in transcript_lines:
+            entry = {}
+            if isinstance(line, dict):
+                entry = line
+            elif isinstance(line, str):
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    entry = {}
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("type") == "user":
+                msg = entry.get("message", {})
+                content = msg.get("content", "") if isinstance(msg, dict) else entry.get("content", "")
+                if isinstance(content, list):
+                    content = " ".join(c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text")
+                if isinstance(content, str) and content.strip():
+                    words = re.findall(r"[A-Za-z0-9]+", content)
+                    filtered = [w for w in words if w.lower() not in stop_words and w.lower() not in generic_words and len(w) >= 3]
+                    if filtered:
+                        phrase = _format_context_phrase(filtered, max_len=12)
+                        if phrase:
+                            return phrase
     if cwd:
         base = os.path.basename(os.path.normpath(cwd))
-        words = re.findall(r"[A-Za-z0-9]+", base)
-        if words:
-            phrase = _format_context_phrase(words, max_len=12)
-            if phrase:
-                return phrase
+        if not base.startswith("local_"):
+            words = re.findall(r"[A-Za-z0-9]+", base)
+            if words:
+                phrase = _format_context_phrase(words, max_len=12)
+                if phrase:
+                    return phrase
     return ""
 
 def get_stable_agent_label(source, session_key, transcript_lines=None, cwd=None, role=None, objective=None):
@@ -1498,6 +1554,8 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 continue
             if not lines:
                 continue
+            if len(lines) > 2000:
+                lines = lines[-2000:]
 
             last_user_idx = -1
             for idx in range(len(lines) - 1, -1, -1):
@@ -1517,7 +1575,12 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
                 except Exception:
                     pass
 
-            session_id = os.path.splitext(os.path.basename(fp))[0]
+            if os.path.basename(fp) == "audit.jsonl":
+                parent_dir = os.path.basename(os.path.dirname(fp))
+                session_id = (parent_dir[6:] if parent_dir.startswith("local_") else parent_dir) or parent_dir
+            else:
+                session_id = os.path.splitext(os.path.basename(fp))[0]
+
             label = get_stable_agent_label("claude", session_id, cwd=os.path.dirname(fp), transcript_lines=lines)
 
             if last_user_idx == len(lines) - 1:
@@ -1540,38 +1603,94 @@ def scan_claude_sessions(claude_dirs=None, now_ts=None):
             if not turn_lines:
                 continue
 
-            last_entry = {}
-            try:
-                last_entry = json.loads(turn_lines[-1])
-            except Exception:
-                pass
-
             found_pending = False
-            turn_pending_prompt = "CLAUDE PROMPT"
+            turn_pending_prompt = "GRANT PERM"
             has_in_flight_tools = False
             is_final_turn_response = False
 
-            if last_entry.get("type") == "assistant":
-                msg = last_entry.get("message", {})
-                content = msg.get("content", [])
-                if isinstance(content, list):
-                    for item in content:
-                        if isinstance(item, dict) and item.get("type") == "tool_use":
-                            t_name = (item.get("name") or "").lower()
-                            if t_name in ("askuserquestion", "ask_user_question"):
-                                found_pending = True
-                                turn_pending_prompt = "ANSWER Q"
-                                break
-                            elif t_name in ("ask_permission", "request_permission") or "permission" in t_name or "confirm" in t_name:
-                                found_pending = True
-                                turn_pending_prompt = "GRANT PERM"
-                                break
-                            else:
-                                # Autonomous tools (bash, edit, write, fileedit, etc.)
-                                has_in_flight_tools = True
-                    if not found_pending and not has_in_flight_tools:
-                        is_final_turn_response = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
-                elif isinstance(content, str) and content.strip():
+            pending_permissions = {}
+            unanswered_tool_calls = {}
+            has_result_success = False
+            last_assistant_has_text = False
+            last_assistant_has_tools = False
+
+            for tl in turn_lines:
+                try:
+                    entry = json.loads(tl) if isinstance(tl, str) else tl
+                except Exception:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+
+                etype = entry.get("type")
+                esubtype = entry.get("subtype")
+
+                # Claude Desktop App permission requests & responses (with 30-min TTL bound)
+                if etype == "system" and esubtype in ("permission_request", "confirm_request"):
+                    ts_str = entry.get("timestamp")
+                    if ts_str:
+                        try:
+                            req_ts = datetime.fromisoformat(str(ts_str).replace("Z", "+00:00")).timestamp()
+                            if (now_ts - req_ts) > 1800:
+                                continue
+                        except Exception:
+                            pass
+                    p_id = str(entry.get("uuid") or entry.get("id") or "req")[:64]
+                    pending_permissions[p_id] = entry
+                elif etype == "system" and esubtype in ("permission_response", "permission_auto_approved"):
+                    p_id = str(entry.get("uuid") or entry.get("id") or "req")[:64]
+                    pending_permissions.pop(p_id, None)
+
+                # Final result marker (Desktop App / CLI completion)
+                elif etype == "result" and esubtype in ("success", "completed"):
+                    has_result_success = True
+
+                # Assistant messages and tool calls
+                elif etype == "assistant":
+                    msg = entry.get("message", {})
+                    content = msg.get("content", [])
+                    has_tools_in_entry = False
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "tool_use":
+                                has_tools_in_entry = True
+                                tu_id = item.get("id") or item.get("tool_use_id") or "tu"
+                                tu_name = (item.get("name") or "").lower()
+                                unanswered_tool_calls[tu_id] = tu_name
+                        last_assistant_has_text = any(isinstance(item, dict) and item.get("type") == "text" for item in content)
+                    elif isinstance(content, str) and content.strip():
+                        last_assistant_has_text = True
+                    last_assistant_has_tools = has_tools_in_entry
+
+                # User messages / tool results answering prior tool uses
+                elif etype == "user":
+                    msg = entry.get("message", {})
+                    content = msg.get("content", [])
+                    if isinstance(content, list):
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "tool_result":
+                                tu_id = item.get("tool_use_id") or item.get("id")
+                                if tu_id:
+                                    unanswered_tool_calls.pop(tu_id, None)
+
+            if pending_permissions:
+                found_pending = True
+                turn_pending_prompt = "GRANT PERM"
+            else:
+                for tu_id, tu_name in list(unanswered_tool_calls.items()):
+                    if tu_name in ("askuserquestion", "ask_user_question", "ask_question"):
+                        found_pending = True
+                        turn_pending_prompt = "ANSWER Q"
+                        break
+                    elif tu_name in ("ask_permission", "request_permission") or "permission" in tu_name or "confirm" in tu_name:
+                        found_pending = True
+                        turn_pending_prompt = "GRANT PERM"
+                        break
+
+            if not found_pending:
+                if unanswered_tool_calls:
+                    has_in_flight_tools = True
+                elif has_result_success or (last_assistant_has_text and not last_assistant_has_tools):
                     is_final_turn_response = True
 
             state, code, detail, color = resolve_session_state(
@@ -1830,36 +1949,28 @@ def get_data():
             elif "cost_usd" in custom_data: cost_usd = float(custom_data["cost_usd"])
 
         if mode == "enterprise":
-            if not cost_str:
-                if custom_data and "cost_today_usd" in custom_data:
-                    cost_usd = float(custom_data["cost_today_usd"])
-                    cost_str = f"${cost_usd:.2f}"
-                elif snap and hasattr(snap, "metadata") and snap.metadata and "cost_today_usd" in snap.metadata:
-                    cost_usd = float(snap.metadata["cost_today_usd"])
-                    cost_str = f"${cost_usd:.2f}"
-                elif custom_data and "cost_usd" in custom_data:
-                    cost_usd = float(custom_data["cost_usd"])
-                    cost_str = f"${cost_usd:.2f}"
-                else:
-                    cost_str = "$0.00"
+            tok = 0
+            if custom_data and "tokens_today" in custom_data:
+                tok = custom_data["tokens_today"]
+            elif snap and hasattr(snap, "metadata") and snap.metadata and "tokens_today" in snap.metadata:
+                tok = snap.metadata["tokens_today"]
 
-            if not tokens_str:
-                if custom_data and "tokens_today" in custom_data:
-                    tok = custom_data["tokens_today"]
-                    tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
-                elif snap and hasattr(snap, "metadata") and snap.metadata and "tokens_today" in snap.metadata:
-                    tok = snap.metadata["tokens_today"]
-                    tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
-                else:
-                    tokens_str = "0"
-
-            if daily_budget > 0:
-                pct_used = min(100, int(round((cost_usd / daily_budget) * 100)))
-                percent = max(1, pct_used)
+            if tok >= 1_000_000:
+                compact_tok = f"{tok / 1_000_000:.1f}M"
+            elif tok >= 1_000:
+                compact_tok = f"{int(round(tok / 1_000))}k"
             else:
-                percent = 100
+                compact_tok = str(tok)
 
-            reset_str = f"{tokens_str} TOK"
+            tokens_str = f"{tok/1000:.1f}k" if tok >= 1000 else str(tok)
+            # Stop showing USD amount for enterprise use; only display tokens
+            cost_str = compact_tok
+            cost_usd = 0.0
+            percent = 100
+            curved_text = f"{compact_tok} TOK"
+            # Preserve reset_str for the rolling quota reset countdown timer (e.g. "12m", "5h", "READY")
+            if not reset_str:
+                reset_str = "READY"
 
         return {
             "id": provider_id,
@@ -1871,7 +1982,7 @@ def get_data():
             "tokens_str": tokens_str,
             "cost_usd": cost_usd,
             "daily_budget_usd": daily_budget,
-            "curved_text": f"{cost_str} SPENT" if cost_str else "",
+            "curved_text": curved_text if mode == "enterprise" else (f"{cost_str} SPENT" if cost_str else ""),
             "percent": percent,
             "reset_str": reset_str
         }
