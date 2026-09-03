@@ -707,11 +707,11 @@
               <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 1 Mode / Plan:</label>
               <select id="gauge-left-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
                 <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
-                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+                <option value="enterprise">Enterprise (24h Tokens)</option>
               </select>
             </div>
-            <div id="gauge-left-budget-row" style="margin-top: 0.5rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+            <div id="gauge-left-budget-row" style="margin-top: 0.5rem; display: none;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget:</label>
               <input type="number" step="0.5" min="1" id="gauge-left-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
             </div>
           </div>
@@ -734,11 +734,11 @@
               <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Gauge 2 Mode / Plan:</label>
               <select id="gauge-right-plan" style="width: 100%; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; background: #fff; cursor: pointer;">
                 <option value="standard">Standard Quota (5h / Hourly Reset Timer)</option>
-                <option value="enterprise">Enterprise (Spend in $ &amp; 24h Tokens)</option>
+                <option value="enterprise">Enterprise (24h Tokens)</option>
               </select>
             </div>
-            <div id="gauge-right-budget-row" style="margin-top: 0.5rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget ($ USD):</label>
+            <div id="gauge-right-budget-row" style="margin-top: 0.5rem; display: none;">
+              <label style="font-size: 0.78rem; font-weight: 700; display: block; margin-bottom: 0.2rem;">Daily Budget:</label>
               <input type="number" step="0.5" min="1" id="gauge-right-budget" value="10.0" style="width: 100%; box-sizing: border-box; padding: 0.45rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;" />
             </div>
           </div>
@@ -754,11 +754,11 @@
             <div>
               <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Claude Account Plan:</label>
               <select id="claude-plan-select" style="width: 100%; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: #fff; cursor: pointer;">
-                <option value="enterprise">Enterprise / Team / PAYG ($ Cost & Tokens)</option>
+                <option value="enterprise">Enterprise / Team (24h Token Volume)</option>
                 <option value="standard">Standard Free / Pro (5h Quota Countdown)</option>
               </select>
               <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
-                Enterprise mode displays live USD ($ spent) and 24h token volume on the left HUD gauge.
+                Enterprise mode displays live 24h token volume on the HUD gauge.
               </div>
             </div>
             <div>
