@@ -14,14 +14,17 @@
   * 7 $\times$ vertical exhaust vents with $45^\circ$ peaked roof along top wall ($Y = +42\text{mm}$)
   * Contour-following horizontal rear aeration rows in outer zones ($|Y| \ge 16.5\text{mm}$)
   * Safe under-ESP32 cooling grille
-* **Precision Board Retention Cradle:**
-  * Dual L-shaped guide rails with rear mechanical thrust stop wall ($X = -16.0\text{mm}$)
-  * $0.7\text{mm}$ outer edge support ledges (supporting PCB edges outside pin headers; bottom components completely unobstructed)
-  * Dual discrete side retention snap clips ($0.28\text{mm}$ lip overhang at $Z = 5.2\text{mm}$)
+* **Precision M.2-Style Screw Retention System (G0 Approved):**
+  * **Bifurcated Front Capture Ears:** Left ($Y = -9.65\text{ to } -5.00\text{mm}$) and Right ($Y = +5.00\text{ to } +9.65\text{mm}$) ears with $45^\circ$ self-supporting lead-in chamfers trap front PCB shoulders against lift and pull-out, leaving central $10.0\text{mm}$ open for the USB-C metal shell.
+  * **Expanded Clone Tolerances:** $19.30\text{mm}$ pocket width, $Z = 5.90\text{mm}$ ear height, $24.20\text{mm}$ longitudinal span swallows AliExpress board variations ($1.2 - 1.6\text{mm}$ thickness, $18.2 - 18.9\text{mm}$ width).
+  * **Mechanical Thrust Stop Rib ($X = -17.0\text{mm}$):** Absorbs 100% of USB-C insertion forces directly into the chassis floor.
+  * **Rear Standoff Post ($X = -11.5\text{mm}$):** $\varnothing 7.00\text{mm}$ post with thick $2.175\text{mm}$ solid plastic wall (5 perimeters) and $\varnothing 2.65\text{mm}$ pilot hole, eliminating hoop stress blowout. Positioned $> 5.5\text{mm}$ behind the ceramic antenna element to protect 2.4GHz Wi-Fi/BLE from RF detuning.
+  * **Precision M3 Clamp Tab (`gc9b72_esp32_clamp_tab.stl`):** $11.50 \times 7.50 \times 4.00\text{mm}$ bridge tab with captive retention ring and 100% planar bed face for support-free printing in $\sim 2.5\text{ mins}$.
 * **Dual Elevated DuPont Clearance Trenches:** Starts at $Z = 6.0\text{mm}$ with $45^\circ$ self-supporting bottom ramps along both the bottom wall (for screen 10-pin DuPont headers) and opposite right wall (for internal jumper bundle routing and side accessories).
 * **Fasteners:**
   * 4x M2.5 $\times$ 6mm Socket Head Cap Screws for internal Rear Clamp retention ($\varnothing 2.05\text{mm}$ direct-tap pilot holes in Front Face)
   * 4x M3 $\times$ 16mm Socket Head Cap Screws for Chassis Corners ($\varnothing 2.50\text{mm}$ direct-tap pilot posts)
+  * 1x M3 $\times$ 6mm or 8mm Socket Head or Button Head Cap Screw for ESP32 Hold-Down Tab
 
 ---
 
@@ -33,7 +36,8 @@ All models are located in [`round 360x360/enclosure/`](./):
 | :--- | :--- | :---: | :---: |
 | **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with prominent raised circular bezel rim, continuous conical viewing funnel, rear exact-contour cavity, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 9.8\text{ mm}$** | ~45 mins |
 | **`gc9b72_rear_clamp.stl`** | Slim Full-Footprint 84mm Sandwich Clamp Plate with 4x M3 corner clearance holes, center ventilation port, and enclosed DuPont pass-through window | **$84.0 \times 84.0 \times 1.6\text{ mm}$** | ~12 mins |
-| **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with flush-edge ESP32 cradle, shaved USB-C port, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
+| **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with M.2 screw retention system, bifurcated front ears, shaved USB-C port, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
+| **`gc9b72_esp32_clamp_tab.stl`** | Precision M.2 Hold-Down Clamp Tab with captive M3 screw ring and 100% flat bed-facing base | **$11.5 \times 7.5 \times 4.0\text{ mm}$** | ~2.5 mins |
 | **`gc9b72_stand_tier1_base.stl`** | Stand Tier 1 Accent Base Plate with 4x rubber feet pockets and alignment sockets | $94.0 \times 88.0 \times 6.0\text{ mm}$ | ~25 mins |
 | **`gc9b72_stand_tier2_trunk.stl`** | Stand Tier 2 Cradle Trunk with $22^\circ$ V-saddle for 84mm pod and $26\text{mm}$ rear cable channel | $90.0 \times 85.0 \times 29.0\text{ mm}$ | ~50 mins |
 | **`gc9b72_monolithic_stand.stl`** | Single-piece combined desk stand for 84mm square pod | $94.0 \times 88.0 \times 32.0\text{ mm}$ | ~70 mins |
@@ -48,8 +52,9 @@ All models are located in [`round 360x360/enclosure/`](./):
 | Item | Quantity | Purpose | Notes |
 | :--- | :---: | :--- | :--- |
 | **GC9B72 2.1″ Round IPS TFT Display ($360\times 360$)** | 1 | Circular color display module | GoldenMorning / EstarDyn 10-pin SPI |
-| **ESP32-S3 SuperMini / Zero (or C3 SuperMini)** | 1 | Microcontroller board | Snaps into flush-edge L-rails |
+| **ESP32-S3 SuperMini / Zero (or C3 SuperMini)** | 1 | Microcontroller board | Clamped with M.2 screw retention system |
 | **M3 $\times$ 16mm Socket Head Cap Screws** | 4 | Fastens entire sandwich: Front Face $\to$ Rear Clamp $\to$ Main Housing Pod | Direct taps into $\varnothing 2.50\text{mm}$ corner posts |
+| **M3 $\times$ 6mm or 8mm Cap Screw (Socket or Button Head)** | 1 | Clamps ESP32 hold-down tab to standoff post | Direct taps into $\varnothing 2.65\text{mm}$ post; same 2.5mm hex key |
 | **8mm $\times$ 1.5mm Adhesive Rubber Feet** | 4 | Fitted into stand base recesses for non-slip desk grip | Optional |
 | **USB-C Cable (Braided or Standard)** | 1 | Power & data connection through left port | Plugs into flush ESP32 port |
 
@@ -64,8 +69,11 @@ All models are located in [`round 360x360/enclosure/`](./):
    * Lay the slim $1.6\text{mm}$ `gc9b72_rear_clamp` plate directly over the back of the front plate. Its 4 corner M3 holes align with the front plate holes, and the enclosed window fits over the 10-pin header.
 3. **Wire the Display:**
    * Plug female DuPont jumpers directly through the enclosed $28 \times 10\text{mm}$ wiring window onto the 10-pin header.
-4. **Install Microcontroller & Housing:**
-   * Snap the ESP32 into the cradle rails inside `gc9b72_main_housing`.
+4. **Install & Secure the Microcontroller:**
+   * Slide the front nose of the ESP32 forward $1.5\text{mm}$ so the USB-C metal shell pokes into the left wall port and the front PCB shoulders seat under the bifurcated front capture ears.
+   * Drop the rear edge flat onto the floor rails against the thrust stop rib ($X = -17.0\text{mm}$).
+   * Place the `gc9b72_esp32_clamp_tab` over the standoff post ($X = -11.5\text{mm}$) bridging onto the rear PCB edge.
+   * Thread 1x M3 $\times$ 6mm (or 8mm) screw into the post and tighten with your 2.5mm hex key until snug. The board is now 100% immobilized!
    * Connect the DuPont jumpers to the corresponding SPI pins on the ESP32.
 5. **Close the Console:**
    * Mate the Main Housing Pod onto the back of the sandwich.

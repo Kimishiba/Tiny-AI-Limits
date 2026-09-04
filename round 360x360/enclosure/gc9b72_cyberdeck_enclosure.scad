@@ -91,17 +91,23 @@ m3_cb_depth         = 3.50;  // M3 counterbore depth
 m3_pilot_dia        = 2.50;  // Direct plastic tap pilot hole in housing corner posts
 m3_pilot_depth      = 14.00; // Deep thread engagement in corner posts
 
-// --- ESP32 SuperMini Flush-Edge Mounting (Heritage 240 Architecture) ---
-esp_w               = 18.70; // ESP32 SuperMini width
-esp_l               = 23.20; // ESP32 SuperMini length
+// --- ESP32 SuperMini M.2 Screw Retention (G0 Approved Architecture) ---
+esp_w               = 19.30; // ESP32 SuperMini expanded width for clone tolerance
+esp_l               = 23.40; // ESP32 SuperMini length
 rail_h              = 1.80;  // Rail height (PCB bottom at Z = 3.8mm)
-side_thick          = 1.00;  // Rigid side guide walls
-cradle_h            = 3.60;  // Low profile cradle height
-x_front             = -40.8; // Board front edge: only 1.2mm from outer shell (-42.0mm)!
-x_rear              = x_front + esp_l; // -17.6mm
-x_back              = x_rear + 1.6;    // -16.0mm rear mechanical thrust stop
-hw_in               = esp_w / 2.0;     // 9.35mm
-hw_out              = hw_in + side_thick; // 10.35mm
+side_thick          = 1.20;  // Rigid side guide walls
+cradle_h            = 3.40;  // Side wall height (Z = 5.4mm)
+x_front             = -41.2; // Board front edge relief
+x_rear              = -17.0; // Rear mechanical thrust stop shoulder
+hw_in               = esp_w / 2.0;        // 9.65mm
+hw_out              = hw_in + side_thick; // 10.85mm
+
+// M.2 Standoff Post & Clamp Parameters
+m2_post_x           = -11.50; // Standoff post center
+m2_post_dia         = 7.00;   // Post outer diameter (2.175mm solid wall)
+m2_post_top_z       = 4.80;   // Post top height (1.0mm above rails for preload)
+m2_pilot_dia        = 2.65;   // Direct plastic tap pilot hole
+m2_pilot_depth      = 8.00;   // Deep thread engagement
 
 // Left Flank Snug Oval USB-C Port
 usbc_z              = 6.60;  // USB-C metal shell centerline
@@ -360,35 +366,68 @@ module main_housing_pod() {
         }
     }
 
-    // 7. Flush-Edge ESP32-S3/C3 Precision Retention Cradle (x_front = -40.8mm)
+    // 7. ESP32 SuperMini Precision M.2 Screw Retention System (G0 Approved Architecture)
     translate([0, 0, floor_thick]) {
-        // L-shaped guide rails + rear stop
+        // Top and Bottom Guide Rails
         linear_extrude(height = cradle_h) {
-            // Top rail
-            polygon([
-                [x_front, hw_in],
-                [x_rear, hw_in],
-                [x_rear, 3.6],
-                [x_back, 3.6],
-                [x_back, hw_out],
-                [x_front, hw_out]
-            ]);
-            // Bottom rail
-            polygon([
-                [x_front, -hw_out],
-                [x_back, -hw_out],
-                [x_back, -3.6],
-                [x_rear, -3.6],
-                [x_rear, -hw_in],
-                [x_front, -hw_in]
-            ]);
+            polygon([[x_front, hw_in], [x_rear, hw_in], [x_rear, hw_out], [x_front, hw_out]]);
+            polygon([[x_front, -hw_out], [x_rear, -hw_out], [x_rear, -hw_in], [x_front, -hw_in]]);
         }
 
-        // Outer Edge Support Ledges (0.7mm step supporting PCB edge outside pin headers)
+        // Outer Edge Support Ledges (0.85mm step outside pins)
         linear_extrude(height = rail_h) {
-            polygon([[x_front, hw_in - 0.7], [x_rear, hw_in - 0.7], [x_rear, hw_in], [x_front, hw_in]]);
-            polygon([[x_front, -hw_in], [x_rear, -hw_in], [x_rear, -(hw_in - 0.7)], [x_front, -(hw_in - 0.7)]]);
+            polygon([[x_front, hw_in - 0.85], [x_rear, hw_in - 0.85], [x_rear, hw_in], [x_front, hw_in]]);
+            polygon([[x_front, -hw_in], [x_rear, -hw_in], [x_rear, -(hw_in - 0.85)], [x_front, -(hw_in - 0.85)]]);
         }
+
+        // Mechanical Thrust Stop Rib (at X = -17.0mm)
+        translate([-16.0, 0, 1.6])
+            cube([2.0, 8.0, 3.2], center = true);
+
+        // Rear Standoff Post (Ø7.0mm, pilot Ø2.65mm, Z = 4.80mm)
+        difference() {
+            union() {
+                translate([m2_post_x, 0, 0])
+                    cylinder(d = m2_post_dia, h = m2_post_top_z - floor_thick, $fn = 32);
+                translate([(x_rear + m2_post_x) / 2, 0, (m2_post_top_z - floor_thick) / 2])
+                    cube([m2_post_x - x_rear + 1.0, 3.6, m2_post_top_z - floor_thick], center = true);
+            }
+            translate([m2_post_x, 0, m2_post_top_z - floor_thick - m2_pilot_depth])
+                cylinder(d = m2_pilot_dia, h = m2_pilot_depth + 1.0, $fn = 32);
+            translate([m2_post_x, 0, m2_post_top_z - floor_thick - 1.0])
+                cylinder(d1 = m2_pilot_dia, d2 = m2_pilot_dia + 1.6, h = 1.01, $fn = 32);
+        }
+
+        // Bifurcated Front Capture Ears (Z = 5.90mm)
+        translate([x_front, 5.0, 5.90 - floor_thick])
+            cube([2.4, hw_out - 5.0, 1.8]);
+        translate([x_front, -hw_out, 5.90 - floor_thick])
+            cube([2.4, hw_out - 5.0, 1.8]);
+    }
+}
+
+// =========================================================================
+// PART 3B: PRECISION M.2 CLAMP TAB (100% FLAT-BED 3D PRINTABLE)
+// =========================================================================
+module esp32_clamp_tab() {
+    tab_len = 11.50;
+    tab_w   = 7.50;
+    tab_h   = 4.00;
+    cb_d    = 2.40;
+    post_x  = -11.50;
+    x_mid   = ((-6.70) + (-18.20)) / 2.0;
+
+    difference() {
+        translate([x_mid, 0, tab_h / 2.0])
+            cube([tab_len, tab_w, tab_h], center = true);
+
+        // Through-bore Ø3.4mm
+        translate([post_x, 0, -1.0])
+            cylinder(d = 3.40, h = tab_h + 2.0, $fn = 32);
+
+        // Counterbore Ø6.3mm x 2.4mm
+        translate([post_x, 0, tab_h - cb_d])
+            cylinder(d = 6.30, h = cb_d + 1.0, $fn = 32);
     }
 }
 
