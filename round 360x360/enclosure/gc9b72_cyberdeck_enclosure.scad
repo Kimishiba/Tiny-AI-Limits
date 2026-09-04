@@ -41,9 +41,10 @@ screen_circle_cy    = 0.0;   // Origin is aligned with the center of the active 
 // Top of PCB: +29.62mm, Bottom of PCB: -37.85mm
 screen_pcb_top      = 29.62;
 screen_pcb_bottom   = -37.85;
-screen_tab_half_w   = 23.88; // Blueprint tab half-width
+screen_tab_half_w   = 15.24; // Official blueprint dimension: (10 - 1)*2.54/2 + 3.81 = 15.24mm (30.48mm width)
+screen_tab_w        = 30.48; // Official blueprint tab width
 screen_pocket_depth = 2.00;  // Recess depth in front face carrier plate
-screen_tolerance    = 0.30;  // Printing tolerance
+screen_tolerance    = 0.36;  // Printing tolerance (pocket width = 31.20mm)
 
 // --- Enclosure Outer Footprint (100% Symmetrical Square Pod) ---
 housing_w           = 84.0;  // Pod outer width (84mm square)
@@ -147,18 +148,19 @@ module octagonal_prism(w, h, c, z_height) {
 // PART 1: INTERNAL REAR CLAMP BRACKET (OPTION 2 M2.5 RETENTION)
 // =========================================================================
 module rear_clamp() {
-    clamp_thick = 1.6;
-    hw_tab_cut  = screen_tab_half_w + screen_tolerance + 0.6; // 24.78mm
-    bot_y_cut   = screen_pcb_bottom - screen_tolerance - 0.5; // -38.65mm
+    clamp_thick  = 1.6;
+    tab_cutout_w = 32.00;
+    hw_tab_cut   = tab_cutout_w / 2.0; // 16.00mm
+    bot_y_cut    = screen_pcb_bottom - screen_tolerance - 0.5; // -38.71mm
 
     difference() {
         // Exact 84x84mm Octagonal Base Profile matching Front Face & Main Housing
         octagonal_prism(housing_w, housing_h, chamfer_outer, clamp_thick);
 
-        // 1. Exact Rectangular Screen PCB Tab Cutout (49.56mm wide x Y = -38.65 to 0.0mm)
-        // Leaving continuous 3.35mm solid structural bottom bridge (Y = -42 to -38.65mm)
+        // 1. Exact Rectangular Screen PCB Tab Cutout (32.00mm wide x Y = -38.71 to 0.0mm)
+        // Leaving continuous 3.29mm solid structural bottom bridge (Y = -42 to -38.71mm)
         translate([-hw_tab_cut, bot_y_cut, -1.0])
-            cube([2 * hw_tab_cut, -bot_y_cut + 1.0, clamp_thick + 2.0]);
+            cube([tab_cutout_w, -bot_y_cut + 1.0, clamp_thick + 2.0]);
 
         // 2. Central aeration / weight reduction opening (Ø38.0mm)
         translate([0, 0, -1.0])

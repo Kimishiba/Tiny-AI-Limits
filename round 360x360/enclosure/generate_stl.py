@@ -53,10 +53,10 @@ SCREEN_ACTIVE_DIA = 52.92
 SCREEN_THICKNESS = 2.40
 SCREEN_PCB_TOP = 29.62
 SCREEN_PCB_BOTTOM = -37.85
-SCREEN_TAB_HALF_W = 23.88
-SCREEN_TAB_W = 47.76
+SCREEN_TAB_HALF_W = 15.24        # Official blueprint dimension (30.48mm total width)
+SCREEN_TAB_W = 30.48             # Official blueprint dimension: (10 - 1)*2.54 + 2*3.81 = 30.48mm
 SCREEN_POCKET_DEPTH = 2.00
-SCREEN_TOLERANCE = 0.30
+SCREEN_TOLERANCE = 0.36          # 0.36mm clearance per side (pocket width = 31.20mm)
 
 # Option 2: Rear-Loading Architecture Parameters
 REAR_POCKET_DEPTH = 2.40        # Recessed cavity depth on rear of Front Face
@@ -199,13 +199,14 @@ def build_rear_clamp():
     poly = m3d.CrossSection([pts])
     bracket = m3d.Manifold.extrude(poly, clamp_thick)
 
-    # 1. Exact Rectangular Screen PCB Tab Cutout (49.56mm wide x Y = -38.65 to 0.0mm)
-    # Covers the entire rectangular portion of the GC9B72 PCB (width 47.76mm, bottom Y = -37.85mm)
-    # Leaves 0.9mm lateral clearance on each side, full clearance for SMD components & 10-pin header,
-    # while preserving a continuous 3.35mm solid structural bottom bridge (Y = -42.0 to -38.65mm).
-    hw_tab = SCREEN_TAB_HALF_W + SCREEN_TOLERANCE + 0.6   # 24.78mm (49.56mm span)
-    bot_y_tab = SCREEN_PCB_BOTTOM - SCREEN_TOLERANCE - 0.5  # -38.65mm
-    tab_cutout = m3d.Manifold.cube([2 * hw_tab, -bot_y_tab + 1.0, clamp_thick + 2.0], center=False).translate([-hw_tab, bot_y_tab, -1.0])
+    # 1. Exact Rectangular Screen PCB Tab Cutout (32.00mm wide x Y = -38.65 to 0.0mm)
+    # Sized to 32.00mm wide (+0.76mm per side around official 30.48mm tab)
+    # Clears 10-pin header and DuPont jumper connectors, seamlessly merging into Ø38mm center hole
+    # while preserving a solid 3.35mm bottom structural bridge (Y = -42.0 to -38.65mm).
+    tab_cutout_w = 32.00
+    hw_cut = tab_cutout_w / 2.0  # 16.00mm
+    bot_y_tab = SCREEN_PCB_BOTTOM - SCREEN_TOLERANCE - 0.5  # -38.71mm
+    tab_cutout = m3d.Manifold.cube([tab_cutout_w, -bot_y_tab + 1.0, clamp_thick + 2.0], center=False).translate([-hw_cut, bot_y_tab, -1.0])
     bracket = bracket - tab_cutout
 
     # 2. Central ventilation / weight-reduction opening (Ø38.0mm)

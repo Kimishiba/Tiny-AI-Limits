@@ -34,8 +34,8 @@ All models are located in [`round 360x360/enclosure/`](./):
 
 | File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
-| **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with prominent raised circular bezel rim, continuous conical viewing funnel, rear exact-contour cavity, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 9.8\text{ mm}$** | ~45 mins |
-| **`gc9b72_rear_clamp.stl`** | Slim Full-Footprint 84mm Sandwich Clamp Plate with 4x M3 corner clearance holes, center ventilation port, and enclosed DuPont pass-through window | **$84.0 \times 84.0 \times 1.6\text{ mm}$** | ~12 mins |
+| **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with prominent raised circular bezel rim, continuous conical viewing funnel, precision 31.2mm rear screen pocket, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 9.8\text{ mm}$** | ~45 mins |
+| **`gc9b72_rear_clamp.stl`** | Slim Full-Footprint 84mm Sandwich Clamp Plate with 4x M3 corner clearance holes, center ventilation port, and precision 32.0mm screen PCB tab window | **$84.0 \times 84.0 \times 1.6\text{ mm}$** | ~12 mins |
 | **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with M.2 screw retention system, bifurcated front ears, shaved USB-C port, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
 | **`gc9b72_esp32_clamp_tab.stl`** | Precision M.2 Hold-Down Clamp Tab with captive M3 screw ring and 100% flat bed-facing base | **$11.5 \times 7.5 \times 4.0\text{ mm}$** | ~2.5 mins |
 | **`gc9b72_stand_tier1_base.stl`** | Stand Tier 1 Accent Base Plate with 4x rubber feet pockets and alignment sockets | $94.0 \times 88.0 \times 6.0\text{ mm}$ | ~25 mins |
@@ -93,6 +93,6 @@ All models are located in [`round 360x360/enclosure/`](./):
 * **Infill:** `20% Gyroid` or `Grid`.
 * **Supports:** **NONE NEEDED** when oriented properly:
   * **Front Face:** Print flat front face-up (or face-down on a textured PEI sheet).
-  * **Rear Clamp:** Print flat on build plate.
+  * **Rear Clamp:** Print flat on build plate. Allow the spring steel build plate to cool completely to room temperature before removing to prevent deflection of the slim 1.6mm bottom bridge.
   * **Main Housing:** Print with rear backplate on build plate (cavity opening facing up).
   * **Desk Stand:** Print flat on bottom surface.
