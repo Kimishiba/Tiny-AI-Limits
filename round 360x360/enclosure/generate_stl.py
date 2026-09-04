@@ -66,8 +66,10 @@ SCREEN_APERTURE_DIA = 54.00     # Central circular viewing aperture
 SCREEN_APERTURE_TOP = 57.00     # Anti-shadow conical funnel top diameter
 
 # M2.5 Internal Rear Clamp Fasteners (Direct Plastic Tapping into Front Face)
-CLAMP_SCREW_X = 30.00           # Rear clamp screw X (+/-30mm)
-CLAMP_SCREW_Y = 14.00           # Rear clamp screw Y (+/-14mm)
+CLAMP_SCREW_X_TOP = 30.00       # Rear clamp top screws X (+/-30mm)
+CLAMP_SCREW_Y_TOP = 14.00       # Rear clamp top screws Y (+14mm)
+CLAMP_SCREW_X_BOT = 28.50       # Rear clamp bottom screws X (+/-28.5mm)
+CLAMP_SCREW_Y_BOT = -18.00      # Rear clamp bottom screws Y (-18mm)
 M2_5_PILOT_DIA = 2.05           # Direct plastic tap pilot hole in rear of Front Face
 M2_5_PILOT_DEPTH = 4.20         # Blind pilot hole depth into solid 7mm plate
 M2_5_CLEARANCE_HOLE = 2.80      # Clearance hole through rear clamp bracket
@@ -190,48 +192,41 @@ def export_stl(manifold_obj, filepath, name="Model"):
 # =========================================================================
 def build_rear_clamp():
     # Rigid clamping frame that sits on the rear face (Z = 0) and traps the PCB forward
-    clamp_thick = 3.0
-    clamp_w = 68.0
-    clamp_h = 52.0  # from Y = -24.0 to Y = +28.0
+    # Full-coverage geometry extending from Y = -38.0mm up to Y = +28.0mm
+    # Features 45° corner relief chamfers to eliminate any interference with main housing corner posts
+    clamp_thick = 3.20
 
-    # Outer rounded/chamfered bracket body
-    hw = clamp_w / 2.0
+    # 2D profile of clamp clearing housing corner posts:
+    # - Top: Y = +28.0mm (X in [-29, +29]), chamfers to (X = +/-33, Y = +24)
+    # - Side flanks: X = +/-33.0mm from Y = +24 down to Y = -22.0mm
+    # - Lower corner post chamfer: from (X = +/-33, Y = -22) to (X = +/-24, Y = -34)
+    # - Bottom rail edge: from X = -23.5 to +23.5 at Y = -38.0mm
     pts = [
-        [-hw + 4.0, -24.0], [hw - 4.0, -24.0],
-        [hw, -24.0 + 4.0],  [hw, 28.0 - 4.0],
-        [hw - 4.0, 28.0],   [-hw + 4.0, 28.0],
-        [-hw, 28.0 - 4.0],  [-hw, -24.0 + 4.0]
+        [-23.5, -38.0], [23.5, -38.0],
+        [24.0, -34.0],  [33.0, -22.0],  [33.0, 24.0],
+        [29.0, 28.0],   [-29.0, 28.0],
+        [-33.0, 24.0],  [-33.0, -22.0], [-24.0, -34.0]
     ]
     poly = m3d.CrossSection([pts])
     bracket = m3d.Manifold.extrude(poly, clamp_thick)
 
-    # 1. Forward pressing rim (0.5mm stepped pad that reaches into the pocket to compress PCB)
-    # Circular arc pressing ring
-    r_out = (SCREEN_PCB_W / 2.0) - 0.2
-    r_in = r_out - 3.5
-    press_ring = m3d.Manifold.cylinder(0.51, r_out, r_out, 72) - m3d.Manifold.cylinder(0.52, r_in, r_in, 72)
-    press_ring = press_ring.translate([0, 0, -0.50])
+    # 1. Enclosed DuPont Header Window (27.0mm wide x 8.5mm high)
+    # Positions directly over 10-pin header pins (Y = -36.5 to -28.0mm)
+    # Leaving a solid 1.5mm continuous closure rail at bottom (Y = -38.0 to -36.5mm)
+    # Traps bottom of screen PCB tab securely with zero perimeter gaps
+    header_window = m3d.Manifold.cube([27.0, 8.5, clamp_thick + 2.0], center=False).translate([-13.5, -36.5, -1.0])
+    bracket = bracket - header_window
 
-    # Side pressing pads for tab flanks
-    press_pad_l = m3d.Manifold.cube([4.0, 20.0, 0.51], center=False).translate([-hw + 10.0, -22.0, -0.50])
-    press_pad_r = m3d.Manifold.cube([4.0, 20.0, 0.51], center=False).translate([hw - 14.0, -22.0, -0.50])
-
-    bracket = bracket + press_ring + press_pad_l + press_pad_r
-
-    # 2. Generous Lower Cutout: completely frees 10-pin header and DuPont cables
-    # Cutout spans X = -17.0 to +17.0 from Y = -30.0 up to Y = -8.0
-    lower_window = m3d.Manifold.cube([34.0, 26.0, clamp_thick + 2.0], center=False).translate([-17.0, -30.0, -1.0])
-    bracket = bracket - lower_window
-
-    # 3. Center ventilation / weight-reduction opening (Ø38.0mm)
-    center_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, 19.0, 19.0, 72).translate([0, 0, -1.0])
+    # 2. Center ventilation / weight-reduction opening (Ø36.0mm)
+    center_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, 18.0, 18.0, 72).translate([0, 0, -1.0])
     bracket = bracket - center_hole
 
-    # 4. 4x M2.5 Counterbored Screw Holes (matching +/-30mm, +/-14mm)
+    # 3. 4x M2.5 Counterbored Screw Holes (Top: +/-30mm, +14mm; Bottom: +/-28.5mm, -18mm)
+    clamp_screws = [(CLAMP_SCREW_X_TOP, CLAMP_SCREW_Y_TOP), (CLAMP_SCREW_X_BOT, CLAMP_SCREW_Y_BOT)]
     for sx in [-1, 1]:
-        for sy in [-1, 1]:
-            hole = m3d.Manifold.cylinder(clamp_thick + 2.0, M2_5_CLEARANCE_HOLE / 2.0, M2_5_CLEARANCE_HOLE / 2.0, 32).translate([sx * CLAMP_SCREW_X, sy * CLAMP_SCREW_Y, -1.0])
-            cb = m3d.Manifold.cylinder(M2_5_CB_DEPTH + 1.0, M2_5_CB_DIA / 2.0, M2_5_CB_DIA / 2.0, 32).translate([sx * CLAMP_SCREW_X, sy * CLAMP_SCREW_Y, clamp_thick - M2_5_CB_DEPTH])
+        for (cx, cy) in clamp_screws:
+            hole = m3d.Manifold.cylinder(clamp_thick + 2.0, M2_5_CLEARANCE_HOLE / 2.0, M2_5_CLEARANCE_HOLE / 2.0, 32).translate([sx * cx, cy, -1.0])
+            cb = m3d.Manifold.cylinder(M2_5_CB_DEPTH + 1.0, M2_5_CB_DIA / 2.0, M2_5_CB_DIA / 2.0, 32).translate([sx * cx, cy, clamp_thick - M2_5_CB_DEPTH])
             bracket = bracket - hole - cb
 
     return bracket
@@ -308,9 +303,10 @@ def build_front_face():
     plate = plate - screen_cavity
 
     # 5. 4x M2.5 Rear Clamp Pilot Holes on REAR Face (Z = 0.0 to 4.2mm into solid 7mm plate)
+    clamp_screws = [(CLAMP_SCREW_X_TOP, CLAMP_SCREW_Y_TOP), (CLAMP_SCREW_X_BOT, CLAMP_SCREW_Y_BOT)]
     for sx in [-1, 1]:
-        for sy in [-1, 1]:
-            clamp_pilot = m3d.Manifold.cylinder(M2_5_PILOT_DEPTH + 0.01, M2_5_PILOT_DIA / 2.0, M2_5_PILOT_DIA / 2.0, 32).translate([sx * CLAMP_SCREW_X, sy * CLAMP_SCREW_Y, -0.005])
+        for (cx, cy) in clamp_screws:
+            clamp_pilot = m3d.Manifold.cylinder(M2_5_PILOT_DEPTH + 0.01, M2_5_PILOT_DIA / 2.0, M2_5_PILOT_DIA / 2.0, 32).translate([sx * cx, cy, -0.005])
             plate = plate - clamp_pilot
 
     # 6. 4x Symmetrical Outer M3 Corner Screws (+/-34mm, +/-34mm)

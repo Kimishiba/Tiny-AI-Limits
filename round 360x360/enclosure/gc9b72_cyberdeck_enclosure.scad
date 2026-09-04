@@ -64,8 +64,10 @@ screen_aperture_dia = 54.00; // Circular screen viewing window
 screen_aperture_top = 57.00; // Conical viewing funnel top diameter
 
 // --- M2.5 Internal Rear Clamp Fasteners (Direct Plastic Tapping into Front Face) ---
-clamp_screw_x       = 30.00; // Rear clamp screw X (+/-30mm)
-clamp_screw_y       = 14.00; // Rear clamp screw Y (+/-14mm)
+clamp_screw_x_top   = 30.00; // Top clamp screws X (+/-30mm)
+clamp_screw_y_top   = 14.00; // Top clamp screws Y (+14mm)
+clamp_screw_x_bot   = 28.50; // Bottom clamp screws X (+/-28.5mm)
+clamp_screw_y_bot   = -18.00;// Bottom clamp screws Y (-18mm)
 m2_5_pilot_dia      = 2.05;  // Direct plastic tap pilot hole in rear of Front Face
 m2_5_pilot_depth    = 4.20;  // Pilot hole depth in Front Face
 m2_5_clearance      = 2.80;  // Clearance hole through rear clamp bracket
@@ -147,47 +149,42 @@ module octagonal_prism(w, h, c, z_height) {
 // PART 1: INTERNAL REAR CLAMP BRACKET (OPTION 2 M2.5 RETENTION)
 // =========================================================================
 module rear_clamp() {
-    clamp_thick = 3.0;
-    clamp_w = 68.0;
-    clamp_h = 52.0;
+    clamp_thick = 3.2;
+
+    pts = [
+        [-23.5, -38.0], [23.5, -38.0],
+        [24.0, -34.0],  [33.0, -22.0],  [33.0, 24.0],
+        [29.0, 28.0],   [-29.0, 28.0],
+        [-33.0, 24.0],  [-33.0, -22.0], [-24.0, -34.0]
+    ];
 
     difference() {
-        union() {
-            // Bracket Body
-            translate([0, 2.0, 0])
-                octagonal_prism(clamp_w, clamp_h, 4.0, clamp_thick);
-
-            // Forward pressing ring (0.5mm stepped pad)
-            translate([0, 0, -0.50]) {
-                difference() {
-                    cylinder(d = screen_pcb_w - 0.4, h = 0.51);
-                    cylinder(d = screen_pcb_w - 7.4, h = 0.52);
-                }
-            }
-
-            // Side pressing pads for tab flanks
-            translate([-34.0 + 10.0, -22.0, -0.50])
-                cube([4.0, 20.0, 0.51]);
-            translate([34.0 - 14.0, -22.0, -0.50])
-                cube([4.0, 20.0, 0.51]);
+        linear_extrude(height = clamp_thick) {
+            polygon(pts);
         }
 
-        // 1. Lower cutout: completely frees 10-pin header and DuPont cables
-        translate([-17.0, -30.0, -1.0])
-            cube([34.0, 26.0, clamp_thick + 2.0]);
+        // 1. Enclosed DuPont Header Window (27.0mm wide x 8.5mm high)
+        // Leaving solid 1.5mm bottom closure rail (Y = -38.0 to -36.5mm)
+        translate([-13.5, -36.5, -1.0])
+            cube([27.0, 8.5, clamp_thick + 2.0]);
 
-        // 2. Central aeration / weight reduction opening
+        // 2. Central aeration / weight reduction opening (Ø36.0mm)
         translate([0, 0, -1.0])
-            cylinder(d = 38.0, h = clamp_thick + 2.0);
+            cylinder(d = 36.0, h = clamp_thick + 2.0);
 
-        // 3. 4x M2.5 Counterbored Screw Holes (+/-30mm, +/-14mm)
+        // 3. 4x M2.5 Counterbored Screw Holes (Top: +/-30mm, +14mm; Bottom: +/-28.5mm, -18mm)
         for (sx = [-1, 1]) {
-            for (sy = [-1, 1]) {
-                translate([sx * clamp_screw_x, sy * clamp_screw_y, -1.0]) {
-                    cylinder(d = m2_5_clearance, h = clamp_thick + 2.0);
-                    translate([0, 0, clamp_thick - m2_5_cb_depth + 1.0])
-                        cylinder(d = m2_5_cb_dia, h = m2_5_cb_depth + 1.0);
-                }
+            // Top clamp screws
+            translate([sx * clamp_screw_x_top, clamp_screw_y_top, -1.0]) {
+                cylinder(d = m2_5_clearance, h = clamp_thick + 2.0);
+                translate([0, 0, clamp_thick - m2_5_cb_depth + 1.0])
+                    cylinder(d = m2_5_cb_dia, h = m2_5_cb_depth + 1.0);
+            }
+            // Bottom clamp screws
+            translate([sx * clamp_screw_x_bot, clamp_screw_y_bot, -1.0]) {
+                cylinder(d = m2_5_clearance, h = clamp_thick + 2.0);
+                translate([0, 0, clamp_thick - m2_5_cb_depth + 1.0])
+                    cylinder(d = m2_5_cb_dia, h = m2_5_cb_depth + 1.0);
             }
         }
     }
@@ -280,10 +277,10 @@ module front_face_plate() {
 
         // 5. 4x M2.5 Rear Clamp Pilot Holes on REAR Face
         for (sx = [-1, 1]) {
-            for (sy = [-1, 1]) {
-                translate([sx * clamp_screw_x, sy * clamp_screw_y, -0.01])
-                    cylinder(d = m2_5_pilot_dia, h = m2_5_pilot_depth + 0.02);
-            }
+            translate([sx * clamp_screw_x_top, clamp_screw_y_top, -0.01])
+                cylinder(d = m2_5_pilot_dia, h = m2_5_pilot_depth + 0.02);
+            translate([sx * clamp_screw_x_bot, clamp_screw_y_bot, -0.01])
+                cylinder(d = m2_5_pilot_dia, h = m2_5_pilot_depth + 0.02);
         }
 
         // 6. 4x Symmetrical Outer M3 Mounting Screws (+/-34mm, +/-34mm)
