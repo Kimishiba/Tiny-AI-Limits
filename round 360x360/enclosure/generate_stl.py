@@ -351,12 +351,21 @@ def build_main_housing():
     # Shaved-depth USB-C wall relief (down to 1.2mm outer wall thickness, keeping board as close to edge as possible!)
     usbc_wall_relief = m3d.Manifold.cube([2.8, 22.0, cavity_depth + 0.2], center=False).translate([-40.8, -11.0, floor_t])
 
-    # 4. Reinforced Elevated DuPont Clearance Trench (starts at Z = 6.0mm with 45° bottom ramp)
+    # 4. Reinforced Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp)
     trench_z0 = 6.0
     trench_h = depth - trench_z0 + 0.1
+
+    # 4a. Bottom Wall DuPont Trench (Y = -40.0 to -38.0mm, width 32.0mm)
     t_base_bot = m3d.Manifold.cube([32.0, 6.0, trench_h]).translate([-16.0, -40.0, trench_z0])
     t_ramp_bot = m3d.Manifold.cube([32.0, 4.0, trench_h + 2.0]).translate([-16.0, -38.0, trench_z0 - 2.0])
-    dupont_trench = (t_base_bot + t_ramp_bot).hull()
+    dupont_trench_bot = (t_base_bot + t_ramp_bot).hull()
+
+    # 4b. Right Wall DuPont Trench (opposite USB-C on Left Wall: X = +38.0 to +40.0mm, length 32.0mm)
+    t_base_rt = m3d.Manifold.cube([6.0, 32.0, trench_h]).translate([34.0, -16.0, trench_z0])
+    t_ramp_rt = m3d.Manifold.cube([4.0, 32.0, trench_h + 2.0]).translate([34.0, -16.0, trench_z0 - 2.0])
+    dupont_trench_rt = (t_base_rt + t_ramp_rt).hull()
+
+    dupont_trench = dupont_trench_bot + dupont_trench_rt
 
     # 5. 4 Corner M3 Screw Pilot Holes with 45° Entry Lead-In Chamfers (depth = 14mm, pilot dia = 2.50mm):
     screw_pilot_cuts = m3d.Manifold()

@@ -18,7 +18,7 @@
   * Dual L-shaped guide rails with rear mechanical thrust stop wall ($X = -16.0\text{mm}$)
   * $0.7\text{mm}$ outer edge support ledges (supporting PCB edges outside pin headers; bottom components completely unobstructed)
   * Dual discrete side retention snap clips ($0.28\text{mm}$ lip overhang at $Z = 5.2\text{mm}$)
-* **Elevated DuPont Clearance Trench:** Starts at $Z = 6.0\text{mm}$ with $45^\circ$ bottom ramp for maximum case stiffness
+* **Dual Elevated DuPont Clearance Trenches:** Starts at $Z = 6.0\text{mm}$ with $45^\circ$ self-supporting bottom ramps along both the bottom wall (for screen 10-pin DuPont headers) and opposite right wall (for internal jumper bundle routing and side accessories).
 * **Fasteners:**
   * 4x M2.5 $\times$ 6mm Socket Head Cap Screws for internal Rear Clamp retention ($\varnothing 2.05\text{mm}$ direct-tap pilot holes in Front Face)
   * 4x M3 $\times$ 16mm Socket Head Cap Screws for Chassis Corners ($\varnothing 2.50\text{mm}$ direct-tap pilot posts)

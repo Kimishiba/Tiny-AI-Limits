@@ -302,10 +302,17 @@ module main_housing_pod() {
                 }
         }
 
-        // 4. Elevated DuPont Clearance Trench (starts at Z = 6.0mm with 45° bottom ramp)
+        // 4. Elevated DuPont Clearance Trenches (starts at Z = 6.0mm with 45° bottom ramp)
+        // 4a. Bottom Wall DuPont Trench (Y = -40.0 to -38.0mm, width 32.0mm)
         hull() {
             translate([-16.0, -40.0, 6.0]) cube([32.0, 6.0, housing_depth - 5.9]);
             translate([-16.0, -38.0, 4.0]) cube([32.0, 4.0, housing_depth - 3.9]);
+        }
+
+        // 4b. Right Wall DuPont Trench (opposite USB-C on Left Wall: X = 38.0 to 40.0mm, length 32.0mm)
+        hull() {
+            translate([34.0, -16.0, 6.0]) cube([6.0, 32.0, housing_depth - 5.9]);
+            translate([34.0, -16.0, 4.0]) cube([4.0, 32.0, housing_depth - 3.9]);
         }
 
         // 5. 4x Symmetrical Corner M3 Pilot Holes with 45° Entry Lead-In Chamfers
