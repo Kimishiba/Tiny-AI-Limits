@@ -20,7 +20,7 @@
 #endif
 
 #ifndef WS2812_MAX_LEDS
-#define WS2812_MAX_LEDS 32
+#define WS2812_MAX_LEDS 64
 #endif
 
 #ifndef WS2812_DEFAULT_ACTIVE_LEDS

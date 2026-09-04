@@ -16,7 +16,7 @@
 
 // WS2812B Addressable LED Status Configuration (ESP32-C3 SuperMini)
 #define WS2812_PIN 10
-#define WS2812_MAX_LEDS 32
+#define WS2812_MAX_LEDS 64
 #define WS2812_DEFAULT_ACTIVE_LEDS 16
 
 // ==========================================

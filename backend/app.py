@@ -2200,7 +2200,7 @@ def handle_config():
             if "led_active_count" in data:
                 try:
                     c = int(data["led_active_count"])
-                    config["led_active_count"] = max(1, min(32, c))
+                    config["led_active_count"] = max(1, min(64, c))
                 except (TypeError, ValueError):
                     pass
 
