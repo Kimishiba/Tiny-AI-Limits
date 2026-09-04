@@ -235,7 +235,7 @@ class ClaudeProvider(BaseProvider):
         token = (oauth.get("accessToken") or oauth.get("access_token") or oauth.get("token")) if oauth else None
 
         if not token:
-            token = config.get("claude_api_key") or os.environ.get("ANTHROPIC_API_KEY")
+            token = config.get("claude_api_key") or config.get("claude_session_cookie") or os.environ.get("ANTHROPIC_API_KEY")
 
         if not token:
             return self._local_fallback_snapshot(detailed, config, "OAuth credentials not found, showing local transcript tokens")
