@@ -48,11 +48,13 @@ Looking at the board top-down with the **USB-C port pointing UP**:
 
 ---
 
-## 💡 WS2812B Addressable LED Ring / Strip Pin Mapping
+## 💡 WS2812B & SK6812 Mini RGB Addressable LED Pin Mapping
 
-The WS2812B addressable status LEDs (such as a 12- or 16-LED ring around the GC9A01 bezel) provide physical desk notification for agent status (e.g. glowing/pulsing amber when an agent is waiting for input).
+Addressable status LEDs (such as individual **SK6812 Mini RGB** beads, or WS2812B strips / 12- or 16-LED rings around the GC9A01 bezel) provide physical desk notification for agent status (e.g. glowing/pulsing amber when an agent is waiting for input).
 
-| LED Pin (WS2812B) | ESP32-C3 SuperMini Pin | Physical Location | Wire Color Cue | Description |
+*Note: **SK6812 Mini RGB** uses the exact same 3-channel GRB protocol and 800kHz timing as WS2812B, making it a 100% drop-in compatible match with lower current draw and better 3.3V logic tolerance.*
+
+| LED Pin (SK6812 Mini / WS2812B) | ESP32-C3 SuperMini Pin | Physical Location | Wire Color Cue | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **VCC (+5V)** | **5V (VBUS)** | Right Header (Pin 8) or Left (Pin 1) | 🔴 **Red** | Power directly from 5V USB (NOT 3V3) |
 | **GND** | **GND** | Right Header (Pin 9) or Left (Pin 2) | ⚫ **Black** | Common Ground |
