@@ -60,10 +60,10 @@ SCREEN_TOLERANCE = 0.30
 
 # Option 2: Rear-Loading Architecture Parameters
 REAR_POCKET_DEPTH = 2.40        # Recessed cavity depth on rear of Front Face
-INTEGRATED_BEZEL_H = 1.60       # Raised circular bezel rim on front face
-INTEGRATED_BEZEL_OD = 66.40     # Outer diameter of raised circular bezel rim
-SCREEN_APERTURE_DIA = 54.00     # Central circular viewing aperture
-SCREEN_APERTURE_TOP = 57.00     # Anti-shadow conical funnel top diameter
+INTEGRATED_BEZEL_H = 2.80       # Raised circular bezel rim on front face (increased from 1.60mm)
+INTEGRATED_BEZEL_OD = 72.00     # Outer diameter of raised circular bezel rim (increased from 66.40mm)
+SCREEN_APERTURE_DIA = 54.00     # Central circular viewing aperture at screen retaining lip
+SCREEN_APERTURE_TOP = 60.00     # Continuous conical viewing funnel top diameter at ring summit
 
 # Rear Clamp Plate Parameters (Sandwich Architecture)
 CLAMP_THICK = 1.60              # Slim, rigid 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
@@ -272,11 +272,12 @@ def build_front_face():
     bezel_ring = m3d.Manifold.cylinder(INTEGRATED_BEZEL_H, r_base, r_top, 72).translate([0, 0, FRONT_FACE_THICK])
     plate = plate + bezel_ring
 
-    # 3. Conical Anti-Shadow Viewing Aperture through to front
+    # 3. Continuous Conical Anti-Shadow Viewing Funnel connecting screen shelf to top of ring
     total_h = FRONT_FACE_THICK + INTEGRATED_BEZEL_H
-    cyl_aperture = m3d.Manifold.cylinder(total_h + 2.0, SCREEN_APERTURE_DIA / 2.0, SCREEN_APERTURE_DIA / 2.0, 72).translate([0, 0, -1.0])
-    cone_funnel = m3d.Manifold.cylinder(1.61, SCREEN_APERTURE_DIA / 2.0, SCREEN_APERTURE_TOP / 2.0, 72).translate([0, 0, total_h - 1.60])
-    plate = plate - cyl_aperture - cone_funnel
+    hole_pocket = m3d.Manifold.cylinder(REAR_POCKET_DEPTH + 0.02, SCREEN_APERTURE_DIA / 2.0, SCREEN_APERTURE_DIA / 2.0, 72).translate([0, 0, -0.01])
+    cone_h = total_h - REAR_POCKET_DEPTH
+    cone_funnel = m3d.Manifold.cylinder(cone_h + 0.04, SCREEN_APERTURE_DIA / 2.0, SCREEN_APERTURE_TOP / 2.0, 72).translate([0, 0, REAR_POCKET_DEPTH - 0.02])
+    plate = plate - hole_pocket - cone_funnel
 
     # 4. Exact Screen Contour Cavity RECESSED INTO REAR FACE (Z = 0.0 to REAR_POCKET_DEPTH)
     clr = SCREEN_TOLERANCE

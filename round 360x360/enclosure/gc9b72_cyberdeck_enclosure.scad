@@ -58,10 +58,10 @@ cavity_depth        = housing_depth - floor_thick;
 
 // --- Option 2: Rear-Loading Architecture Parameters ---
 rear_pocket_depth   = 2.40;  // Recessed cavity depth on rear of Front Face
-integrated_bezel_h  = 1.60;  // Raised circular bezel rim height on front
-integrated_bezel_od = 66.40; // Raised circular bezel outer diameter
-screen_aperture_dia = 54.00; // Circular screen viewing window
-screen_aperture_top = 57.00; // Conical viewing funnel top diameter
+integrated_bezel_h  = 2.80;  // Raised circular bezel rim height on front (increased from 1.60mm)
+integrated_bezel_od = 72.00; // Raised circular bezel outer diameter (increased from 66.40mm)
+screen_aperture_dia = 54.00; // Central circular viewing aperture at screen retaining lip
+screen_aperture_top = 60.00; // Continuous conical viewing funnel top diameter at ring summit
 
 // --- Rear Clamp Plate Parameters (Sandwich Architecture) ---
 clamp_thick         = 1.60;  // Slim 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
@@ -239,11 +239,11 @@ module front_face_plate() {
                 cylinder(d1 = integrated_bezel_od, d2 = integrated_bezel_od - 2.4, h = integrated_bezel_h);
         }
 
-        // 3. Conical Anti-Shadow Viewing Aperture through to front
+        // 3. Continuous Conical Anti-Shadow Viewing Funnel connecting screen shelf to top of ring
         translate([0, 0, -1.0])
-            cylinder(d = screen_aperture_dia, h = front_face_thick + integrated_bezel_h + 2.0);
-        translate([0, 0, front_face_thick + integrated_bezel_h - 1.60])
-            cylinder(d1 = screen_aperture_dia, d2 = screen_aperture_top, h = 1.61);
+            cylinder(d = screen_aperture_dia, h = rear_pocket_depth + 1.0);
+        translate([0, 0, rear_pocket_depth - 0.01])
+            cylinder(d1 = screen_aperture_dia, d2 = screen_aperture_top, h = front_face_thick + integrated_bezel_h - rear_pocket_depth + 0.02);
 
         // 4. Exact Screen Contour Cavity RECESSED INTO REAR FACE (Z = 0 to rear_pocket_depth)
         translate([0, 0, -0.01]) {

@@ -3,7 +3,7 @@
 3D printable enclosure files, slicer settings, hardware BOM, and assembly instructions for the **2.1-Inch GC9B72 Cyberdeck Desk Console**, engineered directly following the **240×240 Unit 01 Heritage Architecture** with the **Option 2 Rear-Loading Screen Architecture**:
 * **100% Symmetrical 84mm Square Chassis ($84.0\text{mm} \times 84.0\text{mm}$)**
 * **Option 2 Rear-Loading Screen Architecture:**
-  * **100% Seamless Monolithic Front Face:** Clean solid front plate with an integrated raised circular bezel rim ($\varnothing 66.4\text{mm}$) and $\varnothing 54.0\text{mm}$ viewing aperture.
+  * **100% Seamless Monolithic Front Face:** Clean solid front plate with a prominent raised circular bezel rim ($\varnothing 72.0\text{mm}$, $+2.8\text{mm}$ elevation) and a continuous anti-shadow conical viewing funnel expanding from $\varnothing 54.0\text{mm}$ at the screen shelf to $\varnothing 60.0\text{mm}$ at the ring summit.
   * **Zero Front Screws & Zero Exposed Cutouts:** The rectangular PCB tab, solder joints, flex ribbon, and 10-pin header are completely concealed inside the enclosure.
   * **Solid Front Retaining Lip:** $2.62\text{mm}$ continuous circular flange prevents display glass from ever pushing out the front.
   * **Internal Rear Clamp Bracket:** Rigid internal frame fastens with 4x M2.5 direct-tap screws, trapping the PCB forward while keeping the 10-pin header 100% open for DuPont jumpers.
@@ -31,7 +31,7 @@ All models are located in [`round 360x360/enclosure/`](./):
 
 | File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
-| **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with integrated raised circular bezel rim, rear exact-contour cavity, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 8.6\text{ mm}$** | ~40 mins |
+| **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with prominent raised circular bezel rim, continuous conical viewing funnel, rear exact-contour cavity, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 9.8\text{ mm}$** | ~45 mins |
 | **`gc9b72_rear_clamp.stl`** | Slim Full-Footprint 84mm Sandwich Clamp Plate with 4x M3 corner clearance holes, center ventilation port, and enclosed DuPont pass-through window | **$84.0 \times 84.0 \times 1.6\text{ mm}$** | ~12 mins |
 | **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with flush-edge ESP32 cradle, shaved USB-C port, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
 | **`gc9b72_stand_tier1_base.stl`** | Stand Tier 1 Accent Base Plate with 4x rubber feet pockets and alignment sockets | $94.0 \times 88.0 \times 6.0\text{ mm}$ | ~25 mins |
