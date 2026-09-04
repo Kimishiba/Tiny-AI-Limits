@@ -191,37 +191,40 @@ def export_stl(manifold_obj, filepath, name="Model"):
 # BUILD PART 1: INTERNAL REAR CLAMP BRACKET (M2.5 4-SCREW RETENTION)
 # =========================================================================
 def build_rear_clamp():
-    # Rigid clamping frame that sits on the rear face (Z = 0) and traps the PCB forward
-    # Full-coverage geometry extending from Y = -38.0mm up to Y = +28.0mm
-    # Features 45° corner relief chamfers to eliminate any interference with main housing corner posts
-    clamp_thick = 3.20
+    # Rigid sandwich clamp plate with exact 84.0 x 84.0mm octagonal footprint matching Front Face & Main Housing
+    clamp_thick = 3.00
+    hw = HOUSING_W / 2.0  # 42.0mm
+    c = CHAMFER_OUTER     # 7.0mm
 
-    # 2D profile of clamp clearing housing corner posts:
-    # - Top: Y = +28.0mm (X in [-29, +29]), chamfers to (X = +/-33, Y = +24)
-    # - Side flanks: X = +/-33.0mm from Y = +24 down to Y = -22.0mm
-    # - Lower corner post chamfer: from (X = +/-33, Y = -22) to (X = +/-24, Y = -34)
-    # - Bottom rail edge: from X = -23.5 to +23.5 at Y = -38.0mm
+    # Exact 84x84mm Octagonal Base Profile matching Front Face & Main Housing
     pts = [
-        [-23.5, -38.0], [23.5, -38.0],
-        [24.0, -34.0],  [33.0, -22.0],  [33.0, 24.0],
-        [29.0, 28.0],   [-29.0, 28.0],
-        [-33.0, 24.0],  [-33.0, -22.0], [-24.0, -34.0]
+        [-hw + c, -hw], [hw - c, -hw],
+        [hw, -hw + c],  [hw, hw - c],
+        [hw - c, hw],   [-hw + c, hw],
+        [-hw, hw - c],  [-hw, -hw + c]
     ]
     poly = m3d.CrossSection([pts])
     bracket = m3d.Manifold.extrude(poly, clamp_thick)
 
-    # 1. Enclosed DuPont Header Window (27.0mm wide x 8.5mm high)
-    # Positions directly over 10-pin header pins (Y = -36.5 to -28.0mm)
-    # Leaving a solid 1.5mm continuous closure rail at bottom (Y = -38.0 to -36.5mm)
-    # Traps bottom of screen PCB tab securely with zero perimeter gaps
-    header_window = m3d.Manifold.cube([27.0, 8.5, clamp_thick + 2.0], center=False).translate([-13.5, -36.5, -1.0])
+    # 1. Enclosed DuPont Header Pass-Through Window (28.0mm wide x 10.0mm high)
+    # Spans X = -14.0 to +14.0mm, Y = -36.5 to -26.5mm
+    # Leaves a continuous 5.5mm solid structural bottom wall (Y = -42.0 to -36.5mm)
+    header_window = m3d.Manifold.cube([28.0, 10.0, clamp_thick + 2.0], center=False).translate([-14.0, -36.5, -1.0])
     bracket = bracket - header_window
 
-    # 2. Center ventilation / weight-reduction opening (Ø36.0mm)
-    center_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, 18.0, 18.0, 72).translate([0, 0, -1.0])
+    # 2. Central ventilation / weight-reduction opening (Ø38.0mm)
+    center_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, 19.0, 19.0, 72).translate([0, 0, -1.0])
     bracket = bracket - center_hole
 
-    # 3. 4x M2.5 Counterbored Screw Holes (Top: +/-30mm, +14mm; Bottom: +/-28.5mm, -18mm)
+    # 3. 4x M3 Corner Screw Clearance Holes (+/-34.0mm, +/-34.0mm)
+    # The 4 main chassis bolts pass straight through the clamp plate into the main housing posts
+    for sx in [-1, 1]:
+        for sy in [-1, 1]:
+            m3_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, M3_CLEARANCE_HOLE / 2.0, M3_CLEARANCE_HOLE / 2.0, 32).translate([sx * CORNER_SCREW_X, sy * CORNER_SCREW_Y, -1.0])
+            bracket = bracket - m3_hole
+
+    # 4. 4x M2.5 Sub-Assembly Counterbored Screw Holes (Top: +/-30mm, +14mm; Bottom: +/-28.5mm, -18mm)
+    # Enables securing the display module to the Front Face as an independent sub-assembly
     clamp_screws = [(CLAMP_SCREW_X_TOP, CLAMP_SCREW_Y_TOP), (CLAMP_SCREW_X_BOT, CLAMP_SCREW_Y_BOT)]
     for sx in [-1, 1]:
         for (cx, cy) in clamp_screws:

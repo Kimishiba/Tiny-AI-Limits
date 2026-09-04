@@ -32,7 +32,7 @@ All models are located in [`round 360x360/enclosure/`](./):
 | File | Description | Outer Dims ($W \times D \times H$) | Print Time (est.) |
 | :--- | :--- | :---: | :---: |
 | **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with integrated raised circular bezel rim, rear exact-contour cavity, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 8.6\text{ mm}$** | ~40 mins |
-| **`gc9b72_rear_clamp.stl`** | Full-Coverage Contoured Rear Clamp with 4x M2.5 mounting holes, center ventilation port, enclosed DuPont wiring window, and solid bottom closure rail | **$66.0 \times 66.0 \times 3.2\text{ mm}$** | ~20 mins |
+| **`gc9b72_rear_clamp.stl`** | Full-Footprint 84mm Intermediate Clamp Plate with 4x M3 corner clearance holes, 4x M2.5 sub-assembly holes, center ventilation port, and enclosed DuPont pass-through window | **$84.0 \times 84.0 \times 3.0\text{ mm}$** | ~25 mins |
 | **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with flush-edge ESP32 cradle, shaved USB-C port, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
 | **`gc9b72_stand_tier1_base.stl`** | Stand Tier 1 Accent Base Plate with 4x rubber feet pockets and alignment sockets | $94.0 \times 88.0 \times 6.0\text{ mm}$ | ~25 mins |
 | **`gc9b72_stand_tier2_trunk.stl`** | Stand Tier 2 Cradle Trunk with $22^\circ$ V-saddle for 84mm pod and $26\text{mm}$ rear cable channel | $90.0 \times 85.0 \times 29.0\text{ mm}$ | ~50 mins |

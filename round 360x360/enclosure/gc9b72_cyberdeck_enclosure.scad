@@ -149,30 +149,30 @@ module octagonal_prism(w, h, c, z_height) {
 // PART 1: INTERNAL REAR CLAMP BRACKET (OPTION 2 M2.5 RETENTION)
 // =========================================================================
 module rear_clamp() {
-    clamp_thick = 3.2;
-
-    pts = [
-        [-23.5, -38.0], [23.5, -38.0],
-        [24.0, -34.0],  [33.0, -22.0],  [33.0, 24.0],
-        [29.0, 28.0],   [-29.0, 28.0],
-        [-33.0, 24.0],  [-33.0, -22.0], [-24.0, -34.0]
-    ];
+    clamp_thick = 3.0;
 
     difference() {
-        linear_extrude(height = clamp_thick) {
-            polygon(pts);
+        // Exact 84x84mm Octagonal Base Profile matching Front Face & Main Housing
+        octagonal_prism(housing_w, housing_h, chamfer_outer, clamp_thick);
+
+        // 1. Enclosed DuPont Header Pass-Through Window (28.0mm x 10.0mm)
+        // Leaving continuous 5.5mm solid structural bottom wall (Y = -42 to -36.5mm)
+        translate([-14.0, -36.5, -1.0])
+            cube([28.0, 10.0, clamp_thick + 2.0]);
+
+        // 2. Central aeration / weight reduction opening (Ø38.0mm)
+        translate([0, 0, -1.0])
+            cylinder(d = 38.0, h = clamp_thick + 2.0);
+
+        // 3. 4x M3 Corner Screw Clearance Holes (+/-34.0mm, +/-34.0mm)
+        for (sx = [-1, 1]) {
+            for (sy = [-1, 1]) {
+                translate([sx * corner_screw_x, sy * corner_screw_y, -1.0])
+                    cylinder(d = m3_clearance, h = clamp_thick + 2.0);
+            }
         }
 
-        // 1. Enclosed DuPont Header Window (27.0mm wide x 8.5mm high)
-        // Leaving solid 1.5mm bottom closure rail (Y = -38.0 to -36.5mm)
-        translate([-13.5, -36.5, -1.0])
-            cube([27.0, 8.5, clamp_thick + 2.0]);
-
-        // 2. Central aeration / weight reduction opening (Ø36.0mm)
-        translate([0, 0, -1.0])
-            cylinder(d = 36.0, h = clamp_thick + 2.0);
-
-        // 3. 4x M2.5 Counterbored Screw Holes (Top: +/-30mm, +14mm; Bottom: +/-28.5mm, -18mm)
+        // 4. 4x M2.5 Sub-Assembly Counterbored Screw Holes
         for (sx = [-1, 1]) {
             // Top clamp screws
             translate([sx * clamp_screw_x_top, clamp_screw_y_top, -1.0]) {
