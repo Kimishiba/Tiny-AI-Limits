@@ -782,6 +782,50 @@
       </div>
     </div>
 
+    <!-- WS2812B Ambient & Status LEDs Card -->
+    <div class="setup-card" style="margin-top: 1.5rem;">
+      <div class="card-header-badge" style="background: #FFD600; color: #000;">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">lightbulb</span>
+        WS2812B AMBIENT &amp; STATUS LEDS
+      </div>
+
+      <div>
+        <h2 class="setup-title" style="font-size: 1.5rem;">Agent Waiting Animation</h2>
+        <p class="setup-description">
+          Configure the physical WS2812B LED alert played on your desk whenever an AI agent pauses and requires human confirmation or input.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-top: 1.25rem;">
+          <div>
+            <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Animation Style:</label>
+            <select id="led-anim-select" style="width: 100%; padding: 0.6rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #fff; cursor: pointer;">
+              <option value="breathe">🌊 Breathing Beacon (Smooth Pulse)</option>
+              <option value="radar">📡 Orbital Radar (Comet Chaser)</option>
+              <option value="heartbeat">💓 Cardiac Pulse (Double Thump)</option>
+              <option value="hazard">🚧 Caution Barricade (Alternating Hazard)</option>
+              <option value="solid">💡 Solid Amber Torch (Steady Warm Glow)</option>
+              <option value="off">🚫 Disabled (Screen Only)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 0.3rem;">Brightness (0% &ndash; 100%):</label>
+            <input type="number" id="led-brightness-input" min="0" max="100" value="35" style="width: 100%; box-sizing: border-box; padding: 0.55rem; border: 2px solid var(--border-dark); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; background: #fff;" />
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;">
+              Hardware-clamped to protect USB current budgets (&le; 250mA).
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 1.25rem; flex-wrap: wrap;">
+          <button type="button" id="save-led-btn" class="nav-btn" style="background: var(--accent-orange); color: #fff; border: 2px solid var(--border-dark); padding: 0.6rem 1.4rem; cursor: pointer; font-weight: 800;">
+            SAVE LED CONFIGURATION
+          </button>
+          <div id="save-led-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Pair an already-connected board -->
     <div class="setup-card" style="margin-top: 1.5rem;">
       <div class="card-header-badge" style="background: #F5A97F; color: #000;">
@@ -1380,6 +1424,15 @@
           if (budgetInput) budgetInput.value = savedConfig.claude_daily_budget_usd;
         }
 
+        if (savedConfig.led_waiting_anim) {
+          const ledSelect = document.getElementById('led-anim-select');
+          if (ledSelect) ledSelect.value = savedConfig.led_waiting_anim;
+        }
+        if (savedConfig.led_brightness !== undefined) {
+          const ledBrightness = document.getElementById('led-brightness-input');
+          if (ledBrightness) ledBrightness.value = savedConfig.led_brightness;
+        }
+
         updateGaugeStatusDisplay();
       } catch (err) {
         console.warn("Could not fetch providers:", err);
@@ -1455,6 +1508,41 @@
         saveGaugesBtn.disabled = false;
       }
     });
+
+    const saveLedBtn = document.getElementById('save-led-btn');
+    const saveLedStatus = document.getElementById('save-led-status');
+    if (saveLedBtn) {
+      saveLedBtn.addEventListener('click', async () => {
+        saveLedBtn.disabled = true;
+        saveLedStatus.style.color = '#89b4fa';
+        saveLedStatus.textContent = 'Saving LED configuration...';
+        const payload = {
+          led_waiting_anim: document.getElementById('led-anim-select').value,
+          led_brightness: parseInt(document.getElementById('led-brightness-input').value) || 35
+        };
+        try {
+          const res = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            saveLedStatus.style.color = '#a6e3a1';
+            saveLedStatus.textContent = '✓ LED settings saved! Streamed to ESP32.';
+            setTimeout(() => { saveLedStatus.textContent = ''; }, 4000);
+          } else {
+            const errData = await res.json();
+            saveLedStatus.style.color = '#f38ba8';
+            saveLedStatus.textContent = `Error: ${errData.message || 'Failed to save'}`;
+          }
+        } catch (err) {
+          saveLedStatus.style.color = '#f38ba8';
+          saveLedStatus.textContent = `Network error: ${err.message}`;
+        } finally {
+          saveLedBtn.disabled = false;
+        }
+      });
+    }
 
     // Initialize provider list on page load
     loadProvidersAndGauges();

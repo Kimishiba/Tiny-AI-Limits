@@ -297,5 +297,49 @@ class TestAppEndpoints(unittest.TestCase):
             self.assertEqual(res.status_code, 404)
             self.assertEqual(res.get_json()["error"], "firmware_not_found")
 
+    def test_config_post_led_settings(self):
+        payload = {
+            "led_waiting_anim": "radar",
+            "led_brightness": 45,
+            "led_active_count": 16
+        }
+        res = self.client.post('/api/config', json=payload)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(app.config["led_waiting_anim"], "radar")
+        self.assertEqual(app.config["led_brightness"], 45)
+        self.assertEqual(app.config["led_active_count"], 16)
+
+    def test_config_post_led_brightness_clamp(self):
+        # Value > 100 must be clamped to 100
+        res = self.client.post('/api/config', json={"led_brightness": 255})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(app.config["led_brightness"], 100)
+
+        # Value < 0 must be clamped to 0
+        res = self.client.post('/api/config', json={"led_brightness": -50})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(app.config["led_brightness"], 0)
+
+    def test_config_post_led_brightness_invalid(self):
+        res = self.client.post('/api/config', json={"led_brightness": "not_a_number"})
+        self.assertEqual(res.status_code, 400)
+        data = res.get_json()
+        self.assertEqual(data["status"], "error")
+        self.assertIn("led_brightness must be an integer", data["message"])
+
+    def test_data_endpoint_contains_led_config(self):
+        app.config["led_waiting_anim"] = "heartbeat"
+        app.config["led_brightness"] = 60
+        app.config["led_active_count"] = 16
+        res = self.client.get('/data', environ_base={'REMOTE_ADDR': '127.0.0.1'})
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertIn("led_waiting_anim", data)
+        self.assertEqual(data["led_waiting_anim"], "heartbeat")
+        self.assertIn("led_brightness", data)
+        self.assertEqual(data["led_brightness"], 60)
+        self.assertIn("led_active_count", data)
+        self.assertEqual(data["led_active_count"], 16)
+
 if __name__ == '__main__':
     unittest.main()
