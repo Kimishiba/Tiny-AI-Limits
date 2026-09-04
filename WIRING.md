@@ -38,10 +38,30 @@ Looking at the board top-down with the **USB-C port pointing UP**:
          [ GND ] --|  [2]          [15] |-- [ GPIO7  ] ---> GC9A01 DC
          [ 3V3 ] --|  [3]          [14] |-- [ GPIO8  ]
  GC9A01 -[ GPIO0] -|  [4]          [13] |-- [ GPIO9  ]
- GC9A01 -[ GPIO1] -|  [5]          [12] |-- [ GPIO10 ]
+ GC9A01 -[ GPIO1] -|  [5]          [12] |-- [ GPIO10 ] ---> WS2812B DIN (Data)
          [ GPIO2] -|  [6]          [11] |-- [ GPIO20 / RX ]
          [ GPIO3] -|  [7]          [10] |-- [ GPIO21 / TX ]
- GC9A01 -[ GPIO4] -|  [8]          [9]  |-- [ GND    ]
- GC9A01 -[ GPIO5] -|  [9]          [8]  |-- [ 5V     ]
+ GC9A01 -[ GPIO4] -|  [8]          [9]  |-- [ GND    ] ---> WS2812B GND
+ GC9A01 -[ GPIO5] -|  [9]          [8]  |-- [ 5V     ] ---> WS2812B VCC (5V Rail)
                    +--------------------+
 ```
+
+---
+
+## 💡 WS2812B Addressable LED Ring / Strip Pin Mapping
+
+The WS2812B addressable status LEDs (such as a 12- or 16-LED ring around the GC9A01 bezel) provide physical desk notification for agent status (e.g. glowing/pulsing amber when an agent is waiting for input).
+
+| LED Pin (WS2812B) | ESP32-C3 SuperMini Pin | Physical Location | Wire Color Cue | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **VCC (+5V)** | **5V (VBUS)** | Right Header (Pin 8) or Left (Pin 1) | 🔴 **Red** | Power directly from 5V USB (NOT 3V3) |
+| **GND** | **GND** | Right Header (Pin 9) or Left (Pin 2) | ⚫ **Black** | Common Ground |
+| **DIN (Data In)** | **GPIO 10** | Right Header (Pin 12) | 🟡 **Yellow / White** | RMT DMA Data Signal |
+
+### ⚡ Electrical Safety & Protection Guidelines:
+1. **Never use the 3.3V pin for LEDs:** The SuperMini's onboard 3.3V LDO regulator is rated for ~300mA–500mA. Running the ESP32 chip + GC9A01 screen uses ~200mA. Connect WS2812B `VCC` to the board's **`5V` (VBUS)** pin so power is drawn directly from the USB-C source.
+2. **Current Clamping:** The firmware and companion API enforce a hard ceiling of `brightness <= 100` (~39% duty cycle), ensuring that a 16-LED ring draws no more than ~180–220mA even at full amber.
+3. **Decoupling Capacitor:** Place a **1000µF (minimum 100µF) electrolytic capacitor** across the 5V and GND power leads directly at the LED strip/ring to absorb inrush current spikes and prevent LED damage during USB hot-plugging.
+4. **Data Series Resistor:** Place a **330Ω – 470Ω resistor** in series between ESP32 GPIO 10 and the first LED `DIN` pad to absorb high-frequency reflections and protect the GPIO against voltage spikes.
+5. **Logic-Level Voltage Translation:** The WS2812B specification states input high threshold $V_{IH} \ge 0.7 \times V_{DD} = 3.5\text{V}$. While modern WS2812B-V5 / SK6812 chips trigger reliably with direct 3.3V logic over short desk wiring (<15cm), for maximum immunity against flickering and long cable runs, a 3.3V-to-5V level shifter (e.g. 74AHCT125) or a sacrificial diode buffer is recommended.
+

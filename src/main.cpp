@@ -15,6 +15,7 @@
 #include "boot_logo.h"
 #include "config.h"
 #include "drivers/display_gc9a01.h"
+#include "drivers/led_controller.h"
 
 DNSServer dnsServer;
 
@@ -46,6 +47,8 @@ GaugeInfo rightGauge;
 WeatherInfo weatherData;
 AgentStatus agentData;
 TimeInfo timeData;
+LedConfig ledConfig;
+LedController ledController(WS2812_PIN, WS2812_MAX_LEDS, WS2812_DEFAULT_ACTIVE_LEDS);
 
 long lastKnownTokensToday = -1;
 unsigned long lastTokenActivityMs = 0;
@@ -1957,6 +1960,22 @@ void fetchBackendData() {
                     Serial.printf("[Display] Screen rotated to %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
                 }
             }
+            if (doc.containsKey("led_waiting_anim") || doc.containsKey("led_anim")) {
+                String anim = doc["led_waiting_anim"] | (doc["led_anim"] | "breathe");
+                ledConfig.waiting_anim = anim;
+                ledController.setAnimationByName(anim);
+            }
+            if (doc.containsKey("led_brightness")) {
+                uint8_t b = constrain((int)(doc["led_brightness"] | 35), 0, 100);
+                ledConfig.brightness = b;
+                ledController.setBrightness(b);
+            }
+            if (doc.containsKey("led_active_count") || doc.containsKey("led_count")) {
+                int rawCount = doc["led_active_count"] | (doc["led_count"] | 16);
+                uint16_t c = (uint16_t)constrain(rawCount, 1, (int)WS2812_MAX_LEDS);
+                ledConfig.active_leds = c;
+                ledController.setActiveLedCount(c);
+            }
         }
     } else {
         Serial.printf("[Backend] GET %s failed: %s (%d)\n", backendUrl.c_str(), http.errorToString(httpCode).c_str(), httpCode);
@@ -2299,8 +2318,9 @@ void setup() {
 
     loadPairing();
 
-    // 1. Initialize Display
+    // 1. Initialize Display & Status LEDs
     initActiveDisplay();
+    ledController.begin();
 
     // 2. Wi-Fi Configuration for ESP32-C3
     WiFi.mode(WIFI_STA);
@@ -2422,4 +2442,7 @@ void loop() {
             }
         }
     }
+
+    // 5. WS2812B Addressable LED Status Light (Non-blocking update)
+    ledController.update(agentData.waiting_for_input, backendConnected, false);
 }

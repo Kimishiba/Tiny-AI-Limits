@@ -103,6 +103,25 @@ def handle_config():
                 except (TypeError, ValueError):
                     pass
 
+            if "led_waiting_anim" in data:
+                anim = str(data["led_waiting_anim"]).lower().strip()
+                if anim in {"breathe", "radar", "heartbeat", "hazard", "solid", "off"}:
+                    cfg["led_waiting_anim"] = anim
+
+            if "led_brightness" in data:
+                try:
+                    b = int(data["led_brightness"])
+                    cfg["led_brightness"] = max(0, min(100, b))
+                except (TypeError, ValueError):
+                    return jsonify({"status": "error", "message": "led_brightness must be an integer between 0 and 100"}), 400
+
+            if "led_active_count" in data:
+                try:
+                    c = int(data["led_active_count"])
+                    cfg["led_active_count"] = max(1, min(64, c))
+                except (TypeError, ValueError):
+                    pass
+
             if "city" in data and data["city"]:
                 lat, lon, full_name = geocode_city(data["city"])
                 if lat and lon:

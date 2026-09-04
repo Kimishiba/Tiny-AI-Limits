@@ -14,6 +14,11 @@
 #define GC9A01_RST_PIN  1   // RST -> GPIO 1 (Left Pin 7)
 #define GC9A01_BLK_PIN  -1  // Backlight hardwired to VCC on 7-pin display
 
+// WS2812B Addressable LED Status Configuration (ESP32-C3 SuperMini)
+#define WS2812_PIN 10
+#define WS2812_MAX_LEDS 64
+#define WS2812_DEFAULT_ACTIVE_LEDS 16
+
 // ==========================================
 // TIMING & THRESHOLDS
 // ==========================================
@@ -66,6 +71,12 @@ struct AgentStatus {
     SingleAgentInfo active_agents[8];
     String prompt_text = "APPROVE PLAN";
     String completion_text = "WORK COMPLETE";
+};
+
+struct LedConfig {
+    String waiting_anim = "breathe";
+    uint8_t brightness = 35;
+    uint16_t active_leds = 16;
 };
 
 struct TimeInfo {

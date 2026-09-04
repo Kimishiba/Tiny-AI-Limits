@@ -214,7 +214,10 @@ def get_data():
             "has_active_agents": has_active,
             "active_agents": active_agents_payload
         },
-        "ota": ota_payload
+        "ota": ota_payload,
+        "led_waiting_anim": cfg.get("led_waiting_anim", "breathe"),
+        "led_brightness": cfg.get("led_brightness", 35),
+        "led_active_count": cfg.get("led_active_count", 16)
     })
 
 @bp.route('/api/providers', methods=['GET'])

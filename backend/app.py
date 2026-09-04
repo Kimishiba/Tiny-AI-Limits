@@ -59,7 +59,10 @@ def load_config():
             "right": "antigravity"
         },
         "provider_keys": {},
-        "display_rotation": 0
+        "display_rotation": 0,
+        "led_waiting_anim": "breathe",
+        "led_brightness": 35,
+        "led_active_count": 16
     }
     if os.path.exists(CONFIG_FILE):
         try:
@@ -2018,7 +2021,10 @@ def get_data():
         },
         "ota": ota_payload,
         "display_rotation": config.get("display_rotation", 0),
-        "rotation_deg": int(config.get("display_rotation", 0)) * 90
+        "rotation_deg": int(config.get("display_rotation", 0)) * 90,
+        "led_waiting_anim": config.get("led_waiting_anim", "breathe"),
+        "led_brightness": config.get("led_brightness", 35),
+        "led_active_count": config.get("led_active_count", 16)
     })
 
 @app.route('/api/rotate', methods=['POST', 'GET'])
@@ -2176,6 +2182,25 @@ def handle_config():
                 try:
                     config["antigravity_daily_budget_usd"] = float(data["antigravity_daily_budget_usd"])
                     config.setdefault("provider_daily_budgets", {})["antigravity"] = float(data["antigravity_daily_budget_usd"])
+                except (TypeError, ValueError):
+                    pass
+
+            if "led_waiting_anim" in data:
+                anim = str(data["led_waiting_anim"]).lower().strip()
+                if anim in {"breathe", "radar", "heartbeat", "hazard", "solid", "off"}:
+                    config["led_waiting_anim"] = anim
+
+            if "led_brightness" in data:
+                try:
+                    b = int(data["led_brightness"])
+                    config["led_brightness"] = max(0, min(100, b))
+                except (TypeError, ValueError):
+                    return jsonify({"status": "error", "message": "led_brightness must be an integer between 0 and 100"}), 400
+
+            if "led_active_count" in data:
+                try:
+                    c = int(data["led_active_count"])
+                    config["led_active_count"] = max(1, min(64, c))
                 except (TypeError, ValueError):
                     pass
 
@@ -2457,11 +2482,28 @@ class TinyScreenMacStatusBarApp(object):
                 self.rot_menu.add(self.rot_270)
                 
                 self.update_rotation_checks()
+
+                self.anim_map = {
+                    "🌊 Breathing Beacon": "breathe",
+                    "📡 Orbital Radar": "radar",
+                    "💓 Cardiac Pulse": "heartbeat",
+                    "🚧 Caution Barricade": "hazard",
+                    "💡 Solid Amber Torch": "solid",
+                    "🚫 Disabled": "off"
+                }
+                self.led_menu = rumps.MenuItem("💡 LED Alert Style")
+                self.led_items = {}
+                for title, val in self.anim_map.items():
+                    item = rumps.MenuItem(title, callback=self.make_led_style_callback(val))
+                    self.led_items[val] = item
+                    self.led_menu.add(item)
+                self.update_led_checks()
                 
                 self.menu = [
                     "🖥️ Open Display Emulator",
                     "🔌 Set Up New Device (WiFi)",
                     self.rot_menu,
+                    self.led_menu,
                     "🔀 Switch Antigravity Account...",
                     "⚙️ Set Location...",
                     "⚡ Flash Latest Firmware (OTA)",
@@ -2469,6 +2511,23 @@ class TinyScreenMacStatusBarApp(object):
                     None,
                     "Quit"
                 ]
+
+            def make_led_style_callback(self, val):
+                def _cb(_):
+                    self.set_led_style_val(val)
+                return _cb
+
+            def set_led_style_val(self, val):
+                with _config_lock:
+                    config["led_waiting_anim"] = val
+                    save_config(config)
+                self.update_led_checks()
+                rumps.notification("Tiny Screen", "LED Alert Style Updated", f"Animation set to: {val.capitalize()}")
+
+            def update_led_checks(self):
+                current = config.get("led_waiting_anim", "breathe")
+                for val, item in self.led_items.items():
+                    item.state = (val == current)
 
             def set_rotation_val(self, val):
                 config["display_rotation"] = val
