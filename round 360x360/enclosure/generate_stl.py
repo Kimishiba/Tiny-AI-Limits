@@ -199,11 +199,14 @@ def build_rear_clamp():
     poly = m3d.CrossSection([pts])
     bracket = m3d.Manifold.extrude(poly, clamp_thick)
 
-    # 1. Enclosed DuPont Header Pass-Through Window (28.0mm wide x 10.0mm high)
-    # Spans X = -14.0 to +14.0mm, Y = -36.5 to -26.5mm
-    # Leaves a continuous 5.5mm solid structural bottom wall (Y = -42.0 to -36.5mm)
-    header_window = m3d.Manifold.cube([28.0, 10.0, clamp_thick + 2.0], center=False).translate([-14.0, -36.5, -1.0])
-    bracket = bracket - header_window
+    # 1. Exact Rectangular Screen PCB Tab Cutout (49.56mm wide x Y = -38.65 to 0.0mm)
+    # Covers the entire rectangular portion of the GC9B72 PCB (width 47.76mm, bottom Y = -37.85mm)
+    # Leaves 0.9mm lateral clearance on each side, full clearance for SMD components & 10-pin header,
+    # while preserving a continuous 3.35mm solid structural bottom bridge (Y = -42.0 to -38.65mm).
+    hw_tab = SCREEN_TAB_HALF_W + SCREEN_TOLERANCE + 0.6   # 24.78mm (49.56mm span)
+    bot_y_tab = SCREEN_PCB_BOTTOM - SCREEN_TOLERANCE - 0.5  # -38.65mm
+    tab_cutout = m3d.Manifold.cube([2 * hw_tab, -bot_y_tab + 1.0, clamp_thick + 2.0], center=False).translate([-hw_tab, bot_y_tab, -1.0])
+    bracket = bracket - tab_cutout
 
     # 2. Central ventilation / weight-reduction opening (Ø38.0mm)
     center_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, 19.0, 19.0, 72).translate([0, 0, -1.0])

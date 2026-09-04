@@ -148,15 +148,17 @@ module octagonal_prism(w, h, c, z_height) {
 // =========================================================================
 module rear_clamp() {
     clamp_thick = 1.6;
+    hw_tab_cut  = screen_tab_half_w + screen_tolerance + 0.6; // 24.78mm
+    bot_y_cut   = screen_pcb_bottom - screen_tolerance - 0.5; // -38.65mm
 
     difference() {
         // Exact 84x84mm Octagonal Base Profile matching Front Face & Main Housing
         octagonal_prism(housing_w, housing_h, chamfer_outer, clamp_thick);
 
-        // 1. Enclosed DuPont Header Pass-Through Window (28.0mm x 10.0mm)
-        // Leaving continuous 5.5mm solid structural bottom wall (Y = -42 to -36.5mm)
-        translate([-14.0, -36.5, -1.0])
-            cube([28.0, 10.0, clamp_thick + 2.0]);
+        // 1. Exact Rectangular Screen PCB Tab Cutout (49.56mm wide x Y = -38.65 to 0.0mm)
+        // Leaving continuous 3.35mm solid structural bottom bridge (Y = -42 to -38.65mm)
+        translate([-hw_tab_cut, bot_y_cut, -1.0])
+            cube([2 * hw_tab_cut, -bot_y_cut + 1.0, clamp_thick + 2.0]);
 
         // 2. Central aeration / weight reduction opening (Ø38.0mm)
         translate([0, 0, -1.0])
