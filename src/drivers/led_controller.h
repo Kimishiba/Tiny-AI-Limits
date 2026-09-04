@@ -60,10 +60,10 @@ public:
 
     uint8_t getSafeMaxBrightness() const {
         // Dynamic Power Budget: max 350mA allocated to the LED rail.
-        // Full amber (R:255, G:170) draws ~35mA per pixel at 100% duty cycle.
-        // max_safe_brightness = (350mA * 100) / (activeLeds * 35mA) = 1000 / activeLeds
-        uint16_t safeMax = (uint16_t)(1000 / std::max((uint16_t)1, _activeLeds));
-        return (uint8_t)std::min((uint16_t)MAX_BRIGHTNESS_CLAMP, safeMax);
+        // Conservative worst-case: 60mA per pixel at full white/amber load.
+        // safeMax = (350mA * 100) / (activeLeds * 60mA) = 583 / activeLeds
+        uint16_t safeMax = (uint16_t)(583 / std::max((uint16_t)1, _activeLeds));
+        return (uint8_t)std::min((uint16_t)MAX_BRIGHTNESS_CLAMP, std::max((uint16_t)1, safeMax));
     }
 
     void setActiveLedCount(uint16_t count) {
@@ -101,6 +101,7 @@ public:
     }
 
     void clear() {
+        if (!_strip.CanShow()) return;
         for (uint16_t i = 0; i < _maxLeds; i++) {
             _strip.SetPixelColor(i, RgbColor(0, 0, 0));
         }
@@ -117,14 +118,20 @@ public:
         // Disconnect, sleep, or idle guard: turn off LEDs immediately
         if (!waiting_for_input || !backendConnected || isSleeping || _currentAnim == LedWaitingAnim::OFF) {
             if (_wasActive) {
-                clear();
-                _wasActive = false;
+                if (_strip.CanShow()) {
+                    clear();
+                    _wasActive = false;
+                }
             }
             return;
         }
 
         // Throttle animation rendering to ~30 FPS (every ~33ms)
         if (now - _lastFrame < 33) return;
+
+        // DMA Buffer Guard: Do not write/show if previous RMT frame is still transmitting
+        if (!_strip.CanShow()) return;
+
         _lastFrame = now;
         _wasActive = true;
 

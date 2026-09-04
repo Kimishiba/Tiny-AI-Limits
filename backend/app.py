@@ -83,6 +83,11 @@ def save_config(cfg):
             tmp_path = f"{CONFIG_FILE}.tmp.{os.getpid()}.{uuid.uuid4().hex[:8]}"
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(cfg, f, indent=4)
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except (AttributeError, OSError):
+                    pass
             try:
                 os.chmod(tmp_path, 0o600)
             except OSError:
