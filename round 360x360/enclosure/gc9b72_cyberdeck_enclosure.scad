@@ -63,16 +63,8 @@ integrated_bezel_od = 66.40; // Raised circular bezel outer diameter
 screen_aperture_dia = 54.00; // Circular screen viewing window
 screen_aperture_top = 57.00; // Conical viewing funnel top diameter
 
-// --- M2.5 Internal Rear Clamp Fasteners (Direct Plastic Tapping into Front Face) ---
-clamp_screw_x_top   = 30.00; // Top clamp screws X (+/-30mm)
-clamp_screw_y_top   = 14.00; // Top clamp screws Y (+14mm)
-clamp_screw_x_bot   = 28.50; // Bottom clamp screws X (+/-28.5mm)
-clamp_screw_y_bot   = -18.00;// Bottom clamp screws Y (-18mm)
-m2_5_pilot_dia      = 2.05;  // Direct plastic tap pilot hole in rear of Front Face
-m2_5_pilot_depth    = 4.20;  // Pilot hole depth in Front Face
-m2_5_clearance      = 2.80;  // Clearance hole through rear clamp bracket
-m2_5_cb_dia         = 5.00;  // Counterbore diameter for M2.5 socket head cap
-m2_5_cb_depth       = 1.60;  // Counterbore depth in clamp bracket
+// --- Rear Clamp Plate Parameters (Sandwich Architecture) ---
+clamp_thick         = 1.60;  // Slim 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
 
 // --- Legacy Circular Top Bezel Parameters (Retained for reference) ---
 bezel_inner_dia     = 53.60;
@@ -149,7 +141,7 @@ module octagonal_prism(w, h, c, z_height) {
 // PART 1: INTERNAL REAR CLAMP BRACKET (OPTION 2 M2.5 RETENTION)
 // =========================================================================
 module rear_clamp() {
-    clamp_thick = 3.0;
+    clamp_thick = 1.6;
 
     difference() {
         // Exact 84x84mm Octagonal Base Profile matching Front Face & Main Housing
@@ -165,26 +157,11 @@ module rear_clamp() {
             cylinder(d = 38.0, h = clamp_thick + 2.0);
 
         // 3. 4x M3 Corner Screw Clearance Holes (+/-34.0mm, +/-34.0mm)
+        // Matching Front Face and Main Housing corner chassis bolts
         for (sx = [-1, 1]) {
             for (sy = [-1, 1]) {
                 translate([sx * corner_screw_x, sy * corner_screw_y, -1.0])
                     cylinder(d = m3_clearance, h = clamp_thick + 2.0);
-            }
-        }
-
-        // 4. 4x M2.5 Sub-Assembly Counterbored Screw Holes
-        for (sx = [-1, 1]) {
-            // Top clamp screws
-            translate([sx * clamp_screw_x_top, clamp_screw_y_top, -1.0]) {
-                cylinder(d = m2_5_clearance, h = clamp_thick + 2.0);
-                translate([0, 0, clamp_thick - m2_5_cb_depth + 1.0])
-                    cylinder(d = m2_5_cb_dia, h = m2_5_cb_depth + 1.0);
-            }
-            // Bottom clamp screws
-            translate([sx * clamp_screw_x_bot, clamp_screw_y_bot, -1.0]) {
-                cylinder(d = m2_5_clearance, h = clamp_thick + 2.0);
-                translate([0, 0, clamp_thick - m2_5_cb_depth + 1.0])
-                    cylinder(d = m2_5_cb_dia, h = m2_5_cb_depth + 1.0);
             }
         }
     }
@@ -275,15 +252,7 @@ module front_face_plate() {
                 cube([2 * hw_tab, -bot_y_tab, rear_pocket_depth + 0.02]);
         }
 
-        // 5. 4x M2.5 Rear Clamp Pilot Holes on REAR Face
-        for (sx = [-1, 1]) {
-            translate([sx * clamp_screw_x_top, clamp_screw_y_top, -0.01])
-                cylinder(d = m2_5_pilot_dia, h = m2_5_pilot_depth + 0.02);
-            translate([sx * clamp_screw_x_bot, clamp_screw_y_bot, -0.01])
-                cylinder(d = m2_5_pilot_dia, h = m2_5_pilot_depth + 0.02);
-        }
-
-        // 6. 4x Symmetrical Outer M3 Mounting Screws (+/-34mm, +/-34mm)
+        // 5. 4x Symmetrical Outer M3 Mounting Screws (+/-34mm, +/-34mm)
         for (sx = [-1, 1]) {
             for (sy = [-1, 1]) {
                 translate([sx * corner_screw_x, sy * corner_screw_y, -0.5]) {

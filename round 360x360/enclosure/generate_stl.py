@@ -65,16 +65,8 @@ INTEGRATED_BEZEL_OD = 66.40     # Outer diameter of raised circular bezel rim
 SCREEN_APERTURE_DIA = 54.00     # Central circular viewing aperture
 SCREEN_APERTURE_TOP = 57.00     # Anti-shadow conical funnel top diameter
 
-# M2.5 Internal Rear Clamp Fasteners (Direct Plastic Tapping into Front Face)
-CLAMP_SCREW_X_TOP = 30.00       # Rear clamp top screws X (+/-30mm)
-CLAMP_SCREW_Y_TOP = 14.00       # Rear clamp top screws Y (+14mm)
-CLAMP_SCREW_X_BOT = 28.50       # Rear clamp bottom screws X (+/-28.5mm)
-CLAMP_SCREW_Y_BOT = -18.00      # Rear clamp bottom screws Y (-18mm)
-M2_5_PILOT_DIA = 2.05           # Direct plastic tap pilot hole in rear of Front Face
-M2_5_PILOT_DEPTH = 4.20         # Blind pilot hole depth into solid 7mm plate
-M2_5_CLEARANCE_HOLE = 2.80      # Clearance hole through rear clamp bracket
-M2_5_CB_DIA = 5.00              # Counterbore diameter for M2.5 socket head cap
-M2_5_CB_DEPTH = 1.60            # Counterbore depth in clamp bracket
+# Rear Clamp Plate Parameters (Sandwich Architecture)
+CLAMP_THICK = 1.60              # Slim, rigid 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
 
 # Legacy Bezel Parameters (Retained for reference)
 BEZEL_INNER_DIA = 53.60
@@ -192,7 +184,8 @@ def export_stl(manifold_obj, filepath, name="Model"):
 # =========================================================================
 def build_rear_clamp():
     # Rigid sandwich clamp plate with exact 84.0 x 84.0mm octagonal footprint matching Front Face & Main Housing
-    clamp_thick = 3.00
+    # Slim 1.60mm profile (8 layers at 0.2mm) with matching 4x M3 corner clearance holes
+    clamp_thick = CLAMP_THICK
     hw = HOUSING_W / 2.0  # 42.0mm
     c = CHAMFER_OUTER     # 7.0mm
 
@@ -217,20 +210,11 @@ def build_rear_clamp():
     bracket = bracket - center_hole
 
     # 3. 4x M3 Corner Screw Clearance Holes (+/-34.0mm, +/-34.0mm)
-    # The 4 main chassis bolts pass straight through the clamp plate into the main housing posts
+    # Only 4 holes matching the Front Face and Main Housing corner chassis bolts
     for sx in [-1, 1]:
         for sy in [-1, 1]:
             m3_hole = m3d.Manifold.cylinder(clamp_thick + 2.0, M3_CLEARANCE_HOLE / 2.0, M3_CLEARANCE_HOLE / 2.0, 32).translate([sx * CORNER_SCREW_X, sy * CORNER_SCREW_Y, -1.0])
             bracket = bracket - m3_hole
-
-    # 4. 4x M2.5 Sub-Assembly Counterbored Screw Holes (Top: +/-30mm, +14mm; Bottom: +/-28.5mm, -18mm)
-    # Enables securing the display module to the Front Face as an independent sub-assembly
-    clamp_screws = [(CLAMP_SCREW_X_TOP, CLAMP_SCREW_Y_TOP), (CLAMP_SCREW_X_BOT, CLAMP_SCREW_Y_BOT)]
-    for sx in [-1, 1]:
-        for (cx, cy) in clamp_screws:
-            hole = m3d.Manifold.cylinder(clamp_thick + 2.0, M2_5_CLEARANCE_HOLE / 2.0, M2_5_CLEARANCE_HOLE / 2.0, 32).translate([sx * cx, cy, -1.0])
-            cb = m3d.Manifold.cylinder(M2_5_CB_DEPTH + 1.0, M2_5_CB_DIA / 2.0, M2_5_CB_DIA / 2.0, 32).translate([sx * cx, cy, clamp_thick - M2_5_CB_DEPTH])
-            bracket = bracket - hole - cb
 
     return bracket
 
@@ -305,14 +289,7 @@ def build_front_face():
     screen_cavity = (cyl_pocket + box_tab).translate([0, 0, -0.005])
     plate = plate - screen_cavity
 
-    # 5. 4x M2.5 Rear Clamp Pilot Holes on REAR Face (Z = 0.0 to 4.2mm into solid 7mm plate)
-    clamp_screws = [(CLAMP_SCREW_X_TOP, CLAMP_SCREW_Y_TOP), (CLAMP_SCREW_X_BOT, CLAMP_SCREW_Y_BOT)]
-    for sx in [-1, 1]:
-        for (cx, cy) in clamp_screws:
-            clamp_pilot = m3d.Manifold.cylinder(M2_5_PILOT_DEPTH + 0.01, M2_5_PILOT_DIA / 2.0, M2_5_PILOT_DIA / 2.0, 32).translate([sx * cx, cy, -0.005])
-            plate = plate - clamp_pilot
-
-    # 6. 4x Symmetrical Outer M3 Corner Screws (+/-34mm, +/-34mm)
+    # 5. 4x Symmetrical Outer M3 Corner Screws (+/-34mm, +/-34mm)
     for sx in [-1, 1]:
         for sy in [-1, 1]:
             m3_hole = m3d.Manifold.cylinder(total_h + 2.0, M3_CLEARANCE_HOLE / 2.0, M3_CLEARANCE_HOLE / 2.0, 32).translate([sx * CORNER_SCREW_X, sy * CORNER_SCREW_Y, -1.0])
