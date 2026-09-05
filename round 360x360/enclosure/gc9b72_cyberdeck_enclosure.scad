@@ -15,14 +15,12 @@ $fn = 72; // Smooth curves for 3D printing
 
 // --- SELECT PART TO RENDER ---
 // 0 = Full Assembly Exploded/Closed Preview
-// 1 = Internal Rear Clamp Bracket (Option 2 M2.5)
-// 11 = Circular Top Bezel Ring (Legacy M2.3 4-Screw Screen Clamp)
+// 1 = Circular Top Bezel Ring (M2.3 4-Screw Screen Clamp)
 // 2 = Front Face Carrier Plate (84x84mm Square + Ø1.90mm Direct Tap Pilot Holes)
-// 3 = Main Housing Pod (84x84mm Square + Flush ESP32 Cradle + Retractable Foot Pockets)
+// 3 = Main Housing Pod (84x84mm Square + Flush ESP32 Cradle + Left USB-C Port)
 // 4 = Stand Tier 1 Base Accent Plate (Wood/Walnut Base)
 // 5 = Stand Tier 2 Cradle Trunk (22° V-Saddle for 84mm Pod)
 // 6 = Monolithic Combined Desk Stand
-// 7 = Symmetrical Retractable Folding Foot (Keyboard-Style)
 part = is_undef(part) ? 0 : part;
 
 // =========================================================================
@@ -118,22 +116,6 @@ stand_base_w        = 94.0;  // Stand base width
 stand_base_d        = 88.0;  // Stand base depth
 stand_base_h        = 6.0;   // Tier 1 base accent plate height
 stand_trunk_h       = 26.0;  // Tier 2 cradle trunk height
-
-// --- Retractable Keyboard-Style Folding Feet Parameters (Heritage Edition) ---
-foot_len            = 28.0;  // Pivot axis to tip (28.0mm)
-foot_w              = 9.0;   // Foot width (9.0mm)
-foot_thick          = 3.8;   // Foot body thickness (3.8mm)
-foot_pin_dia        = 4.0;   // 100% 3D-printed snap-fit pin diameter (4.0mm)
-foot_pin_len        = 2.2;   // Extension per side (total pin span = 13.4mm)
-pin_clearance       = 0.40;  // Socket diametrical clearance (socket dia = 4.40mm)
-foot_clearance      = 0.35;  // Pocket lateral clearance per side (pocket width = 9.70mm)
-deploy_angle        = 68.0;  // Angle relative to backplate (yielding true 21.0° desk slant)
-rubber_pad_dia      = 6.2;   // Ø6.0mm rubber bumper pad + 0.2mm tolerance
-rubber_pad_depth    = 1.0;   // 1.0mm recess depth
-foot_x_offset       = 27.5;  // Symmetrical placement at X = +/-27.5mm
-foot_pivot_y        = 32.0;  // Pivot axis Y datum
-foot_recess_depth   = 4.0;   // 4.0mm flush stowage pocket depth
-boss_step_h         = 4.0;   // Internal cavity floor boss step (+4.0mm, Z = 2.0 to 6.0mm)
 
 // =========================================================================
 // 2D HELPER PROFILES
@@ -342,12 +324,11 @@ module main_housing_pod() {
         }
 
         // 6. High-Airflow Aeration Slits in Outer Zones (|Y| >= 16.5mm)
-        // Centered at +/-15.5mm with 7.0mm width to leave a solid 3.65mm structural rib next to foot pockets (X = +/-27.5mm)
         for (sy = [-1, 1]) {
             for (row = [22.0, 26.0]) {
-                for (cx = [-15.5, 0.0, 15.5]) {
+                for (cx = [-18.0, 0.0, 18.0]) {
                     translate([cx, sy * row, -0.5])
-                        cube([7.0, 1.20, floor_thick + 1.0], center = true);
+                        cube([10.0, 1.20, floor_thick + 1.0], center = true);
                 }
             }
         }
@@ -374,66 +355,6 @@ module main_housing_pod() {
                         ]);
             }
         }
-
-        // 6b. Dual Retractable Foot Pockets, Snap Sockets, Lead-In Ramps, and Fingernail Scoops
-        pw = foot_w + 2 * foot_clearance;  // 9.70mm
-        hpw = pw / 2.0;                    // 4.85mm
-        plen = foot_len + 1.0;             // 29.0mm
-        socket_dia = foot_pin_dia + pin_clearance; // 4.40mm
-        socket_r = socket_dia / 2.0;
-        socket_total_w = foot_w + 2 * foot_pin_len + 1.2; // 14.6mm
-        z_socket = foot_thick / 2.0;       // 1.90mm (EXACT MATCH to foot pin datum)
-
-        for (sx = [-1, 1]) {
-            px = sx * foot_x_offset;
-            py = foot_pivot_y;
-
-            // Main Recessed Pocket: Simple union of box and pivot cap (no hull)
-            translate([px - hpw, py - foot_len - 0.5, -0.05])
-                cube([pw, plen, foot_recess_depth + 0.05]);
-            translate([px, py, -0.05])
-                cylinder(r = hpw, h = foot_recess_depth + 0.05, $fn = 64);
-
-            // Explicit Physical 68° Hard-Stop Deployment Clearance:
-            translate([px - hpw, py - 4.0, -0.05])
-                rotate([-(90.0 - deploy_angle), 0, 0])
-                    cube([pw, 12.0, foot_recess_depth + 0.1]);
-
-            // Snap-Fit Pin Sockets (centered at z_socket = 1.9mm):
-            translate([px - socket_total_w / 2.0, py, z_socket])
-                rotate([0, 90, 0])
-                    cylinder(r = socket_r, h = socket_total_w, $fn = 64);
-
-            // True Wedge-Profile Snap-In Lead-In Ramps (funnel from 5.5mm into socket):
-            hull() {
-                translate([px - socket_total_w / 2.0, py - 2.75, -0.05])
-                    cube([socket_total_w, 5.5, 0.05]);
-                translate([px - socket_total_w / 2.0, py - socket_r, z_socket])
-                    cube([socket_total_w, socket_dia, 0.05]);
-            }
-
-            // Fingernail Pull-Tab Scoop:
-            translate([px - 4.0, py - foot_len - 4.0, -0.05])
-                cube([8.0, 4.0, 1.65]);
-
-            // Stowed Lock Detent Dimples in Pocket Sidewalls (at Y = py - 12.0mm, Z = z_socket):
-            translate([px - hpw, py - 12.0, z_socket]) sphere(r = 0.80, $fn = 32);
-            translate([px + hpw, py - 12.0, z_socket]) sphere(r = 0.80, $fn = 32);
-        }
-
-        // Bottom Rubber Bumper Recesses at solid M3 corner posts:
-        for (sx = [-1, 1]) {
-            translate([sx * 34.0, -34.0, -0.05])
-                cylinder(r = rubber_pad_dia / 2.0, h = 1.25, $fn = 36);
-        }
-    }
-
-    // 6c. Internal Floor Reinforcement Bosses (+4.0mm step in electronics cavity)
-    for (sx = [-1, 1]) {
-        bx = sx * foot_x_offset;
-        by = foot_pivot_y - 18.0 + 3.0;
-        translate([bx - 7.0, by - 18.0, floor_thick])
-            cube([14.0, 36.0, boss_step_h]);
     }
 
     // 7. ESP32 SuperMini Precision Tolerance-Based Press Fit Cradle (G0 Rev 2 Approved)
@@ -457,70 +378,6 @@ module main_housing_pod() {
             translate([rx - 0.7, -hw_in, 0])
                 cube([1.4, crush_rib_protrusion, cradle_h - 0.4]);
         }
-    }
-}
-
-// =========================================================================
-// PART 7: SYMMETRICAL RETRACTABLE FOLDING FOOT (KEYBOARD-STYLE)
-// =========================================================================
-module retractable_foot() {
-    hw = foot_w / 2.0;       // 4.5mm
-    thickness = foot_thick;  // 3.8mm
-    length = foot_len;       // 28.0mm
-    z_mid = thickness / 2.0; // 1.9mm
-
-    difference() {
-        union() {
-            // 1. Monolithic 2D Extrusion (Zero Non-Manifold Artifacts)
-            linear_extrude(height = thickness) {
-                hull() {
-                    translate([0, 0]) circle(r = hw, $fn = 64);
-                    translate([-hw, -length]) square([foot_w, 0.01]);
-                }
-            }
-
-            // 2. Integrated Snap-Fit Pivot Pins on Left and Right flanks:
-            pin_r = foot_pin_dia / 2.0; // 2.0mm
-            ch_len = 0.8;
-            pin_straight_w = foot_pin_len - ch_len; // 1.4mm
-
-            // Left Pin Assembly:
-            translate([-hw - 1.0, 0, z_mid])
-                rotate([0, 90, 0])
-                    cylinder(r1 = pin_r + 1.2, r2 = pin_r, h = 1.0, $fn = 64);
-            translate([-hw - 1.0 - pin_straight_w, 0, z_mid])
-                rotate([0, 90, 0])
-                    cylinder(r = pin_r, h = pin_straight_w, $fn = 64);
-            translate([-hw - 1.0 - pin_straight_w - ch_len, 0, z_mid])
-                rotate([0, 90, 0])
-                    cylinder(r1 = pin_r - 0.7, r2 = pin_r, h = ch_len, $fn = 64);
-
-            // Right Pin Assembly:
-            translate([hw, 0, z_mid])
-                rotate([0, 90, 0])
-                    cylinder(r1 = pin_r, r2 = pin_r + 1.2, h = 1.0, $fn = 64);
-            translate([hw + 1.0, 0, z_mid])
-                rotate([0, 90, 0])
-                    cylinder(r = pin_r, h = pin_straight_w, $fn = 64);
-            translate([hw + 1.0 + pin_straight_w, 0, z_mid])
-                rotate([0, 90, 0])
-                    cylinder(r1 = pin_r, r2 = pin_r - 0.7, h = ch_len, $fn = 64);
-
-            // 3. Tactile Stowed Retention Detent Beads on Left and Right Flanks (at Y = -12.0mm):
-            translate([-hw, -12.0, z_mid]) sphere(r = 0.75, $fn = 32);
-            translate([hw, -12.0, z_mid]) sphere(r = 0.75, $fn = 32);
-        }
-
-        // 4. Angled Desk Contact Foot-Pad Cutter (22° cut angle)
-        cut_angle = 90.0 - deploy_angle; // 22°
-        translate([0, -length - 5.0, z_mid])
-            rotate([cut_angle, 0, 0])
-                cube([foot_w + 6.0, 12.0, 12.0], center = true);
-
-        // Rubber bumper recess in angled tip face (depth 1.2mm)
-        translate([0, -length + 1.5, z_mid])
-            rotate([cut_angle + 90.0, 0, 0])
-                cylinder(r = rubber_pad_dia / 2.0, h = 2.2, $fn = 36);
     }
 }
 
@@ -648,6 +505,4 @@ if (part == 0) {
     stand_tier2_trunk();
 } else if (part == 6) {
     monolithic_stand();
-} else if (part == 7) {
-    retractable_foot();
 }
