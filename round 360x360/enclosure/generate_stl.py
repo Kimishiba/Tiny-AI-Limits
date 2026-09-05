@@ -514,10 +514,7 @@ def build_main_housing():
 
         crush_ribs = crush_ribs + rib_t + rib_b
 
-    # 7e. Disassembly Pry Relief Notch in Floor (F-1.5: 4.0 x 3.0mm bevel slot at X = -17.6mm, Y = 6.5mm)
-    pry_notch = m3d.Manifold.cube([4.0, 3.0, 1.2], center=False).translate([x_rear - 2.0, 5.0, floor_t - 0.2])
-
-    cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + crush_ribs) - pry_notch
+    cradle_solid = wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + crush_ribs
     housing = housing_hollow + cradle_solid
 
     return housing

@@ -71,7 +71,6 @@ All models are located in [`round 360x360/enclosure/`](./):
    * Align the ESP32 directly over the open U-cradle with the USB-C connector facing the left wall port.
    * Press the board straight down onto the internal support ledges. The 4x vertical micro-crush ribs yield slightly against the fiberglass edges to firmly lock the board in place against the dual rear thrust corner shoulders ($X = -17.6\text{mm}$).
    * Connect the DuPont jumpers to the corresponding SPI pins on the ESP32.
-   * *(To remove for servicing, insert a fingernail or 2.5mm flathead screwdriver into the rear floor pry notch and gently lift).*
 5. **Close the Console:**
    * Mate the Main Housing Pod onto the back of the sandwich.
    * Thread the 4x M3 $\times$ 16mm screws into the corner counterbored holes from the front and tighten until snug. Zero extra fasteners required!
