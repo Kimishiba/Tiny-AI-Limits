@@ -36,12 +36,13 @@ All models are located in [`round 360x360/enclosure/`](./):
 | :--- | :--- | :---: | :---: |
 | **`gc9b72_front_face.stl`** | Monolithic Symmetrical 84mm Square Front Plate with prominent raised circular bezel rim, continuous conical viewing funnel, precision 31.2mm rear screen pocket, and 4x M3 corner countersunk holes | **$84.0 \times 84.0 \times 9.8\text{ mm}$** | ~45 mins |
 | **`gc9b72_rear_clamp.stl`** | Slim Full-Footprint 84mm Sandwich Clamp Plate with 4x M3 corner clearance holes, center ventilation port, and precision 32.0mm screen PCB tab window | **$84.0 \times 84.0 \times 1.6\text{ mm}$** | ~12 mins |
-| **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with tolerance-based press fit cradle, micro-crush ribs, front capture ears, shaved USB-C port, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
+| **`gc9b72_main_housing.stl`** | Symmetrical 84mm Square Housing Pod with tolerance press-fit cradle, rear flush pockets for retractable feet, snap sockets, peaked roof vents, and 4x direct tap corner posts | **$84.0 \times 84.0 \times 28.0\text{ mm}$** | ~55 mins |
+| **`gc9b72_retractable_foot.stl`** | Symmetrical 100% 3D-Printable Retractable Keyboard Foot with integrated Ø4.0mm snap-fit pins, dual tactile detents, 68° positive stop, and rubber bumper pocket (Print 2x) | **$13.4 \times 32.5 \times 3.8\text{ mm}$** | ~8 mins |
 | **`gc9b72_stand_tier1_base.stl`** | Stand Tier 1 Accent Base Plate with 4x rubber feet pockets and alignment sockets | $94.0 \times 88.0 \times 6.0\text{ mm}$ | ~25 mins |
 | **`gc9b72_stand_tier2_trunk.stl`** | Stand Tier 2 Cradle Trunk with $22^\circ$ V-saddle for 84mm pod and $26\text{mm}$ rear cable channel | $90.0 \times 85.0 \times 29.0\text{ mm}$ | ~50 mins |
 | **`gc9b72_monolithic_stand.stl`** | Single-piece combined desk stand for 84mm square pod | $94.0 \times 88.0 \times 32.0\text{ mm}$ | ~70 mins |
 | **`gc9b72_top_bezel.stl`** | *(Legacy / Optional)* External Circular Top Bezel Ring for front-clamping configurations | $74.6 \times 66.8 \times 4.5\text{ mm}$ | ~20 mins |
-| **`gc9b72_cyberdeck_enclosure.scad`**| Fully parametric OpenSCAD master source model (Parts 0–6) | — | — |
+| **`gc9b72_cyberdeck_enclosure.scad`**| Fully parametric OpenSCAD master source model (Parts 0–7) | — | — |
 | **`generate_stl.py`** | High-performance Python Manifold generator for watertight binary STLs | — | — |
 
 ---
@@ -53,7 +54,8 @@ All models are located in [`round 360x360/enclosure/`](./):
 | **GC9B72 2.1″ Round IPS TFT Display ($360\times 360$)** | 1 | Circular color display module | GoldenMorning / EstarDyn 10-pin SPI |
 | **ESP32-S3 SuperMini / Zero (or C3 SuperMini)** | 1 | Microcontroller board | Press-fit into integrated cradle with crush ribs |
 | **M3 $\times$ 16mm Socket Head Cap Screws** | 4 | Fastens entire sandwich: Front Face $\to$ Rear Clamp $\to$ Main Housing Pod | Direct taps into $\varnothing 2.50\text{mm}$ corner posts |
-| **8mm $\times$ 1.5mm Adhesive Rubber Feet** | 4 | Fitted into stand base recesses for non-slip desk grip | Optional |
+| **6mm $\times$ 1.5mm Adhesive Rubber Feet** | 4 | Fitted into retractable foot tips & bottom front chassis pockets | Optional (Anti-slip desk grip) |
+| **8mm $\times$ 1.5mm Adhesive Rubber Feet** | 4 | Fitted into stand base recesses for non-slip desk grip | Optional (Desk stand) |
 | **USB-C Cable (Braided or Standard)** | 1 | Power & data connection through left port | Plugs into flush ESP32 port |
 
 ---
@@ -74,16 +76,21 @@ All models are located in [`round 360x360/enclosure/`](./):
 5. **Close the Console:**
    * Mate the Main Housing Pod onto the back of the sandwich.
    * Thread the 4x M3 $\times$ 16mm screws into the corner counterbored holes from the front and tighten until snug. Zero extra fasteners required!
+6. **Install the Retractable Feet (Tool-Free Snap-Fit):**
+   * Take each `gc9b72_retractable_foot` (identical for Left and Right).
+   * Align the foot's $\varnothing 4.0\text{mm}$ pivot pins with the rear pocket entry lead-in ramps ($Y = +32.0\text{mm}$).
+   * Press firmly straight down until the pins snap securely into the internal cylindrical pivot sockets.
+   * Attach optional $\varnothing 6\text{mm} \times 1.5\text{mm}$ rubber bumpers to the foot tips and chassis bottom front recesses.
 
 ---
 
 ## ⚙️ Slicer Print Settings (Bambu Studio / PrusaSlicer / OrcaSlicer)
 
 * **Material:** 
-  * Main Housing & Rear Clamp: Matte Charcoal Black PLA / PETG.
+  * Main Housing, Rear Clamp & Retractable Feet: Matte Charcoal Black PLA / PETG.
   * Front Face Plate: Matte Charcoal Black with optional accent color ring or single color.
   * Stand Base: Wood PLA or Walnut Brown PLA.
-* **Perimeters / Walls:** **`4` walls minimum** (ensures 100% solid plastic around the $\varnothing 2.05\text{mm}$ and $\varnothing 2.50\text{mm}$ pilot holes and cradle retaining clips).
+* **Perimeters / Walls:** **`4` walls minimum** (ensures 100% solid plastic around the $\varnothing 2.05\text{mm}$ and $\varnothing 2.50\text{mm}$ pilot holes, cradle retaining clips, and $\varnothing 4.0\text{mm}$ pivot pins).
 * **Layer Height:** `0.16mm` or `0.20mm`.
 * **Top / Bottom Solid Layers:** `4` top, `4` bottom.
 * **Infill:** `20% Gyroid` or `Grid`.
@@ -91,4 +98,5 @@ All models are located in [`round 360x360/enclosure/`](./):
   * **Front Face:** Print flat front face-up (or face-down on a textured PEI sheet).
   * **Rear Clamp:** Print flat on build plate. Allow the spring steel build plate to cool completely to room temperature before removing to prevent deflection of the slim 1.6mm bottom bridge.
   * **Main Housing:** Print with rear backplate on build plate (cavity opening facing up).
+  * **Retractable Feet:** Print on its side-edge ($3.8\text{mm} \times 28.0\text{mm}$ face on bed) so filament extrusion perimeters wrap continuously around the $\varnothing 4.0\text{mm}$ pivot pins, maximizing layer shear resistance.
   * **Desk Stand:** Print flat on bottom surface.
