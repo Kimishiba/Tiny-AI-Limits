@@ -338,20 +338,14 @@ def build_main_housing():
     poly_cavity = m3d.CrossSection([pts_cavity])
     cavity_obj = m3d.Manifold.extrude(poly_cavity, cavity_depth + 0.1).translate([0, 0, floor_t])
 
-    # 3. Precision Snug Oval/Stadium USB-C Port on LEFT wall (as in 240x240):
+    # 3. Clean Flush Oval/Stadium USB-C Port on LEFT wall:
     usbc_z = 6.60
     y_span = 3.40
-    r_inner = 1.95   # 3.90mm snug height matching USB-C metal shell
-    r_outer = 2.85   # 5.70mm outer flare for cable overmold entry
+    r_port = 1.95   # 3.90mm height matching standard USB-C shell
 
-    c1 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-45.0, -y_span, usbc_z])
-    c2 = m3d.Manifold.cylinder(8.0, r_inner, r_inner, 32).rotate([0, 90, 0]).translate([-45.0,  y_span, usbc_z])
-    usbc_tunnel = (c1 + c2).hull()
-
-    cone1 = m3d.Manifold.cylinder(2.4, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-43.0, -y_span, usbc_z])
-    cone2 = m3d.Manifold.cylinder(2.4, r_outer, r_inner, 32).rotate([0, 90, 0]).translate([-43.0,  y_span, usbc_z])
-    usbc_flare = (cone1 + cone2).hull()
-    usbc_port = usbc_tunnel + usbc_flare
+    c1 = m3d.Manifold.cylinder(10.0, r_port, r_port, 32).rotate([0, 90, 0]).translate([-45.0, -y_span, usbc_z])
+    c2 = m3d.Manifold.cylinder(10.0, r_port, r_port, 32).rotate([0, 90, 0]).translate([-45.0,  y_span, usbc_z])
+    usbc_port = (c1 + c2).hull()
 
     # Shaved-depth USB-C wall relief (down to 1.2mm outer wall thickness, keeping board as close to edge as possible!)
     usbc_wall_relief = m3d.Manifold.cube([2.8, 22.0, cavity_depth + 0.2], center=False).translate([-40.8, -11.0, floor_t])

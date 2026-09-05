@@ -108,8 +108,7 @@ crush_rib_protrusion= 0.35;  // 0.35mm crush rib protrusion (effective width 17.
 // Left Flank Snug Oval USB-C Port
 usbc_z              = 6.60;  // USB-C metal shell centerline
 y_span              = 3.40;  // Port horizontal slot half-width
-r_inner             = 1.95;  // 3.90mm snug height matching USB-C metal shell
-r_outer             = 2.85;  // 5.70mm outer flare for cable overmold
+r_port              = 1.95;  // 3.90mm snug height matching standard USB-C shell (clean straight cut)
 
 // --- Sculpted Two-Tier Stand (Sized for 84mm square pod) ---
 stand_tilt_deg      = 22.0;  // Ergonomic backward tilt
@@ -291,19 +290,12 @@ module main_housing_pod() {
         translate([-40.8, -11.0, floor_thick])
             cube([2.8, 22.0, cavity_depth + 0.2]);
 
-        // Snug Oval Tunnel + Outer 45° Flare
+        // Snug Oval Tunnel (clean straight cut without outer chamfer)
         translate([-45.0, 0, usbc_z]) {
             rotate([0, 90, 0])
                 hull() {
-                    translate([-r_inner, -y_span, 0]) cylinder(d = 2 * r_inner, h = 10.0);
-                    translate([-r_inner,  y_span, 0]) cylinder(d = 2 * r_inner, h = 10.0);
-                }
-        }
-        translate([-43.0, 0, usbc_z]) {
-            rotate([0, 90, 0])
-                hull() {
-                    translate([-r_outer, -y_span, 0]) cylinder(d1 = 2 * r_outer, d2 = 2 * r_inner, h = 2.4);
-                    translate([-r_outer,  y_span, 0]) cylinder(d1 = 2 * r_outer, d2 = 2 * r_inner, h = 2.4);
+                    translate([-r_port, -y_span, 0]) cylinder(d = 2 * r_port, h = 10.0);
+                    translate([-r_port,  y_span, 0]) cylinder(d = 2 * r_port, h = 10.0);
                 }
         }
 
