@@ -386,12 +386,6 @@ module main_housing_pod() {
             translate([rx - 0.7, -hw_in, 0])
                 cube([1.4, crush_rib_protrusion, cradle_h - 0.4]);
         }
-
-        // Bifurcated Front Capture Ears (Z = 5.60mm, 45° chamfers)
-        translate([x_front, 5.0, 5.60 - floor_thick])
-            cube([2.2, hw_out - 5.0, 1.8]);
-        translate([x_front, -hw_out, 5.60 - floor_thick])
-            cube([2.2, hw_out - 5.0, 1.8]);
     }
 }
 

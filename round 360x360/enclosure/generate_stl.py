@@ -514,18 +514,10 @@ def build_main_housing():
 
         crush_ribs = crush_ribs + rib_t + rib_b
 
-    # 7e. Bifurcated Front Capture Ears (F-1.1: 10.0mm open center for USB-C, 45° support-free chamfers)
-    ear_len = 2.2
-    ear_t = m3d.Manifold.cube([ear_len, hw_out - 5.0, 1.8], center=False).translate([x_front, 5.0, 5.60])
-    ear_b = m3d.Manifold.cube([ear_len, hw_out - 5.0, 1.8], center=False).translate([x_front, -hw_out, 5.60])
-    ear_chamfer_t = m3d.Manifold.cube([1.2, hw_out - 5.0, 1.2], center=False).rotate([0, 45, 0]).translate([x_front + ear_len, 5.0, 6.40])
-    ear_chamfer_b = m3d.Manifold.cube([1.2, hw_out - 5.0, 1.2], center=False).rotate([0, 45, 0]).translate([x_front + ear_len, -hw_out, 6.40])
-    front_ears = (ear_t + ear_b) - (ear_chamfer_t + ear_chamfer_b)
-
-    # 7f. Disassembly Pry Relief Notch in Floor (F-1.5: 4.0 x 3.0mm bevel slot at X = -17.6mm, Y = 6.5mm)
+    # 7e. Disassembly Pry Relief Notch in Floor (F-1.5: 4.0 x 3.0mm bevel slot at X = -17.6mm, Y = 6.5mm)
     pry_notch = m3d.Manifold.cube([4.0, 3.0, 1.2], center=False).translate([x_rear - 2.0, 5.0, floor_t - 0.2])
 
-    cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + crush_ribs + front_ears) - pry_notch
+    cradle_solid = (wall_top_solid + wall_bot_solid + ledge_top + ledge_bot + crush_ribs) - pry_notch
     housing = housing_hollow + cradle_solid
 
     return housing
