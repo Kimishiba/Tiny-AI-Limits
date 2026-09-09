@@ -662,7 +662,7 @@
 
       <div class="touch-hint-bar">
         <span class="material-symbols-outlined" style="font-size: 1.1rem; color: var(--accent-orange);">touch_app</span>
-        Click display to cycle screen modes (or use <strong>LIMITS</strong> / <strong>WEATHER</strong> / <strong>CLOCK</strong> below)
+        Click display to cycle screen modes (or use <strong>2x2 FLIP CLOCK</strong> / <strong>QBIT EYES</strong> below)
       </div>
     </div>
 
@@ -816,6 +816,8 @@
     const KINETIC_MINT    = "#A7F3D0";
     const KINETIC_BLACK   = "#000000";
     const KINETIC_DARK    = "#181C24";
+    const KINETIC_DARK_SLATE = "#1E293B";
+    const QBIT_CYAN       = "#00E5FF";
 
     const canvas = document.getElementById("tftCanvas");
     const ctx = canvas.getContext("2d");
@@ -2009,11 +2011,22 @@
     }
 
     // --- BACKEND DATA FETCHING ---
+    let fetchAbortController = null;
+
     async function fetchBackendData() {
       const wifiLed = document.getElementById("wifiLed");
       const backendStatus = document.getElementById("backendStatus");
+
+      if (fetchAbortController) {
+        fetchAbortController.abort();
+      }
+      fetchAbortController = new AbortController();
+      const signal = fetchAbortController.signal;
+      const timeoutId = setTimeout(() => fetchAbortController.abort(), 4000);
+
       try {
-        const res = await fetch("http://localhost:5000/data", { method: "GET" });
+        const res = await fetch("http://localhost:5000/data", { method: "GET", signal });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (data.left_gauge) {
