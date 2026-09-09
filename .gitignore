@@ -38,3 +38,6 @@ Thumbs.db
 *~
 *.iconset
 
+# macOS Built Application Bundle
+Tiny Screen.app/
+
