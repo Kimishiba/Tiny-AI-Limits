@@ -255,6 +255,8 @@
       justify-content: center;
       align-items: center;
       transition: transform 0.1s ease;
+      min-height: 360px;
+      padding: 1rem;
     }
 
     .screen-glass-container:active {
@@ -263,12 +265,13 @@
 
     canvas#tftCanvas {
       display: block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 4 / 3;
+      width: 320px;
+      height: 320px;
+      aspect-ratio: 1 / 1;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.2s ease, height 0.2s ease;
+      box-shadow: 0px 0px 12px rgba(0, 0, 0, 0.7);
     }
 
     .touch-hint-bar {
@@ -512,6 +515,7 @@
       background: var(--card-alt);
       border: var(--border-thin) solid var(--border-dark);
       outline: none;
+      border-radius: 0px;
     }
 
     input[type="range"]::-webkit-slider-thumb {
@@ -523,6 +527,17 @@
       border: var(--border-thin) solid var(--border-dark);
       cursor: pointer;
       box-shadow: 2px 2px 0px 0px var(--border-dark);
+      border-radius: 0px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: var(--accent-orange);
+      border: var(--border-thin) solid var(--border-dark);
+      cursor: pointer;
+      box-shadow: 2px 2px 0px 0px var(--border-dark);
+      border-radius: 0px;
     }
 
     input[type="text"] {
@@ -610,6 +625,65 @@
       font-size: 0.8rem;
       color: #94a3b8;
     }
+
+    /* Neo-Brutalist PPI Calibration Modal */
+    .neo-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 1.5rem;
+    }
+
+    .neo-modal {
+      background: var(--card-bg);
+      border: var(--border-width) solid var(--border-dark);
+      box-shadow: 8px 8px 0px 0px var(--border-dark);
+      width: 100%;
+      max-width: 520px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      border-radius: 0px;
+    }
+
+    .neo-modal-title {
+      font-family: 'Anybody', sans-serif;
+      font-weight: 900;
+      font-size: 1.25rem;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: var(--border-width) solid var(--border-dark);
+      padding-bottom: 0.75rem;
+    }
+
+    .calib-credit-card {
+      width: 320px;
+      height: 202px; /* 85.6mm x 53.98mm ratio = 1.586 */
+      border: 3px dashed var(--accent-orange);
+      background: rgba(255, 95, 31, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 0.5rem auto;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 0px;
+    }
   </style>
 </head>
 <body>
@@ -669,6 +743,44 @@
     <!-- Right Column: Control Panels -->
     <div class="controls-column">
 
+      <!-- Hardware Display Profile & Viewport Scale -->
+      <div class="neo-card">
+        <div class="card-title-bar" style="flex-wrap: wrap; gap: 0.6rem;">
+          <div class="card-title" style="display: flex; align-items: center; gap: 0.6rem;">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">monitor</span>
+            <span>Hardware Display Profile:</span>
+          </div>
+        </div>
+
+        <div class="mode-btn-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.75rem;">
+          <button class="neo-btn active" id="btnProfileGC9A01" onclick="switchDisplayProfile('GC9A01')">
+            🔘 GC9A01 (240x240 // 1.28")
+          </button>
+          <button class="neo-btn" id="btnProfileGC9B72" onclick="switchDisplayProfile('GC9B72')">
+            🌟 GC9B72 (360x360 // 2.1")
+          </button>
+        </div>
+
+        <div class="ctrl-row" style="margin-bottom: 0.4rem;">
+          <label>Viewport Scaling Mode:</label>
+        </div>
+        <div class="mode-btn-grid" style="grid-template-columns: repeat(3, 1fr);">
+          <button class="neo-btn active" id="btnScaleNative" onclick="setDisplayScaleMode('native')">
+            📐 1:1 Pixels
+          </button>
+          <button class="neo-btn" id="btnScalePhysical" onclick="setDisplayScaleMode('physical')">
+            📏 2.1" Physical
+          </button>
+          <button class="neo-btn" id="btnScaleZoom" onclick="setDisplayScaleMode('zoom')">
+            🔍 2X Zoom
+          </button>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+          <span id="scaleModeDesc">Display size: 360px</span>
+          <button onclick="openCalibrationModal()" class="neo-btn" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-width: 1px;">⚙️ Calibrate PPI</button>
+        </div>
+      </div>
+
       <!-- Active Display Mode -->
       <div class="neo-card">
         <div class="card-title-bar" style="flex-wrap: wrap; gap: 0.6rem;">
@@ -682,6 +794,39 @@
           <button class="neo-btn active" id="btnRound" onclick="switchScreen(3)">🔘 2x2 FLIP CLOCK</button>
           <button class="neo-btn" id="btnRoundFace" onclick="switchScreen(4)">🤖 QBIT EYES</button>
           <button class="neo-btn" id="btnRotate" onclick="cycleRotation()" title="Rotate screen orientation 90°">🔄 0° (STD)</button>
+        </div>
+      </div>
+
+      <!-- 360x360 Interactive Design Tuning Drawer -->
+      <div class="neo-card" id="designTuningCard">
+        <div class="card-title-bar">
+          <div class="card-title">
+            <span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">architecture</span>
+            Design Tuning (360x360 Live)
+          </div>
+          <button class="neo-btn" onclick="resetDesignDefaults()" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">
+            Reset 1.5x
+          </button>
+        </div>
+
+        <div class="ctrl-row" style="margin-top: 0.5rem;">
+          <label>Split-Flap Card Width: <span class="val" id="tuneCardWVal">72 px</span></label>
+          <input type="range" id="tuneCardW" min="48" max="96" value="72" oninput="updateTuneCardW(this.value)">
+        </div>
+
+        <div class="ctrl-row">
+          <label>Split-Flap Card Height: <span class="val" id="tuneCardHVal">108 px</span></label>
+          <input type="range" id="tuneCardH" min="72" max="130" value="108" oninput="updateTuneCardH(this.value)">
+        </div>
+
+        <div class="ctrl-row">
+          <label>Vector Stroke Weight: <span class="val" id="tuneStrokeVal">8 px</span></label>
+          <input type="range" id="tuneStroke" min="4" max="14" value="8" oninput="updateTuneStroke(this.value)">
+        </div>
+
+        <div class="ctrl-row">
+          <label>Outer Telemetry Arc Radius: <span class="val" id="tuneArcRVal">156 px</span></label>
+          <input type="range" id="tuneArcR" min="140" max="168" value="156" oninput="updateTuneArcR(this.value)">
         </div>
       </div>
 
@@ -789,6 +934,35 @@
 
   </main>
 
+  <!-- PPI Calibration Modal -->
+  <div class="neo-modal-backdrop" id="calibModal">
+    <div class="neo-modal">
+      <div class="neo-modal-title">
+        <span class="material-symbols-outlined" style="color: var(--accent-orange);">straighten</span>
+        Physical Display Calibration
+      </div>
+      <div style="font-family: 'Hanken Grotesk', sans-serif; font-size: 0.88rem; line-height: 1.4; color: var(--text-main);">
+        Hold a standard physical <strong>Credit Card or ID</strong> (85.60 mm wide) flat against your monitor over the box below. Adjust the slider until the dashed box matches the physical card width exactly.
+      </div>
+      <div class="calib-credit-card" id="calibCardBox">
+        <span class="material-symbols-outlined" style="font-size: 2rem; color: var(--accent-orange);">credit_card</span>
+        <span>STANDARD CARD WIDTH (85.6 mm)</span>
+        <span id="calibWidthLabel" style="color: var(--accent-orange);">320 px</span>
+      </div>
+      <div class="ctrl-row">
+        <label>Box Width (pixels): <span class="val" id="calibSliderVal">320 px</span></label>
+        <input type="range" id="calibSlider" min="200" max="500" value="320" oninput="updateCalibSlider(this.value)">
+      </div>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted);">
+        Calculated Screen Density: <strong id="calibPpiVal" style="color: var(--accent-orange);">96 PPI</strong>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem;">
+        <button class="neo-btn" onclick="closeCalibrationModal()">Cancel</button>
+        <button class="neo-btn-primary" onclick="saveCalibrationPpi()">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Neo-Raw Footer -->
   <footer class="neo-footer">
     <div class="footer-inner">
@@ -874,16 +1048,231 @@
     let backendSyncEnabled = true;
     let syncIntervalId = null;
 
-    // Offscreen Sprites
-    const offscreenCurrent = document.createElement("canvas");
-    offscreenCurrent.width = 320;
-    offscreenCurrent.height = 240;
-    const ctxCurrent = offscreenCurrent.getContext("2d");
+    // --- DISPLAY PROFILES & BUFFER POOLING (Hardened against GC & Resets) ---
+    const DISPLAY_PROFILES = {
+      GC9A01: {
+        id: "GC9A01",
+        label: "GC9A01 // ROUND 240x240",
+        width: 240,
+        height: 240,
+        cx: 120,
+        cy: 120,
+        rScreen: 114,
+        rOuterMin: 101,
+        rOuterMax: 107,
+        rThinMin: 94,
+        rThinMax: 95,
+        rBezel1: 116,
+        rBezel2: 117,
+        rHazardMin: 115,
+        rHazardMax: 118,
+        physicalInches: 1.28
+      },
+      GC9B72: {
+        id: "GC9B72",
+        label: "GC9B72 // ROUND 360x360",
+        width: 360,
+        height: 360,
+        cx: 180,
+        cy: 180,
+        rScreen: 174,
+        rOuterMin: 151,
+        rOuterMax: 160,
+        rThinMin: 141,
+        rThinMax: 143,
+        rBezel1: 174,
+        rBezel2: 175,
+        rHazardMin: 172,
+        rHazardMax: 177,
+        physicalInches: 2.10
+      }
+    };
 
-    const offscreenNext = document.createElement("canvas");
-    offscreenNext.width = 320;
-    offscreenNext.height = 240;
-    const ctxNext = offscreenNext.getContext("2d");
+    let activeProfileKey = "GC9A01";
+    let activeProfile = DISPLAY_PROFILES.GC9A01;
+
+    // Pre-allocated Persistent Buffer Pool (Zero GC allocation on profile switch)
+    const bufferPool = {
+      GC9A01: {
+        curr: document.createElement("canvas"),
+        next: document.createElement("canvas")
+      },
+      GC9B72: {
+        curr: document.createElement("canvas"),
+        next: document.createElement("canvas")
+      }
+    };
+
+    bufferPool.GC9A01.curr.width = 240; bufferPool.GC9A01.curr.height = 240;
+    bufferPool.GC9A01.next.width = 240; bufferPool.GC9A01.next.height = 240;
+    bufferPool.GC9B72.curr.width = 360; bufferPool.GC9B72.curr.height = 360;
+    bufferPool.GC9B72.next.width = 360; bufferPool.GC9B72.next.height = 360;
+
+    let offscreenCurrent = bufferPool.GC9A01.curr;
+    let offscreenNext = bufferPool.GC9A01.next;
+    let ctxCurrent = offscreenCurrent.getContext("2d");
+    let ctxNext = offscreenNext.getContext("2d");
+
+    // Interactive Design Tuning Parameters (360x360 live tuning)
+    const designParams = {
+      cardW: 72,
+      cardH: 108,
+      gap: 8,
+      strokeW: 8,
+      arcR: 156,
+      innerArcR: 142
+    };
+
+    // Shared Digit Flip Animation Tracking Arrays (4 matrix slots: H1, H2, M1, M2)
+    const roundPrevDigits = [-1, -1, -1, -1];
+    const roundOldDigits = [-1, -1, -1, -1];
+    const roundFlipProgress = [1.0, 1.0, 1.0, 1.0];
+
+    // Delta-Time Timing Tracker (Resilient across 60Hz and 120Hz ProMotion)
+    let lastFrameTime = performance.now();
+    const FLIP_DURATION_MS = 250; // smooth 250ms flip
+
+    // Viewport Scale Modes: 'native' (exact 1:1 px), 'physical' (calibrated 2.1"), 'zoom' (2x)
+    let currentScaleMode = "native";
+
+    function getCalibratedPpi() {
+      const stored = parseFloat(localStorage.getItem("tiny_screen_calibrated_ppi"));
+      if (Number.isFinite(stored) && stored >= 40 && stored <= 600) {
+        return stored;
+      }
+      // Safe fallback based on standard 96 PPI * devicePixelRatio
+      return 96 * (window.devicePixelRatio || 1);
+    }
+
+    function applyCanvasScale(mode) {
+      currentScaleMode = mode;
+      const tft = document.getElementById("tftCanvas");
+      const desc = document.getElementById("scaleModeDesc");
+      if (!tft) return;
+
+      const ppi = getCalibratedPpi();
+      const p = activeProfile;
+
+      if (mode === "physical") {
+        // Physical real-world diameter = activeProfile.physicalInches * PPI (in CSS px)
+        const diameterCssPx = Math.round(p.physicalInches * ppi / (window.devicePixelRatio || 1));
+        tft.style.width = diameterCssPx + "px";
+        tft.style.height = diameterCssPx + "px";
+        if (desc) desc.innerText = `Physical 2.1": ${diameterCssPx}px (${Math.round(p.physicalInches * 25.4)}mm @ ${Math.round(ppi)} PPI)`;
+      } else if (mode === "zoom") {
+        const zoomW = p.width * 2;
+        tft.style.width = zoomW + "px";
+        tft.style.height = zoomW + "px";
+        if (desc) desc.innerText = `Expanded 2X: ${zoomW}px`;
+      } else {
+        // Native 1:1 pixels
+        tft.style.width = p.width + "px";
+        tft.style.height = p.height + "px";
+        if (desc) desc.innerText = `Native 1:1: ${p.width}px`;
+      }
+
+      document.getElementById("btnScaleNative")?.classList.toggle("active", mode === "native");
+      document.getElementById("btnScalePhysical")?.classList.toggle("active", mode === "physical");
+      document.getElementById("btnScaleZoom")?.classList.toggle("active", mode === "zoom");
+    }
+
+    function setDisplayScaleMode(mode) {
+      applyCanvasScale(mode);
+    }
+
+    // --- PPI CALIBRATION MODAL LOGIC ---
+    let pendingCalibWidthPx = 320;
+    const CREDIT_CARD_WIDTH_INCHES = 85.60 / 25.4; // 3.3700787 inches
+
+    function openCalibrationModal() {
+      const modal = document.getElementById("calibModal");
+      const slider = document.getElementById("calibSlider");
+      if (!modal || !slider) return;
+
+      const currentPpi = getCalibratedPpi();
+      const currentWidthPx = Math.round(CREDIT_CARD_WIDTH_INCHES * currentPpi / (window.devicePixelRatio || 1));
+      const clampedWidth = Math.max(200, Math.min(500, currentWidthPx));
+
+      slider.value = clampedWidth;
+      updateCalibSlider(clampedWidth);
+      modal.style.display = "flex";
+    }
+
+    function closeCalibrationModal() {
+      const modal = document.getElementById("calibModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    function updateCalibSlider(val) {
+      pendingCalibWidthPx = parseInt(val, 10);
+      const cardBox = document.getElementById("calibCardBox");
+      const sliderVal = document.getElementById("calibSliderVal");
+      const cardLabel = document.getElementById("calibWidthLabel");
+      const ppiLabel = document.getElementById("calibPpiVal");
+
+      if (cardBox) {
+        cardBox.style.width = pendingCalibWidthPx + "px";
+        cardBox.style.height = Math.round(pendingCalibWidthPx / 1.586) + "px";
+      }
+      if (sliderVal) sliderVal.innerText = pendingCalibWidthPx + " px";
+      if (cardLabel) cardLabel.innerText = pendingCalibWidthPx + " px";
+
+      const cssPpi = pendingCalibWidthPx / CREDIT_CARD_WIDTH_INCHES;
+      const devicePpi = Math.round(cssPpi * (window.devicePixelRatio || 1));
+      if (ppiLabel) ppiLabel.innerText = `${devicePpi} PPI`;
+    }
+
+    function saveCalibrationPpi() {
+      const cssPpi = pendingCalibWidthPx / CREDIT_CARD_WIDTH_INCHES;
+      const devicePpi = Math.round(cssPpi * (window.devicePixelRatio || 1));
+      if (devicePpi >= 40 && devicePpi <= 600) {
+        localStorage.setItem("tiny_screen_calibrated_ppi", devicePpi);
+      }
+      closeCalibrationModal();
+      applyCanvasScale(currentScaleMode);
+    }
+
+    // Synchronize DOM Canvas to profile (Preserving crisp 2D context)
+    function syncDomCanvasProfile(profile) {
+      if (canvas.width !== profile.width || canvas.height !== profile.height) {
+        canvas.width = profile.width;
+        canvas.height = profile.height;
+        ctx.imageSmoothingEnabled = false;
+        ctx.textBaseline = "middle";
+      }
+      offscreenCurrent = bufferPool[profile.id].curr;
+      offscreenNext = bufferPool[profile.id].next;
+      ctxCurrent = offscreenCurrent.getContext("2d");
+      ctxNext = offscreenNext.getContext("2d");
+      ctxCurrent.imageSmoothingEnabled = false;
+      ctxNext.imageSmoothingEnabled = false;
+
+      // Cleanly reset digit flip states to avoid mid-flip cross-profile coordinate distortion
+      for (let i = 0; i < 4; i++) {
+        roundFlipProgress[i] = 1.0;
+        roundOldDigits[i] = -1;
+      }
+
+      applyCanvasScale(currentScaleMode);
+
+      const bezelTag = document.getElementById("bezelTag");
+      if (bezelTag) {
+        bezelTag.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">radio_button_checked</span> ${profile.label}`;
+      }
+      document.getElementById("btnProfileGC9A01")?.classList.toggle("active", profile.id === "GC9A01");
+      document.getElementById("btnProfileGC9B72")?.classList.toggle("active", profile.id === "GC9B72");
+      
+      const designCard = document.getElementById("designTuningCard");
+      if (designCard) {
+        designCard.style.display = (profile.id === "GC9B72") ? "block" : "none";
+      }
+    }
+
+    let pendingProfileSwitch = null;
+    function switchDisplayProfile(profileKey) {
+      if (!DISPLAY_PROFILES[profileKey]) return;
+      pendingProfileSwitch = DISPLAY_PROFILES[profileKey];
+    }
 
     function getNowTime() {
       const elapsed = Math.floor((Date.now() - lastTimeSync) / 1000);
@@ -1067,6 +1456,491 @@
         c.stroke();
       }
       c.restore();
+    }
+
+    // =========================================================================
+    // 360x360 DEDICATED RENDERER: GalaxyCore GC9B72 (2.1" Round Display)
+    // =========================================================================
+    function drawGC9B72RoundFlipUI(c) {
+      const now = getNowTime();
+      const p = DISPLAY_PROFILES.GC9B72;
+      const cx = p.cx, cy = p.cy, rScreen = p.rScreen;
+      const alertActive = Boolean(waiting_for_input && blinkState);
+
+      // 1. Base Bezel Background & Static Dark Canvas Underlay
+      c.fillStyle = "#0c0e14";
+      c.fillRect(0, 0, p.width, p.height);
+
+      // 2. Bezel Casing Ring (Hazard Pulse or Normal Gunmetal Track)
+      drawGC9A01BezelRing(c, cx, cy, rScreen);
+
+      // 3. Screen Background (Deep Black with Circular Aperture Mask)
+      c.fillStyle = "#000000";
+      c.beginPath();
+      c.arc(cx, cy, rScreen, 0, Math.PI * 2);
+      c.fill();
+
+      // 4. Quota Ratios
+      const claudePct = left_gauge_pct !== undefined ? left_gauge_pct : Math.max(0, Math.min(100, Math.round((claude_remaining / claude_limit) * 100)));
+      const antiPct = right_gauge_pct !== undefined ? right_gauge_pct : Math.max(0, Math.min(100, Math.round((antigravity_remaining / antigravity_limit) * 100)));
+
+      // Helper for Curved Clockwise Text along a circular arc
+      function drawCurvedText360(ctx, text, centerX, centerY, radius, centerAngleRad, color, font) {
+        ctx.save();
+        ctx.font = font;
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const charWidths = [];
+        let totalWidth = 0;
+        for (let i = 0; i < text.length; i++) {
+          const w = ctx.measureText(text[i]).width * 1.12;
+          charWidths.push(w);
+          totalWidth += w;
+        }
+
+        const totalAngle = totalWidth / radius;
+        let currentAngle = centerAngleRad - totalAngle / 2;
+
+        for (let i = 0; i < text.length; i++) {
+          const ch = text[i];
+          const chAngle = charWidths[i] / radius;
+          const midAngle = currentAngle + chAngle / 2;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(midAngle);
+          ctx.translate(0, -radius);
+          ctx.fillText(ch, 0, 0);
+          ctx.restore();
+
+          currentAngle += chAngle;
+        }
+        ctx.restore();
+      }
+
+      // Curved Inside Quota Badges (Scaled 1.5x font ~15px for R=134)
+      const textRadius = designParams.innerArcR - 12; // ~130px
+      const badgeFont = "900 14px 'JetBrains Mono', monospace";
+
+      const leftBadgeText = (left_gauge_mode === "enterprise" && left_gauge_curved)
+        ? left_gauge_curved
+        : `${(left_gauge_name || "CLAUDE").toUpperCase()} ${claudePct}%`;
+      drawCurvedText360(c, leftBadgeText, cx, cy, textRadius, -Math.PI / 2, left_gauge_color || "#00E5FF", badgeFont);
+
+      const rightBadgeText = `${(right_gauge_name || "ANTIGRAVITY").toUpperCase()} ${antiPct}%`;
+      drawCurvedText360(c, rightBadgeText, cx, cy, textRadius, Math.PI / 2, right_gauge_color || "#FF7A00", badgeFont);
+
+      // Top Crown: Connection Status Arc & Rain Indicator
+      const wifiLedEl = document.getElementById("wifiLed");
+      const backendStatusEl = document.getElementById("backendStatus");
+      const isBackendConn = Boolean(backendSyncEnabled && backendStatusEl && backendStatusEl.innerText === "CONNECTED");
+      const isWifiConn = Boolean(wifiLedEl && !wifiLedEl.className.includes("offline"));
+
+      // Top status arc (Scaled to R=155)
+      const centerAngleDeg = -90;
+      const spanDeg = 26;
+      const startAngle = (centerAngleDeg - spanDeg) * Math.PI / 180;
+      const endAngle = (centerAngleDeg + spanDeg) * Math.PI / 180;
+      const topArcR = designParams.arcR;
+
+      c.save();
+      c.lineCap = "round";
+      if (isBackendConn) {
+        c.beginPath();
+        c.arc(cx, cy, topArcR, startAngle, endAngle);
+        c.lineWidth = 6;
+        c.strokeStyle = "#004422";
+        c.stroke();
+
+        const nowMs = performance.now();
+        const pingDurationMs = 600;
+        const timeInCycle = nowMs % 3000;
+        if (!waiting_for_input && !work_completed && timeInCycle < pingDurationMs) {
+          const progress = timeInCycle / pingDurationMs;
+          const waveDeg = progress * (spanDeg + 4);
+          const arcStart = Math.max(startAngle, (centerAngleDeg - waveDeg) * Math.PI / 180);
+          const arcEnd = Math.min(endAngle, (centerAngleDeg + waveDeg) * Math.PI / 180);
+          c.beginPath();
+          c.arc(cx, cy, topArcR, arcStart, arcEnd);
+          c.lineWidth = 6;
+          c.strokeStyle = "#00ff88";
+          c.shadowColor = "#00ff88";
+          c.shadowBlur = 12;
+          c.stroke();
+        }
+      } else if (isWifiConn) {
+        c.beginPath();
+        c.arc(cx, cy, topArcR, startAngle, endAngle);
+        c.lineWidth = 6;
+        c.strokeStyle = "#f59e0b";
+        c.stroke();
+      } else {
+        c.beginPath();
+        c.arc(cx, cy, topArcR, startAngle, endAngle);
+        c.lineWidth = 6;
+        c.strokeStyle = "#ef4444";
+        c.stroke();
+      }
+      c.restore();
+
+      // Weather / Rain Text (Centered at cx, cy - 138)
+      c.font = "bold 13px 'JetBrains Mono', monospace";
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      let rainStr = "";
+      if (hours_until_rain === -1 || hours_until_rain === null || hours_until_rain === undefined) {
+        rainStr = "NO RAIN ☀️";
+        c.fillStyle = "#94a3b8";
+      } else if (hours_until_rain === 0) {
+        rainStr = "RAIN NOW 🌧️";
+        c.fillStyle = "#38bdf8";
+      } else {
+        const hVal = (typeof hours_until_rain === "number") ? hours_until_rain.toFixed(0) : hours_until_rain;
+        rainStr = "RAIN IN " + hVal + "h 🌧️";
+        c.fillStyle = (hours_until_rain <= 3) ? "#38bdf8" : "#cbd5e1";
+      }
+      c.fillText(rainStr, cx, cy - 138);
+
+      // 5. Dual Side-Flanking Radial Arcs (Outer R=156 + Inner Secondary R=142)
+      const arcR = designParams.arcR;
+      const innerArcR = designParams.innerArcR;
+      c.lineCap = "round";
+
+      // Left Arc Track (0.70 PI -> 1.30 PI, ~108 degrees)
+      const bottomAngleLeft = 0.70 * Math.PI;
+      const topAngleLeft = 1.30 * Math.PI;
+      const totalSweepLeft = topAngleLeft - bottomAngleLeft;
+
+      c.lineWidth = 9;
+      c.strokeStyle = "rgba(0, 229, 255, 0.16)";
+      c.beginPath();
+      c.arc(cx, cy, arcR, bottomAngleLeft, topAngleLeft, false);
+      c.stroke();
+
+      c.lineWidth = 3;
+      c.strokeStyle = "rgba(0, 229, 255, 0.22)";
+      c.beginPath();
+      c.arc(cx, cy, innerArcR, bottomAngleLeft, topAngleLeft, false);
+      c.stroke();
+
+      if (claudePct > 0) {
+        const activeEndLeft = bottomAngleLeft + (claudePct / 100) * totalSweepLeft;
+        c.lineWidth = 9;
+        c.strokeStyle = left_gauge_color || "#00E5FF";
+        c.beginPath();
+        c.arc(cx, cy, arcR, bottomAngleLeft, activeEndLeft, false);
+        c.stroke();
+
+        c.lineWidth = 3;
+        c.beginPath();
+        c.arc(cx, cy, innerArcR, bottomAngleLeft, activeEndLeft, false);
+        c.stroke();
+      }
+
+      // Right Arc Track (0.30 PI -> -0.30 PI, ~108 degrees)
+      const bottomAngleRight = 0.30 * Math.PI;
+      const totalSweepRight = 0.60 * Math.PI;
+
+      c.lineWidth = 9;
+      c.strokeStyle = "rgba(255, 122, 0, 0.16)";
+      c.beginPath();
+      c.arc(cx, cy, arcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true);
+      c.stroke();
+
+      c.lineWidth = 3;
+      c.strokeStyle = "rgba(255, 122, 0, 0.22)";
+      c.beginPath();
+      c.arc(cx, cy, innerArcR, bottomAngleRight, bottomAngleRight - totalSweepRight, true);
+      c.stroke();
+
+      if (antiPct > 0) {
+        const activeEndRight = bottomAngleRight - (antiPct / 100) * totalSweepRight;
+        c.lineWidth = 9;
+        c.strokeStyle = right_gauge_color || "#FF7A00";
+        c.beginPath();
+        c.arc(cx, cy, arcR, bottomAngleRight, activeEndRight, true);
+        c.stroke();
+
+        c.lineWidth = 3;
+        c.beginPath();
+        c.arc(cx, cy, innerArcR, bottomAngleRight, activeEndRight, true);
+        c.stroke();
+      }
+
+      // 6. Central 2x2 Matrix Animated Flip Cards OR Multi-Agent Status Dashboard
+      const showAgents = (active_agents && active_agents.length > 0 && (waiting_for_input || work_completed));
+
+      if (showAgents) {
+        const totalAgents = active_agents.length;
+        const cardW = 150;
+        const cardH = 46;
+        const startY = cy - 65;
+        const cardX = cx - cardW / 2;
+
+        c.save();
+        c.beginPath();
+        c.rect(cardX - 6, startY, cardW + 12, 140);
+        c.clip();
+
+        const visibleCount = Math.min(3, totalAgents);
+        for (let i = 0; i < visibleCount; i++) {
+          const rowY = startY + (i * 48);
+          const ag = active_agents[i];
+          const isAGY = (ag.source === "antigravity" || (ag.name && ag.name.startsWith("AGY")));
+          const brandCol = isAGY ? "#FF7A00" : "#00E5FF";
+
+          c.fillStyle = isAGY ? "#18120C" : "#0C161D";
+          c.fillRect(cardX, rowY, cardW, cardH);
+          c.strokeStyle = isAGY ? "#5A2E05" : "#0A3D4D";
+          c.lineWidth = 1.5;
+          c.strokeRect(cardX, rowY, cardW, cardH);
+
+          c.fillStyle = brandCol;
+          c.fillRect(cardX, rowY, 4, cardH);
+
+          c.textAlign = "left";
+          c.textBaseline = "middle";
+          c.font = "bold 12px 'JetBrains Mono', monospace";
+          c.fillStyle = brandCol;
+          c.fillText(ag.name || "Agent", cardX + 10, rowY + 14);
+
+          c.font = "11px 'JetBrains Mono', monospace";
+          c.fillStyle = ag.color || brandCol;
+          let det = ag.detail || "";
+          if (det.length > 18) det = det.substring(0, 17) + "…";
+          c.fillText(det, cardX + 10, rowY + 32);
+
+          // Pulsating Status Dot
+          const pulse = (Math.sin((now.totalSecs * 3) + i) + 1) / 2;
+          c.fillStyle = ag.color || brandCol;
+          c.beginPath();
+          c.arc(cardX + cardW - 14, rowY + 14, 3.5 + 1.5 * pulse, 0, Math.PI * 2);
+          c.fill();
+        }
+        c.restore();
+      } else {
+        // Draw 2x2 Split-Flap Matrix (Scaled 1.5x: 72x108px default)
+        const cardW = designParams.cardW;
+        const cardH = designParams.cardH;
+        const gap = designParams.gap;
+
+        const h = now.h, m = now.m;
+        const dH1 = Math.floor(h / 10), dH2 = h % 10;
+        const dM1 = Math.floor(m / 10), dM2 = m % 10;
+        const currentDigits = [dH1, dH2, dM1, dM2];
+
+        // Delta-Time based Animation Step
+        const nowMs = performance.now();
+        const deltaMs = Math.min(64, Math.max(1, nowMs - lastFrameTime));
+        const step = deltaMs / FLIP_DURATION_MS;
+
+        for (let i = 0; i < 4; i++) {
+          if (roundPrevDigits[i] !== -1 && roundPrevDigits[i] !== currentDigits[i]) {
+            roundOldDigits[i] = roundPrevDigits[i];
+            roundFlipProgress[i] = 0.0;
+          }
+          roundPrevDigits[i] = currentDigits[i];
+
+          if (roundFlipProgress[i] < 1.0) {
+            roundFlipProgress[i] += step;
+            if (roundFlipProgress[i] > 1.0) roundFlipProgress[i] = 1.0;
+          }
+        }
+
+        const x1 = cx - cardW - gap / 2;
+        const x2 = cx + gap / 2;
+        const yTop = cy - cardH - gap / 2;
+        const yBottom = cy + gap / 2;
+
+        // Ensure Flaps are Clipped Within Circular Aperture to prevent corner bleed
+        c.save();
+        c.beginPath();
+        c.arc(cx, cy, rScreen - 2, 0, Math.PI * 2);
+        c.clip();
+
+        function drawFlipCard360(posX, posY, oldDigit, newDigit, progress) {
+          const midY = posY + cardH / 2;
+          const halfH = cardH / 2;
+          const numFont = `900 ${Math.round(cardH * 0.88)}px 'Anybody', 'JetBrains Mono', sans-serif`;
+
+          const COLOR_TOP_FRONT = "#222633";
+          const COLOR_BOT_BACK  = "#12141c";
+          const COLOR_CARD_BORDER = "#2b3042";
+
+          // Base card container
+          c.fillStyle = COLOR_BOT_BACK;
+          c.fillRect(posX, posY, cardW, cardH);
+          c.strokeStyle = COLOR_CARD_BORDER;
+          c.lineWidth = 1.5;
+          c.strokeRect(posX, posY, cardW, cardH);
+
+          if (progress >= 1.0 || oldDigit === newDigit) {
+            // Static Top
+            c.save();
+            c.beginPath();
+            c.rect(posX, posY, cardW, halfH);
+            c.clip();
+            c.fillStyle = COLOR_TOP_FRONT;
+            c.fillRect(posX, posY, cardW, halfH);
+            c.translate(posX + cardW / 2, posY + cardH / 2 + 4);
+            c.scale(0.92, 1.25);
+            c.font = numFont;
+            c.fillStyle = "#ffffff";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(newDigit, 0, 0);
+            c.restore();
+
+            // Static Bottom
+            c.save();
+            c.beginPath();
+            c.rect(posX, midY, cardW, halfH);
+            c.clip();
+            c.fillStyle = COLOR_BOT_BACK;
+            c.fillRect(posX, midY, cardW, halfH);
+            c.translate(posX + cardW / 2, posY + cardH / 2 + 4);
+            c.scale(0.92, 1.25);
+            c.font = numFont;
+            c.fillStyle = "#eceef4";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(newDigit, 0, 0);
+            c.restore();
+          } else {
+            // 3D Perspective Flip
+            // Static Underlays
+            c.save();
+            c.beginPath();
+            c.rect(posX, posY, cardW, halfH);
+            c.clip();
+            c.fillStyle = COLOR_TOP_FRONT;
+            c.fillRect(posX, posY, cardW, halfH);
+            c.translate(posX + cardW / 2, posY + cardH / 2 + 4);
+            c.scale(0.92, 1.25);
+            c.font = numFont;
+            c.fillStyle = "#ffffff";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(newDigit, 0, 0);
+            c.restore();
+
+            c.save();
+            c.beginPath();
+            c.rect(posX, midY, cardW, halfH);
+            c.clip();
+            c.fillStyle = COLOR_BOT_BACK;
+            c.fillRect(posX, midY, cardW, halfH);
+            c.translate(posX + cardW / 2, posY + cardH / 2 + 4);
+            c.scale(0.92, 1.25);
+            c.font = numFont;
+            c.fillStyle = "#eceef4";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(oldDigit, 0, 0);
+            c.restore();
+
+            // Falling 3D flap
+            if (progress < 0.5) {
+              const scale = Math.cos(progress * Math.PI);
+              const flapH = Math.max(0.1, halfH * scale);
+              const flapY = midY - flapH;
+
+              c.save();
+              c.beginPath();
+              c.rect(posX, flapY, cardW, flapH);
+              c.clip();
+              c.fillStyle = COLOR_TOP_FRONT;
+              c.fillRect(posX, flapY, cardW, flapH);
+              c.translate(posX + cardW / 2, midY);
+              c.scale(0.92, scale * 1.25);
+              c.font = numFont;
+              c.fillStyle = "#ffffff";
+              c.textAlign = "center";
+              c.textBaseline = "middle";
+              c.fillText(oldDigit, 0, -halfH / 2 + 4);
+              c.fillStyle = "rgba(0, 0, 0, " + (progress * 0.85).toFixed(2) + ")";
+              c.fillRect(posX, flapY, cardW, flapH);
+              c.restore();
+            } else {
+              const scale = -Math.cos(progress * Math.PI);
+              const flapH = Math.max(0.1, halfH * scale);
+
+              c.save();
+              c.beginPath();
+              c.rect(posX, midY, cardW, flapH);
+              c.clip();
+              c.fillStyle = COLOR_BOT_BACK;
+              c.fillRect(posX, midY, cardW, flapH);
+              c.translate(posX + cardW / 2, midY);
+              c.scale(0.92, scale * 1.25);
+              c.font = numFont;
+              c.fillStyle = "#eceef4";
+              c.textAlign = "center";
+              c.textBaseline = "middle";
+              c.fillText(newDigit, 0, halfH / 2 + 4);
+              c.fillStyle = "rgba(0, 0, 0, " + ((1.0 - progress) * 0.85).toFixed(2) + ")";
+              c.fillRect(posX, midY, cardW, flapH);
+              c.restore();
+            }
+          }
+
+          // Horizontal Split Crease
+          c.fillStyle = "#06070a";
+          c.fillRect(posX, midY - 1, cardW, 2);
+          c.fillStyle = "#343a4e";
+          c.fillRect(posX, midY + 1, cardW, 1);
+
+          // Side Retention Lugs
+          c.fillStyle = "#12151f";
+          c.fillRect(posX - 3, midY - 6, 4, 12);
+          c.fillRect(posX + cardW - 1, midY - 6, 4, 12);
+          c.fillStyle = "#8a96ab";
+          c.fillRect(posX - 2, midY - 2, 2, 4);
+          c.fillRect(posX + cardW, midY - 2, 2, 4);
+        }
+
+        drawFlipCard360(x1, yTop, roundOldDigits[0], dH1, roundFlipProgress[0]);
+        drawFlipCard360(x2, yTop, roundOldDigits[1], dH2, roundFlipProgress[1]);
+        drawFlipCard360(x1, yBottom, roundOldDigits[2], dM1, roundFlipProgress[2]);
+        drawFlipCard360(x2, yBottom, roundOldDigits[3], dM2, roundFlipProgress[3]);
+
+        c.restore(); // Restore circular clip mask
+      }
+
+      // 7. Bottom Sub-HUD (Date & Weather, or Alert / Task Complete)
+      c.textAlign = "center";
+      c.textBaseline = "middle";
+
+      if (waiting_for_input) {
+        c.font = "bold 13px 'JetBrains Mono', monospace";
+        c.fillStyle = alertActive ? "#FFB800" : "#996e00";
+        c.fillText("⚠️ AGENT ALERT", cx, cy + 120);
+
+        c.font = "bold 14px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 138);
+      } else if (work_completed) {
+        c.font = "bold 13px 'JetBrains Mono', monospace";
+        c.fillStyle = blinkState ? "#00FF88" : "#059669";
+        c.fillText("✨ TASK COMPLETE ✨", cx, cy + 120);
+
+        c.font = "bold 14px 'JetBrains Mono', monospace";
+        c.fillStyle = "#ffffff";
+        c.fillText(completion_text || "ALL DONE", cx, cy + 138);
+      } else {
+        c.font = "bold 13px 'JetBrains Mono', monospace";
+        c.fillStyle = left_gauge_color || "#00E5FF";
+        const leftStr = (left_gauge_label || "CLD") + ": " + (left_gauge_reset || claude_reset_str || "READY");
+        c.fillText(leftStr, cx, cy + 120);
+
+        c.font = "bold 13px 'JetBrains Mono', monospace";
+        c.fillStyle = right_gauge_color || "#FF7A00";
+        const rightStr = (right_gauge_label || "AGY") + ": " + (right_gauge_reset || antigravity_reset_str || "READY");
+        c.fillText(rightStr, cx, cy + 138);
+      }
     }
 
     function drawGC9A01RoundFlipUI(c) {
@@ -1650,12 +2524,15 @@
     }
 
     function drawGC9A01RoundFaceUI(c) {
-      const cx = 160, cy = 120, rScreen = 114;
+      const p = activeProfile;
+      const cx = p.cx, cy = p.cy, rScreen = p.rScreen;
+      const is360 = (p.id === "GC9B72");
+      const scaleFactor = is360 ? 1.5 : 1.0;
       const alertActive = Boolean(waiting_for_input && blinkState);
 
       // 1. Outer Dark Bezel Canvas Background
       c.fillStyle = "#0c0e14";
-      c.fillRect(0, 0, 320, 240);
+      c.fillRect(0, 0, p.width, p.height);
 
       // 2. Bezel Casing Ring (Normal, Alert, or Work Complete Pulse)
       drawGC9A01BezelRing(c, cx, cy, rScreen);
@@ -1674,7 +2551,7 @@
 
       drawGC9A01TopConnectionArc(c, cx, cy, isBackendConn, isWifiConn);
 
-      c.font = "bold 11px 'JetBrains Mono', 'Fira Code', monospace";
+      c.font = `bold ${Math.round(11 * scaleFactor)}px 'JetBrains Mono', 'Fira Code', monospace`;
       c.textAlign = "center";
       c.textBaseline = "middle";
 
@@ -1690,13 +2567,15 @@
         rainStr = "RAIN IN " + hVal + "h 🌧️";
         c.fillStyle = (hours_until_rain <= 3) ? "#38bdf8" : "#cbd5e1";
       }
-      c.fillText(rainStr, cx, cy - 93);
+      c.fillText(rainStr, cx, cy - Math.round(93 * scaleFactor));
 
       // 3. Central Dual Capsule Pill Eyes (Expressive Qbit Face - Enriched Bold Scale)
-      const eyeW = 54, eyeH = 80;
-      const leftEyeX = cx - 52;
-      const rightEyeX = cx + 52;
-      const bounceY = work_completed ? Math.sin(Date.now() / 180) * 3 : 0;
+      const eyeW = Math.round(54 * scaleFactor);
+      const eyeH = Math.round(80 * scaleFactor);
+      const eyeSpacing = Math.round(52 * scaleFactor);
+      const leftEyeX = cx - eyeSpacing;
+      const rightEyeX = cx + eyeSpacing;
+      const bounceY = work_completed ? Math.sin(Date.now() / 180) * (3 * scaleFactor) : 0;
       const eyeY = cy + bounceY;
 
       // EYES BLINK & SACCADE PHYSICS
@@ -1704,7 +2583,7 @@
       const isBlinking = (Date.now() % 4000 < 180);
       const scaleY = isBlinking ? 0.08 : 1.0;
       const curH = eyeH * scaleY;
-      const cornerR = Math.min(26, curH / 2);
+      const cornerR = Math.min(Math.round(26 * scaleFactor), curH / 2);
 
       const eyeGlowColor = work_completed ? "rgba(0, 255, 136, 0.85)" : (waiting_for_input ? "rgba(255, 184, 0, 0.85)" : "rgba(0, 229, 255, 0.75)");
       const eyeFillColor = work_completed ? "#00FF88" : (waiting_for_input ? "#FFB800" : "#00E5FF");
@@ -1712,7 +2591,7 @@
       // Draw Left Capsule Eye
       c.save();
       c.shadowColor = eyeGlowColor;
-      c.shadowBlur = 16;
+      c.shadowBlur = Math.round(16 * scaleFactor);
       c.fillStyle = eyeFillColor;
       c.beginPath();
       if (typeof c.roundRect === "function") {
@@ -1736,8 +2615,11 @@
       if (!isBlinking) {
         c.fillStyle = "#ffffff";
         c.beginPath();
-        c.arc(leftEyeX - 7, eyeY - 16, 7, 0, Math.PI * 2);
-        c.arc(rightEyeX - 7, eyeY - 16, 7, 0, Math.PI * 2);
+        const pupilR = Math.round(7 * scaleFactor);
+        const pupilOffX = Math.round(7 * scaleFactor);
+        const pupilOffY = Math.round(16 * scaleFactor);
+        c.arc(leftEyeX - pupilOffX, eyeY - pupilOffY, pupilR, 0, Math.PI * 2);
+        c.arc(rightEyeX - pupilOffX, eyeY - pupilOffY, pupilR, 0, Math.PI * 2);
         c.fill();
       }
 
@@ -1745,31 +2627,34 @@
       c.textAlign = "center";
       c.textBaseline = "middle";
 
+      const subY1 = cy + Math.round(81 * scaleFactor);
+      const subY2 = cy + Math.round(96 * scaleFactor);
+
       if (waiting_for_input) {
-        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.font = `bold ${Math.round(10 * scaleFactor)}px 'JetBrains Mono', monospace`;
         c.fillStyle = alertActive ? "#FFB800" : "#996e00";
-        c.fillText("⚠️ AGENT ALERT", cx, cy + 81);
+        c.fillText("⚠️ AGENT ALERT", cx, subY1);
 
-        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.font = `bold ${Math.round(11 * scaleFactor)}px 'JetBrains Mono', monospace`;
         c.fillStyle = "#ffffff";
-        c.fillText(prompt_text || "APPROVE PLAN", cx, cy + 95);
+        c.fillText(prompt_text || "APPROVE PLAN", cx, subY2);
       } else if (work_completed) {
-        c.font = "bold 10px 'JetBrains Mono', monospace";
+        c.font = `bold ${Math.round(10 * scaleFactor)}px 'JetBrains Mono', monospace`;
         c.fillStyle = blinkState ? "#00FF88" : "#059669";
-        c.fillText("✨ TASK COMPLETE ✨", cx, cy + 81);
+        c.fillText("✨ TASK COMPLETE ✨", cx, subY1);
 
-        c.font = "bold 11px 'JetBrains Mono', monospace";
+        c.font = `bold ${Math.round(11 * scaleFactor)}px 'JetBrains Mono', monospace`;
         c.fillStyle = "#ffffff";
-        c.fillText(completion_text || "ALL DONE", cx, cy + 95);
+        c.fillText(completion_text || "ALL DONE", cx, subY2);
       } else {
-        c.font = "bold 10px 'JetBrains Mono', 'Fira Code', monospace";
+        c.font = `bold ${Math.round(10 * scaleFactor)}px 'JetBrains Mono', 'Fira Code', monospace`;
         c.fillStyle = "#94a3b8";
-        c.fillText(date_string.toUpperCase(), cx, cy + 81);
+        c.fillText(date_string.toUpperCase(), cx, subY1);
 
-        c.font = "900 13px 'JetBrains Mono', 'Anybody', monospace";
+        c.font = `900 ${Math.round(13 * scaleFactor)}px 'JetBrains Mono', 'Anybody', monospace`;
         c.fillStyle = "#ffffff";
         const tempFormatted = (typeof current_temperature === "number") ? current_temperature.toFixed(1) : "23.5";
-        c.fillText(tempFormatted + "°C ☀️", cx, cy + 95);
+        c.fillText(tempFormatted + "°C ☀️", cx, subY2);
       }
     }
 
@@ -1837,13 +2722,27 @@
     }
 
     function renderScreenState(screenId, ctxTarget) {
-      if (isOTAUpdating) drawGC9A01OTAScreen(ctxTarget);
-      else if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
-      else drawGC9A01RoundFlipUI(ctxTarget);
+      if (isOTAUpdating) {
+        drawGC9A01OTAScreen(ctxTarget);
+      } else if (activeProfile.id === "GC9B72") {
+        if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
+        else drawGC9B72RoundFlipUI(ctxTarget);
+      } else {
+        if (screenId === 4) drawGC9A01RoundFaceUI(ctxTarget);
+        else drawGC9A01RoundFlipUI(ctxTarget);
+      }
     }
 
     // --- MAIN RENDER LOOP ---
     function render() {
+      // Cleanly handle pending profile switch at frame start
+      if (pendingProfileSwitch) {
+        activeProfile = pendingProfileSwitch;
+        activeProfileKey = pendingProfileSwitch.id;
+        pendingProfileSwitch = null;
+        syncDomCanvasProfile(activeProfile);
+      }
+
       // Handle Blinking LED / Alert Timer (500ms)
       if (Date.now() - lastBlinkTime >= 500) {
         blinkState = !blinkState;
@@ -1852,17 +2751,19 @@
 
       if (isBooting) {
         ctx.fillStyle = KINETIC_BLACK;
-        ctx.fillRect(0, 0, 320, 240);
+        ctx.fillRect(0, 0, activeProfile.width, activeProfile.height);
         ctx.fillStyle = KINETIC_YELLOW;
         ctx.font = "bold 16px 'Fira Code', monospace";
         ctx.textAlign = "center";
+        const bootCx = activeProfile.cx;
+        const bootCy = activeProfile.cy - 10;
         if (bootStep === 1) {
-          ctx.fillText("Connecting WiFi...", 160, 110);
+          ctx.fillText("Connecting WiFi...", bootCx, bootCy);
         } else if (bootStep === 2) {
-          ctx.fillText("WiFi Connected!", 160, 110);
+          ctx.fillText("WiFi Connected!", bootCx, bootCy);
         } else if (bootStep === 3) {
           ctx.fillStyle = KINETIC_CYAN;
-          ctx.fillText("[OTA] Checking GitHub...", 160, 110);
+          ctx.fillText("[OTA] Checking GitHub...", bootCx, bootCy);
         }
         requestAnimationFrame(render);
         return;
@@ -1876,11 +2777,13 @@
         renderScreenState(prevScreen, ctxCurrent);
         renderScreenState(nextScreen, ctxNext);
 
-        const xOffset = Math.floor(320 * transitionProgress);
+        const pw = activeProfile.width;
+        const ph = activeProfile.height;
+        const xOffset = Math.floor(pw * transitionProgress);
         ctx.fillStyle = KINETIC_BLACK;
-        ctx.fillRect(0, 0, 320, 240);
+        ctx.fillRect(0, 0, pw, ph);
         ctx.drawImage(offscreenCurrent, -xOffset, 0);
-        ctx.drawImage(offscreenNext, 320 - xOffset, 0);
+        ctx.drawImage(offscreenNext, pw - xOffset, 0);
       } else {
         renderScreenState(currentScreen, ctx);
       }
@@ -1898,7 +2801,7 @@
 
       const bezelTag = document.getElementById("bezelTag");
       if (bezelTag) {
-        bezelTag.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">radio_button_checked</span> GC9A01 // ROUND 240x240`;
+        bezelTag.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.2rem; color: var(--accent-orange);">radio_button_checked</span> ${activeProfile.label}`;
       }
 
       const btnRound = document.getElementById("btnRound");
@@ -2008,6 +2911,64 @@
         isBooting = false;
         bootStep = 0;
       }, 3000);
+    }
+
+    function incrementMinuteSim() {
+      server_minute = (server_minute + 1) % 60;
+      if (server_minute === 0) {
+        server_hour = (server_hour + 1) % 24;
+      }
+      server_second = 0;
+      lastTimeSync = Date.now();
+    }
+
+    // --- 360x360 LIVE DESIGN TUNING HANDLERS ---
+    function updateTuneCardW(val) {
+      designParams.cardW = parseInt(val, 10);
+      const label = document.getElementById("tuneCardWVal");
+      if (label) label.innerText = `${val} px`;
+    }
+
+    function updateTuneCardH(val) {
+      designParams.cardH = parseInt(val, 10);
+      const label = document.getElementById("tuneCardHVal");
+      if (label) label.innerText = `${val} px`;
+    }
+
+    function updateTuneStroke(val) {
+      designParams.strokeW = parseInt(val, 10);
+      const label = document.getElementById("tuneStrokeVal");
+      if (label) label.innerText = `${val} px`;
+    }
+
+    function updateTuneArcR(val) {
+      const r = parseInt(val, 10);
+      designParams.arcR = r;
+      designParams.innerArcR = r - 14;
+      const label = document.getElementById("tuneArcRVal");
+      if (label) label.innerText = `${r} px`;
+    }
+
+    function resetDesignDefaults() {
+      designParams.cardW = 72;
+      designParams.cardH = 108;
+      designParams.strokeW = 8;
+      designParams.arcR = 156;
+      designParams.innerArcR = 142;
+
+      const wIn = document.getElementById("tuneCardW");
+      const hIn = document.getElementById("tuneCardH");
+      const sIn = document.getElementById("tuneStroke");
+      const rIn = document.getElementById("tuneArcR");
+      if (wIn) wIn.value = 72;
+      if (hIn) hIn.value = 108;
+      if (sIn) sIn.value = 8;
+      if (rIn) rIn.value = 156;
+
+      document.getElementById("tuneCardWVal").innerText = "72 px";
+      document.getElementById("tuneCardHVal").innerText = "108 px";
+      document.getElementById("tuneStrokeVal").innerText = "8 px";
+      document.getElementById("tuneArcRVal").innerText = "156 px";
     }
 
     // --- BACKEND DATA FETCHING ---
