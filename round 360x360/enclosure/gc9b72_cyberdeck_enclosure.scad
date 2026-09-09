@@ -67,11 +67,12 @@ screen_aperture_top = 60.00; // Continuous conical viewing funnel top diameter a
 // --- Direct M2 Screen Tab Clamping & DuPont Pin Relief ---
 screen_mount_hole_x = 12.20; // Blueprint 2-R1 mounting hole X offset (+/-12.20mm, 24.4mm pitch)
 screen_mount_hole_y = -31.50;// Blueprint 2-R1 mounting hole Y offset (2.54mm above pin row)
+screen_pillar_dia   = 4.20;  // Reinforced rear mounting boss pillar diameter (ample space between pins and tab edge)
 m2_pilot_dia        = 1.70;  // Blind pilot hole for direct M2 plastic tapping (PLA/PETG)
-m2_pilot_depth      = 3.20;  // Depth from rear pocket floor (leaves 1.40mm solid front wall)
+m2_pilot_depth      = 3.40;  // Deep thread engagement inside reinforced boss pillar (leaves 1.20mm solid front wall)
 
-dupont_front_relief_w = 26.00; // Width of forward pin clearance pocket (spans 10-pin header)
-dupont_front_relief_h = 6.00;  // Height of forward pin clearance pocket (Y = -37.0 to -31.0mm)
+dupont_front_relief_w = 21.00; // Width of forward pin clearance pocket (centered over pins 2-9, X = +/-10.5mm)
+dupont_front_relief_h = 3.60;  // Height of forward pin clearance pocket (Y = -35.80 to -32.20mm)
 dupont_front_relief_y = -34.00;// Centerline of 10-pin header row
 dupont_front_relief_depth = 2.20; // Depth into front face from rear pocket floor (leaves 2.40mm solid front wall)
 
