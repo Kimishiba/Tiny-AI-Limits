@@ -4,9 +4,9 @@ import os
 import shutil
 from PIL import Image, ImageDraw, ImageFont
 
-ARTIFACT_DIR = "/Users/alessandrolongoni/.gemini/antigravity/brain/5a950c28-e828-469f-9a96-75d1aec7357e"
-OUTPUT_DIR = os.path.join(ARTIFACT_DIR, "animations")
-REPO_DOCS_DIR = "/Users/alessandrolongoni/Documents/Antigravity/Tiny AI Limits/docs/assets/concepts"
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.environ.get("CONCEPT_OUTPUT_DIR", os.path.join(REPO_ROOT, "img", "concepts"))
+REPO_DOCS_DIR = os.environ.get("CONCEPT_DOCS_DIR", os.path.join(REPO_ROOT, "docs", "assets", "concepts"))
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(REPO_DOCS_DIR, exist_ok=True)

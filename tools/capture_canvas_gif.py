@@ -13,9 +13,44 @@ import os
 import json
 from PIL import Image
 import io
+import shutil
+import platform
 
 PORT = 8998
-CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+
+def find_chrome_binary():
+    env_path = os.environ.get("CHROME_PATH")
+    if env_path and os.path.exists(env_path):
+        return env_path
+    
+    system = platform.system()
+    if system == "Darwin":
+        mac_paths = [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            os.path.expanduser("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+            "/Applications/Chromium.app/Contents/MacOS/Chromium"
+        ]
+        for p in mac_paths:
+            if os.path.exists(p):
+                return p
+    elif system == "Windows":
+        win_paths = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe")
+        ]
+        for p in win_paths:
+            if os.path.exists(p):
+                return p
+    else:
+        linux_bins = ["google-chrome", "google-chrome-stable", "chromium-browser", "chromium"]
+        for b in linux_bins:
+            path = shutil.which(b)
+            if path:
+                return path
+
+    return shutil.which("chrome") or shutil.which("google-chrome")
+
 captured_frames = []
 server_done = threading.Event()
 
@@ -453,13 +488,18 @@ def run_server():
             httpd.handle_request()
 
 def main():
+    chrome_bin = find_chrome_binary()
+    if not chrome_bin:
+        print("[ERROR] Chrome binary could not be located. Please set CHROME_PATH environment variable.")
+        return
+
     print(f"Starting frame capture server on port {PORT}...")
     t = threading.Thread(target=run_server, daemon=True)
     t.start()
 
-    print("Launching Headless Chrome for pixel-perfect Canvas rendering...")
+    print(f"Launching Headless Chrome ({chrome_bin}) for pixel-perfect Canvas rendering...")
     chrome_proc = subprocess.Popen([
-        CHROME_PATH,
+        chrome_bin,
         "--headless=new",
         "--disable-gpu",
         "--hide-scrollbars",

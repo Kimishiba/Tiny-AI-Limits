@@ -9,9 +9,13 @@ import math
 import os
 from PIL import Image, ImageDraw, ImageFilter
 
-SRC_IMAGE_PATH = "/Users/alessandro.longoni/.gemini/antigravity/brain/4f8d6a26-b494-4545-bcec-bce16fdbd51e/kimishiba_16bit_round_avatar_1787316458804.jpg"
-OUT_GIF_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_round_pfp_animated.gif")
-OUT_PNG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_round_pfp.png")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC_IMAGE_PATH = os.environ.get(
+    "KIMISHIBA_ROUND_AVATAR_SRC",
+    os.path.join(REPO_ROOT, "img", "kimishiba_round_pfp.png")
+)
+OUT_GIF_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_round_pfp_animated.gif")
+OUT_PNG_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_round_pfp.png")
 
 TARGET_SIZE = (600, 600)
 PIXEL_BLOCK = 6

@@ -8,9 +8,10 @@ import math
 import os
 from PIL import Image, ImageDraw, ImageFilter
 
-SRC_IMAGE_PATH = "/Users/alessandro.longoni/Library/CloudStorage/GoogleDrive-mag8mag8@gmail.com/My Drive/Antigravity/Desktop Tiny Screen/img/kimishiba_mascot_clean.png"
-OUT_GIF_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_mascot_animated.gif")
-OUT_PNG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_mascot.png")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC_IMAGE_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_mascot_clean.png")
+OUT_GIF_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_mascot_animated.gif")
+OUT_PNG_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_mascot.png")
 
 TARGET_SIZE = (600, 600)
 
