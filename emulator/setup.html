@@ -556,10 +556,6 @@
           <span class="material-symbols-outlined" style="font-size: 1.1rem;">tv</span>
           Emulator
         </a>
-        <a href="/faces" class="nav-btn">
-          <span class="material-symbols-outlined" style="font-size: 1.1rem;">smart_toy</span>
-          Faces
-        </a>
         <a href="/setup" class="nav-btn active">
           <span class="material-symbols-outlined" style="font-size: 1.1rem;">wifi</span>
           WiFi Setup
@@ -910,7 +906,7 @@
       </div>
       <div class="footer-links">
         <a href="/emulator">Emulator</a>
-        <a href="/faces">Faces Prototype</a>
+        <a href="/setup">WiFi Setup</a>
         <a href="https://github.com" target="_blank" rel="noopener">Firmware Docs</a>
       </div>
       <div class="footer-copy">
@@ -1485,10 +1481,10 @@
         payload.claude_daily_budget_usd = (leftId === 'claude') ? parseFloat(gaugeLeftBudget.value) : parseFloat(gaugeRightBudget.value);
       }
 
-      const orKey = document.getElementById('key-openrouter').value.trim();
-      const dsKey = document.getElementById('key-deepseek').value.trim();
-      const msKey = document.getElementById('key-mistral').value.trim();
-      const gqKey = document.getElementById('key-groq').value.trim();
+      const orKey = document.getElementById('key-openrouter')?.value?.trim() || '';
+      const dsKey = document.getElementById('key-deepseek')?.value?.trim() || '';
+      const msKey = document.getElementById('key-mistral')?.value?.trim() || '';
+      const gqKey = document.getElementById('key-groq')?.value?.trim() || '';
 
       if (orKey) payload.provider_keys.openrouter = orKey;
       if (dsKey) payload.provider_keys.deepseek = dsKey;
