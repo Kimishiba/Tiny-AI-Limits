@@ -65,7 +65,18 @@ INTEGRATED_BEZEL_OD = 72.00     # Outer diameter of raised circular bezel rim (i
 SCREEN_APERTURE_DIA = 54.00     # Central circular viewing aperture at screen retaining lip
 SCREEN_APERTURE_TOP = 60.00     # Continuous conical viewing funnel top diameter at ring summit
 
-# Rear Clamp Plate Parameters (Sandwich Architecture)
+# Direct M2 Screen Tab Clamping & DuPont Pin Relief
+SCREEN_MOUNT_HOLE_X = 12.20     # Blueprint 2-R1 mounting hole X offset (+/-12.20mm, 24.4mm pitch)
+SCREEN_MOUNT_HOLE_Y = -31.50    # Blueprint 2-R1 mounting hole Y offset (2.54mm above pin row)
+M2_PILOT_DIA = 1.70             # Blind pilot hole for direct M2 plastic tapping (PLA/PETG)
+M2_PILOT_DEPTH = 3.20           # Depth from rear pocket floor (leaves 1.40mm solid front wall)
+
+DUPONT_FRONT_RELIEF_W = 26.00   # Width of forward pin clearance pocket (spans 10-pin header)
+DUPONT_FRONT_RELIEF_H = 6.00    # Height of forward pin clearance pocket (Y = -37.0 to -31.0mm)
+DUPONT_FRONT_RELIEF_Y = -34.00  # Centerline of 10-pin header row
+DUPONT_FRONT_RELIEF_DEPTH = 2.20# Depth into front face from rear pocket floor (leaves 2.40mm solid front wall)
+
+# Rear Clamp Plate Parameters (Sandwich Architecture - Retained for Compatibility)
 CLAMP_THICK = 1.60              # Slim, rigid 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
 
 # Legacy Bezel Parameters (Retained for reference)
@@ -294,7 +305,28 @@ def build_front_face():
     screen_cavity = (cyl_pocket + box_tab).translate([0, 0, -0.005])
     plate = plate - screen_cavity
 
-    # 5. 4x Symmetrical Outer M3 Corner Screws (+/-34mm, +/-34mm)
+    # 5. 2x Direct M2 Blind Pilot Holes for Direct Screen Tab Clamping (Z = REAR_POCKET_DEPTH to +3.20mm)
+    for sx in [-1, 1]:
+        m2_hole = m3d.Manifold.cylinder(M2_PILOT_DEPTH + 0.02, M2_PILOT_DIA / 2.0, M2_PILOT_DIA / 2.0, 32).translate([
+            sx * SCREEN_MOUNT_HOLE_X,
+            SCREEN_MOUNT_HOLE_Y,
+            REAR_POCKET_DEPTH - 0.01
+        ])
+        plate = plate - m2_hole
+
+    # 6. Forward DuPont Pin Clearance Relief Trench (Z = REAR_POCKET_DEPTH to +2.20mm)
+    # Accommodates forward-protruding 10-pin header pins/solders with zero front face punch-through
+    dupont_relief = m3d.Manifold.cube(
+        [DUPONT_FRONT_RELIEF_W, DUPONT_FRONT_RELIEF_H, DUPONT_FRONT_RELIEF_DEPTH + 0.02],
+        center=False
+    ).translate([
+        -DUPONT_FRONT_RELIEF_W / 2.0,
+        DUPONT_FRONT_RELIEF_Y - DUPONT_FRONT_RELIEF_H / 2.0,
+        REAR_POCKET_DEPTH - 0.01
+    ])
+    plate = plate - dupont_relief
+
+    # 7. 4x Symmetrical Outer M3 Corner Screws (+/-34mm, +/-34mm)
     for sx in [-1, 1]:
         for sy in [-1, 1]:
             m3_hole = m3d.Manifold.cylinder(total_h + 2.0, M3_CLEARANCE_HOLE / 2.0, M3_CLEARANCE_HOLE / 2.0, 32).translate([sx * CORNER_SCREW_X, sy * CORNER_SCREW_Y, -1.0])

@@ -64,7 +64,18 @@ integrated_bezel_od = 72.00; // Raised circular bezel outer diameter (increased 
 screen_aperture_dia = 54.00; // Central circular viewing aperture at screen retaining lip
 screen_aperture_top = 60.00; // Continuous conical viewing funnel top diameter at ring summit
 
-// --- Rear Clamp Plate Parameters (Sandwich Architecture) ---
+// --- Direct M2 Screen Tab Clamping & DuPont Pin Relief ---
+screen_mount_hole_x = 12.20; // Blueprint 2-R1 mounting hole X offset (+/-12.20mm, 24.4mm pitch)
+screen_mount_hole_y = -31.50;// Blueprint 2-R1 mounting hole Y offset (2.54mm above pin row)
+m2_pilot_dia        = 1.70;  // Blind pilot hole for direct M2 plastic tapping (PLA/PETG)
+m2_pilot_depth      = 3.20;  // Depth from rear pocket floor (leaves 1.40mm solid front wall)
+
+dupont_front_relief_w = 26.00; // Width of forward pin clearance pocket (spans 10-pin header)
+dupont_front_relief_h = 6.00;  // Height of forward pin clearance pocket (Y = -37.0 to -31.0mm)
+dupont_front_relief_y = -34.00;// Centerline of 10-pin header row
+dupont_front_relief_depth = 2.20; // Depth into front face from rear pocket floor (leaves 2.40mm solid front wall)
+
+// --- Rear Clamp Plate Parameters (Sandwich Architecture - Retained for Compatibility) ---
 clamp_thick         = 1.60;  // Slim 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
 
 // --- Legacy Circular Top Bezel Parameters (Retained for reference) ---
@@ -256,7 +267,18 @@ module front_face_plate() {
                 cube([2 * hw_tab, -bot_y_tab, rear_pocket_depth + 0.02]);
         }
 
-        // 5. 4x Symmetrical Outer M3 Mounting Screws (+/-34mm, +/-34mm)
+        // 5. 2x Direct M2 Blind Pilot Holes for Direct Screen Tab Clamping (Z = rear_pocket_depth to +3.20mm)
+        for (sx = [-1, 1]) {
+            translate([sx * screen_mount_hole_x, screen_mount_hole_y, rear_pocket_depth - 0.01])
+                cylinder(d = m2_pilot_dia, h = m2_pilot_depth + 0.01);
+        }
+
+        // 6. Forward DuPont Pin Clearance Relief Trench (Z = rear_pocket_depth to +2.20mm)
+        // Accommodates forward-protruding 10-pin header pins/solders with zero front face punch-through
+        translate([-dupont_front_relief_w / 2.0, dupont_front_relief_y - dupont_front_relief_h / 2.0, rear_pocket_depth - 0.01])
+            cube([dupont_front_relief_w, dupont_front_relief_h, dupont_front_relief_depth + 0.01]);
+
+        // 7. 4x Symmetrical Outer M3 Mounting Screws (+/-34mm, +/-34mm)
         for (sx = [-1, 1]) {
             for (sy = [-1, 1]) {
                 translate([sx * corner_screw_x, sy * corner_screw_y, -0.5]) {
