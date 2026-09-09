@@ -10,9 +10,13 @@ import math
 import os
 from PIL import Image, ImageDraw, ImageFilter
 
-SRC_IMAGE_PATH = "/Users/alessandro.longoni/.gemini/antigravity/brain/4f8d6a26-b494-4545-bcec-bce16fdbd51e/kimishiba_16bit_headshot_1787316388374.jpg"
-OUT_GIF_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_16bit_animated.gif")
-OUT_PNG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_16bit.png")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC_IMAGE_PATH = os.environ.get(
+    "KIMISHIBA_16BIT_SRC",
+    os.path.join(REPO_ROOT, "img", "kimishiba_16bit.png")
+)
+OUT_GIF_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_16bit_animated.gif")
+OUT_PNG_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_16bit.png")
 
 TARGET_SIZE = (600, 600)
 PIXEL_BLOCK = 6 # 16-bit pixel block size for drawing

@@ -462,7 +462,12 @@ def create_svg_blueprint(output_svg_path):
     print(f"Generated Vector Technical Drawing: {output_svg_path}")
 
 if __name__ == "__main__":
-    out_dir = "/Users/alessandro.longoni/Library/CloudStorage/GoogleDrive-mag8mag8@gmail.com/My Drive/Antigravity/Desktop Tiny Screen/round 240x240/enclosure"
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    out_dir = os.environ.get(
+        "ENCLOSURE_OUT_DIR",
+        os.path.join(repo_root, "round 240x240", "enclosure")
+    )
+    os.makedirs(out_dir, exist_ok=True)
     svg_file = os.path.join(out_dir, "gc9a01_cyberdeck_technical_drawing.svg")
     create_svg_blueprint(svg_file)
     

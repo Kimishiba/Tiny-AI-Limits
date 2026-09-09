@@ -10,9 +10,13 @@ import math
 import os
 from PIL import Image, ImageDraw, ImageFilter
 
-SRC_IMAGE_PATH = "/Users/alessandro.longoni/.gemini/antigravity/brain/4f8d6a26-b494-4545-bcec-bce16fdbd51e/kimishiba_head_orange_white_1787315851946.jpg"
-OUT_GIF_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_orange_white_animated.gif")
-OUT_PNG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "img", "kimishiba_orange_white.png")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC_IMAGE_PATH = os.environ.get(
+    "KIMISHIBA_ORANGE_WHITE_SRC",
+    os.path.join(REPO_ROOT, "img", "kimishiba_orange_white.png")
+)
+OUT_GIF_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_orange_white_animated.gif")
+OUT_PNG_PATH = os.path.join(REPO_ROOT, "img", "kimishiba_orange_white.png")
 
 TARGET_SIZE = (600, 600)
 
