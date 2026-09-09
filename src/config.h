@@ -6,13 +6,63 @@
 // ==========================================
 // PIN CONFIGURATION (ESP32-C3 SuperMini)
 // ==========================================
-// SPI Bus for GC9A01 Circular IPS (240x240) - Standard Pinout
-#define GC9A01_SCK_PIN  4   // SCL -> GPIO 4 (Left Pin 4)
-#define GC9A01_MOSI_PIN 6   // SDA -> GPIO 6 (Right Pin 2)
-#define GC9A01_DC_PIN   7   // DC  -> GPIO 7 (Right Pin 3)
-#define GC9A01_CS_PIN   5   // CS  -> GPIO 5 (Right Pin 1)
-#define GC9A01_RST_PIN  1   // RST -> GPIO 1 (Left Pin 7)
-#define GC9A01_BLK_PIN  -1  // Backlight hardwired to VCC on 7-pin display
+// SPI Bus Pin Configurations
+#if defined(SCREEN_360) || defined(SCREEN_GC9B72_360)
+#define IS_SCREEN_360 1
+#define SCREEN_WIDTH  360
+#define SCREEN_HEIGHT 360
+
+#define DISPLAY_SCK_PIN  3   // SCL -> Board Pin 3 (GPIO 3)
+#define DISPLAY_MOSI_PIN 4   // SDA -> Board Pin 4 (GPIO 4)
+#define DISPLAY_RST_PIN  5   // RST -> Board Pin 5 (GPIO 5)
+#define DISPLAY_DC_PIN   6   // DC  -> Board Pin 6 (GPIO 6)
+#define DISPLAY_CS_PIN   7   // CS  -> Board Pin 7 (GPIO 7)
+#define DISPLAY_BLK_PIN  0   // Backlight PWM/Enable -> GPIO 0 (or GPIO 8)
+
+#define R_OUTER_MIN 151
+#define R_OUTER_MAX 160
+#define R_THIN_MIN  141
+#define R_THIN_MAX  143
+#define R_BEZEL_1   174
+#define R_BEZEL_2   175
+#define R_HAZARD_MIN 172
+#define R_HAZARD_MAX 177
+
+#else
+#define IS_SCREEN_360 0
+#define SCREEN_WIDTH  240
+#define SCREEN_HEIGHT 240
+
+#define DISPLAY_SCK_PIN  4   // SCL -> GPIO 4
+#define DISPLAY_MOSI_PIN 6   // SDA -> GPIO 6
+#define DISPLAY_DC_PIN   7   // DC  -> GPIO 7
+#define DISPLAY_CS_PIN   5   // CS  -> GPIO 5
+#define DISPLAY_RST_PIN  1   // RST -> GPIO 1
+#define DISPLAY_BLK_PIN  -1  // Backlight hardwired to VCC on 7-pin display
+
+#define R_OUTER_MIN 101
+#define R_OUTER_MAX 107
+#define R_THIN_MIN  94
+#define R_THIN_MAX  95
+#define R_BEZEL_1   116
+#define R_BEZEL_2   117
+#define R_HAZARD_MIN 115
+#define R_HAZARD_MAX 118
+#endif
+
+// Legacy aliases for backwards compatibility
+#define GC9A01_SCK_PIN  DISPLAY_SCK_PIN
+#define GC9A01_MOSI_PIN DISPLAY_MOSI_PIN
+#define GC9A01_DC_PIN   DISPLAY_DC_PIN
+#define GC9A01_CS_PIN   DISPLAY_CS_PIN
+#define GC9A01_RST_PIN  DISPLAY_RST_PIN
+#define GC9A01_BLK_PIN  DISPLAY_BLK_PIN
+#define GC9B72_SCK_PIN  DISPLAY_SCK_PIN
+#define GC9B72_MOSI_PIN DISPLAY_MOSI_PIN
+#define GC9B72_DC_PIN   DISPLAY_DC_PIN
+#define GC9B72_CS_PIN   DISPLAY_CS_PIN
+#define GC9B72_RST_PIN  DISPLAY_RST_PIN
+#define GC9B72_BLK_PIN  DISPLAY_BLK_PIN
 
 // WS2812B Addressable LED Status Configuration (ESP32-C3 SuperMini)
 #define WS2812_PIN 10

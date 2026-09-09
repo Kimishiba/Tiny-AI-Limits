@@ -16,16 +16,19 @@
 #include <memory>
 #include "boot_logo.h"
 #include "config.h"
-#include "drivers/display_gc9a01.h"
 #include "drivers/led_controller.h"
 
 DNSServer dnsServer;
 
-// ==========================================
-// DISPLAY HARDWARE DEFINITIONS & DRIVERS
-// ==========================================
+#if defined(SCREEN_360) || defined(SCREEN_GC9B72_360)
+#include "drivers/display_gc9b72.h"
+Arduino_DataBus *gcBus = createGC9B72Bus();
+Arduino_GFX *gcGfx = createGC9B72Display(gcBus);
+#else
+#include "drivers/display_gc9a01.h"
 Arduino_DataBus *gcBus = createGC9A01Bus();
 Arduino_GFX *gcGfx = createGC9A01Display(gcBus);
+#endif
 
 bool gc9a01Initialized = false;
 int currentDisplayRotation = 0;
@@ -535,7 +538,7 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
             float rad = deg * 0.0174533f;
             float cosR = cosf(rad);
             float sinR = sinf(rad);
-            for (int r = 101; r <= 107; r++) {
+            for (int r = R_OUTER_MIN; r <= R_OUTER_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colRed);
             }
         }
@@ -549,7 +552,7 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
             float rad = deg * 0.0174533f;
             float cosR = cosf(rad);
             float sinR = sinf(rad);
-            for (int r = 101; r <= 107; r++) {
+            for (int r = R_OUTER_MIN; r <= R_OUTER_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colAmber);
             }
         }
@@ -569,7 +572,7 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
             float rad = deg * 0.0174533f;
             float cosR = cosf(rad);
             float sinR = sinf(rad);
-            for (int r = 101; r <= 107; r++) {
+            for (int r = R_OUTER_MIN; r <= R_OUTER_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), colDim);
             }
         }
@@ -595,7 +598,7 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
                 pixelCol = colDim;
             }
 
-            for (int r = 101; r <= 107; r++) {
+            for (int r = R_OUTER_MIN; r <= R_OUTER_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), pixelCol);
             }
         }
@@ -603,7 +606,7 @@ void drawGC9A01TopConnectionArc(int cx, int cy, int ledState) {
 }
 
 void drawGC9A01RoundFlipUI() {
-    int cx = 120, cy = 120, rScreen = 114;
+    int cx = SCREEN_WIDTH / 2, cy = SCREEN_HEIGHT / 2, rScreen = SCREEN_WIDTH / 2 - 6;
 
     uint16_t colCyan = gcGfx->color565(0, 229, 255);       // #00E5FF Claude Cyan
     uint16_t colCyanDim = gcGfx->color565(0, 36, 44);      // Dim background arc
@@ -689,7 +692,7 @@ void drawGC9A01RoundFlipUI() {
 
             if (flashOn) {
                 uint16_t ringColor = agentData.waiting_for_input ? colHazardAmber : colEmerald;
-                // ON Phase: Draw 6 static arc dashes (radii 115..118)
+                // ON Phase: Draw 6 static arc dashes
                 for (int i = 0; i < 6; i++) {
                     float dashStart = i * 60.0f;
                     float dashEnd = dashStart + 25.0f;
@@ -699,28 +702,28 @@ void drawGC9A01RoundFlipUI() {
                         float cosR = cosf(rad);
                         float sinR = sinf(rad);
 
-                        for (int r = 115; r <= 118; r++) {
+                        for (int r = R_HAZARD_MIN; r <= R_HAZARD_MAX; r++) {
                             gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), ringColor);
                         }
                     }
                 }
             } else {
-                // OFF Phase: High-density 0.2-degree polar wipe (0.41px arc step) across radii 112..120
-                for (int r = 112; r <= 120; r++) {
+                // OFF Phase: High-density 0.2-degree polar wipe
+                for (int r = R_HAZARD_MIN - 3; r <= R_HAZARD_MAX + 2; r++) {
                     gcGfx->drawCircle(cx, cy, r, GC_COLOR_BLACK);
                 }
                 for (float deg = 0.0f; deg < 360.0f; deg += 0.2f) {
                     float rad = deg * 0.0174532925f;
                     float cosR = cosf(rad);
                     float sinR = sinf(rad);
-                    for (int r = 112; r <= 120; r++) {
+                    for (int r = R_HAZARD_MIN - 3; r <= R_HAZARD_MAX + 2; r++) {
                         gcGfx->drawPixel(cx + (int)roundf(cosR * r), cy + (int)roundf(sinR * r), GC_COLOR_BLACK);
                     }
                 }
 
-                // Draw base gunmetal bezel track (#1F2330) on radii 116, 117
-                gcGfx->drawCircle(cx, cy, 116, colBezel);
-                gcGfx->drawCircle(cx, cy, 117, colBezel);
+                // Draw base gunmetal bezel track (#1F2330)
+                gcGfx->drawCircle(cx, cy, R_BEZEL_1, colBezel);
+                gcGfx->drawCircle(cx, cy, R_BEZEL_2, colBezel);
             }
         }
     } else {
@@ -750,9 +753,9 @@ void drawGC9A01RoundFlipUI() {
                 lastAgentDotPulses[i] = -1;
             }
 
-            // Re-render static 2px gunmetal bezel ring (r = 116, 117)
-            gcGfx->drawCircle(cx, cy, 116, colBezel);
-            gcGfx->drawCircle(cx, cy, 117, colBezel);
+            // Re-render static 2px gunmetal bezel ring
+            gcGfx->drawCircle(cx, cy, R_BEZEL_1, colBezel);
+            gcGfx->drawCircle(cx, cy, R_BEZEL_2, colBezel);
         }
     }
 
@@ -772,19 +775,20 @@ void drawGC9A01RoundFlipUI() {
     if (weatherData.hours_until_rain != lastHoursUntilRain) {
         lastHoursUntilRain = weatherData.hours_until_rain;
 
-        // Clear weather text area (Centered at cx=120, y=cy-93=27)
-        gcGfx->fillRect(cx - 50, cy - 98, 100, 12, GC_COLOR_BLACK);
+        // Clear weather text area (Centered at cx, y=cy-93)
+        gcGfx->fillRect(cx - 50, cy - (IS_SCREEN_360 ? 140 : 98), 100, 16, GC_COLOR_BLACK);
 
         // Weather text
         gcGfx->setTextSize(1);
+        int weatherY = cy - (IS_SCREEN_360 ? 135 : 93);
         if (weatherData.hours_until_rain == -1) {
-            gcPrintCentered("NO RAIN", cx, cy - 93, colGray);
+            gcPrintCentered("NO RAIN", cx, weatherY, colGray);
         } else if (weatherData.hours_until_rain == 0) {
-            gcPrintCentered("RAIN NOW", cx, cy - 93, colRain);
+            gcPrintCentered("RAIN NOW", cx, weatherY, colRain);
         } else {
             char rainBuf[20];
             sprintf(rainBuf, "RAIN IN %dh", weatherData.hours_until_rain);
-            gcPrintCentered(rainBuf, cx, cy - 93, (weatherData.hours_until_rain <= 3) ? colRain : GC_COLOR_WHITE);
+            gcPrintCentered(rainBuf, cx, weatherY, (weatherData.hours_until_rain <= 3) ? colRain : GC_COLOR_WHITE);
         }
     }
 
@@ -815,10 +819,10 @@ void drawGC9A01RoundFlipUI() {
             uint16_t mainCol = active ? leftCol : leftColDim;
             uint16_t thinCol = active ? leftCol : leftColDim;
 
-            for (int r = 101; r <= 107; r++) {
+            for (int r = R_OUTER_MIN; r <= R_OUTER_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
             }
-            for (int r = 94; r <= 95; r++) {
+            for (int r = R_THIN_MIN; r <= R_THIN_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
             }
         }
@@ -836,37 +840,40 @@ void drawGC9A01RoundFlipUI() {
             uint16_t mainCol = active ? rightCol : rightColDim;
             uint16_t thinCol = active ? rightCol : rightColDim;
 
-            for (int r = 101; r <= 107; r++) {
+            for (int r = R_OUTER_MIN; r <= R_OUTER_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), mainCol);
             }
-            for (int r = 94; r <= 95; r++) {
+            for (int r = R_THIN_MIN; r <= R_THIN_MAX; r++) {
                 gcGfx->drawPixel(cx + (int)(cosR * r), cy + (int)(sinR * r), thinCol);
             }
         }
 
-        // Micro-HUD Badges (Centered in 40px corridors with 5px padding, ZERO overlap)
-        // Left Corridor: x=27 to 66 -> Centered at x=47, y=120
-        gcGfx->fillRoundRect(29, 108, 36, 24, 3, gcGfx->color565(14, 20, 28));
-        gcGfx->drawRoundRect(29, 108, 36, 24, 3, leftCol);
-        gcPrintCentered(leftGauge.label.c_str(), 47, 111, leftCol);
+        // Micro-HUD Badges (Centered in corridor, ZERO overlap)
+        int badgeW = 36, badgeH = 24;
+        int badgeLeftX = (IS_SCREEN_360) ? (cx - 136) : (cx - 91);
+        int badgeRightX = (IS_SCREEN_360) ? (cx + 100) : (cx + 55);
+        int badgeY = cy - 12;
+
+        gcGfx->fillRoundRect(badgeLeftX, badgeY, badgeW, badgeH, 3, gcGfx->color565(14, 20, 28));
+        gcGfx->drawRoundRect(badgeLeftX, badgeY, badgeW, badgeH, 3, leftCol);
+        gcPrintCentered(leftGauge.label.c_str(), badgeLeftX + badgeW / 2, badgeY + 3, leftCol);
         if (leftGauge.mode == "enterprise" && leftGauge.cost_str.length() > 0) {
-            gcPrintCentered(leftGauge.cost_str.c_str(), 47, 121, leftCol);
+            gcPrintCentered(leftGauge.cost_str.c_str(), badgeLeftX + badgeW / 2, badgeY + 13, leftCol);
         } else {
             char leftPctStr[8];
             sprintf(leftPctStr, "%d%%", leftPct);
-            gcPrintCentered(leftPctStr, 47, 121, leftCol);
+            gcPrintCentered(leftPctStr, badgeLeftX + badgeW / 2, badgeY + 13, leftCol);
         }
 
-        // Right Corridor: x=174 to 213 -> Centered at x=193, y=120
-        gcGfx->fillRoundRect(175, 108, 36, 24, 3, gcGfx->color565(28, 18, 10));
-        gcGfx->drawRoundRect(175, 108, 36, 24, 3, rightCol);
-        gcPrintCentered(rightGauge.label.c_str(), 193, 111, rightCol);
+        gcGfx->fillRoundRect(badgeRightX, badgeY, badgeW, badgeH, 3, gcGfx->color565(28, 18, 10));
+        gcGfx->drawRoundRect(badgeRightX, badgeY, badgeW, badgeH, 3, rightCol);
+        gcPrintCentered(rightGauge.label.c_str(), badgeRightX + badgeW / 2, badgeY + 3, rightCol);
         if (rightGauge.mode == "enterprise" && rightGauge.cost_str.length() > 0) {
-            gcPrintCentered(rightGauge.cost_str.c_str(), 193, 121, rightCol);
+            gcPrintCentered(rightGauge.cost_str.c_str(), badgeRightX + badgeW / 2, badgeY + 13, rightCol);
         } else {
             char rightPctStr[8];
             sprintf(rightPctStr, "%d%%", rightPct);
-            gcPrintCentered(rightPctStr, 193, 121, rightCol);
+            gcPrintCentered(rightPctStr, badgeRightX + badgeW / 2, badgeY + 13, rightCol);
         }
     }
 
@@ -1360,30 +1367,52 @@ void runESP32HardwareDiagnostics() {
 // HARDWARE AUTO-DETECTION & INITIALIZATION
 // ==========================================
 void initActiveDisplay() {
+    // 1. Initialize Display Backlight (drive GPIO 0 and GPIO 8 solid HIGH)
+#if defined(SCREEN_360) || defined(SCREEN_GC9B72_360)
+    initGC9B72Backlight();
+#else
+    initGC9A01Backlight();
+#endif
+
     // Load saved rotation preference
     Preferences displayPrefs;
     displayPrefs.begin("display", true);
     currentDisplayRotation = displayPrefs.getInt("rotation", 0) % 4;
     displayPrefs.end();
 
-    // GC9A01 Round Screen Hardware Reset Pulse
-    pinMode(GC9A01_RST_PIN, OUTPUT);
-    digitalWrite(GC9A01_RST_PIN, HIGH);
+    // Hardware Reset Pulse
+    pinMode(DISPLAY_RST_PIN, OUTPUT);
+    digitalWrite(DISPLAY_RST_PIN, HIGH);
     delay(20);
-    digitalWrite(GC9A01_RST_PIN, LOW);
+    digitalWrite(DISPLAY_RST_PIN, LOW);
     delay(50);
-    digitalWrite(GC9A01_RST_PIN, HIGH);
+    digitalWrite(DISPLAY_RST_PIN, HIGH);
     delay(150);
 
-    // Rock-solid 20MHz Hardware SPI with ESP32-C3
+    // Rock-solid Hardware SPI with ESP32-C3
     if (gcGfx->begin(20000000)) {
         gc9a01Initialized = true;
         gcGfx->setRotation(currentDisplayRotation);
+
+        // Visual display activation: Flash RGB test colors
+        gcGfx->fillScreen(0xF800); // Red
+        delay(250);
+        gcGfx->fillScreen(0x07E0); // Green
+        delay(250);
+        gcGfx->fillScreen(0x001F); // Blue
+        delay(250);
         gcGfx->fillScreen(GC_COLOR_BLACK);
-        gcGfx->draw16bitRGBBitmap(0, 0, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
-        Serial.printf("[Display] GC9A01 Round IPS initialized with rotation %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
+
+        int logoX = (SCREEN_WIDTH - BOOT_LOGO_WIDTH) / 2;
+        int logoY = (SCREEN_HEIGHT - BOOT_LOGO_HEIGHT) / 2;
+        gcGfx->draw16bitRGBBitmap(logoX, logoY, boot_logo_cyber, BOOT_LOGO_WIDTH, BOOT_LOGO_HEIGHT);
+#if defined(SCREEN_360) || defined(SCREEN_GC9B72_360)
+        Serial.printf("[Display] GC9B72 360x360 Round IPS initialized with rotation %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
+#else
+        Serial.printf("[Display] GC9A01 240x240 Round IPS initialized with rotation %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
+#endif
     } else {
-        Serial.println("[Display] Failed to initialize GC9A01 display!");
+        Serial.println("[Display] Failed to initialize display controller!");
     }
 }
 
@@ -2462,8 +2491,10 @@ void loop() {
     static bool heartbeatState = false;
     if (now - lastSecondTick >= 1000) {
         lastSecondTick = now;
-        heartbeatState = !heartbeatState;
-        digitalWrite(8, heartbeatState ? LOW : HIGH); // Blink blue LED every second
+        // Blink blue LED every second on 240x240; keep solid HIGH on 360x360 to prevent backlight blinking
+#if !defined(SCREEN_360) && !defined(SCREEN_GC9B72_360)
+        digitalWrite(8, heartbeatState ? LOW : HIGH);
+#endif
 
         safeStateOperation([]() {
             timeData.seconds++;
