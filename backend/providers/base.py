@@ -223,3 +223,85 @@ class BaseProvider(ABC):
                 status="error",
                 error_message=str(e)
             )
+
+
+class GenericHttpProvider(BaseProvider):
+    """Declarative base class for providers that perform a single JSON HTTP GET request."""
+    token_key: str = ""
+    env_var: str = ""
+    url: str = ""
+    auth_header_format: str = "Bearer {}"
+
+    def get_token(self, config: Dict[str, Any]) -> Optional[str]:
+        token = config.get(self.token_key)
+        if token:
+            return str(token).strip()
+        if self.env_var:
+            env_val = os.environ.get(self.env_var)
+            if env_val:
+                return str(env_val).strip()
+        return None
+
+    def parse_payload(self, data: Dict[str, Any]) -> UsageSnapshot:
+        raise NotImplementedError("Subclasses must implement parse_payload")
+
+    def fetch_usage(self, config: Dict[str, Any]) -> UsageSnapshot:
+        token = self.get_token(config)
+        if not token:
+            return UsageSnapshot(
+                provider_id=self.provider_id,
+                provider_name=self.provider_name,
+                badge=self.badge,
+                color=self.color,
+                status="unconfigured",
+                error_message=f"No {self.token_key} found in config or {self.env_var} env"
+            )
+
+        # Control-character validation to prevent header injection
+        if any(c in token for c in ("\r", "\n")):
+            return UsageSnapshot(
+                provider_id=self.provider_id,
+                provider_name=self.provider_name,
+                badge=self.badge,
+                color=self.color,
+                status="error",
+                error_message="Configuration error: Token contains invalid control characters"
+            )
+
+        def _scrub(msg: Any) -> str:
+            raw = str(msg)
+            if token and token in raw:
+                raw = raw.replace(token, "[REDACTED]")
+            return raw
+
+        headers = {
+            "Authorization": self.auth_header_format.format(token)
+        }
+        data, err = self.request_json("GET", self.url, headers)
+        if err:
+            if isinstance(err, UsageSnapshot):
+                if err.error_message and token and token in err.error_message:
+                    err.error_message = err.error_message.replace(token, "[REDACTED]")
+                return err
+            return UsageSnapshot(
+                provider_id=self.provider_id,
+                provider_name=self.provider_name,
+                badge=self.badge,
+                color=self.color,
+                status="error",
+                error_message=_scrub(err)
+            )
+
+        try:
+            return self.parse_payload(data)
+        except Exception as e:
+            logger.warning("[%s] Failed to parse API payload: %s", self.provider_id, _scrub(e))
+            return UsageSnapshot(
+                provider_id=self.provider_id,
+                provider_name=self.provider_name,
+                badge=self.badge,
+                color=self.color,
+                status="error",
+                error_message=_scrub(e)
+            )
+

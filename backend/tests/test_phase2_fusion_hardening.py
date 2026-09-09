@@ -11,7 +11,7 @@ from providers.cursor import CursorProvider
 from providers.claude import ClaudeProvider
 from providers.codex import CodexProvider
 from providers.groq import GroqProvider
-from services.agent_tracker import install_claude_hooks
+from app import install_claude_hooks
 
 class TestFusionLoopHardening(unittest.TestCase):
     def test_sql_identifier_validation(self):
