@@ -65,12 +65,13 @@ INTEGRATED_BEZEL_OD = 72.00     # Outer diameter of raised circular bezel rim (i
 SCREEN_APERTURE_DIA = 54.00     # Central circular viewing aperture at screen retaining lip
 SCREEN_APERTURE_TOP = 60.00     # Continuous conical viewing funnel top diameter at ring summit
 
-# Direct M2 Screen Tab Clamping & DuPont Pin Relief
+# Direct M2 Screen Tab Clamping & Rising Boss Pillars
 SCREEN_MOUNT_HOLE_X = 12.20     # Blueprint 2-R1 mounting hole X offset (+/-12.20mm, 24.4mm pitch)
 SCREEN_MOUNT_HOLE_Y = -31.50    # Blueprint 2-R1 mounting hole Y offset (2.54mm above pin row)
-SCREEN_PILLAR_DIA = 4.20        # Reinforced rear mounting boss pillar diameter (ample space between pins and tab edge)
+SCREEN_PILLAR_DIA = 4.40        # Reinforced rear mounting boss pillar diameter
+TAB_RELIEF_DEPTH = 1.80         # Extra relief depth for tab pocket floor (Z = 2.40 to 4.20mm)
 M2_PILOT_DIA = 1.70             # Blind pilot hole for direct M2 plastic tapping (PLA/PETG)
-M2_PILOT_DEPTH = 3.40           # Deep thread engagement inside reinforced boss pillar (leaves 1.20mm solid front wall)
+M2_PILOT_DEPTH = 3.60           # Deep thread engagement down into pillar (leaves 1.00mm solid front wall)
 
 DUPONT_FRONT_RELIEF_W = 21.00   # Width of forward pin clearance pocket (centered over pins 2-9, X = +/-10.5mm)
 DUPONT_FRONT_RELIEF_H = 3.60    # Height of forward pin clearance pocket (Y = -35.80 to -32.20mm)
@@ -301,12 +302,31 @@ def build_front_face():
     hw_tab = SCREEN_TAB_HALF_W + clr          # 24.18mm
     bot_y_tab = SCREEN_PCB_BOTTOM - clr       # -38.15mm
 
-    cyl_pocket = m3d.Manifold.cylinder(REAR_POCKET_DEPTH + 0.01, r_pocket, r_pocket, 72)
-    box_tab = m3d.Manifold.cube([2 * hw_tab, -bot_y_tab, REAR_POCKET_DEPTH + 0.01], center=False).translate([-hw_tab, bot_y_tab, 0])
-    screen_cavity = (cyl_pocket + box_tab).translate([0, 0, -0.005])
-    plate = plate - screen_cavity
+    cyl_pocket = m3d.Manifold.cylinder(REAR_POCKET_DEPTH + 0.01, r_pocket, r_pocket, 72).translate([0, 0, -0.005])
+    plate = plate - cyl_pocket
 
-    # 5. 2x Direct M2 Blind Pilot Holes for Direct Screen Tab Clamping (Z = REAR_POCKET_DEPTH to +3.20mm)
+    # 5. Deepened Tab Pocket Floor & Clearance Trench (Z = 0 to REAR_POCKET_DEPTH + TAB_RELIEF_DEPTH = 4.20mm)
+    # Carves the tab cavity deeper so solid boss pillars visibly rise 1.80mm from floor up to Z = 2.40mm
+    tab_cutout_total = m3d.Manifold.cube(
+        [2 * hw_tab, -bot_y_tab, REAR_POCKET_DEPTH + TAB_RELIEF_DEPTH + 0.02],
+        center=False
+    ).translate([-hw_tab, bot_y_tab, -0.01])
+
+    # Preserve two solid cylindrical boss pillars rising from pocket floor up to Z = REAR_POCKET_DEPTH
+    boss_pillars = m3d.Manifold()
+    for sx in [-1, 1]:
+        pillar = m3d.Manifold.cylinder(
+            TAB_RELIEF_DEPTH + 0.03,
+            SCREEN_PILLAR_DIA / 2.0,
+            SCREEN_PILLAR_DIA / 2.0,
+            32
+        ).translate([sx * SCREEN_MOUNT_HOLE_X, SCREEN_MOUNT_HOLE_Y, REAR_POCKET_DEPTH - 0.01])
+        boss_pillars = boss_pillars + pillar
+
+    tab_recess_carve = tab_cutout_total - boss_pillars
+    plate = plate - tab_recess_carve
+
+    # 6. 2x Direct M2 Blind Pilot Holes inside the Rising Boss Pillars (Z = REAR_POCKET_DEPTH to +3.60mm)
     for sx in [-1, 1]:
         m2_hole = m3d.Manifold.cylinder(M2_PILOT_DEPTH + 0.02, M2_PILOT_DIA / 2.0, M2_PILOT_DIA / 2.0, 32).translate([
             sx * SCREEN_MOUNT_HOLE_X,
@@ -315,7 +335,7 @@ def build_front_face():
         ])
         plate = plate - m2_hole
 
-    # 6. Forward DuPont Pin Clearance Relief Trench (Z = REAR_POCKET_DEPTH to +2.20mm)
+    # 7. Extra Forward DuPont Pin Clearance Relief Trench (down to Z = 4.60mm)
     # Accommodates forward-protruding 10-pin header pins/solders with zero front face punch-through
     dupont_relief = m3d.Manifold.cube(
         [DUPONT_FRONT_RELIEF_W, DUPONT_FRONT_RELIEF_H, DUPONT_FRONT_RELIEF_DEPTH + 0.02],
