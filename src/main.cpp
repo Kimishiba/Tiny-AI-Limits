@@ -12,6 +12,8 @@
 #include <Preferences.h>
 #include <ImprovWiFiLibrary.h>
 #include <Update.h>
+#include <atomic>
+#include <memory>
 #include "boot_logo.h"
 #include "config.h"
 #include "drivers/display_gc9a01.h"
@@ -27,14 +29,27 @@ Arduino_GFX *gcGfx = createGC9A01Display(gcBus);
 
 bool gc9a01Initialized = false;
 int currentDisplayRotation = 0;
-bool globalForceRedraw = false;
+std::atomic<bool> globalForceRedraw{false};
 static SemaphoreHandle_t spiMutex = NULL;
-static volatile bool isOTAInProgress = false;
+static SemaphoreHandle_t stateMutex = NULL;
+static TaskHandle_t backendTaskHandle = NULL;
+static std::atomic<bool> isOTAInProgress{false};
 
-void safeGfxOperation(std::function<void()> gfxFunc) {
+// Zero-allocation templated wrapper guarding SPI bus access
+template <typename F>
+inline void safeGfxOperation(F&& gfxFunc) {
     if (!spiMutex || xSemaphoreTake(spiMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
         gfxFunc();
         if (spiMutex) xSemaphoreGive(spiMutex);
+    }
+}
+
+// Zero-allocation templated wrapper guarding shared telemetry & state structs
+template <typename F>
+inline void safeStateOperation(F&& stateFunc) {
+    if (!stateMutex || xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        stateFunc();
+        if (stateMutex) xSemaphoreGive(stateMutex);
     }
 }
 
@@ -1669,6 +1684,13 @@ void drawOTAProgressScreen(int percent, const char* statusMsg, const char* verSt
 
 bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
     isOTAInProgress = true;
+
+    struct OTAExitGuard {
+        ~OTAExitGuard() {
+            isOTAInProgress = false;
+        }
+    } exitGuard;
+
     String fullUrl;
     if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
         fullUrl = pathOrUrl;
@@ -1692,7 +1714,6 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "HTTP ERROR", newVersion);
         delay(3000);
         http.end();
-        isOTAInProgress = false;
         return false;
     }
 
@@ -1703,7 +1724,6 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "INVALID SIZE", newVersion);
         delay(3000);
         http.end();
-        isOTAInProgress = false;
         return false;
     }
 
@@ -1712,7 +1732,6 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "PARTITION FULL", newVersion);
         delay(3000);
         http.end();
-        isOTAInProgress = false;
         return false;
     }
 
@@ -1743,7 +1762,6 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
                 delay(3000);
                 Update.abort();
                 http.end();
-                isOTAInProgress = false;
                 return false;
             }
             delay(5);
@@ -1757,7 +1775,6 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         drawOTAProgressScreen(-1, "INCOMPLETE", newVersion);
         delay(3000);
         Update.abort();
-        isOTAInProgress = false;
         return false;
     }
 
@@ -1771,7 +1788,6 @@ bool performOTAUpdate(const String& pathOrUrl, const char* newVersion) {
         Serial.printf("[OTA] Update.end() failed: error %d\n", Update.getError());
         drawOTAProgressScreen(-1, "FLASH ERROR", newVersion);
         delay(3000);
-        isOTAInProgress = false;
         return false;
     }
 }
@@ -1827,124 +1843,138 @@ void fetchBackendData() {
         backendConnected = true;
         lastBackendPollSuccessMs = millis();
         consecutiveBackendFailures = 0;
-        DynamicJsonDocument doc(4096);
+        // Heap allocate DynamicJsonDocument to prevent task stack exhaustion (8KB stack)
+        auto docPtr = std::unique_ptr<DynamicJsonDocument>(new DynamicJsonDocument(4096));
+        DynamicJsonDocument& doc = *docPtr;
         DeserializationError error = deserializeJson(doc, http.getStream());
 
         if (!error) {
-            if (doc.containsKey("claude")) {
-                claudeData.tokensToday = doc["claude"]["tokens_today"] | 0;
-                if (doc["claude"].containsKey("limit")) claudeData.limit = doc["claude"]["limit"] | 100;
-                if (doc["claude"].containsKey("remaining")) claudeData.remaining = doc["claude"]["remaining"] | 100;
-                claudeData.reset_time = doc["claude"]["reset_time"] | "";
-                claudeData.reset_in_seconds = doc["claude"]["reset_in_seconds"] | -1;
-                claudeData.reset_str = doc["claude"]["reset_str"] | "";
-            }
-            if (doc.containsKey("antigravity")) {
-                agData.limit = doc["antigravity"]["limit"] | 200;
-                agData.remaining = doc["antigravity"]["remaining"] | 200;
-                agData.used = doc["antigravity"]["used"] | 0;
-                agData.period = doc["antigravity"]["period"] | "5h";
-                agData.reset_time = doc["antigravity"]["reset_time"] | "";
-                agData.reset_in_seconds = doc["antigravity"]["reset_in_seconds"] | -1;
-                agData.reset_str = doc["antigravity"]["reset_str"] | "";
-            }
-            if (doc.containsKey("left_gauge")) {
-                leftGauge.id = doc["left_gauge"]["id"] | "claude";
-                leftGauge.label = doc["left_gauge"]["label"] | "CLD";
-                leftGauge.name = doc["left_gauge"]["name"] | "Claude";
-                leftGauge.mode = doc["left_gauge"]["mode"] | "standard";
-                leftGauge.cost_str = doc["left_gauge"]["cost_str"] | "$0.00";
-                leftGauge.curved_text = doc["left_gauge"]["curved_text"] | "";
-                leftGauge.percent = doc["left_gauge"]["percent"] | 100;
-                leftGauge.reset_str = doc["left_gauge"]["reset_str"] | "READY";
-                String colStr = doc["left_gauge"]["color"] | "0x00E5FF";
-                leftGauge.color = parseHexColor565(colStr, gcGfx->color565(0, 229, 255));
-            } else {
-                leftGauge.label = "CLD";
-                leftGauge.mode = "standard";
-                leftGauge.cost_str = "$0.00";
-                leftGauge.curved_text = "";
-                leftGauge.percent = 100;
-                leftGauge.color = gcGfx->color565(0, 229, 255);
-                leftGauge.reset_str = claudeData.reset_str;
-            }
-            if (doc.containsKey("right_gauge")) {
-                rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
-                rightGauge.label = doc["right_gauge"]["label"] | "AGY";
-                rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
-                rightGauge.mode = doc["right_gauge"]["mode"] | "standard";
-                rightGauge.cost_str = doc["right_gauge"]["cost_str"] | "$0.00";
-                rightGauge.curved_text = doc["right_gauge"]["curved_text"] | "";
-                rightGauge.percent = doc["right_gauge"]["percent"] | 100;
-                rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
-                String colStr = doc["right_gauge"]["color"] | "0xFF9100";
-                rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
-            } else {
-                rightGauge.label = "AGY";
-                rightGauge.mode = "standard";
-                rightGauge.cost_str = "$0.00";
-                rightGauge.curved_text = "";
-                rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
-                rightGauge.color = gcGfx->color565(255, 122, 0);
-                rightGauge.reset_str = agData.reset_str;
-            }
-            if (doc.containsKey("weather")) {
-                weatherData.temp = doc["weather"]["temp"] | 23.5;
-                weatherData.hours_until_rain = doc["weather"]["hours_until_rain"] | -1;
-                weatherData.location = doc["weather"]["location"] | "DESKTOP";
-                if (doc["weather"].containsKey("date_string")) {
-                    timeData.date_str = doc["weather"]["date_string"].as<String>();
+            safeStateOperation([&]() {
+                if (doc.containsKey("claude")) {
+                    claudeData.tokensToday = doc["claude"]["tokens_today"] | 0;
+                    if (doc["claude"].containsKey("limit")) claudeData.limit = doc["claude"]["limit"] | 100;
+                    if (doc["claude"].containsKey("remaining")) claudeData.remaining = doc["claude"]["remaining"] | 100;
+                    claudeData.reset_time = doc["claude"]["reset_time"] | "";
+                    claudeData.reset_in_seconds = doc["claude"]["reset_in_seconds"] | -1;
+                    claudeData.reset_str = doc["claude"]["reset_str"] | "";
                 }
-            }
-            if (doc.containsKey("agent")) {
-                AgentStatus tempAgent;
-                tempAgent.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
-                tempAgent.work_completed = doc["agent"]["work_completed"] | (doc["agent"]["completion_flash"] | false);
-                tempAgent.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
-                tempAgent.completion_text = doc["agent"]["completion_text"] | "WORK COMPLETE";
-                tempAgent.has_active_agents = doc["agent"]["has_active_agents"] | (tempAgent.waiting_for_input || tempAgent.work_completed);
-                
-                JsonArray arr = doc["agent"]["active_agents"].as<JsonArray>();
-                if (!arr.isNull()) {
-                    int count = 0;
-                    for (JsonObject obj : arr) {
-                        if (count >= 8) break;
-                        tempAgent.active_agents[count].name = obj["name"] | "Agent";
-                        tempAgent.active_agents[count].source = obj["source"] | "antigravity";
-                        tempAgent.active_agents[count].state = obj["state"] | "IDLE";
-                        tempAgent.active_agents[count].detail = obj["detail"] | "";
-                        String colStr = obj["color"] | "#94A3B8";
-                        if (colStr.equalsIgnoreCase("#FFB800")) tempAgent.active_agents[count].color = GC_COLOR_AMBER;
-                        else if (colStr.equalsIgnoreCase("#00FF88")) tempAgent.active_agents[count].color = gcGfx->color565(0, 255, 136);
-                        else if (colStr.equalsIgnoreCase("#00E5FF")) tempAgent.active_agents[count].color = GC_COLOR_CYAN;
-                        else if (colStr.equalsIgnoreCase("#FF7A00")) tempAgent.active_agents[count].color = GC_COLOR_ORANGE;
-                        else tempAgent.active_agents[count].color = GC_COLOR_SLATE_GRAY;
-                        count++;
-                    }
-                    tempAgent.active_agent_count = count;
+                if (doc.containsKey("antigravity")) {
+                    agData.limit = doc["antigravity"]["limit"] | 200;
+                    agData.remaining = doc["antigravity"]["remaining"] | 200;
+                    agData.used = doc["antigravity"]["used"] | 0;
+                    agData.period = doc["antigravity"]["period"] | "5h";
+                    agData.reset_time = doc["antigravity"]["reset_time"] | "";
+                    agData.reset_in_seconds = doc["antigravity"]["reset_in_seconds"] | -1;
+                    agData.reset_str = doc["antigravity"]["reset_str"] | "";
+                }
+                if (doc.containsKey("left_gauge")) {
+                    leftGauge.id = doc["left_gauge"]["id"] | "claude";
+                    leftGauge.label = doc["left_gauge"]["label"] | "CLD";
+                    leftGauge.name = doc["left_gauge"]["name"] | "Claude";
+                    leftGauge.mode = doc["left_gauge"]["mode"] | "standard";
+                    leftGauge.cost_str = doc["left_gauge"]["cost_str"] | "$0.00";
+                    leftGauge.curved_text = doc["left_gauge"]["curved_text"] | "";
+                    leftGauge.percent = doc["left_gauge"]["percent"] | 100;
+                    leftGauge.reset_str = doc["left_gauge"]["reset_str"] | "READY";
+                    String colStr = doc["left_gauge"]["color"] | "0x00E5FF";
+                    leftGauge.color = parseHexColor565(colStr, gcGfx->color565(0, 229, 255));
                 } else {
-                    tempAgent.active_agent_count = 0;
+                    leftGauge.label = "CLD";
+                    leftGauge.mode = "standard";
+                    leftGauge.cost_str = "$0.00";
+                    leftGauge.curved_text = "";
+                    leftGauge.percent = 100;
+                    leftGauge.color = gcGfx->color565(0, 229, 255);
+                    leftGauge.reset_str = claudeData.reset_str;
                 }
-                agentData = tempAgent;
-            }
-            if (doc.containsKey("time")) {
-                timeData.hours = constrain((int)(doc["time"]["hours"] | 12), 0, 23);
-                timeData.minutes = constrain((int)(doc["time"]["minutes"] | 0), 0, 59);
-                timeData.seconds = constrain((int)(doc["time"]["seconds"] | 0), 0, 59);
-                timeData.time_str = doc["time"]["time_string"] | "12:00:00";
-                if (doc["time"].containsKey("date_string")) {
-                    timeData.date_str = doc["time"]["date_string"].as<String>();
+                if (doc.containsKey("right_gauge")) {
+                    rightGauge.id = doc["right_gauge"]["id"] | "antigravity";
+                    rightGauge.label = doc["right_gauge"]["label"] | "AGY";
+                    rightGauge.name = doc["right_gauge"]["name"] | "Antigravity";
+                    rightGauge.mode = doc["right_gauge"]["mode"] | "standard";
+                    rightGauge.cost_str = doc["right_gauge"]["cost_str"] | "$0.00";
+                    rightGauge.curved_text = doc["right_gauge"]["curved_text"] | "";
+                    rightGauge.percent = doc["right_gauge"]["percent"] | 100;
+                    rightGauge.reset_str = doc["right_gauge"]["reset_str"] | "5h";
+                    String colStr = doc["right_gauge"]["color"] | "0xFF9100";
+                    rightGauge.color = parseHexColor565(colStr, gcGfx->color565(255, 145, 0));
+                } else {
+                    rightGauge.label = "AGY";
+                    rightGauge.mode = "standard";
+                    rightGauge.cost_str = "$0.00";
+                    rightGauge.curved_text = "";
+                    rightGauge.percent = (agData.limit > 0) ? (agData.remaining * 100 / agData.limit) : 100;
+                    rightGauge.color = gcGfx->color565(255, 122, 0);
+                    rightGauge.reset_str = agData.reset_str;
                 }
-            }
-            if (doc.containsKey("ota")) {
-                JsonObject otaObj = doc["ota"];
-                bool otaTrigger = otaObj["trigger"] | false;
-                const char* otaVer = otaObj["version"] | "";
-                String otaPath = otaObj["url"] | "/firmware/latest.bin";
-                if (otaTrigger && otaPath.length() > 0) {
-                    performOTAUpdate(otaPath, otaVer);
+                if (doc.containsKey("weather")) {
+                    weatherData.temp = doc["weather"]["temp"] | 23.5;
+                    weatherData.hours_until_rain = doc["weather"]["hours_until_rain"] | -1;
+                    weatherData.location = doc["weather"]["location"] | "DESKTOP";
+                    if (doc["weather"].containsKey("date_string")) {
+                        timeData.date_str = doc["weather"]["date_string"].as<String>();
+                    }
                 }
-            }
+                if (doc.containsKey("agent")) {
+                    AgentStatus tempAgent;
+                    tempAgent.waiting_for_input = doc["agent"]["waiting_for_input"] | false;
+                    tempAgent.work_completed = doc["agent"]["work_completed"] | (doc["agent"]["completion_flash"] | false);
+                    tempAgent.prompt_text = doc["agent"]["prompt_text"] | "APPROVE PLAN";
+                    tempAgent.completion_text = doc["agent"]["completion_text"] | "WORK COMPLETE";
+                    tempAgent.has_active_agents = doc["agent"]["has_active_agents"] | (tempAgent.waiting_for_input || tempAgent.work_completed);
+                    
+                    JsonArray arr = doc["agent"]["active_agents"].as<JsonArray>();
+                    if (!arr.isNull()) {
+                        int count = 0;
+                        for (JsonObject obj : arr) {
+                            if (count >= 8) break;
+                            tempAgent.active_agents[count].name = obj["name"] | "Agent";
+                            tempAgent.active_agents[count].source = obj["source"] | "antigravity";
+                            tempAgent.active_agents[count].state = obj["state"] | "IDLE";
+                            tempAgent.active_agents[count].detail = obj["detail"] | "";
+                            String colStr = obj["color"] | "#94A3B8";
+                            if (colStr.equalsIgnoreCase("#FFB800")) tempAgent.active_agents[count].color = GC_COLOR_AMBER;
+                            else if (colStr.equalsIgnoreCase("#00FF88")) tempAgent.active_agents[count].color = gcGfx->color565(0, 255, 136);
+                            else if (colStr.equalsIgnoreCase("#00E5FF")) tempAgent.active_agents[count].color = GC_COLOR_CYAN;
+                            else if (colStr.equalsIgnoreCase("#FF7A00")) tempAgent.active_agents[count].color = GC_COLOR_ORANGE;
+                            else tempAgent.active_agents[count].color = GC_COLOR_SLATE_GRAY;
+                            count++;
+                        }
+                        tempAgent.active_agent_count = count;
+                    } else {
+                        tempAgent.active_agent_count = 0;
+                    }
+                    agentData = tempAgent;
+                }
+                if (doc.containsKey("time")) {
+                    timeData.hours = constrain((int)(doc["time"]["hours"] | 12), 0, 23);
+                    timeData.minutes = constrain((int)(doc["time"]["minutes"] | 0), 0, 59);
+                    timeData.seconds = constrain((int)(doc["time"]["seconds"] | 0), 0, 59);
+                    timeData.time_str = doc["time"]["time_string"] | "12:00:00";
+                    if (doc["time"].containsKey("date_string")) {
+                        timeData.date_str = doc["time"]["date_string"].as<String>();
+                    }
+                }
+                if (doc.containsKey("led_waiting_anim") || doc.containsKey("led_anim")) {
+                    String anim = doc["led_waiting_anim"] | (doc["led_anim"] | "breathe");
+                    ledConfig.waiting_anim = anim;
+                    ledController.setAnimationByName(anim);
+                }
+                if (doc.containsKey("led_brightness")) {
+                    uint8_t b = constrain((int)(doc["led_brightness"] | 35), 0, 100);
+                    ledConfig.brightness = b;
+                    ledController.setBrightness(b);
+                }
+                if (doc.containsKey("led_active_count") || doc.containsKey("led_count")) {
+                    int rawCount = doc["led_active_count"] | (doc["led_count"] | 16);
+                    uint16_t c = (uint16_t)constrain(rawCount, 1, (int)WS2812_MAX_LEDS);
+                    ledConfig.active_leds = c;
+                    ledController.setActiveLedCount(c);
+                }
+            });
+
+            // Display rotation requires safeGfxOperation (spiMutex).
+            // Handled OUTSIDE safeStateOperation to avoid lock inversion / deadlock!
             if (doc.containsKey("display_rotation") || doc.containsKey("rotation")) {
                 int incomingRot = (doc["display_rotation"] | (doc["rotation"] | 0)) % 4;
                 if (incomingRot >= 0 && incomingRot <= 3 && incomingRot != currentDisplayRotation) {
@@ -1954,27 +1984,23 @@ void fetchBackendData() {
                     displayPrefs.putInt("rotation", currentDisplayRotation);
                     displayPrefs.end();
 
-                    gcGfx->setRotation(currentDisplayRotation);
-                    gcGfx->fillScreen(GC_COLOR_BLACK);
+                    safeGfxOperation([incomingRot]() {
+                        gcGfx->setRotation(incomingRot);
+                        gcGfx->fillScreen(GC_COLOR_BLACK);
+                    });
                     globalForceRedraw = true;
                     Serial.printf("[Display] Screen rotated to %d (%d deg)\n", currentDisplayRotation, currentDisplayRotation * 90);
                 }
             }
-            if (doc.containsKey("led_waiting_anim") || doc.containsKey("led_anim")) {
-                String anim = doc["led_waiting_anim"] | (doc["led_anim"] | "breathe");
-                ledConfig.waiting_anim = anim;
-                ledController.setAnimationByName(anim);
-            }
-            if (doc.containsKey("led_brightness")) {
-                uint8_t b = constrain((int)(doc["led_brightness"] | 35), 0, 100);
-                ledConfig.brightness = b;
-                ledController.setBrightness(b);
-            }
-            if (doc.containsKey("led_active_count") || doc.containsKey("led_count")) {
-                int rawCount = doc["led_active_count"] | (doc["led_count"] | 16);
-                uint16_t c = (uint16_t)constrain(rawCount, 1, (int)WS2812_MAX_LEDS);
-                ledConfig.active_leds = c;
-                ledController.setActiveLedCount(c);
+
+            if (doc.containsKey("ota")) {
+                JsonObject otaObj = doc["ota"];
+                bool otaTrigger = otaObj["trigger"] | false;
+                const char* otaVer = otaObj["version"] | "";
+                String otaPath = otaObj["url"] | "/firmware/latest.bin";
+                if (otaTrigger && otaPath.length() > 0) {
+                    performOTAUpdate(otaPath, otaVer);
+                }
             }
         }
     } else {
@@ -2292,6 +2318,13 @@ void setup() {
     if (spiMutex == NULL) {
         spiMutex = xSemaphoreCreateMutex();
     }
+    if (stateMutex == NULL) {
+        stateMutex = xSemaphoreCreateMutex();
+    }
+    if (spiMutex == NULL || stateMutex == NULL) {
+        Serial.println("[FATAL] Mutex allocation failed! Rebooting...");
+        ESP.restart();
+    }
 
     runESP32HardwareDiagnostics();
 
@@ -2374,7 +2407,7 @@ void setup() {
         8192,
         NULL,
         1,
-        NULL
+        &backendTaskHandle
     );
 
 }
@@ -2432,17 +2465,23 @@ void loop() {
         heartbeatState = !heartbeatState;
         digitalWrite(8, heartbeatState ? LOW : HIGH); // Blink blue LED every second
 
-        timeData.seconds++;
-        if (timeData.seconds >= 60) {
-            timeData.seconds = 0;
-            timeData.minutes++;
-            if (timeData.minutes >= 60) {
-                timeData.minutes = 0;
-                timeData.hours = (timeData.hours + 1) % 24;
+        safeStateOperation([]() {
+            timeData.seconds++;
+            if (timeData.seconds >= 60) {
+                timeData.seconds = 0;
+                timeData.minutes++;
+                if (timeData.minutes >= 60) {
+                    timeData.minutes = 0;
+                    timeData.hours = (timeData.hours + 1) % 24;
+                }
             }
-        }
+        });
     }
 
     // 5. WS2812B Addressable LED Status Light (Non-blocking update)
-    ledController.update(agentData.waiting_for_input, backendConnected, false);
+    bool isWaitingInput = false;
+    safeStateOperation([&]() {
+        isWaitingInput = agentData.waiting_for_input;
+    });
+    ledController.update(isWaitingInput, backendConnected, false);
 }
