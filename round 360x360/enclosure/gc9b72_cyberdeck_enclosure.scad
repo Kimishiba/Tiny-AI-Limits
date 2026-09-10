@@ -262,21 +262,27 @@ module front_face_plate() {
         translate([0, 0, rear_pocket_depth - 0.01])
             cylinder(d1 = screen_aperture_dia, d2 = screen_aperture_top, h = front_face_thick + integrated_bezel_h - rear_pocket_depth + 0.02);
 
-        // 4. Exact Screen Contour Cavity RECESSED INTO REAR FACE (Z = 0 to rear_pocket_depth)
-        // Glass seating shelf remains at Z = rear_pocket_depth (2.40mm) around circular aperture
-        translate([0, 0, -0.01])
+        // 4. Exact Screen Contour Cavity RECESSED INTO REAR FACE (Z = 0 to rear_pocket_depth = 2.40mm)
+        // Accommodates the full screen PCB and glass contour with 100% continuous retaining shelf around aperture
+        translate([0, 0, -0.01]) {
             cylinder(r = r_pocket, h = rear_pocket_depth + 0.02);
+            translate([-hw_tab, bot_y_tab, 0])
+                cube([2 * hw_tab, -bot_y_tab, rear_pocket_depth + 0.02]);
+        }
 
-        // 5. Deepened Tab Pocket Floor & Clearance Trench (Z = 0 to rear_pocket_depth + tab_relief_depth = 4.20mm)
-        // Carves the tab cavity deeper so solid boss pillars visibly rise 1.80mm from floor up to Z = 2.40mm
+        // 5. Deepened Tab Pocket Floor & Clearance Trench (Z = rear_pocket_depth to rear_pocket_depth + tab_relief_depth = 4.20mm)
+        // Confined strictly to Y in [bot_y_tab, -29.20mm] so the circular glass retaining shelf (r = 27..29.92mm)
+        // remains 100% solid and unbroken across all 360°, completely closing any gap into the case!
+        tab_deep_top_y = -29.20;
+        tab_deep_len   = tab_deep_top_y - bot_y_tab; // ~9.01mm (covers Y = -38.21 to -29.20mm)
         difference() {
-            translate([-hw_tab, bot_y_tab, -0.01])
-                cube([2 * hw_tab, -bot_y_tab, rear_pocket_depth + tab_relief_depth + 0.02]);
+            translate([-hw_tab, bot_y_tab, rear_pocket_depth - 0.01])
+                cube([2 * hw_tab, tab_deep_len, tab_relief_depth + 0.02]);
 
-            // Preserve two solid cylindrical boss pillars rising from pocket floor up to Z = rear_pocket_depth
+            // Preserve two solid cylindrical boss pillars rising 1.80mm from pocket floor up to Z = rear_pocket_depth
             for (sx = [-1, 1]) {
-                translate([sx * screen_mount_hole_x, screen_mount_hole_y, rear_pocket_depth - 0.01])
-                    cylinder(d = screen_pillar_dia, h = tab_relief_depth + 0.03);
+                translate([sx * screen_mount_hole_x, screen_mount_hole_y, rear_pocket_depth - 0.02])
+                    cylinder(d = screen_pillar_dia, h = tab_relief_depth + 0.04);
             }
         }
 

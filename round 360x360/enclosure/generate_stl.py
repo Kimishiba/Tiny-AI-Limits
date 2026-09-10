@@ -303,24 +303,29 @@ def build_front_face():
     bot_y_tab = SCREEN_PCB_BOTTOM - clr       # -38.15mm
 
     cyl_pocket = m3d.Manifold.cylinder(REAR_POCKET_DEPTH + 0.01, r_pocket, r_pocket, 72).translate([0, 0, -0.005])
-    plate = plate - cyl_pocket
+    box_tab = m3d.Manifold.cube([2 * hw_tab, -bot_y_tab, REAR_POCKET_DEPTH + 0.01], center=False).translate([-hw_tab, bot_y_tab, 0])
+    screen_cavity = (cyl_pocket + box_tab).translate([0, 0, -0.005])
+    plate = plate - screen_cavity
 
-    # 5. Deepened Tab Pocket Floor & Clearance Trench (Z = 0 to REAR_POCKET_DEPTH + TAB_RELIEF_DEPTH = 4.20mm)
-    # Carves the tab cavity deeper so solid boss pillars visibly rise 1.80mm from floor up to Z = 2.40mm
+    # 5. Deepened Tab Pocket Floor & Clearance Trench (Z = REAR_POCKET_DEPTH to REAR_POCKET_DEPTH + TAB_RELIEF_DEPTH = 4.20mm)
+    # Confined strictly to Y in [bot_y_tab, -29.20mm] so the circular glass retaining shelf (r = 27..29.92mm)
+    # remains 100% solid and unbroken across all 360°, completely closing any gap into the case!
+    tab_deep_top_y = -29.20
+    tab_deep_len = tab_deep_top_y - bot_y_tab  # ~8.95mm
     tab_cutout_total = m3d.Manifold.cube(
-        [2 * hw_tab, -bot_y_tab, REAR_POCKET_DEPTH + TAB_RELIEF_DEPTH + 0.02],
+        [2 * hw_tab, tab_deep_len, TAB_RELIEF_DEPTH + 0.02],
         center=False
-    ).translate([-hw_tab, bot_y_tab, -0.01])
+    ).translate([-hw_tab, bot_y_tab, REAR_POCKET_DEPTH - 0.01])
 
     # Preserve two solid cylindrical boss pillars rising from pocket floor up to Z = REAR_POCKET_DEPTH
     boss_pillars = m3d.Manifold()
     for sx in [-1, 1]:
         pillar = m3d.Manifold.cylinder(
-            TAB_RELIEF_DEPTH + 0.03,
+            TAB_RELIEF_DEPTH + 0.04,
             SCREEN_PILLAR_DIA / 2.0,
             SCREEN_PILLAR_DIA / 2.0,
             32
-        ).translate([sx * SCREEN_MOUNT_HOLE_X, SCREEN_MOUNT_HOLE_Y, REAR_POCKET_DEPTH - 0.01])
+        ).translate([sx * SCREEN_MOUNT_HOLE_X, SCREEN_MOUNT_HOLE_Y, REAR_POCKET_DEPTH - 0.02])
         boss_pillars = boss_pillars + pillar
 
     tab_recess_carve = tab_cutout_total - boss_pillars
