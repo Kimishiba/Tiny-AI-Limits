@@ -64,18 +64,17 @@ integrated_bezel_od = 72.00; // Raised circular bezel outer diameter (increased 
 screen_aperture_dia = 54.00; // Central circular viewing aperture at screen retaining lip
 screen_aperture_top = 60.00; // Continuous conical viewing funnel top diameter at ring summit
 
-// --- Direct M2 Screen Tab Clamping & Rising Boss Pillars ---
+// --- Direct M2 Screen Tab Clamping & Monolithic Boss Structure ---
 screen_mount_hole_x = 12.20; // Blueprint 2-R1 mounting hole X offset (+/-12.20mm, 24.4mm pitch)
 screen_mount_hole_y = -31.50;// Blueprint 2-R1 mounting hole Y offset (2.54mm above pin row)
-screen_pillar_dia   = 4.40;  // Reinforced rear mounting boss pillar diameter
-tab_relief_depth    = 1.80;  // Extra relief depth for tab pocket floor (Z = 2.40 to 4.20mm)
 m2_pilot_dia        = 1.70;  // Blind pilot hole for direct M2 plastic tapping (PLA/PETG)
-m2_pilot_depth      = 3.60;  // Deep thread engagement down into pillar (leaves 1.00mm solid front wall)
+m2_pilot_depth      = 3.60;  // Deep thread engagement down into solid front plate (leaves 1.00mm solid front wall)
 
-dupont_front_relief_w = 21.00; // Width of forward pin clearance pocket (centered over pins 2-9, X = +/-10.5mm)
-dupont_front_relief_h = 3.60;  // Height of forward pin clearance pocket (Y = -35.80 to -32.20mm)
-dupont_front_relief_y = -34.00;// Centerline of 10-pin header row
-dupont_front_relief_depth = 2.20; // Depth into front face from rear pocket floor (leaves 2.40mm solid front wall)
+// DuPont Heads & Forward Pin Clearance Cutout (Centered on 10-pin header)
+dupont_cutout_w     = 26.00; // Width of forward pin/connector clearance pocket (covers 10 pins + housing)
+dupont_cutout_h     = 5.40;  // Height of cutout (spanning Y = -38.40 to -33.00mm)
+dupont_cutout_y     = -35.70;// Centerline of DuPont cutout (leaving >= 1.5mm solid wall to screw holes at Y = -31.50mm)
+dupont_cutout_depth = 2.40;  // Depth into front face from rear pocket floor (leaves 2.20mm solid front wall)
 
 // --- Rear Clamp Plate Parameters (Sandwich Architecture - Retained for Compatibility) ---
 clamp_thick         = 1.60;  // Slim 1.6mm intermediate sandwich clamp plate (8 layers at 0.2mm)
@@ -270,32 +269,19 @@ module front_face_plate() {
                 cube([2 * hw_tab, -bot_y_tab, rear_pocket_depth + 0.02]);
         }
 
-        // 5. Deepened Tab Pocket Floor & Clearance Trench (Z = rear_pocket_depth to rear_pocket_depth + tab_relief_depth = 4.20mm)
-        // Confined strictly to Y in [bot_y_tab, -29.20mm] so the circular glass retaining shelf (r = 27..29.92mm)
-        // remains 100% solid and unbroken across all 360°, completely closing any gap into the case!
-        tab_deep_top_y = -29.20;
-        tab_deep_len   = tab_deep_top_y - bot_y_tab; // ~9.01mm (covers Y = -38.21 to -29.20mm)
-        difference() {
-            translate([-hw_tab, bot_y_tab, rear_pocket_depth - 0.01])
-                cube([2 * hw_tab, tab_deep_len, tab_relief_depth + 0.02]);
+        // 5. Dedicated DuPont Heads & Pin Clearance Cutout (Z = rear_pocket_depth to rear_pocket_depth + dupont_cutout_depth)
+        // Recessed 2.40mm into front face (Z = 2.40 to 4.80mm), centered on the 10-pin DuPont header (X = +/-13mm, Y = -38.4 to -33.0mm).
+        // Leaves the entire screw boss region (X = +/-12.2mm, Y >= -33.0mm) 100% solid, massive, and fully anchored to the outer walls
+        // and screen shelf so screw bosses NEVER rip off during printing or assembly!
+        translate([-dupont_cutout_w / 2.0, dupont_cutout_y - dupont_cutout_h / 2.0, rear_pocket_depth - 0.01])
+            cube([dupont_cutout_w, dupont_cutout_h, dupont_cutout_depth + 0.02]);
 
-            // Preserve two solid cylindrical boss pillars rising 1.80mm from pocket floor up to Z = rear_pocket_depth
-            for (sx = [-1, 1]) {
-                translate([sx * screen_mount_hole_x, screen_mount_hole_y, rear_pocket_depth - 0.02])
-                    cylinder(d = screen_pillar_dia, h = tab_relief_depth + 0.04);
-            }
-        }
-
-        // 6. 2x Direct M2 Blind Pilot Holes inside the Rising Boss Pillars (Z = rear_pocket_depth to +3.60mm)
+        // 6. 2x Direct M2 Blind Pilot Holes drilled directly into the Solid Monolithic Boss (Z = rear_pocket_depth to +3.60mm)
+        // Surrounded by massive continuous plastic with zero isolated pegs or fragile moats
         for (sx = [-1, 1]) {
             translate([sx * screen_mount_hole_x, screen_mount_hole_y, rear_pocket_depth - 0.01])
                 cylinder(d = m2_pilot_dia, h = m2_pilot_depth + 0.01);
         }
-
-        // 7. Extra Forward DuPont Pin Clearance Relief Trench (down to Z = 4.60mm)
-        // Accommodates forward-protruding 10-pin header pins/solders with zero front face punch-through
-        translate([-dupont_front_relief_w / 2.0, dupont_front_relief_y - dupont_front_relief_h / 2.0, rear_pocket_depth - 0.01])
-            cube([dupont_front_relief_w, dupont_front_relief_h, dupont_front_relief_depth + 0.01]);
 
         // 7. 4x Symmetrical Outer M3 Mounting Screws (+/-34mm, +/-34mm)
         for (sx = [-1, 1]) {
