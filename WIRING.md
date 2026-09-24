@@ -4,6 +4,10 @@ This guide provides complete visual wiring diagrams and pin mapping references f
 
 ---
 
+> 🌟 **Looking for the 2.1″ GC9B72 360×360 screen wiring?** See [`round 360x360/WIRING.md`](./round%20360x360/WIRING.md).
+
+---
+
 ## 🔘 GC9A01 1.28" Circular IPS Display (SPI)
 
 The GC9A01 circular display communicates over high-speed hardware **SPI**.
